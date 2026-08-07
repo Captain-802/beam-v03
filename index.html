@@ -1,0 +1,195 @@
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Updated BS 5950 PFC / SHS / RHS / UB / UC Beam Calculator</title>
+<link rel="stylesheet" href="css/beam-design.css">
+</head>
+<body>
+<main class="app">
+  <aside class="controls">
+    <h1>BS 5950 PFC / SHS / RHS / UB / UC Beam Calculator</h1>
+    <p class="sub">Solves any single-span beam (cantilever, simply supported, propped, fixed, overhanging) under arbitrary loads by the direct stiffness method, then performs the BS 5950-1:2000 member checks for PFC channels, SHS (hot-finished or cold-formed), RHS (hot-finished), UB universal beams, or UC universal columns. Blue Book section data is built in; every value is editable.</p>
+
+    <div class="buttons">
+      <button type="button" id="printBtn">Print / PDF</button>
+      <button type="button" class="secondary" id="resetBtn">Reset to demo</button>
+      <button type="button" class="secondary" id="view3dBtn" style="grid-column:1 / -1">3D view (new tab)</button>
+    </div>
+
+    <details open>
+      <summary>Design code</summary>
+      <label>Code
+        <select id="code"><option value="BS5950">BS 5950-1:2000</option><option value="EC3">Eurocode 3 (EN 1993-1-1, UK NA)</option></select>
+      </label>
+      <div class="hint" id="codeHint">Switching code changes the cross-section/member-resistance formulas (classification, shear, moment, LTB, buckling). The beam analysis, loads, and combinations are shared.</div>
+    </details>
+
+    <details open>
+      <summary>Section &amp; grade</summary>
+      <label>Section family
+        <select id="family"><option value="pfc">PFC (channel)</option><option value="shs">SHS (square hollow)</option><option value="rhs">RHS (rectangular hollow)</option><option value="ub">UB (universal beam)</option><option value="uc">UC (universal column)</option></select>
+      </label>
+      <div id="shsTypeRow" style="display:none">
+        <label>SHS type
+          <select id="shsType"><option value="HF">Hot-finished (EN 10210)</option><option value="CF">Cold-formed (EN 10219)</option></select>
+        </label>
+      </div>
+      <div id="pfcRow">
+        <label>PFC section <select id="pfcSelect"></select></label>
+        <label class="checkline"><input type="checkbox" id="pfcMirror"> <span>Mirror section (web back on right)</span></label>
+        <div class="hint">Drawing orientation only &mdash; section properties and resistances are identical. The shear centre, self-weight eccentricity, and plate sides follow the mirrored orientation; per-load e is always measured from the shear centre as drawn.</div>
+      </div>
+      <div id="shsRow" style="display:none">
+        <label>SHS section <select id="shsSelect"></select></label>
+      </div>
+      <div id="rhsRow" style="display:none">
+        <label>RHS section <select id="rhsSelect"></select></label>
+      </div>
+      <div id="ubRow" style="display:none">
+        <label>UB section <select id="ubSelect"></select></label>
+      </div>
+      <div id="ucRow" style="display:none">
+        <label>UC section <select id="ucSelect"></select></label>
+      </div>
+      <label>Steel grade
+        <select id="grade"><option>S275</option><option>S355</option><option>S460</option></select>
+      </label>
+      <label>Design strength p<sub>y</sub>, N/mm  <input id="py" type="number" step="1"></label>
+      <div class="hint">Design strength auto-set from grade &amp; flange/wall thickness &mdash; BS EN 10025-2 (P362 Table 5.1: S275 &rarr; 275/265, S355 &rarr; 355/345 for t&le;16 / 16&lt;t&le;40) for EC3; Table 9 for BS 5950. Override if required.</div>
+      <label>Net area A<sub>net</sub>, cm  <input id="anet" type="number" step="0.01"></label>
+      <div class="hint">Leave blank to use gross area (no bolt holes).</div>
+    </details>
+
+    <details open id="platePanel">
+      <summary>Welded bottom plate</summary>
+      <label class="checkline"><input type="checkbox" id="plateOn"> <span>Continuous plate welded to the beam</span></label>
+      <div id="plateFields" style="display:none">
+        <label>Plate position
+          <select id="plateSide"><option value="bottom">Under bottom flange</option><option value="top">On top of top flange</option></select>
+        </label>
+        <div class="grid3">
+          <div class="fld"><span>Thickness, mm</span><input id="plateT" type="number" step="1"></div>
+          <div class="fld"><span>Outstand left, mm</span><input id="plateOutL" type="number" step="5"></div>
+          <div class="fld"><span>Outstand right, mm</span><input id="plateOutR" type="number" step="5"></div>
+        </div>
+        <div class="hint">Continuous plate along the full length, welded to the flange edges (or section edges for SHS/RHS). Outstands are measured beyond each flange tip; 0 = stops at the flange edge. It carries eccentric supported loads (e.g. a wall outside the flange) &mdash; enter those loads with their <b>e</b> in Loads. The plate is <b>not designed</b>; it only adds self-weight, included automatically as Dead (G).</div>
+        <div class="hint live-hint" id="plateHint" style="display:none"></div>
+      </div>
+    </details>
+
+    <details open>
+      <summary>Geometry &amp; supports</summary>
+      <label>Member length L, m <input id="length" type="number" step="0.01"></label>
+      <div class="preset-row">
+        <button type="button" data-preset="cant">Cantilever</button>
+        <button type="button" data-preset="ss">Simply supported</button>
+        <button type="button" data-preset="propped">Propped cantilever</button>
+        <button type="button" data-preset="fixed">Fixed fixed</button>
+      </div>
+      <div class="list" id="supportList"></div>
+      <div class="addbar"><button type="button" id="addSupport">+ Add support</button></div>
+      <div class="hint">Pinned = vertical restraint only. Fixed = vertical + rotational. Position measured from the left end (0&nbsp;m).</div>
+
+      <div style="margin-top:10px;font-size:11px;font-weight:700;color:#374151">Internal hinges (moment releases)</div>
+      <div class="list" id="hingeList"></div>
+      <div class="addbar"><button type="button" id="addHinge">+ Add internal hinge</button></div>
+      <div class="hint">An internal hinge releases the in-plane bending moment (M&nbsp;=&nbsp;0) at that point &mdash; the moment diagram, deflection and elastic critical moment M<sub>cr</sub> all redistribute. The layout must stay stable (e.g. propped / Gerber suspended-span). Lateral and torsional continuity are kept across the hinge; if the physical connection also releases warping or is braced, add that separately in the LTB restraint options.</div>
+    </details>
+
+    <details open>
+      <summary>Loads</summary>
+      <div class="list" id="loadList"></div>
+      <div class="addbar">
+        <button type="button" data-add="point">+ Point</button>
+        <button type="button" data-add="udl">+ UDL</button>
+        <button type="button" data-add="trap">+ Trapezoidal</button>
+        <button type="button" data-add="moment">+ Moment</button>
+        <button type="button" id="addSelfWeight">Self-weight auto</button>
+      </div>
+      <div class="hint">Forces positive <b>downward</b> (kN, kN/m). Moment positive anticlockwise (kN m). Enter <b>characteristic</b> (unfactored) values and tag each load's <b>case</b>   the partial factors come from the Load Combinations below, not from the load itself. Section self-weight is added automatically as Dead (G) from the selected section mass/m.</div>
+      <label class="checkline"><input type="checkbox" id="eccOn"> <span>Load eccentricity</span></label>
+      <div class="hint">When activated, each load row gains its own shear-centre offset <b>e (mm)</b>. In EC3 unrestrained mode each transverse load also gets its own <b>z<sub>g</sub></b> load height above the shear centre. Applied moments act through the shear centre. Automatic self-weight acts through the centroid: e = 0 for doubly symmetric sections, but e = e<sub>sc</sub> for PFC channels.</div>
+    </details>
+
+    <details open>
+      <summary>Load Combinations</summary>
+      <div class="list" id="comboList"></div>
+      <div class="addbar">
+        <button type="button" id="addCombo">+ Add combination</button>
+      </div>
+      <div class="hint">Switch on every combination you want <b>considered in the design</b>. For each ULS combination switched on, the solver finds Shear/Moment everywhere along the member; the worst case from any switched-on combination governs each check (envelope), and the report states which combination governs which check. At least one ULS and one SLS (deflection) combination must be on.</div>
+    </details>
+
+    <details class="compact-details axial-ltb" open>
+      <summary>Axial &amp; lateral-torsional buckling</summary>
+      <div id="restraintRow">
+        <label><span>Restraint</span>
+          <select id="restraint"><option value="full">Fully restrained</option><option value="ltb">Not fully restrained (LTB)</option></select>
+        </label>
+        <div class="hint">Fully restrained: the compression flange is held in position along its length (e.g. by a slab or decking), so lateral&ndash;torsional buckling cannot occur and the design follows the SCI restrained-beam procedure to EN 1993-1-1 (classification &rarr; shear &rarr; shear buckling &rarr; moment &rarr; deflection). Applies to the EC3 code path.</div>
+      </div>
+      <label><span>Axial F, kN</span> <input id="axial" type="number" step="0.001"></label>
+      <div class="hint">Positive = compression, negative = tension. Entered directly as the governing ULS design value   it is <b>not</b> run through the Load Combinations below. Leave 0 for a pure beam.</div>
+      <label><span>Minor-axis moment M<sub>z,Ed</sub>, kN&middot;m</span> <input id="Mz" type="number" step="0.001"></label>
+      <div class="hint">Coincident ULS design moment about the <b>minor (z&ndash;z)</b> axis, entered directly (this solver bends in one plane). Forms the full EC3 biaxial interaction (M<sub>y</sub>/M<sub>N,y</sub>)<sup>&alpha;</sup> + (M<sub>z</sub>/M<sub>N,z</sub>)<sup>&beta;</sup> &le; 1 (cl 6.2.9.1). Leave 0 for uniaxial bending.</div>
+      <label id="leRow"><span>L<sub>E</sub> / L factor</span> <input id="leFactor" type="number" step="0.01"></label>
+      <label id="zaRow"><span>Default z<sub>g</sub>, mm</span> <input id="za" type="number" step="1" placeholder="0"></label>
+      <div class="hint live-hint" id="zaHint"></div>
+      <label id="warpRow"><span>Root warping</span>
+        <select id="rootWarp"><option value="free">Free</option><option value="restrained">Restrained</option></select>
+      </label>
+      <label class="checkline" id="destabRow"><input type="checkbox" id="destab"> <span>Destabilising load &times;1.2 L<sub>E</sub></span></label>
+      <div class="hint">For PFC, this sets both the LTB effective length (Table 13/14) and the strut effective length. For SHS, LTB does not apply (cl 4.3.6.1), so this sets only the strut effective length (Table 22).</div>
+      <div id="bsFactorsRow">
+        <label><span>m<sub>LT</sub> override</span> <input id="mLTo" type="number" step="0.01" placeholder="auto"></label>
+        <label><span>m<sub>x</sub> override</span> <input id="mxo" type="number" step="0.01" placeholder="auto"></label>
+      </div>
+      <div id="ec3FactorsRow" style="display:none">
+        <label><span>C<sub>1</sub> override</span> <input id="C1o" type="number" step="0.01" placeholder="auto"></label>
+        <div class="hint" id="c1Hint">C<sub>1</sub> (moment-gradient factor for LTB) is computed from the official end-moment-gradient table where that case applies. For transverse-load or combined cases, the safe default C<sub>1</sub>=1.0 is used unless you override it with a verified value (e.g. from LTBeam or other software).</div>
+      </div>
+    </details>
+
+    <details>
+      <summary>Deflection &amp; advanced</summary>
+      <label>Deflection limit span/ <input id="divisor" type="number" step="1"></label>
+      <label>E, N/mm  <input id="E" type="number" step="1000"></label>
+      <label>K<sub>e</sub> (effective area) <input id="Ke" type="number" step="0.05" placeholder="auto"></label>
+      <div id="robRow">
+      <label>Robertson const., x-x (major) <input id="robertsonX" type="number" step="0.5"></label>
+      <label>Robertson const., y-y (minor) <input id="robertsonY" type="number" step="0.5"></label>
+      <div class="hint">Defaults: E = 205 000 for BS 5950 and 210 000 for EC3. K<sub>e</sub> = 1.2 / 1.1 / 1.0 for S275 / S355 / S460. Robertson constant (Table 23/24) auto-selects per axis: SHS hot-finished a=2.0/2.0, cold-formed a=5.5/5.5 (both axes, by symmetry); UB rolled I-section a=2.0/3.5 (curve a/b) for flange =40&nbsp;mm, a=3.5/5.5 (curve b/c) over 40&nbsp;mm; UC rolled H-section a=3.5/5.5 (curve b/c) for flange =40&nbsp;mm, a=5.5/8.0 (curve c/d) over 40&nbsp;mm   one curve lower than UB at the same thickness; PFC defaults to a=5.5/5.5   channels properly sit under Table 25, not these generic curves, so override if you have a precise value.</div>
+      </div>
+    </details>
+  </aside>
+
+  <section class="sheet-wrap">
+    <article class="report" id="report"><!-- rendered by JS --></article>
+  </section>
+</main>
+
+  <script src="js/01-computation-engine.js"></script>
+  <script src="js/sections/pfc-section-data.js"></script>
+  <script src="js/sections/shs-section-data.js"></script>
+  <script src="js/sections/rhs-section-data.js"></script>
+  <script src="js/sections/ub-section-data.js"></script>
+  <script src="js/sections/uc-section-data.js"></script>
+  <script src="js/02-section-data.js"></script>
+  <script src="js/03-state-ui.js"></script>
+  <script src="js/04-checks.js"></script>
+  <script src="js/checks/bs5950-checks.js"></script>
+  <script src="js/checks/eurocode-checks.js"></script>
+  <script src="js/05-diagrams.js"></script>
+  <script src="js/05-section-view.js"></script>
+  <script src="js/05-view3d.js"></script>
+  <script src="js/06-render.js"></script>
+  <script src="js/07-wiring.js"></script>
+  <script src="js/08-mcr-eigen-patch.js"></script>
+  <script src="js/09-startup.js"></script>
+</body>
+</html>

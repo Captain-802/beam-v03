@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beam Design Editing Guide</title>
+<style>
+  body{
+    margin:0;
+    padding:28px;
+    font-family:Arial,Helvetica,sans-serif;
+    color:#111827;
+    background:#f4f6f8;
+  }
+  main{
+    max-width:1180px;
+    margin:0 auto;
+    background:#fff;
+    border:1px solid #d6dbe4;
+    border-radius:8px;
+    padding:22px;
+    box-shadow:0 8px 22px rgba(0,0,0,.08);
+  }
+  h1{margin:0 0 6px; font-size:24px;}
+  h2{margin:24px 0 10px; font-size:19px;}
+  h3{margin:0 0 8px; font-size:15px;}
+  p{margin:0 0 18px; color:#4b5563; line-height:1.5;}
+  ul{margin:0; padding-left:20px; color:#374151; line-height:1.5;}
+  li{margin:0 0 8px;}
+  table{width:100%; border-collapse:collapse; font-size:14px;}
+  th,td{border:1px solid #d6dbe4; padding:10px 12px; text-align:left; vertical-align:top;}
+  th{background:#eef2f7; font-size:12px; text-transform:uppercase; letter-spacing:.04em;}
+  code,a{font-family:Consolas,"Courier New",monospace;}
+  a{color:#1d4ed8; text-decoration:none; font-weight:700;}
+  a:hover{text-decoration:underline;}
+  .doc-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:12px;}
+  .doc-card{border:1px solid #d6dbe4; border-radius:8px; padding:14px; background:#fafbfc;}
+  .doc-card p{margin-bottom:10px; color:#374151;}
+  .note{
+    margin-top:18px;
+    padding:12px 14px;
+    background:#fff8e6;
+    border:1px solid #ead18a;
+    border-radius:6px;
+    color:#5f4300;
+    font-size:13px;
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>Beam Design Editing Guide</h1>
+  <p>Use this table to decide which small file to send or edit. Keep <code>index.html</code> as the app shell and change logic in the matching JavaScript file.</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>If you want to edit</th>
+        <th>Edit this file</th>
+        <th>What lives there</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Colours, fonts, spacing, print layout, mobile layout, report styling</td>
+        <td><a href="css/beam-design.css">css/beam-design.css</a></td>
+        <td>All visual styling only. No calculation logic.</td>
+      </tr>
+      <tr>
+        <td>Static page structure, left panel headings, fixed input rows, script order</td>
+        <td><a href="index.html">index.html</a></td>
+        <td>The HTML shell. Do not put calculation code here.</td>
+      </tr>
+      <tr>
+        <td>Beam analysis engine: reactions, shear, moment, deflection, stiffness solver</td>
+        <td><a href="js/01-computation-engine.js">js/01-computation-engine.js</a></td>
+        <td>Core structural analysis functions and older helper formulas.</td>
+      </tr>
+      <tr>
+        <td>Common section logic: selected family normalisation, grade strengths, self-weight, P385 helper functions</td>
+        <td><a href="js/02-section-data.js">js/02-section-data.js</a></td>
+        <td>Shared helpers only. Family tables now live in the files below.</td>
+      </tr>
+      <tr>
+        <td>PFC channel section data or PFC P385 torsion properties</td>
+        <td><a href="js/sections/pfc-section-data.js">js/sections/pfc-section-data.js</a></td>
+        <td>PFC Blue Book table, PFC map, and <code>TP385_PFC</code>.</td>
+      </tr>
+      <tr>
+        <td>SHS section data or SHS P385 torsion properties</td>
+        <td><a href="js/sections/shs-section-data.js">js/sections/shs-section-data.js</a></td>
+        <td>Hot-finished and cold-formed SHS tables, maps, and <code>TP385_SHS</code>.</td>
+      </tr>
+      <tr>
+        <td>RHS section data or RHS P385 torsion properties</td>
+        <td><a href="js/sections/rhs-section-data.js">js/sections/rhs-section-data.js</a></td>
+        <td>RHS Blue Book table, RHS map, and <code>TP385_RHS</code>.</td>
+      </tr>
+      <tr>
+        <td>UB section data or UB P385 torsion properties</td>
+        <td><a href="js/sections/ub-section-data.js">js/sections/ub-section-data.js</a></td>
+        <td>UB Blue Book table, UB map, and <code>TP385_UB</code>.</td>
+      </tr>
+      <tr>
+        <td>UC section data or UC P385 torsion properties</td>
+        <td><a href="js/sections/uc-section-data.js">js/sections/uc-section-data.js</a></td>
+        <td>UC Blue Book table, UC map, and <code>TP385_UC</code>.</td>
+      </tr>
+      <tr>
+        <td>Default example, app state, support rows, load rows, load combinations, input syncing</td>
+        <td><a href="js/03-state-ui.js">js/03-state-ui.js</a></td>
+        <td>The <code>S</code> state object, default beam setup, and dynamic controls for supports, loads, and combinations.</td>
+      </tr>
+      <tr>
+        <td>Shared analysis runner, load combinations, validation, envelopes, torsion analysis, standards dispatcher</td>
+        <td><a href="js/04-checks.js">js/04-checks.js</a></td>
+        <td>Use this when the result setup is wrong before either design standard is applied.</td>
+      </tr>
+      <tr>
+        <td>BS 5950 checks, BS classification, BS shear, bending, axial, buckling, BS LTB</td>
+        <td><a href="js/checks/bs5950-checks.js">js/checks/bs5950-checks.js</a></td>
+        <td>Use this for BS 5950 rule changes only.</td>
+      </tr>
+      <tr>
+        <td>Eurocode 3 checks, EC3 classification, EC3 shear, bending, axial, buckling, EC3 LTB</td>
+        <td><a href="js/checks/eurocode-checks.js">js/checks/eurocode-checks.js</a></td>
+        <td>Use this for EC3 rule changes only. It must load before the Mcr eigen patch.</td>
+      </tr>
+      <tr>
+        <td>Shear force diagram, bending moment diagram, deflection diagram, SVG plotting</td>
+        <td><a href="js/05-diagrams.js">js/05-diagrams.js</a></td>
+        <td>Drawing helpers for report diagrams.</td>
+      </tr>
+      <tr>
+        <td>Cross-section load-line view, shear-centre dot, centroid dot, eccentricity <code>e</code>, load height <code>z_g</code></td>
+        <td><a href="js/05-section-view.js">js/05-section-view.js</a></td>
+        <td>Dedicated SVG engine for the small section view beside the member loading summary.</td>
+      </tr>
+      <tr>
+        <td>Report text, calculation blocks, notes, formulas shown on screen, PASS/FAIL report layout</td>
+        <td><a href="js/06-render.js">js/06-render.js</a></td>
+        <td>Turns calculation results into the visible report. Edit this when numbers are correct but wording/display is wrong.</td>
+      </tr>
+      <tr>
+        <td>Button actions, event listeners, recompute triggers, reset behavior, presets</td>
+        <td><a href="js/07-wiring.js">js/07-wiring.js</a></td>
+        <td>Connects controls to the state and recomputes the report.</td>
+      </tr>
+      <tr>
+        <td>Mcr eigensolver, LTB eigen method, per-load <code>z_g</code> / default <code>za</code>, lateral restraints, patch report block</td>
+        <td><a href="js/08-mcr-eigen-patch.js">js/08-mcr-eigen-patch.js</a></td>
+        <td>The newer FE elastic critical moment engine and its EC3 unrestrained beam override.</td>
+      </tr>
+      <tr>
+        <td>Startup sequence only</td>
+        <td><a href="js/09-startup.js">js/09-startup.js</a></td>
+        <td>Calls <code>syncInputs(); wire(); render();</code>. Rarely needs editing.</td>
+      </tr>
+      <tr>
+        <td>Create one portable HTML file after editing small files</td>
+        <td><a href="build-single-html.ps1">build-single-html.ps1</a></td>
+        <td>Combines the modular source into <code>dist/beam-design-single.html</code>.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="note">
+    Rule of thumb: if the calculated number is wrong, start with the relevant standard file under <code>js/checks/</code> or with <code>js/08-mcr-eigen-patch.js</code>. If the number is right but the report wording is wrong, edit <code>js/06-render.js</code>. If a section property is wrong, edit that family file under <code>js/sections/</code>.
+  </div>
+
+  <h2>Eurocode 3 Engine Notes</h2>
+  <p>
+    The EC3 design is split into two layers. Clause 6.2 cross-section resistance lives in
+    <a href="js/checks/eurocode-checks.js">js/checks/eurocode-checks.js</a>. The EC3 unrestrained
+    beam M<sub>cr</sub> / lateral-torsional buckling override lives in
+    <a href="js/08-mcr-eigen-patch.js">js/08-mcr-eigen-patch.js</a>.
+  </p>
+
+  <div class="doc-grid">
+    <section class="doc-card">
+      <h3>Cross-Section Resistance (EN 1993-1-1, Clause 6.2)</h3>
+      <ul>
+        <li>
+          <b>High shear reduction:</b> the engine checks the
+          <code>0.5V<sub>pl,Rd</sub></code> threshold from Clause 6.2.8. If shear exceeds this,
+          it reduces bending resistance using
+          <code>&rho; = (2V<sub>Ed</sub>/V<sub>pl,Rd</sub> - 1)<sup>2</sup></code>
+          on the web shear area.
+        </li>
+        <li>
+          <b>Coexistent shear and moment:</b> for I-sections, the engine checks shear and moment
+          together along the span, rather than only checking shear at the point of maximum moment.
+          If <code>V<sub>Ed</sub> &gt; V<sub>pl,Rd</sub></code>, the reduced moment formula is
+          bypassed because the section has already failed in pure shear.
+        </li>
+        <li>
+          <b>Axial and bending interaction:</b> for Class 1 and Class 2 sections, it applies the
+          Clause 6.2.9 plastic interaction waivers, including the low axial-force cases where no
+          bending reduction is required.
+        </li>
+        <li>
+          <b>Member buckling display:</b> Clause 6.3.3 Annex B member buckling is only calculated
+          and displayed when <code>N<sub>Ed</sub></code> is compressive. For a pure beam with
+          <code>N<sub>Ed</sub> = 0</code>, the governing strength check remains the Clause 6.2
+          cross-section resistance, so the redundant Annex B interaction rows are suppressed.
+        </li>
+        <li>
+          <b>Serviceability validation:</b> an enabled SLS combination must produce a real load
+          effect from the active loads. If every enabled SLS combination has zero factors for the
+          load cases present, the calculator reports <code>No SLS loads applied</code> instead of
+          showing a misleading <code>0.0 mm</code> deflection at a support.
+        </li>
+        <li>
+          <b>Class limits:</b> Class 4 sections are blocked for PASS because EN 1993-1-5 effective
+          section properties are not implemented.
+        </li>
+      </ul>
+    </section>
+
+    <section class="doc-card">
+      <h3>Areas for Improvement / Limitations</h3>
+      <p>
+        <b>Shear buckling:</b> the engine checks whether the web is susceptible to shear buckling
+        using the EN 1993-1-1 Clause 6.2.6(6) limit,
+        <code>h<sub>w</sub>/t<sub>w</sub> &gt; 72&epsilon;/&eta;</code>.
+        If shear buckling is required, the calculator blocks PASS and reports the check as
+        unsupported. This is safe, but it limits use for deep unstiffened webs and plate-girder
+        type members, where EN 1993-1-5 shear buckling design would be required.
+      </p>
+      <p>
+        <b>Biaxial bending:</b> the engine is primarily built for major-axis beam bending. It does
+        not currently provide a general applied
+        <code>M<sub>y,Ed</sub> + M<sub>z,Ed</sub></code> cross-section interaction check for
+        user-entered biaxial bending. Minor-axis effects are only introduced in limited specialist
+        paths, such as torsion/open-section interaction, rather than as a general biaxial design mode.
+      </p>
+    </section>
+
+    <section class="doc-card">
+      <h3>Torsion (SCI P385 and EN 1993-6)</h3>
+      <ul>
+        <li>
+          <b>Elastic warping analysis:</b> for open sections, the engine implements SCI P385
+          Method B using the P385 torsional properties. It evaluates rotation
+          <code>&phi;</code>, warping moment <code>M<sub>w</sub></code>, induced minor-axis
+          moment <code>M<sub>z</sub></code>, and major-axis moment
+          <code>M<sub>y</sub></code> at stations along the span, then uses the governing
+          coincident combination for the cross-section check.
+        </li>
+        <li>
+          <b>Yield interaction:</b> open-section bending plus torsion is checked using the
+          SCI P385 Section 3.1.2 interaction. In the EC3 unrestrained path, the same effects
+          feed the BS EN 1993-6 Annex A bending-torsion interaction with
+          <code>k<sub>&alpha;</sub></code> amplification.
+        </li>
+        <li>
+          <b>Class-consistent stresses:</b> the code uses plastic resistances for Class 1/2
+          sections and elastic resistances for Class 3 sections under combined torsion. This
+          avoids the unconservative Class 3 result that can occur if plastic flange/minor-axis
+          resistances are used, and matches the validation note against the independent commercial-software
+          warping-torsion example.
+        </li>
+      </ul>
+    </section>
+
+    <section class="doc-card">
+      <h3>Closed Sections and LTB</h3>
+      <p>
+        SHS and RHS members are treated as closed hollow sections for major-axis beam bending.
+        EN 1993-1-1 Clause 6.3.2.1(2) says these sections are not susceptible to lateral-torsional
+        buckling, so the FEM <code>M<sub>cr</sub></code> eigensolver is skipped and
+        <code>M<sub>b,Rd</sub> = M<sub>c,Rd</sub></code> is reported directly.
+      </p>
+    </section>
+  </div>
+</main>
+</body>
+</html>
