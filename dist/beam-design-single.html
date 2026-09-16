@@ -6,7 +6,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Updated BS 5950 PFC / SHS / RHS / UB / UC Beam Calculator</title>
+<title>Steel Beam Designer — Eurocode 3 / BS 5950</title>
 <style>
 :root{
     --ink:#111; --line:#222; --muted:#555; --paper:#fffdf8; --panel:#f4f5f7;
@@ -166,7 +166,7 @@
 <body>
 <main class="app">
   <aside class="controls">
-    <h1>BS 5950 PFC / SHS / RHS / UB / UC Beam Calculator</h1>
+    <h1>Steel Beam Designer — Eurocode 3 / BS 5950</h1>
     <p class="sub">Solves any single-span beam (cantilever, simply supported, propped, fixed, overhanging) under arbitrary loads by the direct stiffness method, then performs the BS 5950-1:2000 member checks for PFC channels, SHS (hot-finished or cold-formed), RHS (hot-finished), UB universal beams, or UC universal columns. Blue Book section data is built in; every value is editable.</p>
 
     <div class="buttons">
@@ -333,15 +333,23 @@
    Units throughout the solver: mm, N, N mm, N/mm.  Up = positive.
    =========================================================================== */
 function linsolve(A,b){
-  const n=b.length, M=A.map((r,i)=>r.slice().concat([b[i]]));
-  for(let c=0;c<n;c++){
-    let p=c; for(let r=c+1;r<n;r++) if(Math.abs(M[r][c])>Math.abs(M[p][c])) p=r;
-    [M[c],M[p]]=[M[p],M[c]];
-    const piv=M[c][c];
-    for(let r=0;r<n;r++){ if(r===c) continue; const f=M[r][c]/piv;
-      for(let k=c;k<=n;k++) M[r][k]-=f*M[c][k]; }
+  // Both callers solve restrained, symmetric stiffness matrices. Diagonal
+  // scaling removes the translation/rotation unit disparity; Cholesky then
+  // detects mechanisms, including hinge layouts that pass a restraint count.
+  const n=b.length, scale=A.map((r,i)=>Math.sqrt(r[i]));
+  const fail=()=>{ throw new Error('Singular or unstable stiffness matrix (mechanism or numerically ill-conditioned layout). Check supports, hinges and closely spaced nodes.'); };
+  if(scale.some(s=>!Number.isFinite(s)||s<=0)||b.some(v=>!Number.isFinite(v))) fail();
+  const C=Array.from({length:n},()=>new Float64Array(n));
+  for(let i=0;i<n;i++) for(let j=0;j<=i;j++){
+    let v=A[i][j]/scale[i]/scale[j];
+    for(let k=0;k<j;k++) v-=C[i][k]*C[j][k];
+    if(i===j){ if(!Number.isFinite(v)||v<=1e-12) fail(); C[i][j]=Math.sqrt(v); }
+    else C[i][j]=v/C[j][j];
   }
-  const x=new Array(n); for(let i=0;i<n;i++) x[i]=M[i][n]/M[i][i]; return x;
+  const y=new Float64Array(n), z=new Float64Array(n);
+  for(let i=0;i<n;i++){ let v=b[i]/scale[i]; for(let j=0;j<i;j++) v-=C[i][j]*y[j]; y[i]=v/C[i][i]; }
+  for(let i=n-1;i>=0;i--){ let v=y[i]; for(let j=i+1;j<n;j++) v-=C[j][i]*z[j]; z[i]=v/C[i][i]; }
+  return Array.from(z,(v,i)=>v/scale[i]);
 }
 function buildNodes(L,supports,loads,nSub,extra){
   const pts=new Set([0,L]);
@@ -359,6 +367,24 @@ function buildNodes(L,supports,loads,nSub,extra){
   return nodes;
 }
 function solveBeam(L,EI,supports,loads,nSub=120,hinges){
+  // A zero-energy displacement is piecewise linear across moment releases.
+  // Check its restraint matrix directly: finite round-off in a large FE matrix
+  // can otherwise disguise an exact mechanism as a very flexible stable beam.
+  const releases=[...new Set((hinges||[]).filter(x=>x>0&&x<L))].sort((a,b)=>a-b);
+  const basis=x=>[1,x/L,...releases.map(h=>Math.max(0,(x-h)/L))];
+  const rows=[];
+  supports.forEach(s=>{ rows.push(basis(s.pos)); if(s.type==='fixed') rows.push([0,1,...releases.map(h=>s.pos>h?1:0)]); });
+  let rank=0;
+  for(let col=0;col<releases.length+2;col++){
+    let pivot=rank;
+    for(let j=rank;j<rows.length;j++) if(Math.abs(rows[j][col])>Math.abs(rows[pivot][col])) pivot=j;
+    if(pivot>=rows.length||Math.abs(rows[pivot][col])<1e-10) continue;
+    [rows[rank],rows[pivot]]=[rows[pivot],rows[rank]];
+    const div=rows[rank][col]; rows[rank]=rows[rank].map(v=>v/div);
+    for(let j=rank+1;j<rows.length;j++){ const v=rows[j][col]; for(let k=col;k<rows[j].length;k++) rows[j][k]-=v*rows[rank][k]; }
+    rank++;
+  }
+  if(rank<releases.length+2) throw new Error('Unstable beam mechanism: supports do not restrain every segment separated by internal hinges.');
   // Internal hinges = major-axis (in-plane) MOMENT RELEASES. At a hinge node the
   // two adjacent elements get INDEPENDENT rotation DOFs (sharing the translation),
   // so the transmitted bending moment is zero and the slope is discontinuous; the
@@ -537,6 +563,10 @@ function classifyEC3(sec,eps,opt){
     const l2 = alphaW>0.5? 456/(13*alphaW-1) : 41.5/alphaW;
     const l3 = psiW>-1? 42/(0.67+0.33*psiW) : 62*(1-psiW)*Math.sqrt(-psiW);
     wlim=[l1,l2,l3]; webCase='bending+compression';
+  }
+  if(opt&&opt.minorBending){
+    // Conservative bound for webs compressed by minor-axis bending.
+    wlim=[33,38,42]; webCase='biaxial: uniform-compression web bound';
   }
   const fc = sec.bT<=flim[0]*eps?1:sec.bT<=flim[1]*eps?2:sec.bT<=flim[2]*eps?3:4;
   const wc = sec.dt<=wlim[0]*eps?1:sec.dt<=wlim[1]*eps?2:sec.dt<=wlim[2]*eps?3:4;
@@ -1305,6 +1335,9 @@ const TP385_UC={"356 x 406 x 634":[13700,0.86,38.8,421,34400],"356 x 406 x 551":
 // Note: P385 IT for open sections includes the Appendix B junction correction,
 // so it can differ slightly from the Blue Book value stored in the main tables.
 function tp385For(family,key){
+  // P385 A.7 contains 3.2/3.6/6.3 mm walls, not the 3.0/3.5/6.0 mm
+  // aliases previously added to this table. Never borrow a thicker wall's Wt.
+  if(family==='shs' && (S.shsType==='CF'||[3,3.5,6].includes(Number(key.split('x').at(-1))))) return null;
   const m=family==='ub'?TP385_UB:family==='uc'?TP385_UC:family==='pfc'?TP385_PFC:family==='shs'?TP385_SHS:family==='rhs'?TP385_RHS:null;
   const r=m&&m[key]; if(!r) return null;
   if(family==='pfc') return {IT:r[0],a:r[1],Iw:r[2],Wn0:r[3],Wn2:r[4],Sw1:r[5],Sw2:r[6],Sw3:r[7],e0:r[8],esc:r[9]};
@@ -1316,8 +1349,11 @@ function activeSectionBase(){
   if(S.family==='shs'){
     const map = S.shsType==='CF'? SHS_CFmap : SHS_HFmap;
     const s = map[S.shsKey] || Object.values(map)[0];
-    return {key:s.key, mass:s.mass, D:s.D, B:s.D, tw:s.t, tf:s.t, r:0, d:s.dt*s.t,
-      bT:s.dt, dt:s.dt, Ix:s.I, Iy:s.I, rx:s.r, ry:s.r, Zx:s.Z, Zy:s.Z, Sx:s.S, Sy:s.S,
+    // SCI P363: c = h - 3t for EC3 local buckling, including cold-formed SHS.
+    // The legacy BS table stores h - 5t for cold-formed SHS.
+    const ratio=S.code==='EC3'? (s.D-3*s.t)/s.t : s.dt;
+    return {key:s.key, mass:s.mass, D:s.D, B:s.D, tw:s.t, tf:s.t, r:0, d:ratio*s.t,
+      bT:ratio, dt:ratio, Ix:s.I, Iy:s.I, rx:s.r, ry:s.r, Zx:s.Z, Zy:s.Z, Sx:s.S, Sy:s.S,
       u:null, x:null, J:s.J, A:s.A, isBox:true, boxType:S.shsType, kind:'box'};
   }
   if(S.family==='rhs'){
@@ -1509,6 +1545,20 @@ const DEMO={
   plate:{on:false, side:'bottom', t:10, outL:0, outR:150}
 };
 let S=JSON.parse(JSON.stringify(DEMO));
+function setDesignCode(code){
+  const from=S.code;
+  if(from===code) return;
+  const old=from==='EC3'? [1.35,1.5] : [1.4,1.6];
+  const next=code==='EC3'? [1.35,1.5] : [1.4,1.6];
+  S.combos.forEach(c=>{
+    if(c.id==='c1'&&!c.sls&&c.factors.G===old[0]&&c.factors.Q===old[1]&&c.factors.W===0&&c.factors.E===0){
+      c.factors.G=next[0];c.factors.Q=next[1];
+      c.label=`ULS: ${next[0]}G + ${next[1]}Q (${code==='EC3'?'Eq 6.10':'BS 5950'})`;
+    }
+  });
+  S.code=code;
+  if(S.E===205000||S.E===210000) S.E=code==='EC3'?210000:205000;
+}
 const $=id=>document.getElementById(id);
 
 /* ---- welded bottom plate UI (modelling + self-weight only) ---- */
@@ -1590,7 +1640,7 @@ function renderSupportList(){
   });
   c.querySelectorAll("[data-sp]").forEach(el=>el.addEventListener("input",e=>{
     const i=+e.target.dataset.i, k=e.target.dataset.sp;
-    S.supports[i][k]= k==='pos'? parseFloat(e.target.value)||0 : e.target.value; recompute();
+    S.supports[i][k]= k==='pos'? parseFloat(e.target.value) : e.target.value; recompute();
   }));
   c.querySelectorAll("[data-spc]").forEach(el=>el.addEventListener("change",e=>{
     const i=+e.target.dataset.i, k=e.target.dataset.spc;
@@ -1613,7 +1663,7 @@ function renderHingeList(){
     c.appendChild(row);
   });
   c.querySelectorAll("[data-hp]").forEach(el=>el.addEventListener("input",e=>{
-    S.hinges[+e.target.dataset.hp].pos=parseFloat(e.target.value)||0; recompute(); }));
+    S.hinges[+e.target.dataset.hp].pos=parseFloat(e.target.value); recompute(); }));
   c.querySelectorAll(".del").forEach(b=>b.addEventListener("click",e=>{
     S.hinges.splice(+e.target.dataset.hi,1); renderHingeList(); recompute(); }));
 }
@@ -1648,7 +1698,7 @@ function renderLoadList(){
   });
   c.querySelectorAll("[data-ld]").forEach(el=>el.addEventListener(el.tagName==='SELECT'?"change":"input",e=>{
     const i=+e.target.dataset.i,k=e.target.dataset.ld;
-    S.loads[i][k]= k==='case'? e.target.value : (parseFloat(e.target.value)||0);
+    S.loads[i][k]= k==='case'? e.target.value : parseFloat(e.target.value);
     recompute();
   }));
   c.querySelectorAll("[data-lt]").forEach(sel=>sel.addEventListener("change",e=>{
@@ -1690,7 +1740,7 @@ function renderComboList(){
     S.combos[+e.target.dataset.clabel].label=e.target.value; recompute(); }));
   c.querySelectorAll("[data-cf]").forEach(el=>el.addEventListener("input",e=>{
     const i=+e.target.dataset.ci, cs=e.target.dataset.cf;
-    S.combos[i].factors[cs]=parseFloat(e.target.value)||0;
+    S.combos[i].factors[cs]=parseFloat(e.target.value);
     // the combination name always reflects the live factors; editing a factor
     // regenerates it (a hand-typed name lasts until the next factor edit)
     S.combos[i].label=comboLabelFromFactors(S.combos[i]);
@@ -1785,7 +1835,7 @@ function comboLoads(combo){
     if(ld.type==='trap') return {type:'udl',x1:(+ld.x1)*1000,x2:(+ld.x2)*1000,w1:-(ld.w1||0)*factor,w2:-(ld.w2||0)*factor};
   });
   const sw=selfWeightValue(activeSection()), gFactor=combo.factors.G ?? 0;
-  if(gFactor>0){
+  if(gFactor!==0){
     loads.push({type:'udl',x1:0,x2:S.L*1000,w1:-sw*gFactor,w2:-sw*gFactor,isAutoSelfWeight:true});
   }
   return loads;
@@ -1804,15 +1854,22 @@ function comboHasServiceLoad(combo){
 }
 function validateInputs(py,E,ulsCombos,slsCombos){
   const errs=[];
-  const finite=(v)=>Number.isFinite(+v);
+  const finite=(v)=>v!==null && v!=='' && Number.isFinite(+v);
   const inSpan=(x)=>finite(x) && +x>=-1e-9 && +x<=S.L+1e-9;
   if(!(finite(S.L) && S.L>0)) errs.push("Member length L must be greater than 0.");
   if(!(finite(py) && py>0)) errs.push("Design strength must be greater than 0.");
   if(!(finite(E) && E>0)) errs.push("E must be greater than 0.");
   if(!(finite(S.divisor) && S.divisor>0)) errs.push("Deflection divisor must be greater than 0.");
   if(!(finite(S.leFactor) && S.leFactor>0)) errs.push("Effective length factor must be greater than 0.");
+  ['axial','Mz','za'].forEach(k=>{ if(!finite(S[k])) errs.push(`${k} must be a finite number.`); });
+  const area=activeSection().A;
+  if(S.anet!=null && !(finite(S.anet)&&S.anet>0&&S.anet<=area)) errs.push('Net area must be greater than zero and no greater than the gross area.');
+  ['Ke','robX','robY','C1o'].forEach(k=>{ if(S[k]!=null && !(finite(S[k])&&S[k]>0)) errs.push(`${k} override must be greater than zero.`); });
+  [['mLTo',0.44],['mxo',0.4]].forEach(([k,min])=>{ if(S[k]!=null && !(finite(S[k])&&S[k]>=min&&S[k]<=1)) errs.push(`${k} override must be between ${min} and 1.`); });
+  if(S.mLTo!=null && (S.destab || (S.supports.length===1&&S.supports[0].type==='fixed')) && S.mLTo!==1) errs.push('mLT must be 1 for cantilevers and destabilising loading.');
   const seenSupports=new Set();
   S.supports.forEach((sp,i)=>{
+    if(!['pinned','fixed'].includes(sp.type)) errs.push(`Support ${i+1} has an unknown restraint type.`);
     if(!inSpan(sp.pos)) errs.push(`Support ${i+1} position must be within 0 to ${S.L} m.`);
     const key=(+sp.pos).toFixed(6);
     if(seenSupports.has(key)) errs.push(`Duplicate supports at ${g(+sp.pos,3)} m are not allowed; combine them into one support.`);
@@ -1821,10 +1878,11 @@ function validateInputs(py,E,ulsCombos,slsCombos){
   (S.hinges||[]).forEach((h,i)=>{
     if(!inSpan(h.pos)) errs.push(`Internal hinge ${i+1} position must be within 0 to ${S.L} m.`);
     else if(+h.pos<=1e-6 || +h.pos>=S.L-1e-6) errs.push(`Internal hinge ${i+1} must be inside the span, not at an end.`);
-    if(S.supports.some(sp=>Math.abs(+sp.pos-(+h.pos))<1e-6)) errs.push(`Internal hinge ${i+1} coincides with a support; move it away (a support already releases moment if pinned).`);
+    if(S.supports.some(sp=>Math.abs(+sp.pos-(+h.pos))<1e-6)) errs.push(`Internal hinge ${i+1} coincides with a support; this combined release is not supported. A pinned support does not release the internal moment of a continuous beam.`);
   });
   S.loads.forEach((ld,i)=>{
     const tag=`Load ${i+1}`;
+    ['e','zg'].forEach(k=>{ if(ld[k]!=null&&!finite(ld[k])) errs.push(`${tag} ${k} must be a finite number.`); });
     if(!CASE_LABELS[ld.case]) errs.push(`${tag} has an unknown load case.`);
     if(ld.type==='point'){
       if(!inSpan(ld.pos)) errs.push(`${tag} point-load position must be within 0 to ${S.L} m.`);
@@ -1843,6 +1901,10 @@ function validateInputs(py,E,ulsCombos,slsCombos){
     ['G','Q','W','E'].forEach(cs=>{
       if(!finite(combo.factors[cs])) errs.push(`Combination "${combo.label}" has a non-numeric ${cs} factor.`);
     });
+  });
+  S.loads.filter(ld=>!ld.isSelfWeight).forEach((ld,i)=>{
+    const active=ld.type==='point'?Math.abs(ld.P)>0:ld.type==='moment'?Math.abs(ld.M)>0:ld.type==='udl'?Math.abs(ld.w)>0:Math.abs(ld.w1)>0||Math.abs(ld.w2)>0;
+    if(active&&!ulsCombos.some(cb=>Math.abs(cb.factors[ld.case])>1e-12)) errs.push(`Load ${i+1} (${ld.case}) is omitted from every enabled ULS combination.`);
   });
   if(!slsCombos.some(comboHasServiceLoad)){
     errs.push("No SLS loads applied: every enabled SLS combination has zero factors for the active load cases. Enable a non-zero SLS factor for a load case that is present, or add a serviceability load.");
@@ -1909,9 +1971,18 @@ function analyse(){
     const r=solveBeam(L,EI,supportsMM,loads,120,hingesMM);
     if(!r.w.every(Number.isFinite)) throw hingesMM.length? "Under-restrained layout (mechanism): an internal hinge has left part of the beam unrestrained. Add another support (e.g. a propped/Gerber layout) or remove the hinge." : "Under-restrained layout (mechanism). Add a support, or make a support Fixed to prevent rigid-body motion.";
     let dmax=0,dpos=0; r.nodes.forEach((x,i)=>{ if(Math.abs(r.w[i])>Math.abs(dmax)){dmax=r.w[i];dpos=x;} });
-    return {combo,r,dmax,dpos};
+    const points=[...new Set([0,L,...supportsMM.map(s=>s.pos)])].sort((p,q)=>p-q);
+    let deflection=null;
+    for(let j=0;j<points.length-1;j++){
+      const start=points[j],end=points[j+1],span=end-start;
+      let dm=0,dp=start;
+      r.nodes.forEach((x,i)=>{ if(x>=start&&x<=end&&Math.abs(r.w[i])>Math.abs(dm)){dm=r.w[i];dp=x;} });
+      const limit=span/S.divisor, util=Math.abs(dm)/limit;
+      if(!deflection||util>deflection.util) deflection={start,end,span,dmax:dm,dpos:dp,limit,util};
+    }
+    return {combo,r,dmax,dpos,deflection};
   });
-  let governD=slsResults[0]; slsResults.forEach(r=>{ if(Math.abs(r.dmax)>Math.abs(governD.dmax)) governD=r; });
+  let governD=slsResults[0]; slsResults.forEach(r=>{ if(r.deflection.util>governD.deflection.util) governD=r; });
   const dmax=governD.dmax, dpos=governD.dpos;
 
   // ---- torsion from load eccentricity (loads at e from the shear centre) ----
@@ -1986,7 +2057,7 @@ function analyse(){
     const IT=((tp&&tp.IT)? tp.IT : sec.J)*1e4;                     // mm4, P385 App A preferred
     const IwO=(((tp&&tp.Iw!=null)? tp.Iw : sec.Iw)||0)*1e12;       // mm6
     const GItO=81000*IT;
-    const aa=IwO>0? Math.sqrt(210000*IwO/GItO) : 0; // derive a from Iw/IT (3 s.f. tabulated a would desynchronise Mw from phi'')
+    const aa=IwO>0? Math.sqrt(E*IwO/GItO) : 0; // use the same E as the bending analysis
     const endsOK = S.supports.length===2 &&
       Math.min(...S.supports.map(s=>+s.pos))<=1e-6 &&
       Math.abs(Math.max(...S.supports.map(s=>+s.pos))-S.L)<=1e-6;
@@ -2039,16 +2110,38 @@ function analyse(){
   return {sec,py,E,L,Ix,tors,torsO,torsErr,swPerM:sec.mass*9.81/1000,ulsResults,
     Vmax:Vmax/1000, Mmax:Mmax/1e6, Mpos:Mpos/1000,
     Mq:Mq/1e6, Mh:Mh/1e6, Mq3:Mq3/1e6, M24:M24/1e6, M0end:M0end/1e6, MLend:MLend/1e6,
-    dmax, dpos:dpos/1000,
+    dmax, dpos:dpos/1000, deflection:governD.deflection,
     diag:{xs:xs.map(x=>x/1000), V:Venv.map(v=>v/1000), M:Menv.map(m=>m/1e6),
           dx:governD.r.nodes.map(x=>x/1000), dw:governD.r.w},
     reactions, ulsResults, slsResults, governV, governM, governD};
 }
 
 /* Standard-specific check engines live in js/checks/. */
+function analysisForCombination(a,res){
+  const fb=res.fb, L=a.L;
+  let M24=0; fb.xs.forEach((x,i)=>{ if(x>=L/4&&x<=3*L/4) M24=Math.max(M24,Math.abs(fb.M[i])); });
+  return Object.assign({},a,{ulsResults:[res],governM:res,governV:res,
+    Mmax:res.Mmax/1e6,Vmax:res.Vmax/1000,Mpos:res.Mpos/1000,
+    Mq:interpAt(fb.xs,fb.M,L/4)/1e6,Mh:interpAt(fb.xs,fb.M,L/2)/1e6,
+    Mq3:interpAt(fb.xs,fb.M,3*L/4)/1e6,M24:M24/1e6,
+    M0end:interpAt(fb.xs,fb.M,1e-4)/1e6,MLend:interpAt(fb.xs,fb.M,L-1e-4)/1e6});
+}
 function checks(a){
   if(S.code==='EC3') return (S.restraint||'full')==='full'? checksEC3Restrained(a) : checksEC3UnrestrainedSCI(a);
-  return checksBS5950(a);
+  // mLT and mx depend on each diagram; a lower peak moment can govern.
+  const results=a.ulsResults.map(res=>({res,c:checksBS5950(analysisForCombination(a,res))}));
+  const c=checksBS5950(a); // retain envelope quantities for the detailed report
+  c.utils=c.utils.map((u,i)=>{
+    const combo=u.name==='Deflection'?a.governD.combo.label:u.name.startsWith('Shear')?a.governV.combo.label:a.ulsResults.length===1?a.governM.combo.label:'envelope';
+    let worst={...u,combo};
+    results.forEach(r=>{ const v=r.c.utils[i]; if(v&&v.val>worst.val) worst={...v,combo:r.res.combo.label}; });
+    return worst;
+  });
+  c.unsupported=[...new Set(c.unsupported.concat(...results.map(r=>r.c.unsupported)))];
+  c.gov=c.utils.reduce((p,u)=>u.val>p.val?u:p);
+  c.pass=c.unsupported.length===0&&c.utils.every(u=>Number.isFinite(u.val)&&u.val>=0&&u.val<=1.0001);
+  c.combinationChecks=results.map(r=>({combo:r.res.combo.label,utils:r.c.utils}));
+  return c;
 }
 
 function checksBS5950(a){
@@ -2058,6 +2151,7 @@ function checksBS5950(a){
   const eps=Math.sqrt(275/py);
   const Ag=sec.A*1e2;
   const F=S.axial||0, Fc0=Math.max(F,0);
+  if(Math.abs(S.Mz||0)>1e-9) unsupported.push('BS 5950 minor-axis bending and biaxial interaction are not implemented. The entered minor-axis moment cannot be ignored; PASS is blocked.');
   // BS 5950-1:2000 Figure 5 flange outstand: rolled I/H  b = B/2; channel  b = B
   // (the FULL flange width). The section tables store the EC3 ratio
   // c/t = ((B - tw - 2r)/2)/tf, which is SMALLER and would misclassify near the
@@ -2129,7 +2223,8 @@ function checksBS5950(a){
       Srx=Math.max(0, Zx*(1-n));
     }
   }
-  const Mrx=(cl.cls<=2? Math.min(py*Srx, 1.2*py*Zx) : py*Srx)/1e6;
+  const Mrx=Math.max(0,Math.min(Mcx,(cl.cls<=2? Math.min(py*Srx, 1.2*py*Zx) : py*Srx)/1e6));
+  if(Math.abs(F)>1e-9&&!lowShear) unsupported.push('BS 5950 combined high shear, axial force and bending requires the web interaction check in clause 4.8; this is not implemented. PASS is blocked.');
   const Mx=Math.abs(a.Mmax);
   // zero/negative reduced capacity with a coexistent moment must read as a
   // failure, not util = 0 (n >= 1 zeroes the Class 3 elastic basis)
@@ -2185,8 +2280,8 @@ function checksBS5950(a){
   const u1=Fc/Pc + mx*Mx/pyZx;
   const u2=Fc/Pcy + mLT*Mx/Mb;
   // deflection
-  const span=a.L, divisor=S.divisor||360, dlimit=span/divisor;
-  const dmax=Math.abs(a.dmax), defOk=dmax<=dlimit;
+  const span=a.deflection?a.deflection.span:a.L, divisor=S.divisor, dlimit=span/divisor;
+  const dmax=Math.abs(a.deflection?a.deflection.dmax:a.dmax), defOk=dmax<=dlimit;
 
   if(S.eccOn && S.loads.some(ld=>Math.abs(ld.e||0)>1e-9)) unsupported.push("Load eccentricity / torsion design is implemented for the EC3 code path only; switch Design code to EC3.");
   const utils=[
@@ -2197,6 +2292,7 @@ function checksBS5950(a){
     {name:"Buckling (LTB interaction)",val:u2},
     {name:"Deflection",val:dmax/dlimit},
   ];
+  if(Math.abs(F)>1e-9) utils.push({name:F<0?'Tension  Ft/Pt':'Compression cross-section  Fc/(Ag.py)',val:Math.abs(F)/(F<0?Pz:Ag*py/1000)});
   let gov=utils[0]; utils.forEach(u=>{ if(u.val>gov.val) gov=u; });
   const pass=unsupported.length===0 && utils.every(u=>u.val<=1.0001);
 
@@ -2318,8 +2414,8 @@ function checksEC3(a){
   const u1=ny + kyy*Mx/Math.max(McRdLT,1e-9);          // y-y (in-plane) interaction, Eq 6.61
   const u2=nz + kzy*Mx/Math.max(McRdLT,1e-9);          // z-z (out-of-plane) interaction, Eq 6.62
 
-  const span=a.L, divisor=S.divisor||360, dlimit=span/divisor;
-  const dmax=Math.abs(a.dmax), defOk=dmax<=dlimit;
+  const span=a.deflection?a.deflection.span:a.L, divisor=S.divisor, dlimit=span/divisor;
+  const dmax=Math.abs(a.deflection?a.deflection.dmax:a.dmax), defOk=dmax<=dlimit;
 
   const utils=[
     {name:"Shear  Ved/Vpl,Rd",val:Fv/VplRd},
@@ -2347,22 +2443,29 @@ function cmTableB3(a){
   const Mm=Math.abs(a.Mmax);
   if(Mm<1e-9) return {Cm:1.0,label:'negligible moment'};
   const fb=a.governM.fb, L=a.L;
-  const M0=interpAt(fb.xs,fb.M,0)/1e6, ML=interpAt(fb.xs,fb.M,L)/1e6;
+  const M0=interpAt(fb.xs,fb.M,1e-4)/1e6, ML=interpAt(fb.xs,fb.M,L-1e-4)/1e6;
   const Ms=interpAt(fb.xs,fb.M,L/2)/1e6;
   const gfac=a.governM.combo.factors;
-  let hasDist=(gfac.G??0)>0, hasConc=false;   // auto self-weight is distributed
+  let hasDist=Math.abs(gfac.G??0)>0, hasConc=false;   // auto self-weight is distributed
   S.loads.forEach(ld=>{ if(ld.isSelfWeight) return; const f=gfac[ld.case]??0; if(!f) return;
     if(ld.type==='point') hasConc=true; else if(ld.type==='udl'||ld.type==='trap') hasDist=true; });
   // 'linear end-moment diagram' means the BMD is actually a straight line
-  // between the ends (no transverse-load curvature) - test the midspan value
-  // against the chord, NOT just the end magnitudes (a cantilever's Mmax sits
+  // between the ends (no transverse-load curvature) - test every grid value
+  // against the chord, not just the midpoint (a cantilever's Mmax sits
   // at the end but its diagram is far from linear; Table B.3 alpha_s applies).
-  const isLinear=Math.abs(Ms-(M0+ML)/2)<=0.02*Mm;
+  const isLinear=fb.xs.every((x,i)=>x<1e-4||x>L-1e-4||Math.abs(fb.M[i]/1e6-(M0+(ML-M0)*x/L))<=1e-5*Mm);
   if(isLinear){
     const Mh2=Math.abs(M0)>=Math.abs(ML)? M0:ML, Mo2=Math.abs(M0)>=Math.abs(ML)? ML:M0;
     const psi=Math.max(-1,Math.min(1,Mo2/(Mh2||1e-9)));
     return {Cm:Math.max(0.6+0.4*psi,0.4),label:'linear end-moment diagram, &psi; = '+psi.toFixed(2)};
   }
+  // Table B.3's transverse-load diagrams do not describe arbitrary partial,
+  // multiple, reversing or multi-span loads. No beneficial Cm is inferred
+  // from a single midpoint for those layouts.
+  const active=S.loads.filter(ld=>!ld.isSelfWeight&&Math.abs(gfac[ld.case]||0)>1e-12);
+  const simpleSpan=S.supports.length===2&&Math.min(...S.supports.map(s=>+s.pos))===0&&Math.max(...S.supports.map(s=>+s.pos))===S.L&&!(S.hinges||[]).length;
+  const canonical=active.every(ld=>ld.type==='udl'&&+ld.x1===0&&+ld.x2===S.L||(ld.type==='point'&&Math.abs(+ld.pos-S.L/2)<1e-9));
+  if(!simpleSpan||!canonical||(hasDist&&hasConc)) return {Cm:1,label:'C_m = 1: arbitrary or mixed moment diagram; no Table B.3 reduction assumed'};
   const Mh=Math.abs(M0)>=Math.abs(ML)? M0:ML;
   const Mo=Math.abs(M0)>=Math.abs(ML)? ML:M0;
   const psi=Math.abs(Mh)>1e-9? Math.max(-1,Math.min(1,Mo/Mh)) : 1;
@@ -2414,6 +2517,10 @@ function lcrZFromRestraints(a){
   return gmax>1e-6? gmax : null;
 }
 function annexB2(a,sec,fy,cl,MbRdI,useB1,isCant){
+  if(a.ulsResults&&a.ulsResults.length>1){
+    const rows=a.ulsResults.map(res=>({...annexB2(analysisForCombination(a,res),sec,fy,cl,MbRdI,useB1,isCant),combo:res.combo.label}));
+    return rows.reduce((p,r)=>Math.max(r.u1,r.u2)>Math.max(p.u1,p.u2)?r:p);
+  }
   const gM1=1.0, E=a.E;
   const Fc=Math.max(S.axial||0,0);
   const Ag=sec.A*1e2;
@@ -2461,7 +2568,7 @@ function annexB2(a,sec,fy,cl,MbRdI,useB1,isCant){
   const mzTerm = MzEd>1e-9 ? MzEd/Mcz : 0;                            // Mz,Ed / Mc,z,Rd
   const u1=ny + kyy*Mx/Mrd + kyz*mzTerm;           // Eq 6.61
   const u2=nz + kzy*Mx/Mrd + kzz*mzTerm;           // Eq 6.62
-  return {Fc,Lcr,LcrY,LcrZ,lczFromRestraints,lam1,lamY,lamZ,cvY,cvZ,chiY,chiZ,NbY,NbZ,ny,nz,
+  return {Fc,Mx,Lcr,LcrY,LcrZ,lczFromRestraints,lam1,lamY,lamZ,cvY,cvZ,chiY,chiZ,NbY,NbZ,ny,nz,
     Cmy,Cmz,CmLT,cmLabel:cm.label,swayNote,useB1,c12,kyy,kzz,kyz,kzy,kzyLbl,MbRdI,Mcz,MzEd,mzTerm,biax:MzEd>1e-9,u1,u2};
 }
 function checksEC3Restrained(a){
@@ -2480,11 +2587,13 @@ function checksEC3Restrained(a){
   // tighten below 72e/83e/124e - a web that is Class 1 in pure bending can be
   // Class 3 or 4 under combined actions, which changes W_y and can invalidate
   // the plastic M_N,Rd expressions.
-  const cl=classifyEC3(sec,eps,{NEd:Math.max(F,0)*1000, fy});
+  const cl=classifyEC3(sec,eps,{NEd:Math.max(F,0)*1000, fy,minorBending:Math.abs(S.Mz||0)>1e-9});
+  if(Math.abs(S.Mz||0)>1e-9) advisory.push('For biaxial bending, each web is conservatively classified using the uniform-compression limits in Table 5.2; no favourable biaxial stress distribution is assumed.');
+  if(F>0&&sec.dt>42*eps) unsupported.push('The web is Class 4 in uniform compression. Effective-area compression buckling resistance is not implemented; gross-area member buckling cannot establish PASS.');
   const clsName=["","Class 1","Class 2","Class 3","Class 4"][cl.cls];
   if(cl.cls>=4) unsupported.push("EC3 Class 4 (slender) section"+(cl.webCase==='bending+compression'?" (web classified for combined bending + compression)":"")+": effective-section properties per EN 1993-1-5 are required; not covered by the restrained-beam procedure.");
   advisory.push("Web bearing and buckling of the unstiffened web under concentrated loads and at supports (EN 1993-1-5 clause 6) are outside this calculator's scope - verify separately wherever a point load or a reaction is applied to the web.");
-  if(sec.kind==='channel' && F>0) advisory.push("PFC under axial compression: only flexural buckling is checked here; torsional and torsional-flexural buckling (cl 6.3.1.4) can govern for channels - verify separately.");
+  if(sec.kind==='channel' && F>0) unsupported.push("PFC under axial compression: torsional and torsional-flexural buckling (cl 6.3.1.4) are not implemented. Flexural buckling alone cannot establish adequacy; PASS is blocked.");
   const MzEd=Math.abs(S.Mz||0);   // applied minor-axis design moment (kN.m), single-value input
   // ---- axial + biaxial bending cross-section resistance, cl 6.2.9.1
   // Forms (My/MN,y)^alpha + (Mz/MN,z)^beta <= 1. (validated against the
@@ -2514,7 +2623,7 @@ function checksEC3Restrained(a){
       let MN,MNz,alpha,beta,mnLbl,waiver=false;
       if(cl.cls<=2){
         const aw=Math.min(Math.max((AgAx-2*sec.B*sec.tf)/AgAx,0),0.5);
-        MN=Math.min(Mpl*(1-nAx)/(1-0.5*aw),Mpl);
+        MN=Math.max(0,Math.min(Mpl*(1-nAx)/(1-0.5*aw),Mpl));
         if(sec.kind==='I'){
           const hwAx=sec.D-2*sec.tf;
           if(Math.abs(F)*1000<=0.25*NplRd*1000 && Math.abs(F)*1000<=0.5*hwAx*sec.tw*fy/gM0){ MN=Mpl; waiver=true; }
@@ -2522,7 +2631,7 @@ function checksEC3Restrained(a){
           MNz = nAx<=aw ? Mplz : Mplz*(1-Math.pow((nAx-aw)/(1-aw),2));  // cl 6.2.9.1(5), minor axis
           mnLbl='a = '+g(aw,3)+'; &alpha; = 2, &beta; = '+g(beta,2)+(waiver? '; small axial (cl 6.2.9.1(4)): no major reduction':'');
         } else { // RHS / SHS
-          alpha=Math.min(1.66/(1-1.13*nAx*nAx),6); beta=alpha;
+          alpha=nAx<=0.8?1.66/(1-1.13*nAx*nAx):6; beta=alpha;
           const af=Math.min(Math.max((AgAx-2*sec.D*sec.tf)/AgAx,0),0.5);
           MNz=Math.min(Mplz*(1-nAx)/(1-0.5*af),Mplz);
           mnLbl='a<sub>w</sub> = '+g(aw,3)+'; &alpha; = &beta; = 1.66/(1&minus;1.13n&sup2;) = '+g(alpha,2);
@@ -2598,7 +2707,7 @@ function checksEC3Restrained(a){
     } else if(a.torsO && a.torsO.ok){
       // ---- SCI P385 Method B: elastic warping analysis + design effects ----
       const O=a.torsO, hh=sec.D-sec.tf;                     // (h - tf) flange lever
-      const EIw=210000*O.Iw;
+      const EIw=a.E*O.Iw;
       const chan=sec.kind==='channel';
       const Mply=sec.Sx*1e3*fy/1e6, Mplz=sec.Sy*1e3*fy/1e6; // kNm
       const Mely=sec.Zx*1e3*fy/1e6, Melz=sec.Zy*1e3*fy/1e6;
@@ -2619,7 +2728,7 @@ function checksEC3Restrained(a){
           const Mz=Math.abs(phi*interpAt(fb.xs,fb.M,x)/1e6);     // kNm (phi*My)
           const Tt=Math.abs(O.GIt*g.p1[i])/1e6;                  // kNm, coincident St Venant torque
           const tauTi=Tt*1e6*sec.tw/O.IT;                        // N/mm2
-          const tauWi=SwChan? Math.abs(210000*SwChan*g.p3[i]/sec.tw) : 0;
+          const tauWi=SwChan? Math.abs(a.E*SwChan*g.p3[i]/sec.tw) : 0;
           const VplTRdi=chan
             ? Math.max(0,(Math.sqrt(Math.max(0,1-tauTi/(1.25*cshear)))-tauWi/cshear))*VcRd
             : Math.sqrt(Math.max(0,1-tauTi/(1.25*cshear)))*VcRd;
@@ -2665,6 +2774,7 @@ function checksEC3Restrained(a){
     }
   }
   if(a.torsErr) unsupported.push("Eccentric loads are active but torsion cannot be evaluated: "+a.torsErr+".");
+  if(tor && (Math.abs(F)>1e-9 || MzEd>1e-9)) unsupported.push('Combined torsion with direct axial force or imposed minor-axis bending is not implemented as one interaction. Separate checks do not establish adequacy; PASS is blocked.');
   // SLS twist guideline: SCI P385 suggests limiting the serviceability rotation
   // to about 2 degrees; flagged as a non-blocking advisory (guideline, not a
   // code limit) - matches common commercial-software practice.
@@ -2698,7 +2808,11 @@ function checksEC3Restrained(a){
       unsupported.push("High shear coincident with the maximum moment: the cl 6.2.8 reduced moment resistance for this section family/class is not implemented.");
     }
   }
-  if(ax && Math.abs(F)>1e-9 && !lowShearAtM) unsupported.push("High shear coincident with axial force: the combined cl 6.2.10 reduction is not implemented; PASS is blocked.");
+  const highShearAnywhere=a.ulsResults.some(res=>res.fb.V.some(v=>Math.abs(v)/1000>halfVpl+1e-9));
+  const highShearWithMoment=a.ulsResults.some(res=>res.fb.V.some((v,i)=>Math.abs(v)/1000>halfVpl+1e-9 && Math.abs(res.fb.M[i])>1e-3));
+  if(ax && Math.abs(F)>1e-9 && highShearAnywhere) unsupported.push("High shear coincident with axial force anywhere along the member: the combined cl 6.2.10 reduction is not implemented; PASS is blocked.");
+  if(MzEd>1e-9 && highShearAnywhere) unsupported.push('High shear with minor-axis/biaxial bending requires a combined resistance check not implemented here; PASS is blocked.');
+  if(highShearWithMoment && !(sec.kind==='I' && cl.cls<=2)) unsupported.push('High shear and bending coexist away from or at the maximum moment. The span-wise cl 6.2.8 interaction for this section family/class is not implemented; PASS is blocked.');
   const Mx=Math.abs(a.Mmax);
   const momUtil=McRd>0? Mx/McRd : 0;
   // span-wise coexistent M-V check (cl 6.2.8): rolled I/H Class 1/2 only; at
@@ -2738,8 +2852,8 @@ function checksEC3Restrained(a){
     }
   }
   // vertical deflection (NA 2.23) - governing enabled SLS combination
-  const span=a.L, divisor=S.divisor||360, dlimit=span/divisor;
-  const dmax=Math.abs(a.dmax), defOk=dmax<=dlimit;
+  const span=a.deflection?a.deflection.span:a.L, divisor=S.divisor, dlimit=span/divisor;
+  const dmax=Math.abs(a.deflection?a.deflection.dmax:a.dmax), defOk=dmax<=dlimit;
   const isCantR=(S.supports.length===1 && S.supports[0].type==='fixed');
   const buck=(ax && !ax.tension)? annexB2(a,sec,fy,cl,McRd,true,isCantR) : null; // fully restrained: not susceptible -> Table B.1; MbRd = Mc,Rd
   const utils=[
@@ -3897,11 +4011,15 @@ function render(){
     <tbody>${slsRows}</tbody>
   </table>`;
 
-  const verdict=c.pass?"PASS":"FAIL";
+  const verdict=c.pass?"PASS":c.utils.some(u=>!Number.isFinite(u.val)||u.val>1.0001)?"FAIL":"NOT VERIFIED";
+  const verdictCombo=c.gov.combo || (c.gov.name==='Deflection'?a.governD.combo.label:
+    c.gov.name.startsWith('Shear')?a.governV.combo.label:
+    c.gov.name.startsWith('Member buckling')&&c.buck?c.buck.combo||a.governM.combo.label:
+    c.gov.name.startsWith('LTB ')&&c.ltb?c.ltb.governCombo||'':'');
   const codeLabel = S.code==='EC3'? (sci? 'EN 1993-1-1 (UK NA) &mdash; fully restrained beam' : (c.ltb&&c.ltb.na? 'EN 1993-1-1 (UK NA) &mdash; closed section beam' : 'EN 1993-1-1 (UK NA) &mdash; unrestrained beam (LTB)')) : 'BS 5950-1:2000';
   const banner=`<div class="banner ${c.pass?'pass':'failb'}">
     <div><div class="verdict">${verdict}</div><div style="font-size:12px;color:#374151;font-family:Arial">${codeLabel} member check   ${sname(sec.key)} ${famLabel}   ${S.grade}</div></div>
-    <div class="util">Governing: <b>${c.gov.name} = ${g(c.gov.val,3)}</b> (${a.governM.combo.label})<br>
+    <div class="util">Governing: <b>${c.gov.name} = ${g(c.gov.val,3)}</b>${verdictCombo?' ('+verdictCombo+')':''}<br>
       ${sci
         ? `Shear ${g(c.utils[0].val,2)} &bull; Bending ${g(c.utils[1].val,2)} &bull; Defl ${g(c.utils[2].val,2)}`
         : sciU && c.ltb && c.ltb.na
@@ -3921,9 +4039,13 @@ function render(){
 
   // notes
   const notes=[];
+  notes.push('PASS applies only to the implemented member checks and the enabled load combinations. Support bearing, connections and the complete structural system require separate verification.');
+  if(S.combos.some(cb=>cb.id!=='c1'&&!cb.sls&&cb.on)) notes.push('Custom ULS factors are used as entered; confirm the complete combination set and favourable/unfavourable actions for the selected standard.');
+  if(c.combinationChecks&&c.combinationChecks.length>1) notes.push('BS 5950 m-factors are evaluated separately for every ULS combination. The verdict uses the worst utilisation; the detailed envelope calculation below may have a different governing diagram.');
+  if(a.deflection&&a.deflection.span<a.L-1e-6) notes.push('Deflection is checked for each support-to-support span and each end overhang using its own length and the entered divisor. Governing segment: '+g(a.deflection.start/1000,2)+' to '+g(a.deflection.end/1000,2)+' m.');
   if(c.unsupported&&c.unsupported.length) c.unsupported.forEach(n=>notes.push(`<b>NOT COVERED:</b> ${n}`));
   if(c.advisory&&c.advisory.length) c.advisory.forEach(n=>notes.push(`<b>ADVISORY (does not block PASS):</b> ${n}`));
-  if((sci||sciU)&&c.tor&&c.tor.p385) notes.push("Open-section torsion per SCI P385: elastic Method B (fork ends both supports, warping free), Appendix C Cases 3/4/10 closed forms superposed per combination; effects evaluated coincidently along the span. Cross-section verified by the P385 &sect;3.1.2 interaction; shear by Eq 6.2"+(c.tor.chan?'7':'6')+(sciU? "; buckling by the BS EN 1993-6 Annex A bending&ndash;torsion interaction with k<sub>&alpha;</sub> amplification":"")+ ". Plastic-design caution: &phi; used for M<sub>z,ind</sub> is the elastic value (P385 notes rotation may exceed it when plastic resistance is mobilised). Destabilising load-height growth of e (P385 &sect;2.3.3) is not iterated &mdash; if loads sit above the shear centre, add an allowance to e or use the destabilising switch.");
+  if((sci||sciU)&&c.tor&&c.tor.p385) notes.push("Open-section torsion per SCI P385: elastic Method B with fork ends and free warping, using Appendix C Cases 3/4/10. The rotation-induced minor moment is included. Plastic redistribution and growth of eccentricity as the section twists are not iterated. The EC3 destabilising switch does not add this second-order torsional effect.");
   if((sci||sciU)&&c.tor) notes.push("Torsion: each applied load acts at its own offset e from the shear centre; loads with e = 0 and applied moments generate no torque. Automatic self-weight acts through the centroid, so it has e = 0 for doubly symmetric sections but e = e<sub>sc</sub> for PFC channels. The verification conservatively assumes maximum shear, bending and torsion are coincident (SCI example note). All supports are assumed to prevent twist &mdash; fork supports; friction-grip connections or similar may be required. Torsion is evaluated on the EC3 code path only.");
   if((sci||sciU)&&c.coex&&c.coex.pureShearFail) notes.push("Coexistent M&ndash;V: V<sub>Ed</sub> exceeds V<sub>pl,Rd</sub> at the reported section, so the cl 6.2.8 reduced moment formula is bypassed; the section has already failed in pure shear.");
   if(sci){
@@ -4288,7 +4410,7 @@ function render(){
     <div>P<sub>z</sub> = A<sub>e</sub> p<sub>y</sub></div><div class="formula">${g(c.Ae/1e2,1)} ${g(a.py,0)}</div><div class="value">${f1(c.Pz,1)} kN</div><div></div>
     <div>n = F / P<sub>z</sub></div><div class="formula">${f1(c.F,2)} / ${f1(c.Pz,1)}</div><div class="value">${g(c.n,3)}</div>${st(c.n<=1,'OK')}
     <div>S<sub>rx</sub> = Fn(S<sub>x</sub>, n)</div><div class="formula">${g(sec.Sx,1)}${c.n>0.02?` reduced for n`:`, n 0`}</div><div class="value">${g(c.Srx/1e3,1)} cm </div><div></div>
-    <div>M<sub>rx</sub> = S<sub>rx</sub> p<sub>y</sub></div><div class="formula">${g(c.Srx/1e3,1)} ${g(a.py,0)}</div><div class="value">${f1(c.Mrx,2)} kN m</div><div></div>
+    <div>M<sub>rx</sub> = min(M<sub>cx</sub>, axial-reduced resistance)</div><div class="formula">including the applicable shear reduction and elastic cap</div><div class="value">${f1(c.Mrx,2)} kN m</div><div></div>
     <div>(M<sub>x</sub>/M<sub>rx</sub>) + (M<sub>y</sub>/M<sub>ry</sub>)</div><div class="formula">(${f1(c.Mx,2)}/${f1(c.Mrx,2)}) + 0</div><div class="value">${g(c.localUtil,3)}</div>${st(c.localUtil<=1,'OK')}
   </div>`}
 
@@ -4323,8 +4445,8 @@ function render(){
     <div>N<sub>b,y,Rd</sub>; N<sub>b,z,Rd</sub> = &chi;Af<sub>y</sub>/&gamma;<sub>M1</sub></div><div class="formula">&chi;<sub>y</sub> = ${g(c.buck.chiY,3)}; &chi;<sub>z</sub> = ${g(c.buck.chiZ,3)}</div><div class="value">${f1(c.buck.NbY,1)} / ${f1(c.buck.NbZ,1)} kN</div><div></div>
     <div>C<sub>my</sub> = C<sub>mLT</sub> (Table B.3)</div><div class="formula" style="font-size:12.5px">${c.buck.cmLabel}${c.buck.swayNote? ' &mdash; sway buckling mode (cantilever): C<sub>m</sub> = 0.9 floor applied (Table B.3 note)':''}</div><div class="value">${g(c.buck.Cmy,3)}; C<sub>mz</sub> = ${g(c.buck.Cmz,2)}</div><div></div>
     <div>k<sub>yy</sub>; k<sub>zz</sub>; k<sub>yz</sub>; k<sub>zy</sub></div><div class="formula">${c.buck.kzyLbl}</div><div class="value">${g(c.buck.kyy,3)}; ${g(c.buck.kzz,3)}; ${g(c.buck.kyz,3)}; ${g(c.buck.kzy,3)}</div><div></div>
-    <div>N<sub>Ed</sub>/N<sub>b,y,Rd</sub> + k<sub>yy</sub>M<sub>y,Ed</sub>/M<sub>b,Rd</sub>${c.buck.biax?' + k<sub>yz</sub>M<sub>z,Ed</sub>/M<sub>c,z,Rd</sub>':''} (Eq 6.61)</div><div class="formula">${g(c.buck.ny,3)} + ${g(c.buck.kyy,3)}&times;${f1(c.Mx,2)}/${f1(c.buck.MbRdI,2)}${c.buck.biax?' + '+g(c.buck.kyz,3)+'&times;'+f1(c.buck.MzEd,2)+'/'+f1(c.buck.Mcz,2):''}</div><div class="value">${g(c.buck.u1,3)}</div>${c.buck.Fc>1e-6? st(c.buck.u1<=1.0001,'OK') : '<div class="status">N<sub>Ed</sub> = 0</div>'}
-    <div>N<sub>Ed</sub>/N<sub>b,z,Rd</sub> + k<sub>zy</sub>M<sub>y,Ed</sub>/M<sub>b,Rd</sub>${c.buck.biax?' + k<sub>zz</sub>M<sub>z,Ed</sub>/M<sub>c,z,Rd</sub>':''} (Eq 6.62)</div><div class="formula">${g(c.buck.nz,3)} + ${g(c.buck.kzy,3)}&times;${f1(c.Mx,2)}/${f1(c.buck.MbRdI,2)}${c.buck.biax?' + '+g(c.buck.kzz,3)+'&times;'+f1(c.buck.MzEd,2)+'/'+f1(c.buck.Mcz,2):''}</div><div class="value">${g(c.buck.u2,3)}</div>${c.buck.Fc>1e-6? st(c.buck.u2<=1.0001,'OK') : '<div class="status">N<sub>Ed</sub> = 0</div>'}
+    <div>N<sub>Ed</sub>/N<sub>b,y,Rd</sub> + k<sub>yy</sub>M<sub>y,Ed</sub>/M<sub>b,Rd</sub>${c.buck.biax?' + k<sub>yz</sub>M<sub>z,Ed</sub>/M<sub>c,z,Rd</sub>':''} (Eq 6.61)</div><div class="formula">${g(c.buck.ny,3)} + ${g(c.buck.kyy,3)}&times;${f1(c.buck.Mx,2)}/${f1(c.buck.MbRdI,2)}${c.buck.biax?' + '+g(c.buck.kyz,3)+'&times;'+f1(c.buck.MzEd,2)+'/'+f1(c.buck.Mcz,2):''}</div><div class="value">${g(c.buck.u1,3)}</div>${c.buck.Fc>1e-6? st(c.buck.u1<=1.0001,'OK') : '<div class="status">N<sub>Ed</sub> = 0</div>'}
+    <div>N<sub>Ed</sub>/N<sub>b,z,Rd</sub> + k<sub>zy</sub>M<sub>y,Ed</sub>/M<sub>b,Rd</sub>${c.buck.biax?' + k<sub>zz</sub>M<sub>z,Ed</sub>/M<sub>c,z,Rd</sub>':''} (Eq 6.62)</div><div class="formula">${g(c.buck.nz,3)} + ${g(c.buck.kzy,3)}&times;${f1(c.buck.Mx,2)}/${f1(c.buck.MbRdI,2)}${c.buck.biax?' + '+g(c.buck.kzz,3)+'&times;'+f1(c.buck.MzEd,2)+'/'+f1(c.buck.Mcz,2):''}</div><div class="value">${g(c.buck.u2,3)}</div>${c.buck.Fc>1e-6? st(c.buck.u2<=1.0001,'OK') : '<div class="status">N<sub>Ed</sub> = 0</div>'}
   </div>`:''}
   ${(sci||sciU) ? '' : S.code==='EC3' ? `
   <div class="section-title smallgap">Member Buckling Resistance (Cl. 6.3.3, Annex B Method 2)</div>
@@ -4347,7 +4469,7 @@ function render(){
 
   <div class="section-title smallgap">${(sci||sciU)? 'Vertical Deflection of Beam (BS EN 1993-1-1 NA 2.23 &mdash; ' : 'Deflection Check (SLS &mdash; '}${a.governD.combo.label})</div>
   <div class="calc-block">
-    <div>w<sub>max</sub> (governing SLS combination)</div><div class="formula">@ x = ${g(a.dpos,2)} m</div><div class="value">${f1(c.dmax,1)} mm</div><div></div>
+    <div>w (governing span utilisation)</div><div class="formula">@ x = ${g(a.deflection?a.deflection.dpos/1000:a.dpos,2)} m</div><div class="value">${f1(c.dmax,1)} mm</div><div></div>
     <div>Limit = span/${g(c.divisor,0)}</div><div class="formula">${g(c.span,0)}/${g(c.divisor,0)} = ${f1(c.dlimit,1)} mm</div><div class="value">${f1(c.dmax,1)} ${c.defOk?'&lt;':'&gt;'} ${f1(c.dlimit,1)} mm</div>${st(c.defOk,'OK')}
   </div>
 
@@ -4386,10 +4508,10 @@ function printReport(){
 }
 
 function readScalarInputs(){
-  S.code=$("code").value;
+  setDesignCode($("code").value);
   S.restraint=$("restraint").value;
   S.eccOn=$("eccOn").checked;
-  S.za=parseFloat($("za").value)||0;
+  S.za=parseFloat($("za").value);
   S.rootWarp=$("rootWarp").value;
   S.family=$("family").value;
   S.sectionKey=$("pfcSelect").value;
@@ -4404,16 +4526,16 @@ function readScalarInputs(){
   const autoPy=pyFromGrade(S.grade,sec.tf);
   S.py = (isFinite(pyv)&&Math.abs(pyv-autoPy)>1e-6)? pyv : null;
   const an=parseFloat($("anet").value); S.anet=isFinite(an)?an:null;
-  S.L=parseFloat($("length").value)||S.L;
-  S.axial=parseFloat($("axial").value)||0;
-  S.Mz=parseFloat($("Mz").value)||0;
-  S.leFactor=parseFloat($("leFactor").value)||1;
+  S.L=parseFloat($("length").value);
+  S.axial=parseFloat($("axial").value);
+  S.Mz=parseFloat($("Mz").value);
+  S.leFactor=parseFloat($("leFactor").value);
   S.destab=$("destab").checked;
   const mlt=parseFloat($("mLTo").value); S.mLTo=isFinite(mlt)?mlt:null;
   const mxo=parseFloat($("mxo").value); S.mxo=isFinite(mxo)?mxo:null;
   const c1o=parseFloat($("C1o").value); S.C1o=isFinite(c1o)?c1o:null;
-  S.divisor=parseFloat($("divisor").value)||360;
-  S.E=parseFloat($("E").value)||205000;
+  S.divisor=parseFloat($("divisor").value);
+  S.E=parseFloat($("E").value);
   const ke=parseFloat($("Ke").value); S.Ke=isFinite(ke)?ke:null;
   const autoRob=defaultRobertson(S.family,sec.boxType,sec.tf);
   const rvx=parseFloat($("robertsonX").value);
@@ -4463,8 +4585,7 @@ function wire(){
   $("family").addEventListener("change",()=>{
     S.family=$("family").value; syncInputs(); refreshAutoFields(); recompute(); });
   $("code").addEventListener("change",()=>{
-    S.code=$("code").value;
-    if(S.E===205000 || S.E===210000) S.E = S.code==='EC3' ? 210000 : 205000;
+    setDesignCode($("code").value);
     syncInputs(); recompute(); });
   $("restraint").addEventListener("change",()=>{
     S.restraint=$("restraint").value; syncInputs(); recompute(); });
@@ -4910,7 +5031,7 @@ function wire(){
     });
     var gF = fac.G != null ? fac.G : 0;
     var sw = selfWeightValue(a.sec);
-    if (gF > 0 && sw > 0) dl.push({ x1: 0, x2: a.L, w1: sw * gF, w2: sw * gF, zg: 0 }); // self-weight acts at the centroid
+    if (gF !== 0 && sw > 0) dl.push({ x1: 0, x2: a.L, w1: sw * gF, w2: sw * gF, zg: 0 }); // self-weight acts at the centroid
     return { distLoads: dl, pointLoads: pl };
   }
 
@@ -4959,7 +5080,9 @@ function wire(){
   }
 
   function ltbCurve(sec) {
-    if (sec.isBox) return { alphaLT: 0.76, curve: 'd' };           // not listed in NA Table 6.3
+    // UK NA / SCI P362 Table 6.6: hot-finished hollow sections share the
+    // I/H h/b allocation; cold-formed hollow sections use c (h/b<=2) or d.
+    if (sec.isBox && sec.boxType === 'CF') return sec.D/sec.B <= 2 ? { alphaLT: 0.49, curve: 'c' } : { alphaLT: 0.76, curve: 'd' };
     if (sec.kind === 'channel') return { alphaLT: 0.76, curve: 'd' }; // not doubly symmetric
     var hb = sec.D / sec.B;
     return hb <= 2 ? { alphaLT: 0.34, curve: 'b' } : hb <= 3.1 ? { alphaLT: 0.49, curve: 'c' } : { alphaLT: 0.76, curve: 'd' };
@@ -5274,7 +5397,12 @@ function wire(){
     }
 
     var useB1u = sec.isBox || (ltb.MbRd >= b.McRd * 0.9999);
-    var buck = (b.ax && !b.ax.tension) ? annexB2(a, sec, fy, b.cl, ltb.MbRd > 0 ? ltb.MbRd : b.McRd, useB1u, isCant) : null;
+    // Bound the interaction with the lowest resistance of all enabled diagrams.
+    // annexB2 separately sweeps each combination's own moment and Cm.
+    var memberMb = Math.min.apply(null, evals.map(function(ev){ return ev.chain.MbRd; }));
+    if (spanGov) memberMb = Math.min(memberMb, spanGov.Mb);
+    useB1u = sec.isBox || (memberMb >= b.McRd * 0.9999);
+    var buck = (b.ax && !b.ax.tension) ? annexB2(a, sec, fy, b.cl, memberMb, useB1u, isCant) : null;
     if (buck && buck.lczFromRestraints)
       warn.push('Minor-axis strut buckling length L<sub>cr,z</sub> = ' + (buck.LcrZ / 1000).toFixed(2) + ' m, taken as the largest spacing between adjacent lateral restraint points (SCI P360 6.2: secondary members act as bracing points; k = 1.0 between restraints). ' +
         'Ensure each restraint really is an effective bracing point - adequate stiffness, strength and anchorage. The major axis keeps L<sub>cr,y</sub> = L<sub>E</sub>&times;L = ' + (buck.LcrY / 1000).toFixed(2) + ' m.');

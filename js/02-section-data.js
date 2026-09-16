@@ -13,6 +13,9 @@
 // Note: P385 IT for open sections includes the Appendix B junction correction,
 // so it can differ slightly from the Blue Book value stored in the main tables.
 function tp385For(family,key){
+  // P385 A.7 contains 3.2/3.6/6.3 mm walls, not the 3.0/3.5/6.0 mm
+  // aliases previously added to this table. Never borrow a thicker wall's Wt.
+  if(family==='shs' && (S.shsType==='CF'||[3,3.5,6].includes(Number(key.split('x').at(-1))))) return null;
   const m=family==='ub'?TP385_UB:family==='uc'?TP385_UC:family==='pfc'?TP385_PFC:family==='shs'?TP385_SHS:family==='rhs'?TP385_RHS:null;
   const r=m&&m[key]; if(!r) return null;
   if(family==='pfc') return {IT:r[0],a:r[1],Iw:r[2],Wn0:r[3],Wn2:r[4],Sw1:r[5],Sw2:r[6],Sw3:r[7],e0:r[8],esc:r[9]};
@@ -24,8 +27,11 @@ function activeSectionBase(){
   if(S.family==='shs'){
     const map = S.shsType==='CF'? SHS_CFmap : SHS_HFmap;
     const s = map[S.shsKey] || Object.values(map)[0];
-    return {key:s.key, mass:s.mass, D:s.D, B:s.D, tw:s.t, tf:s.t, r:0, d:s.dt*s.t,
-      bT:s.dt, dt:s.dt, Ix:s.I, Iy:s.I, rx:s.r, ry:s.r, Zx:s.Z, Zy:s.Z, Sx:s.S, Sy:s.S,
+    // SCI P363: c = h - 3t for EC3 local buckling, including cold-formed SHS.
+    // The legacy BS table stores h - 5t for cold-formed SHS.
+    const ratio=S.code==='EC3'? (s.D-3*s.t)/s.t : s.dt;
+    return {key:s.key, mass:s.mass, D:s.D, B:s.D, tw:s.t, tf:s.t, r:0, d:ratio*s.t,
+      bT:ratio, dt:ratio, Ix:s.I, Iy:s.I, rx:s.r, ry:s.r, Zx:s.Z, Zy:s.Z, Sx:s.S, Sy:s.S,
       u:null, x:null, J:s.J, A:s.A, isBox:true, boxType:S.shsType, kind:'box'};
   }
   if(S.family==='rhs'){

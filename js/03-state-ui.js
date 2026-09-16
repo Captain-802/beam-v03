@@ -23,6 +23,20 @@ const DEMO={
   plate:{on:false, side:'bottom', t:10, outL:0, outR:150}
 };
 let S=JSON.parse(JSON.stringify(DEMO));
+function setDesignCode(code){
+  const from=S.code;
+  if(from===code) return;
+  const old=from==='EC3'? [1.35,1.5] : [1.4,1.6];
+  const next=code==='EC3'? [1.35,1.5] : [1.4,1.6];
+  S.combos.forEach(c=>{
+    if(c.id==='c1'&&!c.sls&&c.factors.G===old[0]&&c.factors.Q===old[1]&&c.factors.W===0&&c.factors.E===0){
+      c.factors.G=next[0];c.factors.Q=next[1];
+      c.label=`ULS: ${next[0]}G + ${next[1]}Q (${code==='EC3'?'Eq 6.10':'BS 5950'})`;
+    }
+  });
+  S.code=code;
+  if(S.E===205000||S.E===210000) S.E=code==='EC3'?210000:205000;
+}
 const $=id=>document.getElementById(id);
 
 /* ---- welded bottom plate UI (modelling + self-weight only) ---- */
@@ -104,7 +118,7 @@ function renderSupportList(){
   });
   c.querySelectorAll("[data-sp]").forEach(el=>el.addEventListener("input",e=>{
     const i=+e.target.dataset.i, k=e.target.dataset.sp;
-    S.supports[i][k]= k==='pos'? parseFloat(e.target.value)||0 : e.target.value; recompute();
+    S.supports[i][k]= k==='pos'? parseFloat(e.target.value) : e.target.value; recompute();
   }));
   c.querySelectorAll("[data-spc]").forEach(el=>el.addEventListener("change",e=>{
     const i=+e.target.dataset.i, k=e.target.dataset.spc;
@@ -127,7 +141,7 @@ function renderHingeList(){
     c.appendChild(row);
   });
   c.querySelectorAll("[data-hp]").forEach(el=>el.addEventListener("input",e=>{
-    S.hinges[+e.target.dataset.hp].pos=parseFloat(e.target.value)||0; recompute(); }));
+    S.hinges[+e.target.dataset.hp].pos=parseFloat(e.target.value); recompute(); }));
   c.querySelectorAll(".del").forEach(b=>b.addEventListener("click",e=>{
     S.hinges.splice(+e.target.dataset.hi,1); renderHingeList(); recompute(); }));
 }
@@ -162,7 +176,7 @@ function renderLoadList(){
   });
   c.querySelectorAll("[data-ld]").forEach(el=>el.addEventListener(el.tagName==='SELECT'?"change":"input",e=>{
     const i=+e.target.dataset.i,k=e.target.dataset.ld;
-    S.loads[i][k]= k==='case'? e.target.value : (parseFloat(e.target.value)||0);
+    S.loads[i][k]= k==='case'? e.target.value : parseFloat(e.target.value);
     recompute();
   }));
   c.querySelectorAll("[data-lt]").forEach(sel=>sel.addEventListener("change",e=>{
@@ -204,7 +218,7 @@ function renderComboList(){
     S.combos[+e.target.dataset.clabel].label=e.target.value; recompute(); }));
   c.querySelectorAll("[data-cf]").forEach(el=>el.addEventListener("input",e=>{
     const i=+e.target.dataset.ci, cs=e.target.dataset.cf;
-    S.combos[i].factors[cs]=parseFloat(e.target.value)||0;
+    S.combos[i].factors[cs]=parseFloat(e.target.value);
     // the combination name always reflects the live factors; editing a factor
     // regenerates it (a hand-typed name lasts until the next factor edit)
     S.combos[i].label=comboLabelFromFactors(S.combos[i]);

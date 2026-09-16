@@ -5,6 +5,7 @@ function checksBS5950(a){
   const eps=Math.sqrt(275/py);
   const Ag=sec.A*1e2;
   const F=S.axial||0, Fc0=Math.max(F,0);
+  if(Math.abs(S.Mz||0)>1e-9) unsupported.push('BS 5950 minor-axis bending and biaxial interaction are not implemented. The entered minor-axis moment cannot be ignored; PASS is blocked.');
   // BS 5950-1:2000 Figure 5 flange outstand: rolled I/H  b = B/2; channel  b = B
   // (the FULL flange width). The section tables store the EC3 ratio
   // c/t = ((B - tw - 2r)/2)/tf, which is SMALLER and would misclassify near the
@@ -76,7 +77,8 @@ function checksBS5950(a){
       Srx=Math.max(0, Zx*(1-n));
     }
   }
-  const Mrx=(cl.cls<=2? Math.min(py*Srx, 1.2*py*Zx) : py*Srx)/1e6;
+  const Mrx=Math.max(0,Math.min(Mcx,(cl.cls<=2? Math.min(py*Srx, 1.2*py*Zx) : py*Srx)/1e6));
+  if(Math.abs(F)>1e-9&&!lowShear) unsupported.push('BS 5950 combined high shear, axial force and bending requires the web interaction check in clause 4.8; this is not implemented. PASS is blocked.');
   const Mx=Math.abs(a.Mmax);
   // zero/negative reduced capacity with a coexistent moment must read as a
   // failure, not util = 0 (n >= 1 zeroes the Class 3 elastic basis)
@@ -132,8 +134,8 @@ function checksBS5950(a){
   const u1=Fc/Pc + mx*Mx/pyZx;
   const u2=Fc/Pcy + mLT*Mx/Mb;
   // deflection
-  const span=a.L, divisor=S.divisor||360, dlimit=span/divisor;
-  const dmax=Math.abs(a.dmax), defOk=dmax<=dlimit;
+  const span=a.deflection?a.deflection.span:a.L, divisor=S.divisor, dlimit=span/divisor;
+  const dmax=Math.abs(a.deflection?a.deflection.dmax:a.dmax), defOk=dmax<=dlimit;
 
   if(S.eccOn && S.loads.some(ld=>Math.abs(ld.e||0)>1e-9)) unsupported.push("Load eccentricity / torsion design is implemented for the EC3 code path only; switch Design code to EC3.");
   const utils=[
@@ -144,6 +146,7 @@ function checksBS5950(a){
     {name:"Buckling (LTB interaction)",val:u2},
     {name:"Deflection",val:dmax/dlimit},
   ];
+  if(Math.abs(F)>1e-9) utils.push({name:F<0?'Tension  Ft/Pt':'Compression cross-section  Fc/(Ag.py)',val:Math.abs(F)/(F<0?Pz:Ag*py/1000)});
   let gov=utils[0]; utils.forEach(u=>{ if(u.val>gov.val) gov=u; });
   const pass=unsupported.length===0 && utils.every(u=>u.val<=1.0001);
 

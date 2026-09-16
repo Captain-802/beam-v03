@@ -3,15 +3,23 @@
    Units throughout the solver: mm, N, N mm, N/mm.  Up = positive.
    =========================================================================== */
 function linsolve(A,b){
-  const n=b.length, M=A.map((r,i)=>r.slice().concat([b[i]]));
-  for(let c=0;c<n;c++){
-    let p=c; for(let r=c+1;r<n;r++) if(Math.abs(M[r][c])>Math.abs(M[p][c])) p=r;
-    [M[c],M[p]]=[M[p],M[c]];
-    const piv=M[c][c];
-    for(let r=0;r<n;r++){ if(r===c) continue; const f=M[r][c]/piv;
-      for(let k=c;k<=n;k++) M[r][k]-=f*M[c][k]; }
+  // Both callers solve restrained, symmetric stiffness matrices. Diagonal
+  // scaling removes the translation/rotation unit disparity; Cholesky then
+  // detects mechanisms, including hinge layouts that pass a restraint count.
+  const n=b.length, scale=A.map((r,i)=>Math.sqrt(r[i]));
+  const fail=()=>{ throw new Error('Singular or unstable stiffness matrix (mechanism or numerically ill-conditioned layout). Check supports, hinges and closely spaced nodes.'); };
+  if(scale.some(s=>!Number.isFinite(s)||s<=0)||b.some(v=>!Number.isFinite(v))) fail();
+  const C=Array.from({length:n},()=>new Float64Array(n));
+  for(let i=0;i<n;i++) for(let j=0;j<=i;j++){
+    let v=A[i][j]/scale[i]/scale[j];
+    for(let k=0;k<j;k++) v-=C[i][k]*C[j][k];
+    if(i===j){ if(!Number.isFinite(v)||v<=1e-12) fail(); C[i][j]=Math.sqrt(v); }
+    else C[i][j]=v/C[j][j];
   }
-  const x=new Array(n); for(let i=0;i<n;i++) x[i]=M[i][n]/M[i][i]; return x;
+  const y=new Float64Array(n), z=new Float64Array(n);
+  for(let i=0;i<n;i++){ let v=b[i]/scale[i]; for(let j=0;j<i;j++) v-=C[i][j]*y[j]; y[i]=v/C[i][i]; }
+  for(let i=n-1;i>=0;i--){ let v=y[i]; for(let j=i+1;j<n;j++) v-=C[j][i]*z[j]; z[i]=v/C[i][i]; }
+  return Array.from(z,(v,i)=>v/scale[i]);
 }
 function buildNodes(L,supports,loads,nSub,extra){
   const pts=new Set([0,L]);
@@ -29,6 +37,24 @@ function buildNodes(L,supports,loads,nSub,extra){
   return nodes;
 }
 function solveBeam(L,EI,supports,loads,nSub=120,hinges){
+  // A zero-energy displacement is piecewise linear across moment releases.
+  // Check its restraint matrix directly: finite round-off in a large FE matrix
+  // can otherwise disguise an exact mechanism as a very flexible stable beam.
+  const releases=[...new Set((hinges||[]).filter(x=>x>0&&x<L))].sort((a,b)=>a-b);
+  const basis=x=>[1,x/L,...releases.map(h=>Math.max(0,(x-h)/L))];
+  const rows=[];
+  supports.forEach(s=>{ rows.push(basis(s.pos)); if(s.type==='fixed') rows.push([0,1,...releases.map(h=>s.pos>h?1:0)]); });
+  let rank=0;
+  for(let col=0;col<releases.length+2;col++){
+    let pivot=rank;
+    for(let j=rank;j<rows.length;j++) if(Math.abs(rows[j][col])>Math.abs(rows[pivot][col])) pivot=j;
+    if(pivot>=rows.length||Math.abs(rows[pivot][col])<1e-10) continue;
+    [rows[rank],rows[pivot]]=[rows[pivot],rows[rank]];
+    const div=rows[rank][col]; rows[rank]=rows[rank].map(v=>v/div);
+    for(let j=rank+1;j<rows.length;j++){ const v=rows[j][col]; for(let k=col;k<rows[j].length;k++) rows[j][k]-=v*rows[rank][k]; }
+    rank++;
+  }
+  if(rank<releases.length+2) throw new Error('Unstable beam mechanism: supports do not restrain every segment separated by internal hinges.');
   // Internal hinges = major-axis (in-plane) MOMENT RELEASES. At a hinge node the
   // two adjacent elements get INDEPENDENT rotation DOFs (sharing the translation),
   // so the transmitted bending moment is zero and the slope is discontinuous; the
@@ -207,6 +233,10 @@ function classifyEC3(sec,eps,opt){
     const l2 = alphaW>0.5? 456/(13*alphaW-1) : 41.5/alphaW;
     const l3 = psiW>-1? 42/(0.67+0.33*psiW) : 62*(1-psiW)*Math.sqrt(-psiW);
     wlim=[l1,l2,l3]; webCase='bending+compression';
+  }
+  if(opt&&opt.minorBending){
+    // Conservative bound for webs compressed by minor-axis bending.
+    wlim=[33,38,42]; webCase='biaxial: uniform-compression web bound';
   }
   const fc = sec.bT<=flim[0]*eps?1:sec.bT<=flim[1]*eps?2:sec.bT<=flim[2]*eps?3:4;
   const wc = sec.dt<=wlim[0]*eps?1:sec.dt<=wlim[1]*eps?2:sec.dt<=wlim[2]*eps?3:4;

@@ -13,7 +13,7 @@ function comboLoads(combo){
     if(ld.type==='trap') return {type:'udl',x1:(+ld.x1)*1000,x2:(+ld.x2)*1000,w1:-(ld.w1||0)*factor,w2:-(ld.w2||0)*factor};
   });
   const sw=selfWeightValue(activeSection()), gFactor=combo.factors.G ?? 0;
-  if(gFactor>0){
+  if(gFactor!==0){
     loads.push({type:'udl',x1:0,x2:S.L*1000,w1:-sw*gFactor,w2:-sw*gFactor,isAutoSelfWeight:true});
   }
   return loads;
@@ -32,15 +32,22 @@ function comboHasServiceLoad(combo){
 }
 function validateInputs(py,E,ulsCombos,slsCombos){
   const errs=[];
-  const finite=(v)=>Number.isFinite(+v);
+  const finite=(v)=>v!==null && v!=='' && Number.isFinite(+v);
   const inSpan=(x)=>finite(x) && +x>=-1e-9 && +x<=S.L+1e-9;
   if(!(finite(S.L) && S.L>0)) errs.push("Member length L must be greater than 0.");
   if(!(finite(py) && py>0)) errs.push("Design strength must be greater than 0.");
   if(!(finite(E) && E>0)) errs.push("E must be greater than 0.");
   if(!(finite(S.divisor) && S.divisor>0)) errs.push("Deflection divisor must be greater than 0.");
   if(!(finite(S.leFactor) && S.leFactor>0)) errs.push("Effective length factor must be greater than 0.");
+  ['axial','Mz','za'].forEach(k=>{ if(!finite(S[k])) errs.push(`${k} must be a finite number.`); });
+  const area=activeSection().A;
+  if(S.anet!=null && !(finite(S.anet)&&S.anet>0&&S.anet<=area)) errs.push('Net area must be greater than zero and no greater than the gross area.');
+  ['Ke','robX','robY','C1o'].forEach(k=>{ if(S[k]!=null && !(finite(S[k])&&S[k]>0)) errs.push(`${k} override must be greater than zero.`); });
+  [['mLTo',0.44],['mxo',0.4]].forEach(([k,min])=>{ if(S[k]!=null && !(finite(S[k])&&S[k]>=min&&S[k]<=1)) errs.push(`${k} override must be between ${min} and 1.`); });
+  if(S.mLTo!=null && (S.destab || (S.supports.length===1&&S.supports[0].type==='fixed')) && S.mLTo!==1) errs.push('mLT must be 1 for cantilevers and destabilising loading.');
   const seenSupports=new Set();
   S.supports.forEach((sp,i)=>{
+    if(!['pinned','fixed'].includes(sp.type)) errs.push(`Support ${i+1} has an unknown restraint type.`);
     if(!inSpan(sp.pos)) errs.push(`Support ${i+1} position must be within 0 to ${S.L} m.`);
     const key=(+sp.pos).toFixed(6);
     if(seenSupports.has(key)) errs.push(`Duplicate supports at ${g(+sp.pos,3)} m are not allowed; combine them into one support.`);
@@ -49,10 +56,11 @@ function validateInputs(py,E,ulsCombos,slsCombos){
   (S.hinges||[]).forEach((h,i)=>{
     if(!inSpan(h.pos)) errs.push(`Internal hinge ${i+1} position must be within 0 to ${S.L} m.`);
     else if(+h.pos<=1e-6 || +h.pos>=S.L-1e-6) errs.push(`Internal hinge ${i+1} must be inside the span, not at an end.`);
-    if(S.supports.some(sp=>Math.abs(+sp.pos-(+h.pos))<1e-6)) errs.push(`Internal hinge ${i+1} coincides with a support; move it away (a support already releases moment if pinned).`);
+    if(S.supports.some(sp=>Math.abs(+sp.pos-(+h.pos))<1e-6)) errs.push(`Internal hinge ${i+1} coincides with a support; this combined release is not supported. A pinned support does not release the internal moment of a continuous beam.`);
   });
   S.loads.forEach((ld,i)=>{
     const tag=`Load ${i+1}`;
+    ['e','zg'].forEach(k=>{ if(ld[k]!=null&&!finite(ld[k])) errs.push(`${tag} ${k} must be a finite number.`); });
     if(!CASE_LABELS[ld.case]) errs.push(`${tag} has an unknown load case.`);
     if(ld.type==='point'){
       if(!inSpan(ld.pos)) errs.push(`${tag} point-load position must be within 0 to ${S.L} m.`);
@@ -71,6 +79,10 @@ function validateInputs(py,E,ulsCombos,slsCombos){
     ['G','Q','W','E'].forEach(cs=>{
       if(!finite(combo.factors[cs])) errs.push(`Combination "${combo.label}" has a non-numeric ${cs} factor.`);
     });
+  });
+  S.loads.filter(ld=>!ld.isSelfWeight).forEach((ld,i)=>{
+    const active=ld.type==='point'?Math.abs(ld.P)>0:ld.type==='moment'?Math.abs(ld.M)>0:ld.type==='udl'?Math.abs(ld.w)>0:Math.abs(ld.w1)>0||Math.abs(ld.w2)>0;
+    if(active&&!ulsCombos.some(cb=>Math.abs(cb.factors[ld.case])>1e-12)) errs.push(`Load ${i+1} (${ld.case}) is omitted from every enabled ULS combination.`);
   });
   if(!slsCombos.some(comboHasServiceLoad)){
     errs.push("No SLS loads applied: every enabled SLS combination has zero factors for the active load cases. Enable a non-zero SLS factor for a load case that is present, or add a serviceability load.");
@@ -137,9 +149,18 @@ function analyse(){
     const r=solveBeam(L,EI,supportsMM,loads,120,hingesMM);
     if(!r.w.every(Number.isFinite)) throw hingesMM.length? "Under-restrained layout (mechanism): an internal hinge has left part of the beam unrestrained. Add another support (e.g. a propped/Gerber layout) or remove the hinge." : "Under-restrained layout (mechanism). Add a support, or make a support Fixed to prevent rigid-body motion.";
     let dmax=0,dpos=0; r.nodes.forEach((x,i)=>{ if(Math.abs(r.w[i])>Math.abs(dmax)){dmax=r.w[i];dpos=x;} });
-    return {combo,r,dmax,dpos};
+    const points=[...new Set([0,L,...supportsMM.map(s=>s.pos)])].sort((p,q)=>p-q);
+    let deflection=null;
+    for(let j=0;j<points.length-1;j++){
+      const start=points[j],end=points[j+1],span=end-start;
+      let dm=0,dp=start;
+      r.nodes.forEach((x,i)=>{ if(x>=start&&x<=end&&Math.abs(r.w[i])>Math.abs(dm)){dm=r.w[i];dp=x;} });
+      const limit=span/S.divisor, util=Math.abs(dm)/limit;
+      if(!deflection||util>deflection.util) deflection={start,end,span,dmax:dm,dpos:dp,limit,util};
+    }
+    return {combo,r,dmax,dpos,deflection};
   });
-  let governD=slsResults[0]; slsResults.forEach(r=>{ if(Math.abs(r.dmax)>Math.abs(governD.dmax)) governD=r; });
+  let governD=slsResults[0]; slsResults.forEach(r=>{ if(r.deflection.util>governD.deflection.util) governD=r; });
   const dmax=governD.dmax, dpos=governD.dpos;
 
   // ---- torsion from load eccentricity (loads at e from the shear centre) ----
@@ -214,7 +235,7 @@ function analyse(){
     const IT=((tp&&tp.IT)? tp.IT : sec.J)*1e4;                     // mm4, P385 App A preferred
     const IwO=(((tp&&tp.Iw!=null)? tp.Iw : sec.Iw)||0)*1e12;       // mm6
     const GItO=81000*IT;
-    const aa=IwO>0? Math.sqrt(210000*IwO/GItO) : 0; // derive a from Iw/IT (3 s.f. tabulated a would desynchronise Mw from phi'')
+    const aa=IwO>0? Math.sqrt(E*IwO/GItO) : 0; // use the same E as the bending analysis
     const endsOK = S.supports.length===2 &&
       Math.min(...S.supports.map(s=>+s.pos))<=1e-6 &&
       Math.abs(Math.max(...S.supports.map(s=>+s.pos))-S.L)<=1e-6;
@@ -267,15 +288,37 @@ function analyse(){
   return {sec,py,E,L,Ix,tors,torsO,torsErr,swPerM:sec.mass*9.81/1000,ulsResults,
     Vmax:Vmax/1000, Mmax:Mmax/1e6, Mpos:Mpos/1000,
     Mq:Mq/1e6, Mh:Mh/1e6, Mq3:Mq3/1e6, M24:M24/1e6, M0end:M0end/1e6, MLend:MLend/1e6,
-    dmax, dpos:dpos/1000,
+    dmax, dpos:dpos/1000, deflection:governD.deflection,
     diag:{xs:xs.map(x=>x/1000), V:Venv.map(v=>v/1000), M:Menv.map(m=>m/1e6),
           dx:governD.r.nodes.map(x=>x/1000), dw:governD.r.w},
     reactions, ulsResults, slsResults, governV, governM, governD};
 }
 
 /* Standard-specific check engines live in js/checks/. */
+function analysisForCombination(a,res){
+  const fb=res.fb, L=a.L;
+  let M24=0; fb.xs.forEach((x,i)=>{ if(x>=L/4&&x<=3*L/4) M24=Math.max(M24,Math.abs(fb.M[i])); });
+  return Object.assign({},a,{ulsResults:[res],governM:res,governV:res,
+    Mmax:res.Mmax/1e6,Vmax:res.Vmax/1000,Mpos:res.Mpos/1000,
+    Mq:interpAt(fb.xs,fb.M,L/4)/1e6,Mh:interpAt(fb.xs,fb.M,L/2)/1e6,
+    Mq3:interpAt(fb.xs,fb.M,3*L/4)/1e6,M24:M24/1e6,
+    M0end:interpAt(fb.xs,fb.M,1e-4)/1e6,MLend:interpAt(fb.xs,fb.M,L-1e-4)/1e6});
+}
 function checks(a){
   if(S.code==='EC3') return (S.restraint||'full')==='full'? checksEC3Restrained(a) : checksEC3UnrestrainedSCI(a);
-  return checksBS5950(a);
+  // mLT and mx depend on each diagram; a lower peak moment can govern.
+  const results=a.ulsResults.map(res=>({res,c:checksBS5950(analysisForCombination(a,res))}));
+  const c=checksBS5950(a); // retain envelope quantities for the detailed report
+  c.utils=c.utils.map((u,i)=>{
+    const combo=u.name==='Deflection'?a.governD.combo.label:u.name.startsWith('Shear')?a.governV.combo.label:a.ulsResults.length===1?a.governM.combo.label:'envelope';
+    let worst={...u,combo};
+    results.forEach(r=>{ const v=r.c.utils[i]; if(v&&v.val>worst.val) worst={...v,combo:r.res.combo.label}; });
+    return worst;
+  });
+  c.unsupported=[...new Set(c.unsupported.concat(...results.map(r=>r.c.unsupported)))];
+  c.gov=c.utils.reduce((p,u)=>u.val>p.val?u:p);
+  c.pass=c.unsupported.length===0&&c.utils.every(u=>Number.isFinite(u.val)&&u.val>=0&&u.val<=1.0001);
+  c.combinationChecks=results.map(r=>({combo:r.res.combo.label,utils:r.c.utils}));
+  return c;
 }
 
