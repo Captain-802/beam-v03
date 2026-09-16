@@ -43,7 +43,8 @@ if (-not [regex]::IsMatch($html, $scriptBlockPattern)) {
   throw 'Expected script tag block was not found in index.html.'
 }
 
-$html = [regex]::Replace($html, $scriptBlockPattern, "<script>`r`n$js`r`n</script>", 1)
+$scriptReplacement = "<script>`r`n$js`r`n</script>"
+$html = [regex]::Replace($html, $scriptBlockPattern, [Text.RegularExpressions.MatchEvaluator]{ param($match) $scriptReplacement })
 
 New-Item -ItemType Directory -Force -Path $distDir | Out-Null
 [IO.File]::WriteAllText($outPath, $html, $utf8)

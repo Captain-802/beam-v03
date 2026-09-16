@@ -400,7 +400,7 @@
     });
     var gF = fac.G != null ? fac.G : 0;
     var sw = selfWeightValue(a.sec);
-    if (gF > 0 && sw > 0) dl.push({ x1: 0, x2: a.L, w1: sw * gF, w2: sw * gF, zg: 0 }); // self-weight acts at the centroid
+    if (gF !== 0 && sw > 0) dl.push({ x1: 0, x2: a.L, w1: sw * gF, w2: sw * gF, zg: 0 }); // self-weight acts at the centroid
     return { distLoads: dl, pointLoads: pl };
   }
 
@@ -449,7 +449,9 @@
   }
 
   function ltbCurve(sec) {
-    if (sec.isBox) return { alphaLT: 0.76, curve: 'd' };           // not listed in NA Table 6.3
+    // UK NA / SCI P362 Table 6.6: hot-finished hollow sections share the
+    // I/H h/b allocation; cold-formed hollow sections use c (h/b<=2) or d.
+    if (sec.isBox && sec.boxType === 'CF') return sec.D/sec.B <= 2 ? { alphaLT: 0.49, curve: 'c' } : { alphaLT: 0.76, curve: 'd' };
     if (sec.kind === 'channel') return { alphaLT: 0.76, curve: 'd' }; // not doubly symmetric
     var hb = sec.D / sec.B;
     return hb <= 2 ? { alphaLT: 0.34, curve: 'b' } : hb <= 3.1 ? { alphaLT: 0.49, curve: 'c' } : { alphaLT: 0.76, curve: 'd' };
@@ -764,7 +766,12 @@
     }
 
     var useB1u = sec.isBox || (ltb.MbRd >= b.McRd * 0.9999);
-    var buck = (b.ax && !b.ax.tension) ? annexB2(a, sec, fy, b.cl, ltb.MbRd > 0 ? ltb.MbRd : b.McRd, useB1u, isCant) : null;
+    // Bound the interaction with the lowest resistance of all enabled diagrams.
+    // annexB2 separately sweeps each combination's own moment and Cm.
+    var memberMb = Math.min.apply(null, evals.map(function(ev){ return ev.chain.MbRd; }));
+    if (spanGov) memberMb = Math.min(memberMb, spanGov.Mb);
+    useB1u = sec.isBox || (memberMb >= b.McRd * 0.9999);
+    var buck = (b.ax && !b.ax.tension) ? annexB2(a, sec, fy, b.cl, memberMb, useB1u, isCant) : null;
     if (buck && buck.lczFromRestraints)
       warn.push('Minor-axis strut buckling length L<sub>cr,z</sub> = ' + (buck.LcrZ / 1000).toFixed(2) + ' m, taken as the largest spacing between adjacent lateral restraint points (SCI P360 6.2: secondary members act as bracing points; k = 1.0 between restraints). ' +
         'Ensure each restraint really is an effective bracing point - adequate stiffness, strength and anchorage. The major axis keeps L<sub>cr,y</sub> = L<sub>E</sub>&times;L = ' + (buck.LcrY / 1000).toFixed(2) + ' m.');

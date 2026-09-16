@@ -16,10 +16,10 @@ function printReport(){
 }
 
 function readScalarInputs(){
-  S.code=$("code").value;
+  setDesignCode($("code").value);
   S.restraint=$("restraint").value;
   S.eccOn=$("eccOn").checked;
-  S.za=parseFloat($("za").value)||0;
+  S.za=parseFloat($("za").value);
   S.rootWarp=$("rootWarp").value;
   S.family=$("family").value;
   S.sectionKey=$("pfcSelect").value;
@@ -34,16 +34,16 @@ function readScalarInputs(){
   const autoPy=pyFromGrade(S.grade,sec.tf);
   S.py = (isFinite(pyv)&&Math.abs(pyv-autoPy)>1e-6)? pyv : null;
   const an=parseFloat($("anet").value); S.anet=isFinite(an)?an:null;
-  S.L=parseFloat($("length").value)||S.L;
-  S.axial=parseFloat($("axial").value)||0;
-  S.Mz=parseFloat($("Mz").value)||0;
-  S.leFactor=parseFloat($("leFactor").value)||1;
+  S.L=parseFloat($("length").value);
+  S.axial=parseFloat($("axial").value);
+  S.Mz=parseFloat($("Mz").value);
+  S.leFactor=parseFloat($("leFactor").value);
   S.destab=$("destab").checked;
   const mlt=parseFloat($("mLTo").value); S.mLTo=isFinite(mlt)?mlt:null;
   const mxo=parseFloat($("mxo").value); S.mxo=isFinite(mxo)?mxo:null;
   const c1o=parseFloat($("C1o").value); S.C1o=isFinite(c1o)?c1o:null;
-  S.divisor=parseFloat($("divisor").value)||360;
-  S.E=parseFloat($("E").value)||205000;
+  S.divisor=parseFloat($("divisor").value);
+  S.E=parseFloat($("E").value);
   const ke=parseFloat($("Ke").value); S.Ke=isFinite(ke)?ke:null;
   const autoRob=defaultRobertson(S.family,sec.boxType,sec.tf);
   const rvx=parseFloat($("robertsonX").value);
@@ -93,8 +93,7 @@ function wire(){
   $("family").addEventListener("change",()=>{
     S.family=$("family").value; syncInputs(); refreshAutoFields(); recompute(); });
   $("code").addEventListener("change",()=>{
-    S.code=$("code").value;
-    if(S.E===205000 || S.E===210000) S.E = S.code==='EC3' ? 210000 : 205000;
+    setDesignCode($("code").value);
     syncInputs(); recompute(); });
   $("restraint").addEventListener("change",()=>{
     S.restraint=$("restraint").value; syncInputs(); recompute(); });

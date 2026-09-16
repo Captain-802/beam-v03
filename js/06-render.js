@@ -65,11 +65,15 @@ function render(){
     <tbody>${slsRows}</tbody>
   </table>`;
 
-  const verdict=c.pass?"PASS":"FAIL";
+  const verdict=c.pass?"PASS":c.utils.some(u=>!Number.isFinite(u.val)||u.val>1.0001)?"FAIL":"NOT VERIFIED";
+  const verdictCombo=c.gov.combo || (c.gov.name==='Deflection'?a.governD.combo.label:
+    c.gov.name.startsWith('Shear')?a.governV.combo.label:
+    c.gov.name.startsWith('Member buckling')&&c.buck?c.buck.combo||a.governM.combo.label:
+    c.gov.name.startsWith('LTB ')&&c.ltb?c.ltb.governCombo||'':'');
   const codeLabel = S.code==='EC3'? (sci? 'EN 1993-1-1 (UK NA) &mdash; fully restrained beam' : (c.ltb&&c.ltb.na? 'EN 1993-1-1 (UK NA) &mdash; closed section beam' : 'EN 1993-1-1 (UK NA) &mdash; unrestrained beam (LTB)')) : 'BS 5950-1:2000';
   const banner=`<div class="banner ${c.pass?'pass':'failb'}">
     <div><div class="verdict">${verdict}</div><div style="font-size:12px;color:#374151;font-family:Arial">${codeLabel} member check   ${sname(sec.key)} ${famLabel}   ${S.grade}</div></div>
-    <div class="util">Governing: <b>${c.gov.name} = ${g(c.gov.val,3)}</b> (${a.governM.combo.label})<br>
+    <div class="util">Governing: <b>${c.gov.name} = ${g(c.gov.val,3)}</b>${verdictCombo?' ('+verdictCombo+')':''}<br>
       ${sci
         ? `Shear ${g(c.utils[0].val,2)} &bull; Bending ${g(c.utils[1].val,2)} &bull; Defl ${g(c.utils[2].val,2)}`
         : sciU && c.ltb && c.ltb.na
@@ -89,9 +93,13 @@ function render(){
 
   // notes
   const notes=[];
+  notes.push('PASS applies only to the implemented member checks and the enabled load combinations. Support bearing, connections and the complete structural system require separate verification.');
+  if(S.combos.some(cb=>cb.id!=='c1'&&!cb.sls&&cb.on)) notes.push('Custom ULS factors are used as entered; confirm the complete combination set and favourable/unfavourable actions for the selected standard.');
+  if(c.combinationChecks&&c.combinationChecks.length>1) notes.push('BS 5950 m-factors are evaluated separately for every ULS combination. The verdict uses the worst utilisation; the detailed envelope calculation below may have a different governing diagram.');
+  if(a.deflection&&a.deflection.span<a.L-1e-6) notes.push('Deflection is checked for each support-to-support span and each end overhang using its own length and the entered divisor. Governing segment: '+g(a.deflection.start/1000,2)+' to '+g(a.deflection.end/1000,2)+' m.');
   if(c.unsupported&&c.unsupported.length) c.unsupported.forEach(n=>notes.push(`<b>NOT COVERED:</b> ${n}`));
   if(c.advisory&&c.advisory.length) c.advisory.forEach(n=>notes.push(`<b>ADVISORY (does not block PASS):</b> ${n}`));
-  if((sci||sciU)&&c.tor&&c.tor.p385) notes.push("Open-section torsion per SCI P385: elastic Method B (fork ends both supports, warping free), Appendix C Cases 3/4/10 closed forms superposed per combination; effects evaluated coincidently along the span. Cross-section verified by the P385 &sect;3.1.2 interaction; shear by Eq 6.2"+(c.tor.chan?'7':'6')+(sciU? "; buckling by the BS EN 1993-6 Annex A bending&ndash;torsion interaction with k<sub>&alpha;</sub> amplification":"")+ ". Plastic-design caution: &phi; used for M<sub>z,ind</sub> is the elastic value (P385 notes rotation may exceed it when plastic resistance is mobilised). Destabilising load-height growth of e (P385 &sect;2.3.3) is not iterated &mdash; if loads sit above the shear centre, add an allowance to e or use the destabilising switch.");
+  if((sci||sciU)&&c.tor&&c.tor.p385) notes.push("Open-section torsion per SCI P385: elastic Method B with fork ends and free warping, using Appendix C Cases 3/4/10. The rotation-induced minor moment is included. Plastic redistribution and growth of eccentricity as the section twists are not iterated. The EC3 destabilising switch does not add this second-order torsional effect.");
   if((sci||sciU)&&c.tor) notes.push("Torsion: each applied load acts at its own offset e from the shear centre; loads with e = 0 and applied moments generate no torque. Automatic self-weight acts through the centroid, so it has e = 0 for doubly symmetric sections but e = e<sub>sc</sub> for PFC channels. The verification conservatively assumes maximum shear, bending and torsion are coincident (SCI example note). All supports are assumed to prevent twist &mdash; fork supports; friction-grip connections or similar may be required. Torsion is evaluated on the EC3 code path only.");
   if((sci||sciU)&&c.coex&&c.coex.pureShearFail) notes.push("Coexistent M&ndash;V: V<sub>Ed</sub> exceeds V<sub>pl,Rd</sub> at the reported section, so the cl 6.2.8 reduced moment formula is bypassed; the section has already failed in pure shear.");
   if(sci){
@@ -456,7 +464,7 @@ function render(){
     <div>P<sub>z</sub> = A<sub>e</sub> p<sub>y</sub></div><div class="formula">${g(c.Ae/1e2,1)} ${g(a.py,0)}</div><div class="value">${f1(c.Pz,1)} kN</div><div></div>
     <div>n = F / P<sub>z</sub></div><div class="formula">${f1(c.F,2)} / ${f1(c.Pz,1)}</div><div class="value">${g(c.n,3)}</div>${st(c.n<=1,'OK')}
     <div>S<sub>rx</sub> = Fn(S<sub>x</sub>, n)</div><div class="formula">${g(sec.Sx,1)}${c.n>0.02?` reduced for n`:`, n 0`}</div><div class="value">${g(c.Srx/1e3,1)} cm </div><div></div>
-    <div>M<sub>rx</sub> = S<sub>rx</sub> p<sub>y</sub></div><div class="formula">${g(c.Srx/1e3,1)} ${g(a.py,0)}</div><div class="value">${f1(c.Mrx,2)} kN m</div><div></div>
+    <div>M<sub>rx</sub> = min(M<sub>cx</sub>, axial-reduced resistance)</div><div class="formula">including the applicable shear reduction and elastic cap</div><div class="value">${f1(c.Mrx,2)} kN m</div><div></div>
     <div>(M<sub>x</sub>/M<sub>rx</sub>) + (M<sub>y</sub>/M<sub>ry</sub>)</div><div class="formula">(${f1(c.Mx,2)}/${f1(c.Mrx,2)}) + 0</div><div class="value">${g(c.localUtil,3)}</div>${st(c.localUtil<=1,'OK')}
   </div>`}
 
@@ -491,8 +499,8 @@ function render(){
     <div>N<sub>b,y,Rd</sub>; N<sub>b,z,Rd</sub> = &chi;Af<sub>y</sub>/&gamma;<sub>M1</sub></div><div class="formula">&chi;<sub>y</sub> = ${g(c.buck.chiY,3)}; &chi;<sub>z</sub> = ${g(c.buck.chiZ,3)}</div><div class="value">${f1(c.buck.NbY,1)} / ${f1(c.buck.NbZ,1)} kN</div><div></div>
     <div>C<sub>my</sub> = C<sub>mLT</sub> (Table B.3)</div><div class="formula" style="font-size:12.5px">${c.buck.cmLabel}${c.buck.swayNote? ' &mdash; sway buckling mode (cantilever): C<sub>m</sub> = 0.9 floor applied (Table B.3 note)':''}</div><div class="value">${g(c.buck.Cmy,3)}; C<sub>mz</sub> = ${g(c.buck.Cmz,2)}</div><div></div>
     <div>k<sub>yy</sub>; k<sub>zz</sub>; k<sub>yz</sub>; k<sub>zy</sub></div><div class="formula">${c.buck.kzyLbl}</div><div class="value">${g(c.buck.kyy,3)}; ${g(c.buck.kzz,3)}; ${g(c.buck.kyz,3)}; ${g(c.buck.kzy,3)}</div><div></div>
-    <div>N<sub>Ed</sub>/N<sub>b,y,Rd</sub> + k<sub>yy</sub>M<sub>y,Ed</sub>/M<sub>b,Rd</sub>${c.buck.biax?' + k<sub>yz</sub>M<sub>z,Ed</sub>/M<sub>c,z,Rd</sub>':''} (Eq 6.61)</div><div class="formula">${g(c.buck.ny,3)} + ${g(c.buck.kyy,3)}&times;${f1(c.Mx,2)}/${f1(c.buck.MbRdI,2)}${c.buck.biax?' + '+g(c.buck.kyz,3)+'&times;'+f1(c.buck.MzEd,2)+'/'+f1(c.buck.Mcz,2):''}</div><div class="value">${g(c.buck.u1,3)}</div>${c.buck.Fc>1e-6? st(c.buck.u1<=1.0001,'OK') : '<div class="status">N<sub>Ed</sub> = 0</div>'}
-    <div>N<sub>Ed</sub>/N<sub>b,z,Rd</sub> + k<sub>zy</sub>M<sub>y,Ed</sub>/M<sub>b,Rd</sub>${c.buck.biax?' + k<sub>zz</sub>M<sub>z,Ed</sub>/M<sub>c,z,Rd</sub>':''} (Eq 6.62)</div><div class="formula">${g(c.buck.nz,3)} + ${g(c.buck.kzy,3)}&times;${f1(c.Mx,2)}/${f1(c.buck.MbRdI,2)}${c.buck.biax?' + '+g(c.buck.kzz,3)+'&times;'+f1(c.buck.MzEd,2)+'/'+f1(c.buck.Mcz,2):''}</div><div class="value">${g(c.buck.u2,3)}</div>${c.buck.Fc>1e-6? st(c.buck.u2<=1.0001,'OK') : '<div class="status">N<sub>Ed</sub> = 0</div>'}
+    <div>N<sub>Ed</sub>/N<sub>b,y,Rd</sub> + k<sub>yy</sub>M<sub>y,Ed</sub>/M<sub>b,Rd</sub>${c.buck.biax?' + k<sub>yz</sub>M<sub>z,Ed</sub>/M<sub>c,z,Rd</sub>':''} (Eq 6.61)</div><div class="formula">${g(c.buck.ny,3)} + ${g(c.buck.kyy,3)}&times;${f1(c.buck.Mx,2)}/${f1(c.buck.MbRdI,2)}${c.buck.biax?' + '+g(c.buck.kyz,3)+'&times;'+f1(c.buck.MzEd,2)+'/'+f1(c.buck.Mcz,2):''}</div><div class="value">${g(c.buck.u1,3)}</div>${c.buck.Fc>1e-6? st(c.buck.u1<=1.0001,'OK') : '<div class="status">N<sub>Ed</sub> = 0</div>'}
+    <div>N<sub>Ed</sub>/N<sub>b,z,Rd</sub> + k<sub>zy</sub>M<sub>y,Ed</sub>/M<sub>b,Rd</sub>${c.buck.biax?' + k<sub>zz</sub>M<sub>z,Ed</sub>/M<sub>c,z,Rd</sub>':''} (Eq 6.62)</div><div class="formula">${g(c.buck.nz,3)} + ${g(c.buck.kzy,3)}&times;${f1(c.buck.Mx,2)}/${f1(c.buck.MbRdI,2)}${c.buck.biax?' + '+g(c.buck.kzz,3)+'&times;'+f1(c.buck.MzEd,2)+'/'+f1(c.buck.Mcz,2):''}</div><div class="value">${g(c.buck.u2,3)}</div>${c.buck.Fc>1e-6? st(c.buck.u2<=1.0001,'OK') : '<div class="status">N<sub>Ed</sub> = 0</div>'}
   </div>`:''}
   ${(sci||sciU) ? '' : S.code==='EC3' ? `
   <div class="section-title smallgap">Member Buckling Resistance (Cl. 6.3.3, Annex B Method 2)</div>
@@ -515,7 +523,7 @@ function render(){
 
   <div class="section-title smallgap">${(sci||sciU)? 'Vertical Deflection of Beam (BS EN 1993-1-1 NA 2.23 &mdash; ' : 'Deflection Check (SLS &mdash; '}${a.governD.combo.label})</div>
   <div class="calc-block">
-    <div>w<sub>max</sub> (governing SLS combination)</div><div class="formula">@ x = ${g(a.dpos,2)} m</div><div class="value">${f1(c.dmax,1)} mm</div><div></div>
+    <div>w (governing span utilisation)</div><div class="formula">@ x = ${g(a.deflection?a.deflection.dpos/1000:a.dpos,2)} m</div><div class="value">${f1(c.dmax,1)} mm</div><div></div>
     <div>Limit = span/${g(c.divisor,0)}</div><div class="formula">${g(c.span,0)}/${g(c.divisor,0)} = ${f1(c.dlimit,1)} mm</div><div class="value">${f1(c.dmax,1)} ${c.defOk?'&lt;':'&gt;'} ${f1(c.dlimit,1)} mm</div>${st(c.defOk,'OK')}
   </div>
 
