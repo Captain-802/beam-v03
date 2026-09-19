@@ -86,7 +86,7 @@ function checksBS5950(a){
   // m-factors. Table 18 note: mLT = 1.0 for cantilevers AND for members with
   // DESTABILISING loading conditions (previously the destabilising switch only
   // lengthened LE and kept mLT < 1, which Table 18 does not permit).
-  const isCant=(S.supports.length===1 && S.supports[0].type==='fixed');
+  const isCant=isCantilever(S);
   const mf=mFactors(a.Mq,a.Mh,a.Mq3,a.Mmax,a.M24);
   let mLT=(isCant||S.destab)?1:mf.mLT, mx=mf.mx;
   if(S.mLTo!=null) mLT=S.mLTo;
@@ -94,7 +94,8 @@ function checksBS5950(a){
   // LTB   BS 5950 box-section path. SHS naturally returns very low ?LT because
   // Ix Iy; RHS uses the closed-section ?LT expression rather than a rough Table
   // 15 screen.
-  const LE=S.leFactor*(S.destab?1.2:1)*a.L;
+  // LTB effective length: the entered L_E/L factor (blank = 1.0) x L, x1.2 destabilising
+  const LE=ltbLeFactor()*(S.destab?1.2:1)*a.L;
   const ry=sec.ry*10;
   let lam=null,v=null,betaW=null,lamLT=null,pb=null,lamL0=null,Mb,ltbUtil,rhsFlag=false,phiB=null,gammaPrime=null;
   if(sec.isBox){
@@ -126,9 +127,16 @@ function checksBS5950(a){
   const a_robX = S.robX!=null? S.robX : autoRob.x;
   const a_robY = S.robY!=null? S.robY : autoRob.y;
   const rx=sec.rx*10;
-  const pcx=pcFunc(LE/rx,py,a_robX,E), pcy=pcFunc(LE/ry,py,a_robY,E);
-  const Pc=Ag*pcx/1000, Pcy=Ag*pcy/1000;
+  // strut lengths: the entered L_E/L factor, else from the end fixities
+  // (lcrDefaults, Table 22 style, x-x from U_z / R_y and y-y from U_y / R_z);
+  // the destabilising x1.2 is kept on the strut length as before on this path
+  const lcr=lcrDefaults(S);
   const Fc=Math.max(F,0);
+  if(Fc>0 && (lcr.Ky==null || lcr.Kz==null)) throw 'Strut buckling: the end fixities form a mechanism ('+(lcr.Ky==null? lcr.basisY : lcr.basisZ)+'); F_c cannot be carried.';
+  const Kx=lcr.Ky!=null? lcr.Ky : 1.0, Ky=lcr.Kz!=null? lcr.Kz : 1.0;
+  const LcrX=Kx*(S.destab?1.2:1)*a.L, LcrY=Ky*(S.destab?1.2:1)*a.L, lcrBasis=lcr.basis;
+  const pcx=pcFunc(LcrX/rx,py,a_robX,E), pcy=pcFunc(LcrY/ry,py,a_robY,E);
+  const Pc=Ag*pcx/1000, Pcy=Ag*pcy/1000;
   if(Fc>0 && sec.kind==='channel') unsupported.push("BS 5950 PFC/channel compression must use the UK channel strut approach/Table 25 or verified Blue Book data; the previous generic Robertson placeholder is not accepted.");
   const pyZx=py*Zx/1e6;
   const u1=Fc/Pc + mx*Mx/pyZx;
@@ -156,7 +164,7 @@ function checksBS5950(a){
 
   return {eps,cl,clsName,unsupported,advisory,bTBS:bT_BS,Av,Pv,Fv,lowShear,shearBuckle,Mcx,hsNote,Zx,Sx,rhsFlag,
     Ag,Anet,Ke,Ae,Pz,F,n,Srx,Mrx,Mx,localUtil,isCant,mLT,mx,mf,
-    LE,lam,v,betaW,phiB,gammaPrime,lamLT,pb,lamL0,Mb,ltbUtil,a_robX,a_robY,pcx,pcy,Pc,Pcy,Fc,pyZx,u1,u2,
+    LE,LcrX,LcrY,Kx,Ky,lcrBasis,lam,v,betaW,phiB,gammaPrime,lamLT,pb,lamL0,Mb,ltbUtil,a_robX,a_robY,pcx,pcy,Pc,Pcy,Fc,pyZx,u1,u2,
     span,divisor,dlimit,dmax,defOk,deflCant,deflAbsGoverns,utils,gov,pass};
 }
 

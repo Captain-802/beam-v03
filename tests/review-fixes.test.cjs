@@ -1,17 +1,18 @@
 // 19 Sep 2026 review findings on branch ms-brief-standard-mcr (AUDIT.md
 // "19 Sep 2026 gap closure, review fixes"): PFC torsional buckling length from the TWIST
 // restraints, the gamma_G,inf = 1.0 companion combinations for uplift / hold-down
-// and web bearing, the stiff-bearing default s_s = 0 lower bound at supports,
-// the interior-support reaction pattern for n >= 4 spans, and the solve caches.
-// Expected values are hand derived ([hand-derived] in the comments) from the
-// section tables, the three-moment equation and the code expressions.
+// and web bearing, the stiff-bearing default s_s = 0 lower bound at the ends, and
+// the solve caches (the F4 multi-span reaction pattern left with the multi-span
+// scope on 19 Sep 2026). Expected values are hand derived ([hand-derived] in
+// the comments) from the section tables, statics and the code expressions.
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { app } = require('./harness.cjs');
 const c = app();
 const run = x => c.run(x);
+const ENDS = (p, o) => c.ends(p, o);   // ends preset of the single-span model
 function near(actual, expected, rel = 1e-6, what = '') { assert.ok(Math.abs(actual - expected) <= rel * Math.max(1, Math.abs(expected)), `${what} ${actual} != ${expected}`); }
-const full = () => run(`(()=>{ const a=analyse(); const ch=checks(a); return {a:{Mmax:a.Mmax, sec:a.sec, fy:a.py, E:a.E, L:a.L, ulsLabels:a.ulsResults.map(r=>r.combo.label), reacs:a.ulsResults.map(r=>({label:r.combo.label, R:r.r.reactions.map(x=>x.V/1000)})), comp:(a.ulsCompanions||[]).map(r=>({label:r.combo.label, parent:r.combo.parent&&r.combo.parent.label, R:r.r.reactions.map(x=>x.V/1000)})), uplift:a.uplift, patterns:a.patterns&&{nUls:a.patterns.nUls,nSls:a.patterns.nSls,nComp:a.patterns.nComp,note:a.patterns.note}}, c:ch}; })()`);
+const full = () => run(`(()=>{ const a=analyse(); const ch=checks(a); return {a:{Mmax:a.Mmax, sec:a.sec, fy:a.py, E:a.E, L:a.L, ulsLabels:a.ulsResults.map(r=>r.combo.label), reacs:a.ulsResults.map(r=>({label:r.combo.label, R:r.r.reactions.map(x=>x.V/1000)})), comp:(a.ulsCompanions||[]).map(r=>({label:r.combo.label, parent:r.combo.parent&&r.combo.parent.label, R:r.r.reactions.map(x=>x.V/1000)})), uplift:a.uplift, companionNote:a.companionNote}, c:ch}; })()`);
 const util = (ch, re) => { const u = ch.utils.find(u => re.test(u.name)); return u ? u.val : null; };
 const brief = () => run(`(()=>{ const a=analyse(); const ch=checks(a); return renderMasterSeriesBrief(a,ch,a.sec); })()`);
 const report = () => run(`(()=>{ const el={innerHTML:'',style:{}}; document.getElementById=()=>el; render(); return el.innerHTML; })()`);
@@ -30,7 +31,7 @@ test('[hand-derived] F1: PFC 150x75x18, 6 m, N = 250 kN, restraints at 1.5 m cen
   //   N_cr,TF = (495.70 + 752.85)/(2 x 0.60988) [1 - sqrt(1 - 4 x 0.60988 x 495.70 x 752.85/1248.55^2)] = 1023.6 x 0.35503 = 363.41 kN
   //   lambda_T = sqrt(2280 x 275/363407) = 1.3135; curve c: Phi = 1.6355, chi = 0.38316; N_b,T,Rd = 0.38316 x 2280 x 275 = 240.24 kN; 250/240.24 = 1.0406
   // L_T = 1500: N_cr,T = (5.1111e9 + 4.3019e9)/7146.09 = 1317.21 kN; N_cr,TF = 419.31 kN; lambda_T = 1.2228; chi = 0.42302; N_b,T,Rd = 265.23 kN; 0.9426
-  const lay = { family: 'pfc', sectionKey: '150x75x18', L: 6, supports: [{ pos: 0, type: 'pinned', ss: 100 }, { pos: 6, type: 'pinned', ss: 100 }], axial: 250, restraint: 'ltb', mcrMethod: 'standard',
+  const lay = { family: 'pfc', sectionKey: '150x75x18', L: 6, ends:ENDS('ss',{e1:{ss:100}, e2:{ss:100}}), axial: 250, restraint: 'ltb', mcrMethod: 'standard',
     loads: [{ type: 'udl', x1: 0, x2: 6, w: 1, case: 'G' }, { type: 'udl', x1: 0, x2: 6, w: 1, case: 'Q' }] };
   const G = 81000, E = 210000, A = 2280, IT = 6.31e4, Iw = 4.67e9, i0sq = 61.5 ** 2 + 24.0 ** 2 + 52.8 ** 2, beta = 1 - 52.8 ** 2 / i0sq, NcrY = Math.PI ** 2 * E * 861e4 / 6000 ** 2;
   const chain = LT => { const NcrT = (G * IT + Math.PI ** 2 * E * Iw / (LT * LT)) / i0sq; const NcrTF = (NcrY + NcrT) / (2 * beta) * (1 - Math.sqrt(1 - 4 * beta * NcrY * NcrT / (NcrY + NcrT) ** 2)); const lam = Math.sqrt(A * 275 / Math.min(NcrT, NcrTF)); const chi = chiStrut(lam, 0.49); return { NcrT: NcrT / 1000, NcrTF: NcrTF / 1000, lam, chi, NbT: chi * A * 275 / 1000 }; };
@@ -60,93 +61,66 @@ test('[hand-derived] F1: PFC 150x75x18, 6 m, N = 250 kN, restraints at 1.5 m cen
 });
 
 // ---- finding 2: gamma_G,inf companions for uplift / hold-down and web bearing ----
-test('[hand-derived] F2: overhang 457x191x82, supports 0 and 4 m, L = 6 m, G 3 kN/m + self-weight, 30 kN Q at the tip: the hold-down force is the EQU companion 0.9G + 1.5Q = -17.36 kN (STR set B -16.79, entered 1.35G -14.80); with G = 12 kN/m the support holds at 1.35G but lifts at 1.0G / 0.9G and is blocked without a hold-down', () => {
-  // self-weight 82.0 kg/m -> 0.8044 kN/m; R_1 of a UDL w over 0-6 m on supports at 0 and 4 m: moments about x = 4: R_1 x 4 = 6w x (4 - 3) -> R_1 = 1.5 w
-  // G = 3 + 0.8044 = 3.8044 kN/m -> R_1,G = 5.7066 kN; tip 30 kN at 6 m: R_1,Q = -30 x 2/4 = -15 kN
-  //   1.35G + 1.5Q: 7.7039 - 22.5 = -14.796 kN;  1.0G + 1.5Q: 5.7066 - 22.5 = -16.793 kN;  0.9G + 1.5Q: 5.1359 - 22.5 = -17.364 kN
-  // G = 12 + 0.8044 = 12.8044 -> R_1,G = 19.207: 1.35G: +3.429 (no uplift); 1.0G: -3.293; 0.9G: -5.214 kN
-  const lay = { L: 6, supports: [{ pos: 0, type: 'pinned', holdDown: true, ss: 100 }, { pos: 4, type: 'pinned', ss: 100 }], restraint: 'full',
-    loads: [{ type: 'udl', x1: 0, x2: 6, w: 3, case: 'G' }, { type: 'point', pos: 6, P: 30, case: 'Q' }] };
+test('[hand-derived] F2: simply supported 457x191x82, L = 6 m, G 3 kN/m + self-weight, applied couple -90 kN.m (Q) at End 2 lifting End 1: the hold-down force is the EQU companion 0.9G + 1.5Q = -12.23 kN (STR set B -11.09, entered 1.35G -7.09); with G = 6 kN/m End 1 holds at 1.35G but lifts at 1.0G / 0.9G and is blocked without a hold-down', () => {
+  // self-weight 82.0 kg/m -> 0.8044 kN/m; R_1 of a UDL w over the 6 m span = 3w: G = 3 + 0.8044 = 3.8044 kN/m -> R_1,G = 11.413 kN;
+  // couple M = -90 kN.m (clockwise) at x = 6 m on a simply supported span: R_1,Q = -15 kN (the couple adds no net vertical load)
+  //   1.35G + 1.5Q: 15.408 - 22.5 = -7.092 kN;  1.0G + 1.5Q: 11.413 - 22.5 = -11.087 kN;  0.9G + 1.5Q: 10.272 - 22.5 = -12.228 kN
+  // G = 6 + 0.8044 = 6.8044 -> R_1,G = 20.413: 1.35G: +5.058 (no uplift); 1.0G: -2.087; 0.9G: -4.128 kN
+  const lay = { L: 6, ends: ENDS('ss', { e1: { holdDown: true, ss: 100 }, e2: { ss: 100 } }), restraint: 'full',
+    loads: [{ type: 'udl', x1: 0, x2: 6, w: 3, case: 'G' }, { type: 'moment', pos: 6, M: -90, case: 'Q' }] };
   c.reset(lay);
   let { a, c: ch } = full();
-  const RG = 1.5 * (3 + 0.8044), RQ = -15;
-  near(a.reacs[0].R[0], 1.35 * RG + 1.5 * RQ, 1e-6, '1.35G reaction'); near(1.35 * RG + 1.5 * RQ, -14.796, 1e-4);
+  const RG = 3 * (3 + 0.8044), RQ = -15;
+  near(a.reacs[0].R[0], 1.35 * RG + 1.5 * RQ, 1e-6, '1.35G reaction'); near(1.35 * RG + 1.5 * RQ, -7.092, 1e-3);
   assert.equal(a.comp.length, 2); assert.ok(/\[&gamma;<sub>G,inf<\/sub> = 1\.0, STR set B\]$/.test(a.comp[0].label) && /= 0\.9, EQU set A\]$/.test(a.comp[1].label), a.comp.map(x => x.label).join(' | '));
-  near(a.comp[0].R[0], 1.0 * RG + 1.5 * RQ, 1e-6, '1.0G companion'); near(a.comp[0].R[0], -16.793, 1e-4);
-  near(a.comp[1].R[0], 0.9 * RG + 1.5 * RQ, 1e-6, '0.9G companion'); near(a.comp[1].R[0], -17.364, 1e-4);
+  near(a.comp[0].R[0], 1.0 * RG + 1.5 * RQ, 1e-6, '1.0G companion'); near(a.comp[0].R[0], -11.087, 1e-4);
+  near(a.comp[1].R[0], 0.9 * RG + 1.5 * RQ, 1e-6, '0.9G companion'); near(a.comp[1].R[0], -12.228, 1e-4);
   // the hold-down design force is the 0.9G EQU value and names the companion
   const u = a.uplift.supports[0]; near(u.RUls, 0.9 * RG + 1.5 * RQ, 1e-6); near(u.gInfUls, 0.9, 1e-12); assert.ok(/EQU set A\]$/.test(u.comboUls)); assert.equal(u.nCombos, 4);
-  const hd = ch.holdDown.rows[0]; assert.ok(/design the hold-down for R = &minus;17\.36 kN \(combination .*EQU set A\]\)/.test(hd.msg), hd.msg); assert.ok(ch.pass, ch.unsupported.join(' | '));
-  // the web-bearing sweep sees the STR set-B companion (not the EQU one): the lifting support bears nothing there
+  const hd = ch.holdDown.rows[0]; assert.ok(/design the hold-down for R = &minus;12\.23 kN \(combination .*EQU set A\]\)/.test(hd.msg), hd.msg); assert.ok(ch.pass, ch.unsupported.join(' | '));
+  // the web-bearing sweep sees the STR set-B companion (not the EQU one): the lifting end bears nothing there
   const st0 = ch.web.stations.find(s => s.x === 0); assert.equal(st0.cases.length, 2); assert.ok(/STR set B\]$/.test(st0.cases[1].combo)); near(st0.cases[1].R, 0, 1e-12); near(st0.cases[1].F, 0, 1e-12);
-  const st4 = ch.web.stations.find(s => s.x === 4000); near(st4.cases[1].R, 6 * (3 + 0.8044) + 45 - (1.0 * RG + 1.5 * RQ), 1e-6, 'support 2 reaction in the 1.0G companion');
+  const st6 = ch.web.stations.find(s => s.x === 6000); near(st6.cases[1].R, 6 * (3 + 0.8044) - (1.0 * RG + 1.5 * RQ), 1e-6, 'End 2 reaction in the 1.0G companion');
   // brief: the companions are listed with the loads and the hold-down row carries the EQU force; report: the same
   let h = brief();
   assert.ok(/&gamma;<sub>G,inf<\/sub> companions<\/b> \(reactions only\): 2/.test(h) && /ULS C2: ULS: 1\.35G \+ 1\.5Q \(Eq 6\.10\) \[&gamma;<sub>G,inf<\/sub> = 0\.9, EQU set A\]/.test(h), 'companions listed');
-  const hr = row(h, /^Hold-down provided at support 1/); assert.ok(hr && /R = &minus;17\.36 kN \(combination .*EQU set A\]\)/.test(hr.vals) && /R = &minus;17\.36 kN/.test(hr.res), JSON.stringify(hr));
-  assert.ok(/Hold-down provided at support 1 \(x = 0 m\):<\/b> R = &minus;17\.36 kN/.test(report()));
-  // G = 12 kN/m: no uplift at 1.35G, uplift in both companions -> ULS-level "Hold-down required" (blocking) without the box; 5.21 kN with it
-  c.reset(Object.assign({}, lay, { supports: [{ pos: 0, type: 'pinned', ss: 100 }, { pos: 4, type: 'pinned', ss: 100 }], loads: [{ type: 'udl', x1: 0, x2: 6, w: 12, case: 'G' }, { type: 'point', pos: 6, P: 30, case: 'Q' }] }));
+  const hr = row(h, /^Hold-down provided at End 1/); assert.ok(hr && /R = &minus;12\.23 kN \(combination .*EQU set A\]\)/.test(hr.vals) && /R = &minus;12\.23 kN/.test(hr.res), JSON.stringify(hr));
+  assert.ok(/Hold-down provided at End 1 \(x = 0 m\):<\/b> R = &minus;12\.23 kN/.test(report()));
+  // G = 6 kN/m: no uplift at 1.35G, uplift in both companions -> ULS-level "Hold-down required" (blocking) without the box; 4.13 kN with it
+  c.reset(Object.assign({}, lay, { ends: ENDS('ss', { e1: { ss: 100 }, e2: { ss: 100 } }), loads: [{ type: 'udl', x1: 0, x2: 6, w: 6, case: 'G' }, { type: 'moment', pos: 6, M: -90, case: 'Q' }] }));
   ({ a, c: ch } = full());
-  const RG12 = 1.5 * (12 + 0.8044);
-  assert.ok(a.reacs[0].R[0] > 0, 'no uplift at 1.35G'); near(a.reacs[0].R[0], 1.35 * RG12 + 1.5 * RQ, 1e-6); near(a.comp[1].R[0], 0.9 * RG12 + 1.5 * RQ, 1e-6); near(0.9 * RG12 + 1.5 * RQ, -5.214, 1e-3);
-  assert.equal(ch.pass, false); assert.ok(ch.unsupported.some(m => /^Hold-down required: R = &minus;5\.21 kN at support 1 .*EQU set A\]\)/.test(m)), ch.unsupported.join(' | '));
+  const RG6 = 3 * (6 + 0.8044);
+  assert.ok(a.reacs[0].R[0] > 0, 'no uplift at 1.35G'); near(a.reacs[0].R[0], 1.35 * RG6 + 1.5 * RQ, 1e-6); near(a.comp[1].R[0], 0.9 * RG6 + 1.5 * RQ, 1e-6); near(0.9 * RG6 + 1.5 * RQ, -4.128, 1e-3);
+  assert.equal(ch.pass, false); assert.ok(ch.unsupported.some(m => /^Hold-down required: R = &minus;4\.13 kN at End 1 .*EQU set A\]\)/.test(m)), ch.unsupported.join(' | '));
   assert.equal(ch.holdDown.rows[0].level, 'uls');
-  // a member whose companions do not lift any support prints the count including them
+  // a member whose companions do not lift any end prints the count including them
   c.reset({});
   ({ a, c: ch } = full()); assert.equal(a.comp.length, 2); assert.ok(!a.uplift.any); assert.equal(a.uplift.nCombos, 4);
   h = brief(); const ur = row(h, /^Uplift$/); assert.ok(ur && /any of the 4 combinations/.test(ur.vals) && /incl\. the 2 &gamma;<sub>G,inf<\/sub> companions/.test(ur.vals), JSON.stringify(ur));
   // a ULS combination with G at 1.0 gets no companion
   c.reset({ combos: [{ id: 'c1', label: 'ULS: 1.0G + 1.5Q', factors: { G: 1.0, Q: 1.5, W: 0, E: 0 }, sls: false, on: true }, { id: 's1', label: 'SLS', factors: { G: 0, Q: 1, W: 0, E: 0 }, sls: true, on: true }] });
-  ({ a } = full()); assert.equal(a.comp.length, 0); assert.ok(/none generated/.test(a.patterns.note || '') || a.patterns.nComp === 0);
+  ({ a } = full()); assert.equal(a.comp.length, 0); assert.ok(/none generated/.test(a.companionNote || ''));
 });
 
-// ---- finding 4: influence-line pattern for the maximum reaction at an interior support (n >= 4 spans) ----
-test('[hand-derived] F4: four equal 5 m spans, Q = 10 kN/m: the set "spans 1+2+4" gives R_2 = 1.22321 wL = 61.161 kN against 1.19643 wL = 59.821 kN for the pair 1+2 (+2.2 %); the sets are generated for every interior support, de-duplicated, and feed the web-bearing F_Ed', () => {
-  // three-moment equation, equal spans L, w on spans 1, 2, 4 (u = wL^2): 4M2 + M3 = -u/2; M2 + 4M3 + M4 = -u/4; M3 + 4M4 = -u/4
-  //   -> M3 = -u/56, M2 = -27u/224, M4 = -13u/224; R2 = wL - (2M2 - M1 - M3)/L = wL (1 + 50/224) = 1.223214 wL
-  // pair 1+2: 4M2 + M3 = -u/2; M2 + 4M3 + M4 = -u/4; M3 + 4M4 = 0 -> M3 = -u/28, M2 = -13u/112; R2 = wL (1 + 22/112) = 1.196429 wL
-  const lay = { L: 20, supports: [0, 5, 10, 15, 20].map(p => ({ pos: p, type: 'pinned', ss: 100 })), restraint: 'full',
-    combos: [{ id: 'c1', label: 'ULS: 1.0Q', factors: { G: 0, Q: 1.0, W: 0, E: 0 }, sls: false, on: true }, { id: 's1', label: 'SLS', factors: { G: 0, Q: 1, W: 0, E: 0 }, sls: true, on: true }],
-    loads: [{ type: 'udl', x1: 0, x2: 20, w: 10, case: 'Q' }] };
-  c.reset(lay);
-  const { a, c: ch } = full();
-  const wL = 10 * 5;
-  const find = re => a.reacs.find(r => re.test(r.label));
-  const s124 = find(/Q on spans 1\+2\+4 only \(max reaction at x = 5 m\)/), s134 = find(/Q on spans 1\+3\+4 only \(max reaction at x = 15 m\)/), p12 = find(/Q on spans 1\+2 only\)/);
-  assert.ok(s124 && s134 && p12, a.ulsLabels.join(' | '));
-  near(s124.R[1], (1 + 50 / 224) * wL, 1e-6, 'R2 (1+2+4)'); near((1 + 50 / 224) * wL, 61.161, 1e-4);
-  near(p12.R[1], (1 + 22 / 112) * wL, 1e-6, 'R2 (1+2)'); near((1 + 22 / 112) * wL, 59.821, 1e-4);
-  assert.ok(s124.R[1] > p12.R[1] && s124.R[1] > Math.max(...a.reacs.filter(r => r !== s124).map(r => r.R[1])), 'the reaction set governs R2');
-  near(s134.R[3], s124.R[1], 1e-9, 'mirror set at x = 15 m');
-  // the middle support's set {2, 3} equals the pair 2+3 and is dropped; 12 ULS combinations in all
-  assert.equal(a.ulsLabels.filter(l => /max reaction/.test(l)).length, 2); assert.equal(a.ulsLabels.length, 12);
-  // web bearing at x = 5 m takes F_Ed from that pattern
-  const st = ch.web.stations.find(s => Math.abs(s.x - 5000) < 1); near(st.F, s124.R[1], 1e-6); assert.ok(/max reaction at x = 5 m/.test(st.combo), st.combo);
-  // three spans: no reaction set (the pair already covers it); the note names the set
-  c.reset(Object.assign({}, lay, { L: 15, supports: [0, 5, 10, 15].map(p => ({ pos: p, type: 'pinned', ss: 100 })), loads: [{ type: 'udl', x1: 0, x2: 15, w: 10, case: 'Q' }] }));
-  const t = full().a; assert.equal(t.ulsLabels.filter(l => /max reaction/.test(l)).length, 0);
-  c.reset(lay); assert.ok(/maximum reaction at each interior support/.test(full().a.patterns.note));
-});
 
 // ---- findings 3 + 7: stiff bearing default and the support-row label ----
-test('[hand-derived] F3/F7: a blank support s_s is the lower bound 0 (demo reaction 229.5 kN vs F_Rd 135.4 kN -> NOT VERIFIED, not FAIL); the demo state carries s_s = 100 (F_Rd 437.3 kN, PASS); the support-row label no longer prints the section flange width, so a section change cannot leave a stale default', () => {
+test('[hand-derived] F3/F7: a blank end s_s is the lower bound 0 (demo reaction 229.5 kN vs F_Rd 135.4 kN -> NOT VERIFIED, not FAIL); the demo state carries s_s = 100 (F_Rd 437.3 kN, PASS); the end-row label no longer prints the section flange width, so a section change cannot leave a stale default', () => {
   // demo 457x191x82, 8 m, 57.38 kN/m at ULS -> R = 229.5 kN; s_s = 0 type (c): k_F = 2, F_cr = 856.9 kN, l_e = 0, second pass l_y = 16 sqrt(19.3232/2) = 49.73,
   // lambda_F = sqrt(49.73 x 9.9 x 275/856946) = 0.3975, chi_F = 1 -> F_Rd = 275 x 49.73 x 9.9 = 135.4 kN (web-transverse.test.cjs); s_s = 100: F_Rd = 437.3 kN
   c.reset({});
   let r = full(); assert.equal(r.c.web.stations.filter(s => s.support).every(s => s.ss === 100 && !s.ssDefault), true); assert.ok(r.c.pass); near(r.c.web.gov2.FRdTot, 437.34, 1e-4);
-  assert.equal(run('JSON.stringify(DEMO.supports.map(s=>s.ss))'), '[100,100]');
-  c.reset({ supports: [{ pos: 0, type: 'pinned' }, { pos: 8, type: 'pinned' }] });
+  assert.equal(run('JSON.stringify([DEMO.ends.e1.ss, DEMO.ends.e2.ss])'), '[100,100]');
+  c.reset({ ends:ENDS('ss') });
   r = full(); const W = r.c.web;
   assert.ok(W.stations.every(s => s.ss === 0 && s.ssDefault && s.nv), 'lower bound, NOT VERIFIED'); near(W.stations[0].FRdTot, 135.39, 1e-4); near(W.stations[0].eta2, 229.5 / 135.39, 1e-3);
   assert.equal(r.c.pass, false); assert.ok(!r.c.utils.some(u => u.val > 1.0001), 'no failing entry: NOT VERIFIED'); assert.equal(r.c.unsupported.filter(m => /^Web transverse force at x/.test(m)).length, 2);
   assert.equal(W.show, W.stations[1]); assert.equal(W.gov2, null); assert.equal(W.checked, false);
   // a lighter beam passes at the lower bound and is verified for any seating: 203x133x25, 4 m, 5 + 5 kN/m -> R = 34.9 kN
-  c.reset({ family: 'ub', ubKey: '203 x 133 x 25', L: 4, supports: [{ pos: 0, type: 'pinned' }, { pos: 4, type: 'pinned' }], loads: [{ type: 'udl', x1: 0, x2: 4, w: 5, case: 'G' }, { type: 'udl', x1: 0, x2: 4, w: 5, case: 'Q' }] });
+  c.reset({ family: 'ub', ubKey: '203 x 133 x 25', L: 4, ends:ENDS('ss'), loads: [{ type: 'udl', x1: 0, x2: 4, w: 5, case: 'G' }, { type: 'udl', x1: 0, x2: 4, w: 5, case: 'Q' }] });
   r = full(); assert.ok(r.c.web.stations.every(s => s.ssDefault && s.ss === 0 && !s.nv) && r.c.web.checked && r.c.pass, r.c.unsupported.join(' | '));
-  // F7: the support row label is section-independent (no "blank = B = ..." text); switching the section changes nothing in it
+  // F7: the end row label is section-independent (no "blank = B = ..." text); switching the section changes nothing in it
   const labelFor = key => run(`(()=>{ S.family='ub'; S.ubKey=${JSON.stringify(key)}; const rows=[]; const fake={innerHTML:'', appendChild:r=>rows.push(r.innerHTML), querySelectorAll:()=>[]};
-    document.getElementById=()=>fake; document.createElement=()=>({className:'',innerHTML:''}); renderSupportList(); return rows.map(h=>{ const i=h.indexOf('Stiff bearing'); return i<0? '' : h.slice(i, h.indexOf('</span>', i)); }); })()`);
+    document.getElementById=()=>fake; document.createElement=()=>({className:'',innerHTML:''}); renderEndsList(); return rows.map(h=>{ const i=h.indexOf('Stiff bearing'); return i<0? '' : h.slice(i, h.indexOf('</span>', i)); }); })()`);
   const l1 = labelFor('457 x 191 x 82'), l2 = labelFor('610 x 229 x 101');
   assert.ok(l1.length === 2 && l1[0] && /lower bound 0/.test(l1[0]) && !/B =/.test(l1[0]), JSON.stringify(l1));
   assert.equal(JSON.stringify(l1), JSON.stringify(l2), 'label identical after a section change');
@@ -155,8 +129,12 @@ test('[hand-derived] F3/F7: a blank support s_s is the lower bound 0 (demo react
 
 // ---- finding 6: solve caches (eigen and warping-torsion FE) ----
 test('F6: a re-render with unchanged loads / layout is served from the eigen and FE-torsion caches (0 new solves, identical results); a changed load solves again; the brief prints the solve counts', () => {
-  const lay = { L: 8, supports: [{ pos: 0, type: 'pinned', holdDown: true, ss: 100 }, { pos: 6, type: 'pinned', ss: 100 }], restraint: 'ltb', mcrMethod: 'eigen', eccOn: true,
-    loads: [{ type: 'udl', x1: 0, x2: 8, w: 10, case: 'G', e: 40 }, { type: 'udl', x1: 0, x2: 8, w: 15, case: 'Q', e: 40 }, { type: 'point', pos: 8, P: 20, case: 'Q', e: 60 }] };
+  // 8 m simply supported span, three ULS + three SLS combinations, a partial-span eccentric UDL (the closed forms do not apply: FE torsion)
+  const lay = { L: 8, ends: ENDS('ss', { e1: { ss: 100 }, e2: { ss: 100 } }), restraint: 'ltb', mcrMethod: 'eigen', eccOn: true,
+    combos: [{ id: 'c1', label: 'ULS: 1.35G + 1.5Q', factors: { G: 1.35, Q: 1.5, W: 0, E: 0 }, sls: false, on: true }, { id: 'c2', label: 'ULS: 1.0G + 1.5Q', factors: { G: 1.0, Q: 1.5, W: 0, E: 0 }, sls: false, on: true },
+      { id: 'c3', label: 'ULS: 1.35G + 1.05Q', factors: { G: 1.35, Q: 1.05, W: 0, E: 0 }, sls: false, on: true },
+      { id: 's1', label: 'SLS: Q', factors: { G: 0, Q: 1, W: 0, E: 0 }, sls: true, on: true }, { id: 's2', label: 'SLS: G + Q', factors: { G: 1, Q: 1, W: 0, E: 0 }, sls: true, on: true }, { id: 's3', label: 'SLS: G', factors: { G: 1, Q: 0, W: 0, E: 0 }, sls: true, on: true }],
+    loads: [{ type: 'udl', x1: 0, x2: 8, w: 10, case: 'G', e: 40 }, { type: 'udl', x1: 2, x2: 6, w: 15, case: 'Q', e: 40 }, { type: 'point', pos: 5, P: 20, case: 'Q', e: 60 }] };
   const probe = () => run(`(()=>{ const a=analyse(); const ch=checks(a); return {Mcr:ch.ltb.Mcr, phi:ch.tor.BMax, nCombos:ch.ltb.nCombos, ltbSolved:ch.ltb.nSolves, ltbCached:ch.ltb.nCached, feSolved:ch.tor.nSolves, feCached:ch.tor.nCached, nUls:a.ulsResults.length}; })()`);
   c.reset(lay);
   const r1 = probe();

@@ -451,7 +451,10 @@ Rendering: any cell > 1.0001 in red bold; the bar is followed by the verdict foo
 
 ---
 
-## 7. Multi-span members and portions
+## 7. Portions between lateral restraints (formerly "Multi-span members and portions")
+
+**19 Sep 2026 scope change:** the tool handles one span (End 1 to End 2 with their degree-of-freedom flags). "Span by span" below now reads "bay by bay between intermediate lateral restraints": the portion table and the governing portion are the bays between the ends holding U<sub>y</sub> and the intermediate lateral restraints (`LT.segments`, `LT.spanGov`), never support-to-support spans. The loading list opens with an "End restraints" line printing the seven flags of each end. Multi-span, overhang and Gerber layouts are out of scope and refused by validation.
+
 
 MasterSeries splits a member at lateral restraints and prints one portion at a time, each with its own moment diagram, C1 and M<sub>cr</sub>. beam-v03 has no portion selector: the FE method solves the whole member (all supports as forks plus `S.ltbRestraints`) and, when there are three or more lateral points (`LT.vPoints.length >= 3`), also solves each bay in isolation (`LT.segments[]`, fork ends, own share of loads and moment) and lets the worst isolated span govern when its utilisation exceeds the whole-member value (`LT.spanGoverns`, `LT.spanGov`). The brief maps this as follows.
 

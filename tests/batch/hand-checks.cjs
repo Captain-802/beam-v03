@@ -95,29 +95,38 @@ log('\nHC-02  WEB-04  F_Rd type (c) end reaction, UB 533x210x92, s_s = 40');
 }
 
 /* ---------------------------------------------------------------------------
-   HC-03  WEB-07  UB 305x165x40, 2 x 3 m, 300 kN (Q) directly over support 2, s_s = 100
-   load type (b) (load through the web), interior station (d = 3000 -> not an end zone)
-   F_Ed = max(P, R) = R (reaction of the two-span beam under 1.35 G + 1.5 Q).
+   HC-03  WEB-07  UB 305x165x40, 3 m SS, 300 kN (Q) directly over End 2, s_s = 100
+   load type (b) (load through the web) at the end station, with the end-zone
+   type (c) evaluated alongside (d = 0 -> c = 0, s_s + c = 100 < 2 h_w/3 = 188.7)
+   and the lower F_Rd governing; F_Ed = max(P, R) = R_2 (1.35 G + 1.5 Q).
    row: ["305 x 165 x 40",40.3,303.4,165.0,6.0,10.2,8.9,265.2,...]
    --------------------------------------------------------------------------- */
-log('\nHC-03  WEB-07  F_Rd type (b), point load over the interior support, UB 305x165x40');
+log('\nHC-03  WEB-07  F_Rd types (b) and (c) at the end, point load over End 2, UB 305x165x40');
 {
-  const D = 303.4, B = 165.0, tw = 6.0, tf = 10.2, L = 6000, fy = 275, mass = 40.3;
+  const D = 303.4, B = 165.0, tw = 6.0, tf = 10.2, L = 3000, fy = 275, mass = 40.3;
   const eps = Math.sqrt(235 / fy), hw = D - 2 * tf;                        // 283.0
   const bf = Math.min(B, tw + 30 * eps * tf), m1 = bf / tw, m2 = 0.02 * Math.pow(hw / tf, 2);
-  const ss = 100;
-  const kF = 3.5 + 2 * Math.pow(hw / L, 2), Fcr = 0.9 * kF * E * Math.pow(tw, 3) / hw;
-  let ly = Math.min(ss + 2 * tf * (1 + Math.sqrt(m1 + m2)), L), lam = Math.sqrt(ly * tw * fy / Fcr);
-  if (lam <= 0.5) { ly = Math.min(ss + 2 * tf * (1 + Math.sqrt(m1)), L); lam = Math.sqrt(ly * tw * fy / Fcr); }
-  const chi = Math.min(0.5 / lam, 1), FRd = fy * chi * ly * tw / 1000;
-  // reaction: two equal spans 3 m, UDL w = 1.35 (5 + sw) on both, point 1.5 x 300 = 450 kN at the interior support
-  // (a load at a support goes straight into that support); R2 = 2 x (5/8) w L + 450
-  const sw = mass * 9.81 / 1000, w = 1.35 * (5 + sw), R2 = 2 * 5 / 8 * w * 3 + 450;
-  log(`  hw = ${hw}, bf = ${bf}, m1 = ${m1.toFixed(3)}, m2 = ${m2.toFixed(3)}, kF (b) = ${kF.toFixed(4)}, Fcr = ${(Fcr / 1000).toFixed(1)} kN, ly = ${ly.toFixed(2)}, lambda_F = ${lam.toFixed(4)}, chi_F = ${chi.toFixed(4)}, F_Rd = ${FRd.toFixed(1)} kN`);
-  log(`  R2 = 2 x 5/8 x ${w.toFixed(4)} x 3 + 450 = ${R2.toFixed(2)} kN = F_Ed; F_Ed/F_Rd = ${(R2 / FRd).toFixed(3)}`);
+  const ss = 100, cc = 0;
+  const FRdOf = (type) => {
+    const kF = type === 'b' ? 3.5 + 2 * Math.pow(hw / L, 2) : Math.min(2 + 6 * (ss + cc) / hw, 6);
+    const Fcr = 0.9 * kF * E * Math.pow(tw, 3) / hw;
+    const le = type === 'c' ? Math.min(kF * E * tw * tw / (2 * fy * hw), ss + cc) : null;
+    const ly = (m2v) => type === 'c' ? Math.min(le + tf * Math.sqrt(m1 / 2 + Math.pow(le / tf, 2) + m2v), le + tf * Math.sqrt(m1 + m2v)) : Math.min(ss + 2 * tf * (1 + Math.sqrt(m1 + m2v)), L);
+    let l = ly(m2), lam = Math.sqrt(l * tw * fy / Fcr);
+    if (lam <= 0.5) { l = ly(0); lam = Math.sqrt(l * tw * fy / Fcr); }
+    const chi = Math.min(0.5 / lam, 1);
+    log(`  type (${type}): kF = ${kF.toFixed(4)}, Fcr = ${(Fcr / 1000).toFixed(1)} kN, ly = ${l.toFixed(2)}, lambda_F = ${lam.toFixed(4)}, chi_F = ${chi.toFixed(4)}, F_Rd = ${(fy * chi * l * tw / 1000).toFixed(1)} kN`);
+    return { FRd: fy * chi * l * tw / 1000, type };
+  };
+  const b = FRdOf('b'), c2 = FRdOf('c');
+  const gov = b.FRd <= c2.FRd ? b : c2;
+  // reaction: 3 m simply supported, UDL w = 1.35 (5 + sw), point 1.5 x 300 = 450 kN at End 2 goes straight into End 2: R2 = w L/2 + 450
+  const sw = mass * 9.81 / 1000, w = 1.35 * (5 + sw), R2 = w * 3 / 2 + 450;
+  log(`  hw = ${hw}, bf = ${bf}, m1 = ${m1.toFixed(3)}, m2 = ${m2.toFixed(3)}; governing type (${gov.type}) F_Rd = ${gov.FRd.toFixed(1)} kN`);
+  log(`  R2 = ${w.toFixed(4)} x 3/2 + 450 = ${R2.toFixed(2)} kN = F_Ed; F_Ed/F_Rd = ${(R2 / gov.FRd).toFixed(3)}`);
   const e = engine('WEB-07', 'eigen', '(a,c)=>({FRd:c.web.gov2.FRdTot,F:c.web.gov2.F,type:c.web.gov2.type})');
-  record('HC-03', 'WEB-07 F_Rd type (b) load through the web over support 2', FRd, e.FRd, 'kN', 'engine type (' + e.type + ')');
-  record('HC-03b', 'WEB-07 F_Ed = R2 (two-span statics)', R2, e.F, 'kN');
+  record('HC-03', 'WEB-07 F_Rd at the end station, load through the web over End 2 (lower of types (b) and (c))', gov.FRd, e.FRd, 'kN', 'hand type (' + gov.type + '), engine type (' + e.type + ')');
+  record('HC-03b', 'WEB-07 F_Ed = R2 (simply supported statics)', R2, e.F, 'kN');
 }
 
 /* ---------------------------------------------------------------------------
@@ -139,49 +148,6 @@ log('\nHC-04  WEB-06  F_Rd two webs + lever rule, RHS 250x150x6.3, e = 40, s_s =
   log(`  hw = ${hw.toFixed(2)}, bf = min(75, ${(t + 15 * eps * t).toFixed(2)}) = ${bf.toFixed(2)}, m1 = ${m1.toFixed(3)}, m2 = ${m2.toFixed(2)}, kF = ${kF.toFixed(4)}, Fcr = ${(Fcr / 1000).toFixed(1)} kN, ly = ${ly.toFixed(2)}${second ? ' (second pass, m2 = 0)' : ''}, lambda_F = ${lam.toFixed(4)}, chi_F = ${chi.toFixed(3)}, F_Rd per web = ${FRdWeb.toFixed(1)} kN, share = ${share.toFixed(4)}, F_Rd = ${FRd.toFixed(1)} kN`);
   const e = engine('WEB-06', 'eigen', '(a,c)=>({FRd:c.web.gov2.FRdTot,share:c.web.gov2.share})');
   record('HC-04', 'WEB-06 RHS two-web F_Rd with the lever-rule share', FRd, e.FRd, 'kN', 'share ' + share.toFixed(3) + ' vs engine ' + e.share.toFixed(3));
-}
-
-/* ---------------------------------------------------------------------------
-   HC-05  PAT-01  UB 457x191x82, 2 x 6 m, UDL 10 G + 20 Q, pattern "Q on span 1 only"
-   Two equal spans, Clapeyron: M_B = -(w1 + w2) L^2/16; R_A = w1 L/2 + M_B/L;
-   x_max = R_A/w1, M_max = R_A^2/(2 w1); R_C = w2 L/2 + M_B/L.
-   self-weight 82.0 x 9.81/1000 = 0.80442 kN/m on both spans at gamma_G.
-   --------------------------------------------------------------------------- */
-log('\nHC-05  PAT-01  two-span pattern "Q on span 1 only": support moment, sagging moment, reactions');
-{
-  const L = 6, sw = 82.0 * 9.81 / 1000, wG = 1.35 * (10 + sw), wQ = 1.5 * 20;
-  const w1 = wG + wQ, w2 = wG;
-  const MB = -(w1 + w2) * L * L / 16;
-  const RA = w1 * L / 2 + MB / L, xm = RA / w1, Mmax = RA * RA / (2 * w1);
-  const RC = w2 * L / 2 + MB / L, RB = (w1 + w2) * L - RA - RC;
-  log(`  w1 = 1.35(10 + ${sw.toFixed(5)}) + 1.5 x 20 = ${w1.toFixed(4)} kN/m, w2 = ${w2.toFixed(4)} kN/m`);
-  log(`  M_B = -(w1 + w2) L^2/16 = -${(w1 + w2).toFixed(4)} x 36/16 = ${MB.toFixed(3)} kN.m; R_A = ${RA.toFixed(3)} kN, x_max = ${xm.toFixed(4)} m, M_max = ${Mmax.toFixed(3)} kN.m; R_B = ${RB.toFixed(3)}, R_C = ${RC.toFixed(3)} kN`);
-  const e = engine('PAT-01', 'eigen', `(a,c)=>{ const r=a.ulsResults.find(x=>/Q on span 1 only/.test(x.combo.label)); const M=x=>interpAt(r.fb.xs,r.fb.M,x)/1e6;
-    return {MB:M(6000), Mmax:r.Mmax/1e6, R:r.r.reactions.map(q=>q.V/1000)}; }`);
-  record('HC-05', 'PAT-01 M_B hogging, Q on span 1 only', MB, e.MB, 'kN.m');
-  record('HC-05b', 'PAT-01 M_max sagging, Q on span 1 only', Mmax, e.Mmax, 'kN.m', 'x_max = ' + xm.toFixed(3) + ' m');
-  record('HC-05c', 'PAT-01 R_C (far end), Q on span 1 only', RC, e.R[2], 'kN');
-}
-
-/* ---------------------------------------------------------------------------
-   HC-06  PAT-03  UB 533x210x92, 3 x 5 m, UDL 12 G + 25 Q, pattern "Q on spans 2+3 only"
-   Three equal spans, Clapeyron at B and C (M_A = M_D = 0):
-     4 M_B + M_C = -(w1 + w2) L^2/4,   M_B + 4 M_C = -(w2 + w3) L^2/4
-   with w1 = wG, w2 = w3 = wG + wQ. The governing hogging is M_C (0.1167 wQ L^2
-   from the Q part + 0.100 wG L^2 from G on every span).
-   --------------------------------------------------------------------------- */
-log('\nHC-06  PAT-03  three-span pattern "Q on spans 2+3 only": support moments');
-{
-  const L = 5, sw = 92.1 * 9.81 / 1000, wG = 1.35 * (12 + sw), wQ = 1.5 * 25;
-  const w1 = wG, w2 = wG + wQ, w3 = wG + wQ;
-  const b1 = -(w1 + w2) * L * L / 4, b2 = -(w2 + w3) * L * L / 4;
-  // solve [4 1; 1 4] [MB MC] = [b1 b2]  ->  det 15
-  const MB = (4 * b1 - b2) / 15, MC = (4 * b2 - b1) / 15;
-  log(`  wG = ${wG.toFixed(4)}, wQ = ${wQ.toFixed(1)}; rhs b1 = ${b1.toFixed(3)}, b2 = ${b2.toFixed(3)}; M_B = ${MB.toFixed(3)}, M_C = ${MC.toFixed(3)} kN.m`);
-  log(`  check against the coefficients: G part 0.100 wG L^2 = ${(0.1 * wG * 25).toFixed(3)}, Q part at C 0.11667 wQ L^2 = ${(0.116667 * wQ * 25).toFixed(3)}, sum ${(0.1 * wG * 25 + 0.116667 * wQ * 25).toFixed(3)}`);
-  const e = engine('PAT-03', 'eigen', `(a,c)=>{ const r=a.ulsResults.find(x=>/Q on spans 2\\+3 only/.test(x.combo.label)); const M=x=>interpAt(r.fb.xs,r.fb.M,x)/1e6; return {MB:M(5000), MC:M(10000)}; }`);
-  record('HC-06', 'PAT-03 M_C hogging, Q on spans 2+3 only', MC, e.MC, 'kN.m');
-  record('HC-06b', 'PAT-03 M_B hogging, Q on spans 2+3 only', MB, e.MB, 'kN.m');
 }
 
 /* ---------------------------------------------------------------------------

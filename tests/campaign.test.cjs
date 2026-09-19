@@ -6,6 +6,8 @@
    (computed step by step in tests/batch/hand-checks.cjs from the section table
    rows and the case inputs) and the campaign finding on the standard-route
    C1 sampling at a moment jump (tests/batch/mcr-method-comparison.md).
+   Single-span library since 19 Sep 2026 (the pattern-loading cases left with
+   the multi-span scope).
    =========================================================================== */
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
@@ -21,7 +23,7 @@ function runCase(id, method, code) {
   return ctx.run(`(()=>{ const a=analyse(); const c=checks(a); return (${code})(a,c); })()`);
 }
 
-test('[hand-derived] web transverse forces (EN 1993-1-5 cl 6): F_Rd of the campaign cases WEB-01 (a), WEB-04 (c), WEB-07 (b) and WEB-06 (RHS, lever rule)', () => {
+test('[hand-derived] web transverse forces (EN 1993-1-5 cl 6): F_Rd of the campaign cases WEB-01 (a), WEB-04 (c), WEB-07 (load over End 2: (b) with (c) alongside) and WEB-06 (RHS, lever rule)', () => {
   // hand-checks.md HC-01 .. HC-04
   const w1 = runCase('WEB-01', 'eigen', '(a,c)=>({FRd:c.web.gov2.FRdTot,type:c.web.gov2.type,u:c.web.util2,pass:c.pass})');
   near(w1.FRd, 636.914, 1e-4, 'WEB-01 F_Rd'); assert.equal(w1.type, 'a'); near(w1.u, 900 / 636.914, 1e-4, 'WEB-01 F_Ed/F_Rd'); assert.equal(w1.pass, false);
@@ -29,22 +31,20 @@ test('[hand-derived] web transverse forces (EN 1993-1-5 cl 6): F_Rd of the campa
   near(w4.FRd, 301.001, 1e-4, 'WEB-04 F_Rd'); assert.equal(w4.type, 'c'); near(w4.F, 305.159, 1e-4, 'WEB-04 reaction'); assert.equal(w4.pass, false);
   const w5 = runCase('WEB-05', 'eigen', '(a,c)=>({FRd:c.web.gov2.FRdTot,pass:c.pass})');
   assert.ok(w5.FRd > w4.FRd && w5.pass, 'WEB-05: s_s = 100 restores PASS');
-  const w7 = runCase('WEB-07', 'eigen', '(a,c)=>({FRd:c.web.gov2.FRdTot,type:c.web.gov2.type,F:c.web.gov2.F,label:c.web.gov2.label})');
-  near(w7.FRd, 230.150, 1e-4, 'WEB-07 F_Rd'); assert.equal(w7.type, 'b'); near(w7.F, 477.314, 1e-4, 'WEB-07 F_Ed = R2'); assert.match(w7.label, /over support 2/);
+  const w7 = runCase('WEB-07', 'eigen', '(a,c)=>({FRd:c.web.gov2.FRdTot,type:c.web.gov2.type,F:c.web.gov2.F,label:c.web.gov2.label,kind:c.web.gov2.kind,types:c.web.gov2.types})');
+  near(w7.FRd, 202.226, 1e-4, 'WEB-07 F_Rd'); assert.equal(w7.kind, 'both'); assert.deepEqual([...w7.types], ['b', 'c']); assert.equal(w7.type, 'c'); near(w7.F, 460.925, 1e-4, 'WEB-07 F_Ed = R2'); assert.match(w7.label, /over End 2/);
   const w6 = runCase('WEB-06', 'eigen', '(a,c)=>({FRd:c.web.gov2.FRdTot,share:c.web.gov2.share})');
   near(w6.FRd, 258.362, 1e-4, 'WEB-06 F_Rd'); near(w6.share, 0.5 + 40 / (150 - 6.3), 1e-9, 'WEB-06 lever-rule share');
 });
 
-test('[hand-derived] pattern loading: Clapeyron support moments and reactions of PAT-01 (2 spans) and PAT-03 (3 spans)', () => {
-  // hand-checks.md HC-05 / HC-06
-  const p1 = runCase('PAT-01', 'eigen', `(a,c)=>{ const r=a.ulsResults.find(x=>/Q on span 1 only/.test(x.combo.label)); return {MB:interpAt(r.fb.xs,r.fb.M,6000)/1e6, Mmax:r.Mmax/1e6, R:r.r.reactions.map(q=>q.V/1000), n:a.ulsResults.length}; }`);
-  assert.equal(p1.n, 3);
-  near(p1.MB, -133.137, 1e-4, 'PAT-01 M_B'); near(p1.Mmax, 139.590, 1e-4, 'PAT-01 M_max'); near(p1.R[2], 21.568, 1e-4, 'PAT-01 R_C');
-  const p3 = runCase('PAT-03', 'eigen', `(a,c)=>{ const r=a.ulsResults.find(x=>/Q on spans 2\\+3 only/.test(x.combo.label)); return {MB:interpAt(r.fb.xs,r.fb.M,5000)/1e6, MC:interpAt(r.fb.xs,r.fb.M,10000)/1e6, n:a.ulsResults.length}; }`);
-  assert.equal(p3.n, 7);
-  near(p3.MC, -152.924, 1e-4, 'PAT-03 M_C'); near(p3.MB, -74.799, 1e-4, 'PAT-03 M_B');
-  const off = runCase('PAT-02', 'eigen', '(a,c)=>({n:a.ulsResults.length,up:a.uplift.supports.length})');
-  assert.equal(off.n, 1); assert.equal(off.up, 0);
+test('[hand-derived] uplift of the single-span library: UPL-01 End 1 lifts by 0.9G + 1.5Q = -16.14 kN (couple -60 kN.m at End 2 on 4 m: R_1,Q = -15 kN; hand statics), UPL-03 lifts at SLS only', () => {
+  // UPL-01: UB 406x178x54 (54.1 kg/m -> 0.5307 kN/m, the engine's 4-decimal self-weight), 4 m SS, G 3 kN/m: R_1,G = 2 x 3.5307 = 7.0614 kN;
+  //   couple -60 kN.m at End 2: R_1,Q = -60/4 = -15 kN; 0.9G + 1.5Q = 6.3553 - 22.5 = -16.145 kN (EQU set A companion governs the hold-down force)
+  const u1 = runCase('UPL-01', 'eigen', '(a,c)=>({R:a.uplift.supports[0].RUls, g:a.uplift.supports[0].gInfUls, pass:c.pass, msg:c.unsupported.find(m=>/^Hold-down required/.test(m))||null})');
+  const RG = 2 * (3 + 0.5307), RQ = -60 / 4;
+  near(u1.R, 0.9 * RG + 1.5 * RQ, 1e-6, 'UPL-01 R_1 in the EQU companion'); near(u1.R, -16.145, 1e-3, 'UPL-01 R_1'); assert.equal(u1.g, 0.9); assert.equal(u1.pass, false); assert.match(u1.msg, /at End 1 /);
+  const u3 = runCase('UPL-03', 'eigen', '(a,c)=>({u:a.uplift.supports[0], pass:c.pass, adv:c.advisory.some(m=>/^Hold-down check \\(SLS only\\) at End 1/.test(m))})');
+  assert.equal(u3.u.RUls, null); near(u3.u.RSls, -30 / 4, 1e-6, 'UPL-03 SLS-only uplift'); assert.ok(u3.pass && u3.adv);
 });
 
 test('[hand-derived] standard closed-form Mcr with the SN003a C2 zg term (UB-04, UB-45, UB-43) and the SN006a cantilever with the Eq (7) interaction (UB-19)', () => {
@@ -110,10 +110,10 @@ test('eigen route: the destabilising switch with every z_g = 0 is a contradictor
 test('verdict directions of the campaign groups (eigen route)', () => {
   const v = id => runCase(id, 'eigen', "(a,c)=>c.pass?'PASS':(c.utils.some(u=>!Number.isFinite(u.val)||u.val>1.0001)?'FAIL':'NOT VERIFIED')");
   assert.deepEqual(['WEB-01', 'WEB-02', 'WEB-03', 'WEB-07'].map(v), ['FAIL', 'PASS', 'FAIL', 'FAIL']);
-  assert.deepEqual(['UPL-01', 'UPL-02', 'UPL-03'].map(v), ['NOT VERIFIED', 'PASS', 'PASS']);
+  assert.deepEqual(['UPL-01', 'UPL-02', 'UPL-03', 'UPL-04', 'UPL-05'].map(v), ['NOT VERIFIED', 'PASS', 'PASS', 'PASS', 'NOT VERIFIED']);
   assert.deepEqual(['TFB-01', 'TFB-03', 'TFB-04'].map(v), ['PASS', 'FAIL', 'NOT VERIFIED']);
   assert.deepEqual(['HSV-01', 'HSV-03', 'HSV-05', 'HSV-06'].map(v), ['PASS', 'FAIL', 'FAIL', 'PASS']);
-  assert.deepEqual(['TOR-01', 'TOR-02', 'TOR-04'].map(v), ['FAIL', 'PASS', 'PASS']);
+  assert.deepEqual(['TOR-01', 'TOR-03', 'TOR-04', 'TOR-05'].map(v), ['PASS', 'PASS', 'PASS', 'PASS']);   // TOR-01 (PFC cantilever): PASS since the cantilever preset restrains the root warping (was FAIL with the root warping free)
   assert.deepEqual(['AEF-01', 'AEF-02', 'AEF-04'].map(v), ['PASS', 'FAIL', 'NOT VERIFIED']);
   assert.deepEqual(['BIX-01', 'BIX-02', 'BIX-05'].map(v), ['PASS', 'FAIL', 'FAIL']);
 });

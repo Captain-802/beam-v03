@@ -7,20 +7,21 @@ const assert = require('node:assert/strict');
 const { app } = require('./harness.cjs');
 const c = app();
 const run = x => c.run(x);
+const E = (p, o) => c.ends(p, o);   // ends preset of the single-span model
 
 const CASES = {
   demo:   {},                                                     // 457 x 191 x 82 S275, 8 m, 19.7 G + 19.8 Q, fully restrained
   demoLtb:{restraint:'ltb'},
   ubAxMz: {ubKey:'457 x 191 x 133', grade:'S355', restraint:'ltb', axial:140, Mz:5, L:6,
-           supports:[{pos:0,type:'pinned'},{pos:6,type:'pinned'}],
+           ends:E('ss'),
            loads:[{type:'udl',x1:0,x2:6,w:15,case:'G'},{type:'udl',x1:0,x2:6,w:20,case:'Q'},{type:'point',pos:3,P:40,case:'Q'}]},
   pfcEcc: {family:'pfc', sectionKey:'180x75x20', restraint:'ltb', eccOn:true, L:4,
-           supports:[{pos:0,type:'pinned'},{pos:4,type:'pinned'}], loads:[{type:'udl',x1:0,x2:4,w:5,case:'Q',e:30}]},
-  cant:   {restraint:'ltb', L:3, supports:[{pos:0,type:'fixed'}], loads:[{type:'point',pos:3,P:20,case:'Q'}]},
+           ends:E('ss'), loads:[{type:'udl',x1:0,x2:4,w:5,case:'Q',e:30}]},
+  cant:   {restraint:'ltb', L:3, ends:E('cantilever'), loads:[{type:'point',pos:3,P:20,case:'Q'}]},
   shs:    {family:'shs', shsKey:'150x150x6.3', restraint:'ltb', L:4,
-           supports:[{pos:0,type:'pinned'},{pos:4,type:'pinned'}], loads:[{type:'udl',x1:0,x2:4,w:10,case:'Q'}]},
-  twoSpan:{restraint:'ltb', L:12, supports:[{pos:0,type:'pinned'},{pos:7,type:'pinned'},{pos:12,type:'pinned'}],
-           ltbRestraints:[{pos:3.5}], loads:[{type:'udl',x1:0,x2:12,w:15,case:'Q'}]},
+           ends:E('ss'), loads:[{type:'udl',x1:0,x2:4,w:10,case:'Q'}]},
+  threeBay:{restraint:'ltb', L:12, ends:E('ss'),   // single 12 m span with lateral restraints at 3.5 and 7 m: three bays
+           ltbRestraints:[{pos:3.5},{pos:7}], loads:[{type:'udl',x1:0,x2:12,w:15,case:'Q'}]},
   class4: {family:'rhs', rhsKey:'400 x 200 x 8.0', restraint:'ltb', Mz:5},   // RHS wall d/t = 47 > 42 eps under the uniform-compression bound kept for hollow sections with M_z -> Class 4, blocked (the UB 82 case of the earlier suite is Class 1 since G3 item 5)
 };
 function render(over, method) {
@@ -201,7 +202,7 @@ test('cantilever: Cantilever title line, SN006a chain in standard mode, f = 1 in
       assert.equal(row(html, /^C = fn\(M<sub>1<\/sub>/).tag, 'Cantilever');
       assert.equal(row(html, /^&chi;<sub>LT\.mod<\/sub>/).tag, 'f = 1 (cantilever)');
     } else {
-      assert.ok(/root at x = 0 \(fixed\), tip free; root warping free/.test(row(html, /^L<sub>e<\/sub> = portion/).vals));
+      assert.ok(/End 1 v, v&prime;, &phi;, &phi;&prime; = 0; End 2 free/.test(row(html, /^L<sub>e<\/sub> = portion/).vals), 'cantilever root: all four LTB DOFs held (warping restrained by the preset), tip free');
       assert.equal(row(html, /^&chi;<sub>LT\.mod<\/sub>/).tag, 'f = 1 (cantilever)');
     }
   }
@@ -237,15 +238,16 @@ test('blocking messages print as NOT VERIFIED rows in their block and the title 
   }
 });
 
-test('two-span member with an intermediate restraint renders a three-row portion table after the LTB block', () => {
-  const r = render(CASES.twoSpan, 'eigen');
-  const {html, hs} = checkCommon(r, 'twoSpan');
-  assert.ok(hs.indexOf('Lateral Restraint Portions (span by span, fork ends)') === hs.indexOf('Lateral Buckling Check M.b.Rd') + 1);
+test('single span with two intermediate restraints renders a three-row portion table (bay by bay) after the LTB block', () => {
+  const r = render(CASES.threeBay, 'eigen');
+  const {html, hs} = checkCommon(r, 'threeBay');
+  assert.ok(hs.indexOf('Lateral Restraint Portions (bay by bay, fork ends)') === hs.indexOf('Lateral Buckling Check M.b.Rd') + 1);
   const tbl = html.match(/<table class="ms-combos"><thead><tr><th>Portion<\/th>.*?<\/table>/s)[0];
   assert.equal([...tbl.matchAll(/<tr><td class="num">\d<\/td>/g)].length, 3);
   assert.ok(/0 &ndash; 3\.5.*3\.5 &ndash; 7.*7 &ndash; 12/s.test(tbl));
-  assert.ok(row(html, /^L<sub>e<\/sub> = portion/).vals.includes('restraints at x = 0, 3.5, 7, 12 m (fork)'));
-  assert.ok(row(html, /critical bay/), 'bay C1 line');
+  assert.ok(row(html, /^L<sub>e<\/sub> = portion/).vals.includes('End 1 v, &phi; = 0; End 2 v, &phi; = 0; lateral restraint points at x = 0, 3.5, 7, 12 m'), row(html, /^L<sub>e<\/sub> = portion/).vals);
+  assert.ok(html.includes('<b>End restraints</b>: End 1 (x = 0 m): U<sub>x</sub>, U<sub>y</sub>, U<sub>z</sub>, R<sub>x</sub> restrained; End 2 (x = 12 m): U<sub>y</sub>, U<sub>z</sub>, R<sub>x</sub> restrained'), 'end restraint line in the load list');
+  assert.ok(row(html, /^C<sub>1<\/sub> = M<sub>cr<\/sub>\/M<sub>cr,uniform<\/sub>/), 'C1 line (bay or whole-member ratio for k_c)');
   assert.ok(/\[segment [\d.]+&ndash;[\d.]+ m\]/.test(row(html, /standard, comparison/).vals), 'comparison C1 names its segment');
 });
 
@@ -306,7 +308,7 @@ test('a blocking message that no block claims is still printed as a NOT VERIFIED
 });
 
 test('standard route, closed section on a long span: the brief prints the real chi_LT chain and curve, not the 6.3.2.1(2) exemption', () => {
-  const over = {family:'rhs', rhsKey:'300 x 100 x 8.0', restraint:'ltb', L:14, supports:[{pos:0,type:'pinned'},{pos:14,type:'pinned'}],
+  const over = {family:'rhs', rhsKey:'300 x 100 x 8.0', restraint:'ltb', L:14, ends:E('ss'),
                 loads:[{type:'udl',x1:0,x2:14,w:1,case:'G'},{type:'udl',x1:0,x2:14,w:1.5,case:'Q'}]};
   const s = render(over, 'standard');
   const {html} = checkCommon(s, 'rhs-long/standard');
@@ -323,7 +325,7 @@ test('standard route, closed section on a long span: the brief prints the real c
 
 test('standard route: the entered load height is always printed, and a destabilising height on a non-tabulated diagram is BLOCKED', () => {
   // off-centre point load, top-flange load height: Serna C1, no published C2
-  const s = render({restraint:'ltb', eccOn:true, za:201, L:7, supports:[{pos:0,type:'pinned'},{pos:7,type:'pinned'}],
+  const s = render({restraint:'ltb', eccOn:true, za:201, L:7, ends:E('ss'),
     loads:[{type:'point',pos:2.45,P:12,case:'G'},{type:'point',pos:2.45,P:32,case:'Q'}]}, 'standard');
   const {html} = checkCommon(s, 'offcentre-zg/standard');
   const mcr = row(html, /^M<sub>cr<\/sub> = Fn\(C<sub>1<\/sub>, L<sub>e<\/sub>/);

@@ -1,146 +1,26 @@
 /* ===========================================================================
    4. ORCHESTRATION   run analysis + shared checks dispatcher
    =========================================================================== */
-/* ---------------------------------------------------------------------------
-   Span segments and automatic pattern loading (19 Sep 2026 gap closure, item 1.3)
-   ---------------------------------------------------------------------------
-   spanSegments(): the member split at its supports, in mm - one segment per
-   interval between consecutive supports plus an end overhang (cantilever)
-   beyond the outer supports; a single fixed support gives one cantilever
-   segment 0..L. Internal hinges do NOT split segments. Used by the pattern
-   generator and by the per-segment deflection check.
-   --------------------------------------------------------------------------- */
-const PATTERN_CASE='Q';   // the variable action that is patterned (EN 1990 6.10 as entered)
-function spanSegments(){
-  const L=(+S.L)*1000;
-  if(!(L>0)) return [];
-  const pts=[...new Set(S.supports.map(s=>(+s.pos)*1000).filter(x=>Number.isFinite(x)&&x>=-1e-6&&x<=L+1e-6))].sort((p,q)=>p-q);
-  if(!pts.length) return [];
-  const segs=[];
-  if(pts[0]>1e-6) segs.push({a:0,b:pts[0],cant:true});
-  for(let i=0;i<pts.length-1;i++) if(pts[i+1]-pts[i]>1e-6) segs.push({a:pts[i],b:pts[i+1],cant:false});
-  if(L-pts[pts.length-1]>1e-6) segs.push({a:pts[pts.length-1],b:L,cant:true});
-  return segs.map((s,i)=>Object.assign(s,{no:i+1}));
-}
-function segIndexOf(segs,x){
-  for(let i=0;i<segs.length;i++) if(x>=segs[i].a-1e-6 && x<=segs[i].b+1e-6) return i;
-  return -1;
-}
-function patternLoadingActive(){
-  const on = S.autoPattern==null ? true : !!S.autoPattern;
-  return on && spanSegments().length>1;
-}
-/* Effective user loads of ONE combination (pure; reads S.loads, S.L, S.supports).
-   Returns one "piece" per load or per load part: {i, ld, type, case, e, zg,
-   factor, masked, pos (mm) | x1,x2 (mm) with w1,w2 (kN/m, unfactored), P (kN),
-   M (kN.m)}. Every load is present (factor 0 when its case is not in the
-   combination) so that the solver's x-grid is identical across combinations.
-   Pattern combinations carry combo.mask = {case, segIdx, segs}: a Q load (or
-   part of one) outside the masked segments gets factor 0 (masked = true).
-   When automatic pattern loading is active, distributed Q loads are split at
-   the interior segment boundaries for EVERY combination of the analysis (the
-   boundaries are support positions, so the grid stays identical); with
-   pattern loading off nothing is split and the list equals the previous one. */
+/* Effective user loads of ONE combination (pure; reads S.loads). Returns one
+   "piece" per load: {i, ld, type, case, e, zg, factor, pos (mm) | x1, x2 (mm)
+   with w1, w2 (kN/m, unfactored), P (kN), M (kN.m)}. Every load is present
+   (factor 0 when its case is not in the combination) so that the solver's
+   x-grid is identical across combinations. The single-span model has no
+   pattern combinations (19 Sep 2026 scope change): the companion
+   combinations of gammaInfCompanions() are the only generated ones. */
 function comboLoadPieces(combo){
-  const active=patternLoadingActive();
-  const segs=active? spanSegments() : null;
-  const mask=(combo&&combo.mask)||null;
   const fac=(combo&&combo.factors)||{};
   const out=[];
   S.loads.forEach((ld,i)=>{
     if(ld.isSelfWeight) return;
     const f=fac[ld.case] ?? 0;
-    const base={i,ld,type:ld.type,case:ld.case,e:+(ld.e||0),zg:ld.zg};
-    if(ld.type==='point'||ld.type==='moment'){
-      const pos=(+ld.pos)*1000;
-      let factor=f, masked=false;
-      if(mask && ld.case===mask.case && segs){ if(!mask.segIdx.includes(segIndexOf(segs,pos))){ factor=0; masked=true; } }
-      out.push(Object.assign(base,{pos,P:+(ld.P||0),M:+(ld.M||0),factor,masked}));
-      return;
-    }
+    const base={i,ld,type:ld.type,case:ld.case,e:+(ld.e||0),zg:ld.zg,factor:f};
+    if(ld.type==='point'||ld.type==='moment'){ out.push(Object.assign(base,{pos:(+ld.pos)*1000,P:+(ld.P||0),M:+(ld.M||0)})); return; }
     const x1=(+ld.x1)*1000, x2=(+ld.x2)*1000;
     const w1= ld.type==='udl'? +(ld.w||0) : +(ld.w1||0), w2= ld.type==='udl'? +(ld.w||0) : +(ld.w2||0);
-    if(!(active && ld.case===PATTERN_CASE)){ out.push(Object.assign(base,{x1,x2,w1,w2,factor:f,masked:false})); return; }
-    const cuts=[x1].concat(segs.slice(1).map(s=>s.a).filter(b=>b>x1+1e-6 && b<x2-1e-6)).concat([x2]);
-    const wAt=x=>(x2-x1<1e-9)? w1 : w1+(w2-w1)*(x-x1)/(x2-x1);
-    for(let k=0;k<cuts.length-1;k++){
-      const p=cuts[k], q=cuts[k+1];
-      const inMask=!mask || ld.case!==mask.case || mask.segIdx.includes(segIndexOf(segs,(p+q)/2));
-      out.push(Object.assign({},base,{x1:p,x2:q,w1:wAt(p),w2:wAt(q),factor:inMask? f : 0,masked:!inMask}));
-    }
+    out.push(Object.assign(base,{x1,x2,w1,w2}));
   });
   return out;
-}
-/* Canonical key of the Q loads a mask keeps (for de-duplicating patterns). */
-function patternKey(mask){
-  return comboLoadPieces({factors:{[PATTERN_CASE]:1},mask}).filter(p=>p.case===PATTERN_CASE && p.factor!==0)
-    .map(p=> p.type==='point'||p.type==='moment' ? p.i+'@'+p.pos.toFixed(3) : p.i+':'+p.x1.toFixed(3)+'-'+p.x2.toFixed(3)).join('|');
-}
-/* Expand the enabled user combinations with the automatic span-wise patterns.
-   For every combination with a non-zero Q factor: Q on each single segment,
-   on each pair of adjacent segments, on the alternate (odd / even) segments
-   and, for four or more segments, the influence-line set for the maximum
-   reaction at each interior support - the two adjacent segments plus every
-   alternate segment continuing outward (k+2, k+4, ... and k-3, k-5, ...; the
-   reaction influence line changes sign span by span beyond the loaded pair;
-   19 Sep 2026 review finding: the pair set alone under-enveloped F_Ed at an
-   interior support of a 4+ span member by the far alternate spans' share) -
-   G (and W, E) at their entered factors on every span. Patterns whose Q load
-   set is empty, equals the parent's or repeats an earlier pattern are dropped.
-   Each generated combination is a shallow copy of its parent with a new id,
-   the label suffixed "(Q on span 2 only)" etc., mask and parent fields. The
-   favourable-G cases gamma_G,inf = 1.0 / 0.9 (EN 1990 Table A1.2(B) / (A))
-   are the companion combinations of gammaInfCompanions() (reactions only). */
-function expandPatternCombos(userCombos){
-  if(!patternLoadingActive()) return userCombos.slice();
-  const segs=spanSegments(), n=segs.length;
-  const sets=[];
-  for(let i=0;i<n;i++) sets.push({idx:[i],label:'Q on span '+(i+1)+' only',kind:'single'});
-  for(let i=0;i<n-1;i++) sets.push({idx:[i,i+1],label:'Q on spans '+(i+1)+'+'+(i+2)+' only',kind:'pair'});
-  if(n>=3){
-    sets.push({idx:segs.map((s,i)=>i).filter(i=>i%2===0),label:'Q on odd spans only',kind:'odd'});
-    sets.push({idx:segs.map((s,i)=>i).filter(i=>i%2===1),label:'Q on even spans only',kind:'even'});
-  }
-  if(n>=4){
-    for(let k=1;k<n;k++){                       // interior support between segments k-1 and k
-      const idx=[k-1,k];
-      for(let j=k+2;j<n;j+=2) idx.push(j);
-      for(let j=k-3;j>=0;j-=2) idx.unshift(j);
-      idx.sort((p,q)=>p-q);
-      const xs=(segs[k].a/1000).toFixed(2).replace(/\.?0+$/,'');
-      sets.push({idx,label:'Q on spans '+idx.map(i=>i+1).join('+')+' only (max reaction at x = '+xs+' m)',kind:'reaction',support:segs[k].a});
-    }
-  }
-  const fullKey=patternKey({case:PATTERN_CASE,segIdx:segs.map((s,i)=>i),segs});
-  const out=[];
-  userCombos.forEach(cb=>{
-    out.push(cb);
-    if(!(Math.abs(cb.factors[PATTERN_CASE]??0)>1e-12)) return;
-    const seen=new Set();
-    sets.forEach((st,k)=>{
-      const mask={case:PATTERN_CASE,segIdx:st.idx,segs:st.idx.map(i=>segs[i]),kind:st.kind,label:st.label};
-      const key=patternKey(mask);
-      if(!key || key===fullKey || seen.has(key)) return;
-      seen.add(key);
-      out.push(Object.assign({},cb,{id:(cb.id||'combo')+'#p'+(k+1),label:cb.label+' ('+st.label+')',mask,parent:cb,pattern:true}));
-    });
-  });
-  return out;
-}
-/* Printed description of the pattern set (pure). */
-function patternInfo(ulsCombos,slsCombos,companions){
-  const segs=spanSegments();
-  const on = S.autoPattern==null ? true : !!S.autoPattern;
-  const nU=ulsCombos.filter(c=>c.pattern).length, nS=slsCombos.filter(c=>c.pattern).length;
-  const segText=segs.map(s=>'span '+s.no+': '+(s.a/1000).toFixed(2).replace(/\.?0+$/,'')+'&ndash;'+(s.b/1000).toFixed(2).replace(/\.?0+$/,'')+' m'+(s.cant? ' (cantilever)':'')).join('; ');
-  const nComp=(companions||[]).length;
-  const limitation= nComp
-    ? '&gamma;<sub>G,inf</sub> companions: '+nComp+' ULS combination(s) re-solved with G at 1.0 (STR set B, EN 1990 6.4.3.1(4) / Table A1.2(B)) and at 0.9 (EQU set A, Table A1.2(A)) over the whole member (single-source permanent action) for the SUPPORT REACTIONS only - uplift / hold-down forces and the web-bearing reactions; the moment and shear envelopes keep the entered &gamma;<sub>G</sub>, so add a reduced-G combination by hand where a relieving permanent action could increase a span moment.'
-    : '&gamma;<sub>G,inf</sub> companions: none generated (no enabled ULS combination has a G factor above 1.0; a relieving-G case must be entered by hand where a permanent action is favourable).';
-  let note=null;
-  if(segs.length>1 && on) note='Automatic pattern loading: '+nU+' ULS and '+nS+' SLS combinations generated from the support layout ('+segText+'): Q on each span, on each pair of adjacent spans, on alternate spans and, for four or more spans, the influence-line set for the maximum reaction at each interior support (the adjacent pair plus every alternate span outward), with G, W and E at their entered factors on every span (EN 1990 6.10 as entered). '+limitation;
-  else if(segs.length>1) note='Automatic pattern loading is OFF: only the entered combinations are analysed ('+segText+'). Adverse / relieving span patterns of the variable action must be entered by hand. '+limitation;
-  return {on, active:on&&segs.length>1, segs, nUls:nU, nSls:nS, nComp, note, limitation, segText};
 }
 /* gamma_G,inf companion combinations (19 Sep 2026 review finding): EN 1990
    6.4.3.1(4) - where a permanent action is favourable (a back span holding
@@ -148,7 +28,7 @@ function patternInfo(ulsCombos,slsCombos,companions){
    applies: 1.0 in the STR set B (Table A1.2(B)) and 0.9 in the EQU set A
    (Table A1.2(A)); the single-source rule (6.4.3.1(4) note, A1.3.1(1)) means
    one gamma_G over the whole member, not span by span. For every analysed
-   ULS combination (patterns included) whose G factor exceeds 1.0 two
+   ULS combination whose G factor exceeds 1.0 two
    companions are formed with factors.G replaced by 1.0 and 0.9 (the variable
    factors unchanged). They are solved for their REACTIONS (uplift / hold-down
    design force and the web-bearing reactions); the moment / shear envelopes
@@ -170,7 +50,6 @@ function comboLoads(combo){
   // Always include every load (factor 0 if its case isn't in this combo) so that
   // load/support positions   and therefore the solver's x-grid   are identical
   // across every combination. That's what makes the envelope comparison below valid.
-  // Pattern combinations (combo.mask) get their Q loads through comboLoadPieces().
   const loads = comboLoadPieces(combo).map(p=>{
     if(p.type==='point') return {type:'point',pos:p.pos,P:-p.P*p.factor*1000};
     if(p.type==='moment') return {type:'moment',pos:p.pos,M:p.M*p.factor*1e6};
@@ -194,6 +73,69 @@ function comboHasServiceLoad(combo){
   }
   return Math.abs(combo.factors.G ?? 0)>eps && selfWeightValue(activeSection())>eps;
 }
+/* ---------------------------------------------------------------------------
+   Stability of the end-restraint model (pure; reads S.ends, S.hinges, S.L,
+   S.axial, S.eccOn, the LTB mode). Every unknown combination throws here with
+   a clear message - nothing downstream may return NaN.
+   In-plane: the solver's own restraint-rank test (beamRestraintRank) on the
+   U_z / R_y flags plus the hinges. Out-of-plane (LTB eigen): at least one end
+   with U_y and R_x held; when only one end holds U_y the member is a lateral
+   cantilever, allowed only when that end also holds R_z and R_x (its warping
+   condition is stated in the report). Torsion: any torque needs R_x at one
+   end at least. Axial: N_Ed != 0 needs U_x at one end; both ends held is
+   allowed and printed as statically indeterminate. Strut lengths: an axis
+   whose fixities form a sway mechanism cannot carry N_Ed.
+   Returns {errors:[...], notes:[...]} (notes are printed, not blocking).
+   --------------------------------------------------------------------------- */
+function endsStability(st){
+  st=st||S;
+  const errs=[], notes=[];
+  const [e1,e2]=endsList(st);
+  const L=+st.L;
+  const hinges=(st.hinges||[]).map(h=>(+h.pos)*1000).filter(x=>Number.isFinite(x)&&x>1e-6&&x<L*1000-1e-6);
+  const sup=endsToSupports(st).map(sp=>({pos:sp.pos*1000,type:sp.type}));
+  // in-plane
+  if(!e1.uz && !e2.uz) errs.push('Neither end restrains vertical translation U<sub>z</sub>: mechanism (rigid-body vertical translation). Restrain U<sub>z</sub> at one end at least.');
+  else if(!(e1.uz&&e2.uz) && !e1.ry && !e2.ry){
+    const held=e1.uz? 1 : 2, free=e1.uz? 2 : 1;
+    errs.push('End '+free+' has no vertical restraint and End '+held+' does not restrain rotation: mechanism (rigid-body rotation about End '+held+'). Restrain R<sub>y</sub> at End '+held+' (cantilever / propped layout) or U<sub>z</sub> at End '+free+'.');
+  }
+  if(!errs.length && !beamRestraintRank(L*1000,sup,hinges).ok){
+    errs.push(hinges.length
+      ? 'Under-restrained layout (mechanism): the '+hinges.length+' internal hinge(s) release the in-plane moment and the end restraints U<sub>z</sub> / R<sub>y</sub> do not hold every segment they separate (each hinge needs one more restraint unit: '+(2+hinges.length)+' are needed, U<sub>z</sub> and R<sub>y</sub> counting one each; e.g. one hinge in a fixed - pinned, fixed - guided or fixed - fixed member, two hinges in a fixed - fixed member). Restrain R<sub>y</sub> at an end or remove a hinge.'
+      : 'Under-restrained layout (mechanism): the end restraints U<sub>z</sub> / R<sub>y</sub> do not hold the member in its plane.');
+  }
+  if(e2.uz&&e2.ry&&!e1.uz&&!e1.ry) errs.push('A cantilever must have its root at End 1 (x = 0) and its free tip at End 2 (x = L): mirror the member.');
+  // out-of-plane (LTB eigen / standard route): only when LTB is checked
+  const ltbOn = st.code==='EC3' && (st.restraint||'full')!=='full';
+  if(ltbOn){
+    const forks=[e1,e2].filter(e=>e.uy&&e.rx);
+    const lateral=[e1,e2].filter(e=>e.uy);
+    if(!lateral.length) errs.push('Lateral-torsional buckling: neither end restrains lateral translation U<sub>y</sub>; the lateral stiffness matrix is singular. Restrain U<sub>y</sub> (and R<sub>x</sub>) at one end at least, or set the member fully restrained.');
+    else if(!forks.length) errs.push('Lateral-torsional buckling: no end restrains both U<sub>y</sub> and R<sub>x</sub> (a fork / torsional restraint); the twist mode is unrestrained. Restrain R<sub>x</sub> at an end that holds U<sub>y</sub>.');
+    else if(lateral.length===1){
+      const e=lateral[0];
+      if(!(e.rz&&e.rx)) errs.push('Lateral-torsional buckling: only End '+e.n+' restrains lateral translation U<sub>y</sub>, so the member is a lateral cantilever; that end must also restrain R<sub>z</sub> (lateral bending) and R<sub>x</sub> (twist), or the lateral stiffness matrix is singular.');
+      else notes.push('Lateral cantilever: End '+e.n+' is the only end holding U<sub>y</sub>; it restrains R<sub>z</sub> and R<sub>x</sub> and its warping is '+(e.warp? 'restrained (&phi;&prime; = 0)' : 'free')+'; the other end is laterally free.');
+    }
+    if(!(e1.rx||e2.rx)) errs.push('Lateral-torsional buckling: neither end restrains twist R<sub>x</sub>: torsional mechanism.');
+  }
+  // torsion: any torque needs a twist restraint
+  const anyTorque = !!st.eccOn && (st.loads.some(ld=>!ld.isSelfWeight && ld.type!=='moment' && Math.abs(ld.e||0)>1e-9) || (typeof selfWeightEccentricity==='function' && Math.abs(selfWeightEccentricity(activeSection()))>1e-9));
+  if(anyTorque && !(e1.rx||e2.rx)) errs.push('Torsion: the loads apply a torque but neither end restrains twist R<sub>x</sub>: torsional mechanism. Restrain R<sub>x</sub> at one end at least.');
+  // axial
+  const N=+st.axial||0;
+  if(Math.abs(N)>1e-9){
+    if(!(e1.ux||e2.ux)) errs.push('Axial force N<sub>Ed</sub> = '+N+' kN is entered but neither end restrains axial translation U<sub>x</sub>: no axial load path (mechanism). Restrain U<sub>x</sub> at one end.');
+    else if(e1.ux&&e2.ux) notes.push('Axial: both ends restrain U<sub>x</sub> - axial statically indeterminate: N taken as applied (N<sub>Ed</sub> = '+N+' kN over the whole member).');
+    const lcr=lcrDefaults(st);
+    if(N>0 && !lcr.override){
+      if(lcr.mechanismY) errs.push('Strut buckling y-y: the U<sub>z</sub> / R<sub>y</sub> fixities form a mechanism ('+lcr.basisY+'); N<sub>Ed</sub> cannot be carried.');
+      if(lcr.mechanismZ) errs.push('Strut buckling z-z: the U<sub>y</sub> / R<sub>z</sub> fixities form a sway mechanism ('+lcr.basisZ+'); restrain U<sub>y</sub> at the other end or R<sub>z</sub> at the held end, or enter an L<sub>E</sub>/L factor.');
+    }
+  }
+  return {errors:errs, notes};
+}
 function validateInputs(py,E,ulsCombos,slsCombos){
   const errs=[];
   const finite=(v)=>v!==null && v!=='' && Number.isFinite(+v);
@@ -204,7 +146,7 @@ function validateInputs(py,E,ulsCombos,slsCombos){
   if(!(finite(S.divisor) && S.divisor>0)) errs.push("Deflection divisor must be greater than 0.");
   if(S.divisorCant!=null && !(finite(S.divisorCant) && S.divisorCant>0)) errs.push("Cantilever deflection divisor must be greater than 0.");
   if(S.deflAbs!=null && S.deflAbs!=='' && !(finite(S.deflAbs) && S.deflAbs>0)) errs.push("Absolute deflection limit must be blank or greater than 0 mm.");
-  if(!(finite(S.leFactor) && S.leFactor>0)) errs.push("Effective length factor must be greater than 0.");
+  if(S.leFactor!=null && S.leFactor!=='' && !(finite(S.leFactor) && S.leFactor>0)) errs.push("Effective length factor must be blank (from the end fixities) or greater than 0.");
   ['axial','Mz','za'].forEach(k=>{ if(!finite(S[k])) errs.push(`${k} must be a finite number.`); });
   const area=activeSection().A;
   if(S.anet!=null && !(finite(S.anet)&&S.anet>0&&S.anet<=area)) errs.push('Net area must be greater than zero and no greater than the gross area.');
@@ -212,20 +154,18 @@ function validateInputs(py,E,ulsCombos,slsCombos){
   if(S.LT!=null && S.LT!=='' && !(finite(S.LT) && +S.LT>0)) errs.push('Torsional buckling length L_T must be blank (= spacing of the twist restraints) or greater than 0 m.');
   if(S.mcrMethod!=null && S.mcrMethod!=='eigen' && S.mcrMethod!=='standard') errs.push(`Unknown Mcr method "${S.mcrMethod}": use "eigen" (FE eigensolver) or "standard" (closed form).`);
   [['mLTo',0.44],['mxo',0.4]].forEach(([k,min])=>{ if(S[k]!=null && !(finite(S[k])&&S[k]>=min&&S[k]<=1)) errs.push(`${k} override must be between ${min} and 1.`); });
-  if(S.mLTo!=null && (S.destab || (S.supports.length===1&&S.supports[0].type==='fixed')) && S.mLTo!==1) errs.push('mLT must be 1 for cantilevers and destabilising loading.');
-  const seenSupports=new Set();
-  S.supports.forEach((sp,i)=>{
-    if(!['pinned','fixed'].includes(sp.type)) errs.push(`Support ${i+1} has an unknown restraint type.`);
-    if(!inSpan(sp.pos)) errs.push(`Support ${i+1} position must be within 0 to ${S.L} m.`);
-    const key=(+sp.pos).toFixed(6);
-    if(seenSupports.has(key)) errs.push(`Duplicate supports at ${g(+sp.pos,3)} m are not allowed; combine them into one support.`);
-    seenSupports.add(key);
-    if(sp.ss!=null && sp.ss!=='' && !(finite(sp.ss) && +sp.ss>=0)) errs.push(`Support ${i+1} stiff bearing length s_s must be blank (default) or a number >= 0 mm.`);
-  });
+  if(S.mLTo!=null && (S.destab || isCantilever(S)) && S.mLTo!==1) errs.push('mLT must be 1 for cantilevers and destabilising loading.');
+  if(!S.ends || !S.ends.e1 || !S.ends.e2) errs.push('The member needs its two ends (S.ends.e1 / S.ends.e2): use a preset (endsPreset) or set the degree-of-freedom flags.');
+  else {
+    endsList().forEach(e=>{
+      END_DOFS.forEach(k=>{ const v=(S.ends[e.key]||{})[k]; if(v!=null && typeof v!=='boolean' && v!==0 && v!==1) errs.push(`End ${e.n} ${k} must be true (restrained) or false (free).`); });
+      if(e.ss!=null && !(finite(e.ss) && +e.ss>=0)) errs.push(`End ${e.n} stiff bearing length s_s must be blank (default) or a number >= 0 mm.`);
+      const raw=(S.ends[e.key]||{}).ss; if(raw!=null && raw!=='' && !Number.isFinite(+raw)) errs.push(`End ${e.n} stiff bearing length s_s must be blank (default) or a number >= 0 mm.`);
+    });
+  }
   (S.hinges||[]).forEach((h,i)=>{
     if(!inSpan(h.pos)) errs.push(`Internal hinge ${i+1} position must be within 0 to ${S.L} m.`);
-    else if(+h.pos<=1e-6 || +h.pos>=S.L-1e-6) errs.push(`Internal hinge ${i+1} must be inside the span, not at an end.`);
-    if(S.supports.some(sp=>Math.abs(+sp.pos-(+h.pos))<1e-6)) errs.push(`Internal hinge ${i+1} coincides with a support; this combined release is not supported. A pinned support does not release the internal moment of a continuous beam.`);
+    else if(+h.pos<=1e-6 || +h.pos>=S.L-1e-6) errs.push(`Internal hinge ${i+1} must be inside the span, not at an end (release the end rotation R_y instead).`);
   });
   S.loads.forEach((ld,i)=>{
     const tag=`Load ${i+1}`;
@@ -257,6 +197,7 @@ function validateInputs(py,E,ulsCombos,slsCombos){
   if(!slsCombos.some(comboHasServiceLoad)){
     errs.push("No SLS loads applied: every enabled SLS combination has zero factors for the active load cases. Enable a non-zero SLS factor for a load case that is present, or add a serviceability load.");
   }
+  if(!errs.length && S.ends && S.ends.e1 && S.ends.e2) errs.push(...endsStability(S).errors);
   if(errs.length) throw errs.join(" ");
 }
 /* Memo of warping-torsion FE solves (19 Sep 2026 review, performance): keyed
@@ -282,41 +223,32 @@ function analyse(){
   const py = S.py!=null? S.py : pyFromGrade(S.grade,sec.tf);
   const E=S.E;
   const Ix=sec.Ix*1e4, EI=E*Ix;
-  if(S.supports.length===0) throw "Add at least one support.";
-  const npin=S.supports.filter(s=>s.type==='pinned').length;
-  const nfix=S.supports.filter(s=>s.type==='fixed').length;
-  const distinct=new Set(S.supports.map(s=>+(+s.pos).toFixed(4))).size;
-  if(!((npin+nfix>=1) && (nfix>=1 || distinct>=2)))
-    throw "Under-restrained layout (mechanism). Use a Fixed support, or at least two supports at different positions.";
-  // Internal hinges release moment; each needs one extra restraint unit. Necessary
-  // stability condition: restraint units (pin=1 vertical, fixed=2 vertical+moment)
-  // >= 2 (rigid-body vertical + rotation) + one per interior hinge.
-  const nHinge=(S.hinges||[]).filter(h=> +h.pos>1e-6 && +h.pos<S.L-1e-6 && !S.supports.some(sp=>Math.abs(+sp.pos-(+h.pos))<1e-6)).length;
-  const Rcount=npin+2*nfix;
-  if(Rcount < 2+nHinge)
-    throw `Under-restrained layout (mechanism): ${nHinge} internal hinge(s) release moment, so at least ${2+nHinge} restraint units are needed (pin = 1, fixed = 2) but only ${Rcount} are provided. Add a support or make one Fixed (e.g. a propped / Gerber layout).`;
-  const supportsMM=S.supports.map(s=>({pos:(+s.pos)*1000,type:s.type}));
-  const hingesMM=(S.hinges||[]).map(h=>(+h.pos)*1000).filter(x=>x>1e-6 && x<L-1e-6);
-
   const ulsUser=S.combos.filter(c=>c.on && !c.sls);
   const slsUser=S.combos.filter(c=>c.on && c.sls);
   if(ulsUser.length===0) throw 'Enable at least one ULS load combination (see "Load Combinations").';
   if(slsUser.length===0) throw 'Enable at least one SLS (deflection) load combination (see "Load Combinations").';
   validateInputs(py,E,ulsUser,slsUser);
-  // Automatic pattern loading: each enabled user combination is followed by its
-  // generated span-wise patterns (comboLoadPieces applies the mask); every
-  // consumer below sees them exactly like user combinations.
-  const ulsCombos=expandPatternCombos(ulsUser);
-  const slsCombos=expandPatternCombos(slsUser);
+  // In-plane support list of the two ends (compatibility shim of the ends model:
+  // uz + ry = fixed, uz = pinned, ry = guided, neither = free / absent)
+  const supportsMM=endsToSupports(S).map(s=>({pos:(+s.pos)*1000,type:s.type,end:s.end}));
+  const hingesMM=(S.hinges||[]).map(h=>(+h.pos)*1000).filter(x=>x>1e-6 && x<L-1e-6);
+  const stability=endsStability(S);
+  const ends=endsList(S);
+  const cant=isCantilever(S);
+  const ulsCombos=ulsUser.slice();
+  const slsCombos=slsUser.slice();
   const companionCombos=gammaInfCompanions(ulsCombos);
-  const patterns=patternInfo(ulsCombos,slsCombos,companionCombos);
+  const companionNote= companionCombos.length
+    ? '&gamma;<sub>G,inf</sub> companions: '+companionCombos.length+' ULS combination(s) re-solved with G at 1.0 (STR set B, EN 1990 6.4.3.1(4) / Table A1.2(B)) and at 0.9 (EQU set A, Table A1.2(A)) over the whole member (single-source permanent action) for the END REACTIONS only - uplift / hold-down forces and the web-bearing reactions; the moment and shear envelopes keep the entered &gamma;<sub>G</sub>, so add a reduced-G combination by hand where a relieving permanent action could increase a moment.'
+    : '&gamma;<sub>G,inf</sub> companions: none generated (no enabled ULS combination has a G factor above 1.0; a relieving-G case must be entered by hand where a permanent action is favourable).';
 
   // Run every enabled ULS combination; the same load/support geometry means every
   // combo's result lands on an identical x-grid, so elementwise envelopes are valid.
+  const mechanismMsg=()=> hingesMM.length? "Under-restrained layout (mechanism): an internal hinge has left part of the member unrestrained. Restrain R_y at both ends or remove the hinge." : "Under-restrained layout (mechanism): the end restraints U_z / R_y do not hold the member in its plane.";
   const solveUls=combo=>{
     const loads=comboLoads(combo);
     const r=solveBeam(L,EI,supportsMM,loads,120,hingesMM);
-    if(!r.w.every(Number.isFinite)) throw hingesMM.length? "Under-restrained layout (mechanism): an internal hinge has left part of the beam unrestrained. Add another support (e.g. a propped/Gerber layout) or remove the hinge." : "Under-restrained layout (mechanism). Add a support, or make a support Fixed to prevent rigid-body motion.";
+    if(!r.w.every(Number.isFinite)) throw mechanismMsg();
     const fb=sfdBmd(L,supportsMM,loads,r.reactions);
     let Vmax=0; fb.V.forEach(v=>{ if(Math.abs(v)>Math.abs(Vmax)) Vmax=v; });
     let Mmax=0,Mpos=0; fb.xs.forEach((x,i)=>{ if(Math.abs(fb.M[i])>Math.abs(Mmax)){Mmax=fb.M[i];Mpos=x;} });
@@ -343,69 +275,61 @@ function analyse(){
   const M0end=interpAt(gfb.xs,gfb.M,1e-4), MLend=interpAt(gfb.xs,gfb.M,L-1e-4);
   const reactions=governM.r.reactions;
 
-  // SLS deflection: worst of every enabled SLS combination, checked segment by
-  // segment (support to support, and each cantilever / end overhang) against
-  // its own length: span/S.divisor between supports, L/S.divisorCant for a
-  // cantilever segment (UK NA to EN 1993-1-1 Table NA.2 cantilever row, default
-  // 180 [verify]), each capped by the optional absolute limit S.deflAbs (mm).
-  // A cantilever segment's value is the tip deflection relative to its support
-  // (support nodes have w = 0; the root rotation is inside the solver).
-  const deflSegs=spanSegments();
+  // SLS deflection: worst of every enabled SLS combination, over the one span
+  // against its limit: span/S.divisor when both ends are held vertically,
+  // L/S.divisorCant when an end is vertically free (cantilever tip, guided
+  // tip; UK NA to EN 1993-1-1 Table NA.2 cantilever row, default 180
+  // [verify]), capped by the optional absolute limit S.deflAbs (mm). A held
+  // end has w = 0, so a tip value is the deflection relative to the root.
+  const deflCant=hasFreeVerticalEnd(S);
   const divisorCant=(S.divisorCant!=null && Number.isFinite(+S.divisorCant) && +S.divisorCant>0)? +S.divisorCant : 180;
   const deflAbs=(S.deflAbs!=null && S.deflAbs!=='' && Number.isFinite(+S.deflAbs) && +S.deflAbs>0)? +S.deflAbs : null;
   const slsResults=slsCombos.map(combo=>{
     const loads=comboLoads(combo);
     const r=solveBeam(L,EI,supportsMM,loads,120,hingesMM);
-    if(!r.w.every(Number.isFinite)) throw hingesMM.length? "Under-restrained layout (mechanism): an internal hinge has left part of the beam unrestrained. Add another support (e.g. a propped/Gerber layout) or remove the hinge." : "Under-restrained layout (mechanism). Add a support, or make a support Fixed to prevent rigid-body motion.";
+    if(!r.w.every(Number.isFinite)) throw mechanismMsg();
     let dmax=0,dpos=0; r.nodes.forEach((x,i)=>{ if(Math.abs(r.w[i])>Math.abs(dmax)){dmax=r.w[i];dpos=x;} });
-    let deflection=null;
-    const segs=deflSegs.map(sg=>{
-      const start=sg.a,end=sg.b,span=end-start;
-      let dm=0,dp=start;
-      r.nodes.forEach((x,i)=>{ if(x>=start&&x<=end&&Math.abs(r.w[i])>Math.abs(dm)){dm=r.w[i];dp=x;} });
-      const divisor= sg.cant? divisorCant : S.divisor;
-      const limSpan=span/divisor;
-      const absGoverns= deflAbs!=null && deflAbs<limSpan;
-      const limit= absGoverns? deflAbs : limSpan;
-      const util=Math.abs(dm)/limit;
-      const rec={no:sg.no,start,end,span,cant:!!sg.cant,dmax:dm,dpos:dp,limit,util,divisor,limSpan,abs:deflAbs,absGoverns,combo:combo.label};
-      if(!deflection||util>deflection.util) deflection=rec;
-      return rec;
-    });
-    return {combo,r,dmax,dpos,deflection,segs};
+    const divisor= deflCant? divisorCant : S.divisor;
+    const limSpan=L/divisor;
+    const absGoverns= deflAbs!=null && deflAbs<limSpan;
+    const limit= absGoverns? deflAbs : limSpan;
+    const util=Math.abs(dmax)/limit;
+    const deflection={no:1,start:0,end:L,span:L,cant:deflCant,dmax,dpos,limit,util,divisor,limSpan,abs:deflAbs,absGoverns,combo:combo.label};
+    return {combo,r,dmax,dpos,deflection,segs:[deflection]};
   });
   let governD=slsResults[0]; slsResults.forEach(r=>{ if(r.deflection.util>governD.deflection.util) governD=r; });
   const dmax=governD.dmax, dpos=governD.dpos;
-  // per-segment deflection table: the worst SLS combination of every segment
-  const deflSegments=deflSegs.map((sg,j)=>{
-    let worst=null; slsResults.forEach(res=>{ const s=res.segs[j]; if(!worst||s.util>worst.util) worst=s; });
-    return worst;
-  });
+  const deflSegments=[governD.deflection];
 
   // ---- uplift / hold-down (EN 1990 2.4.4 EQU): every combination's reactions ----
-  // A negative vertical reaction (up = positive) means the support must hold
-  // the beam down. Recorded per combination; the worst per support is kept
-  // (design force = the worst ULS value, SLS uplift listed separately).
+  // A negative vertical reaction (up = positive) means the end must hold the
+  // member down. Recorded per combination for every vertically held end; the
+  // worst per end is kept (design force = the worst ULS value incl. the
+  // gamma_G,inf companions, SLS uplift listed separately). n = end number.
+  const vEnds=verticalEnds(S);
   const uplift=[];
-  ulsResults.concat(ulsCompanions).forEach(res=>res.r.reactions.forEach((re,i)=>{ if(re.V< -1) uplift.push({n:i+1,pos:re.pos,R:re.V/1000,combo:res.combo.label,sls:false,gInf:res.combo.gInf||null}); }));
-  slsResults.forEach(res=>res.r.reactions.forEach((re,i)=>{ if(re.V< -1) uplift.push({n:i+1,pos:re.pos,R:re.V/1000,combo:res.combo.label,sls:true}); }));
-  const upliftSupports=S.supports.map((sp,i)=>{
-    const rows=uplift.filter(u=>u.n===i+1);
+  ulsResults.concat(ulsCompanions).forEach(res=>vEnds.forEach(ve=>{ const re=res.r.reactions[ve.i]; if(re.V< -1) uplift.push({n:ve.end,pos:re.pos,R:re.V/1000,combo:res.combo.label,sls:false,gInf:res.combo.gInf||null}); }));
+  slsResults.forEach(res=>vEnds.forEach(ve=>{ const re=res.r.reactions[ve.i]; if(re.V< -1) uplift.push({n:ve.end,pos:re.pos,R:re.V/1000,combo:res.combo.label,sls:true}); }));
+  const upliftSupports=vEnds.map(ve=>{
+    const rows=uplift.filter(u=>u.n===ve.end);
     if(!rows.length) return null;
     const worst=rows.reduce((p,u)=>u.R<p.R?u:p);
     const ulsRows=rows.filter(u=>!u.sls), slsRows=rows.filter(u=>u.sls);
     const worstUls=ulsRows.length? ulsRows.reduce((p,u)=>u.R<p.R?u:p) : null;
     const worstSls=slsRows.length? slsRows.reduce((p,u)=>u.R<p.R?u:p) : null;
-    return {n:i+1,pos:worst.pos,type:sp.type,holdDown:!!sp.holdDown,R:worst.R,combo:worst.combo,sls:worst.sls,
+    return {n:ve.end,pos:worst.pos,type:ve.type,holdDown:!!ve.holdDown,R:worst.R,combo:worst.combo,sls:worst.sls,
       RUls:worstUls? worstUls.R : null, comboUls:worstUls? worstUls.combo : null, gInfUls:worstUls? worstUls.gInf : null,
       RSls:worstSls? worstSls.R : null, comboSls:worstSls? worstSls.combo : null, nCombos:rows.length};
   }).filter(Boolean);
 
   // ---- torsion from load eccentricity (loads at e from the shear centre) ----
   // Torque loads mirror the transverse loads: q_T(x) = w(x)*e, point torques P*e.
-  // Every support is a fork support (twist prevented): GIt*phi'' = -q_T with phi=0
-  // at supports, solved by 1-dof linear elements (nodal phi exact for this ODE);
-  // the torque diagram T(x) then follows by statics, reusing sfdBmd (its V output).
+  // Twist is prevented at every end whose R_x is restrained: GIt*phi'' = -q_T
+  // with phi = 0 there (one such end = torsion cantilever), solved by 1-dof
+  // linear elements (nodal phi exact for this ODE); the torque diagram T(x)
+  // then follows by statics, reusing sfdBmd (its V output).
+  const twistMM=twistEnds(S);
+  const twistSupportsMM=twistMM.map(t=>({pos:t.pos,type:'pinned',end:t.end}));
   let tors=null;
   const swE=selfWeightEccentricity(sec);
   const anyUserEcc = S.eccOn && S.loads.some(ld=>!ld.isSelfWeight && ld.type!=='moment' && Math.abs(ld.e||0)>1e-9);
@@ -431,7 +355,7 @@ function analyse(){
   if(anyEcc && !torsErr){
     const GIt=81000*sec.J*1e4; // N.mm2 (G = 81000 N/mm2 per SN003a / P385)
     const solveT=(tq)=>{
-      const nodes=buildNodes(L,supportsMM,tq,120);
+      const nodes=buildNodes(L,twistSupportsMM,tq,120);
       const n=nodes.length;
       const K=Array.from({length:n},()=>new Array(n).fill(0));
       const F=new Array(n).fill(0);
@@ -444,15 +368,16 @@ function analyse(){
           const tv=x=>{ if(ld.x2===ld.x1) return ld.w1; const s=(x-ld.x1)/(ld.x2-ld.x1); return ld.w1+(ld.w2-ld.w1)*s; };
           const ta=tv(xa),tb=tv(xb);
           F[el]+=Le*(2*ta+tb)/6; F[el+1]+=Le*(ta+2*tb)/6; } } });
-      const fixed=new Set(); S.supports.forEach(s=>{ const i=idx.get(+(((+s.pos)*1000)).toFixed(6)); if(i!=null) fixed.add(i); });
+      const fixed=new Set(); twistSupportsMM.forEach(s=>{ const i=idx.get(+(+s.pos).toFixed(6)); if(i!=null) fixed.add(i); });
+      if(!fixed.size) throw 'Torsion: no end restrains twist R_x (torsional mechanism).';
       const free=[]; for(let d2=0;d2<n;d2++) if(!fixed.has(d2)) free.push(d2);
       const phi=new Array(n).fill(0);
       if(free.length){ const Kff=free.map(r=>free.map(cc=>K[r][cc])), Ff=free.map(r=>F[r]);
         const df=linsolve(Kff,Ff); free.forEach((dof,j)=>phi[dof]=df[j]); }
       const R=new Array(n).fill(0);
       for(let i=0;i<n;i++){ let s2=0; for(let j=0;j<n;j++) s2+=K[i][j]*phi[j]; R[i]=s2-F[i]; }
-      const reactions=S.supports.map(s=>({pos:(+s.pos)*1000,type:'pinned',V:R[idx.get(+(((+s.pos)*1000)).toFixed(6))]}));
-      const fb=sfdBmd(L,supportsMM,tq,reactions);
+      const reactions=twistSupportsMM.map(s=>({pos:s.pos,type:'pinned',V:R[idx.get(+(+s.pos).toFixed(6))]}));
+      const fb=sfdBmd(L,twistSupportsMM,tq,reactions);
       let Tm=0,Tp=0; fb.V.forEach((v,i)=>{ if(Math.abs(v)>Math.abs(Tm)){Tm=v;Tp=fb.xs[i];} });
       let pm=0,pp=0; phi.forEach((v,i)=>{ if(Math.abs(v)>Math.abs(pm)){pm=v;pp=nodes[i];} });
       return {nodes,phi,xs:fb.xs,T:fb.V,Tmax:Tm,Tpos:Tp,phiMax:pm,phiPos:pp};
@@ -480,9 +405,10 @@ function analyse(){
     const IwO=(((tp&&tp.Iw!=null)? tp.Iw : sec.Iw)||0)*1e12;       // mm6
     const GItO=81000*IT;
     const aa=IwO>0? Math.sqrt(E*IwO/GItO) : 0; // use the same E as the bending analysis
-    const endsOK = S.supports.length===2 &&
-      Math.min(...S.supports.map(s=>+s.pos))<=1e-6 &&
-      Math.abs(Math.max(...S.supports.map(s=>+s.pos))-S.L)<=1e-6;
+    // P385 Appendix C: fork ends at both ends of the span - lateral translation
+    // U_y and twist R_x held at BOTH ends, warping free at both
+    const forkBoth = ends.every(e=>e.uy&&e.rx);
+    const warpAny = ends.some(e=>e.rx&&e.warp);
     const mk385=(combo)=>{
       const list=[];
       for(const p of comboLoadPieces(combo)){
@@ -507,10 +433,10 @@ function analyse(){
     };
     // Why the closed forms cannot be used (empty = they can): layout, a
     // warping-fixed support, or a partial-span distributed torque in any
-    // analysed combination (patterns included).
+    // analysed combination.
     const feReasons=[];
-    if(!endsOK) feReasons.push(S.supports.length===1? 'cantilever' : (S.supports.length+' supports (multi-span / overhang layout)'));
-    if(S.supports.some(s=>!!s.warpFix)) feReasons.push('warping-fixed support');
+    if(!forkBoth) feReasons.push(twistMM.length===1? 'twist restrained at End '+twistMM[0].end+' only (torsion cantilever)' : 'the ends are not both fork ends (U_y + R_x at both ends)');
+    if(warpAny) feReasons.push('warping-fixed end');
     if(!feReasons.length){
       for(const cb of [...ulsCombos,...slsCombos]){ const m=mk385(cb); if(!m.ok){ feReasons.push(m.reason); break; } }
     }
@@ -526,13 +452,13 @@ function analyse(){
         if(!slsSol||Math.abs(pm)>Math.abs(slsSol.phiMax)) slsSol={combo:cb,phiMax:pm,phiPos:pp};
       }
       torsO={ok:true,method:'closed',methodLabel:'SCI P385 App C closed forms (Cases 3/4/10)',
-        bcText:'fork supports at x = 0 and x = L (&phi; = 0, warping free)',feReasons:[],
+        bcText:'fork ends at x = 0 and x = L (&phi; = 0, warping free)',feReasons:[],
         aa,X:L/aa,IT,Iw:IwO,GIt:GItO,sols,sls:slsSol};
     } else {
-      // General warping-torsion FE: E I_w phi'''' - G I_T phi'' = m_t(x), every
-      // support phi = 0, warping fixed (phi' = 0) per support option or at a
-      // cantilever root, free ends natural; mesh doubled once for the error.
-      const feSup=S.supports.map(s=>({pos:(+s.pos)*1000,type:s.type,warpFix:!!s.warpFix}));
+      // General warping-torsion FE: E I_w phi'''' - G I_T phi'' = m_t(x), phi = 0
+      // at every end with R_x held, phi' = 0 where warping is restrained, a free
+      // end natural; mesh doubled once for the error.
+      const feSup=twistMM.map(t=>({pos:t.pos,warpFix:t.warpFix,end:t.end}));
       const EIwO=E*IwO;
       const feStats={solved:0,cached:0};
       const feSolve=(cb)=>warpingTorsionFEMemo({L,EIw:EIwO,GIt:GItO,supports:feSup,torques:mkT(cb)},feStats);
@@ -558,18 +484,18 @@ function analyse(){
     diag:{xs:xs.map(x=>x/1000), V:Venv.map(v=>v/1000), M:Menv.map(m=>m/1e6),
           dx:governD.r.nodes.map(x=>x/1000), dw:governD.r.w},
     reactions, ulsResults, ulsCompanions, slsResults, governV, governM, governD,
-    patterns, ulsCombos, slsCombos, companionCombos, uplift:{list:uplift, supports:upliftSupports, any:upliftSupports.length>0, nCombos:ulsResults.length+ulsCompanions.length+slsResults.length}};
+    ends, supports:endsToSupports(S), cant, stability, companionNote, ulsCombos, slsCombos, companionCombos,
+    uplift:{list:uplift, supports:upliftSupports, any:upliftSupports.length>0, nCombos:ulsResults.length+ulsCompanions.length+slsResults.length}};
 }
 
 /* ---- Hold-down check (19 Sep 2026 gap closure, item 1.2), pure ----
-   One row per support that lifts in any combination. A support lifting in a
-   ULS combination is blocking (unsupported) unless its "hold-down provided"
-   box is ticked, in which case it is an advisory carrying the design force.
-   A support that lifts ONLY in SLS combinations (the default NA 2.23
-   "variable actions only" deflection case has no G, so its reaction is not an
-   equilibrium state) is reported as an advisory naming the combination and
-   the force, with the reminder that the EQU set-A combination (gamma_G,inf =
-   0.9, Table A1.2(A)) is not generated and must be verified by hand.
+   One row per end that lifts in any combination (n = end number). An end
+   lifting in a ULS combination (the gamma_G,inf companions included) is
+   blocking (unsupported) unless its "hold-down provided" box is ticked, in
+   which case it is an advisory carrying the design force. An end that lifts
+   ONLY in SLS combinations (the default NA 2.23 "variable actions only"
+   deflection case has no G, so its reaction is not an equilibrium state) is
+   reported as an advisory naming the combination and the force.
    Returns {rows, unsupported, advisory}; rows = [{n, pos (mm), R (kN,
    negative), combo, sls, RUls, comboUls, RSls, comboSls, holdDown, level:
    'uls'|'sls', blocking, msg}]. */
@@ -578,13 +504,13 @@ function holdDownCheck(a){
   const up=a.uplift&&a.uplift.supports||[];
   up.forEach(u=>{
     const kN=v=>(Math.abs(v)).toFixed(2);
-    const where='at support '+u.n+' (x = '+(u.pos/1000).toFixed(2).replace(/\.?0+$/,'')+' m)';
+    const where='at End '+u.n+' (x = '+(u.pos/1000).toFixed(2).replace(/\.?0+$/,'')+' m)';
     let msg, blocking=false, level;
     if(u.RUls!=null){
       level='uls';
       const force=(withWhere)=>'R = &minus;'+kN(u.RUls)+' kN'+(withWhere? ' '+where : '')+' (combination '+u.comboUls+')'+(u.RSls!=null? '; SLS uplift &minus;'+kN(u.RSls)+' kN ('+u.comboSls+')' : '');
       if(u.holdDown) msg='Hold-down provided '+where+': design the hold-down for '+force(false)+'. Reaction taken as tension at the support; the connection and the supporting structure are not designed here.';
-      else { blocking=true; msg='Hold-down required: '+force(true)+'. The support cannot resist uplift as modelled; tick "hold-down provided" for this support once a holding-down connection is designed for this force, or revise the layout / loading (EN 1990 2.4.4 EQU; the '+PATTERN_CASE+' patterns and the &gamma;<sub>G,inf</sub> companions - G at 1.0 (STR set B) and 0.9 (EQU set A) with the entered variable factors - are included).'; }
+      else { blocking=true; msg='Hold-down required: '+force(true)+'. The end cannot resist uplift as modelled; tick "hold-down provided" for this end once a holding-down connection is designed for this force, or revise the restraints / loading (EN 1990 2.4.4 EQU; the &gamma;<sub>G,inf</sub> companions - G at 1.0 (STR set B) and 0.9 (EQU set A) with the entered variable factors - are included).'; }
     } else {
       level='sls';
       msg='Hold-down check (SLS only) '+where+': the variable-action-only combination '+u.comboSls+' lifts this support by R = &minus;'+kN(u.RSls)+' kN; no ULS combination lifts it, including the &gamma;<sub>G,inf</sub> companions with G at 1.0 (STR set B) and 0.9 (EQU set A, EN 1990 Table A1.2(A)) and the entered variable factors'+(u.holdDown? '; hold-down provided' : '')+'. A deflection combination without G is not an equilibrium state, so this does not block PASS.';
@@ -623,7 +549,8 @@ function checks(a){
   c.holdDown=hd;
   c.unsupported=c.unsupported.concat(hd.unsupported);
   c.advisory=(c.advisory||[]).concat(hd.advisory);
-  if(a.patterns&&a.patterns.note) c.advisory.push(a.patterns.note);
+  if(a.stability&&a.stability.notes) c.advisory.push(...a.stability.notes);
+  if(a.companionNote) c.advisory.push(a.companionNote);
   c.gov=c.utils.reduce((p,u)=>u.val>p.val?u:p);
   c.pass=c.unsupported.length===0&&c.utils.every(u=>Number.isFinite(u.val)&&u.val>=0&&u.val<=1.0001);
   c.combinationChecks=results.map(r=>({combo:r.res.combo.label,utils:r.c.utils}));

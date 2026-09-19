@@ -12,7 +12,8 @@ const { app } = require('./harness.cjs');
 const c = app();
 const run = x => c.run(x);
 function near(actual, expected, rel = 1e-6, what = '') { assert.ok(Math.abs(actual - expected) <= rel * Math.max(1, Math.abs(expected)), `${what} ${actual} != ${expected}`); }
-const SS = (L, loads, extra = {}) => Object.assign({ L, supports: [{ pos: 0, type: 'pinned' }, { pos: L, type: 'pinned' }], loads }, extra);
+const E = (p, o) => c.ends(p, o);   // ends preset of the single-span model
+const SS = (L, loads, extra = {}) => Object.assign({ L, ends: E('ss'), loads }, extra);
 const full = () => run(`(()=>{ const a=analyse(); const ch=checks(a); return {a:{Mmax:a.Mmax, sec:a.sec, fy:a.py, E:a.E, L:a.L}, c:ch}; })()`);
 const util = (ch, re) => { const u = ch.utils.find(u => re.test(u.name)); return u ? u.val : null; };
 const brief = () => run(`(()=>{ const a=analyse(); const ch=checks(a); return renderMasterSeriesBrief(a,ch,a.sec); })()`);
@@ -155,7 +156,7 @@ test('[hand-derived] item 12: M_v,Rd forms for a Class 3 I/H (elastic web), a ch
   assert.ok(!ch.unsupported.some(s => /shear/i.test(s)));
   // peak-station reduction (cl 6.2.8(3) at the point of maximum moment) now applies to a channel: 430x100x64 cantilever 1 m, tip 300 kN Q:
   // root V = 450 kN > 0.5 V_pl = 0.5 x 4904 x 265/sqrt(3) = 375 kN at the root moment -> M_c,Rd printed as M_v,Rd with the channel form
-  c.reset({ L: 1, supports: [{ pos: 0, type: 'fixed' }], loads: [{ type: 'point', pos: 1, P: 300, case: 'Q' }], family: 'pfc', sectionKey: '430x100x64', autoPattern: false });
+  c.reset({ L: 1, ends:E('cantilever'), loads: [{ type: 'point', pos: 1, P: 300, case: 'Q' }], family: 'pfc', sectionKey: '430x100x64' });
   ({ a, c: ch } = full());
   assert.ok(!ch.lowShearAtM && ch.mvForm && /t<sub>w<\/sub>h<sub>w<\/sub>&sup2;\/4/.test(ch.mvForm), ch.hsNote);
   assert.ok(!ch.unsupported.some(s => /6\.2\.8 reduced moment resistance/.test(s)));
@@ -165,19 +166,25 @@ test('[hand-derived] item 12: M_v,Rd forms for a Class 3 I/H (elastic web), a ch
 // ---- item 8: k_c floor ----
 test('[hand-derived] item 8: k_c = 1/sqrt(C1) is floored at 1/sqrt(2.76) = 0.602 on both Mcr routes; the SCI end-moment curve at psi = -1 (C1 = 2.756) is not floored', () => {
   near(run('KC_FLOOR'), 1 / Math.sqrt(2.76), 1e-12); assert.deepEqual(run('JSON.stringify(kcFromC1(5))'), JSON.stringify({ kc: 1 / Math.sqrt(2.76), kcRaw: 1 / Math.sqrt(5), floored: true }));
-  // Gerber layout of the coverage-matrix appendix: whole-member eigen C1 ~ 5.0 -> k_c 0.447 -> floored 0.602
-  c.reset({ restraint: 'ltb', L: 12, supports: [{ pos: 0, type: 'fixed' }, { pos: 8, type: 'pinned' }, { pos: 12, type: 'pinned' }], hinges: [{ pos: 4 }],
-    loads: [{ type: 'udl', x1: 0, x2: 12, w: 19.7, case: 'G' }, { type: 'udl', x1: 0, x2: 12, w: 19.8, case: 'Q' }], autoPattern: false });
-  const e = full().c.ltb; assert.ok(e.C1 > 2.76 && e.kcFloored); near(e.kc, 1 / Math.sqrt(2.76), 1e-12); near(e.kcRaw, 1 / Math.sqrt(e.C1), 1e-12);
+  // single span 8 m, UDL 20 Q with hogging end couples +-160 kN.m (mid-span M = wL2/8 - 160 = 0, quarter points -40, ends -160):
+  // the whole-member eigen C1 ~ 4.7 -> k_c 0.46 -> floored 0.602 [hand-derived diagram]
+  const Q15 = [{ id: 'c1', label: 'ULS: 1.5Q', factors: { G: 0, Q: 1.5, W: 0, E: 0 }, sls: false, on: true }, { id: 's1', label: 'SLS: Q', factors: { G: 0, Q: 1, W: 0, E: 0 }, sls: true, on: true }];
+  const hog = { restraint: 'ltb', L: 8, ends: E('ss'), combos: Q15, loads: [{ type: 'udl', x1: 0, x2: 8, w: 20, case: 'Q' }, { type: 'moment', pos: 0, M: 160, case: 'Q' }, { type: 'moment', pos: 8, M: -160, case: 'Q' }] };
+  c.reset(hog);
+  const { a: ae, c: ce } = full(); const e = ce.ltb; assert.ok(e.C1 > 2.76 && e.kcFloored); near(e.kc, 1 / Math.sqrt(2.76), 1e-12); near(e.kcRaw, 1 / Math.sqrt(e.C1), 1e-12);
+  near(ae.Mmax, -240, 1e-9); near(run('(()=>{ const a=analyse(); return interpAt(a.governM.fb.xs,a.governM.fb.M,4000)/1e6; })()'), 0, 1e-6, 'mid-span moment');
   assert.ok(e.warn.some(w => /floored at 1\/&radic;2\.76/.test(w)));
-  // standard route, three-span trapezoid (Serna C1 = 4.09): f = 1 - 0.5(1 - 0.602)[1 - 2(0.949 - 0.8)^2] = 0.810, M_b,Rd = 416.7 kN.m
-  c.reset({ L: 12, restraint: 'ltb', mcrMethod: 'standard', supports: [{ pos: 0, type: 'pinned' }, { pos: 4, type: 'pinned' }, { pos: 8, type: 'pinned' }, { pos: 12, type: 'pinned' }],
-    loads: [{ type: 'trap', x1: 0, x2: 12, w1: 5, w2: 15, case: 'Q' }], autoPattern: false });
+  // a propped cantilever with an internal hinge at 3 m (Gerber-type single span) is floored on the eigen route too
+  c.reset({ restraint: 'ltb', L: 8, ends: E('fixed-pinned'), hinges: [{ pos: 3 }], combos: Q15, loads: [{ type: 'udl', x1: 0, x2: 8, w: 20, case: 'Q' }] });
+  const g = full().c.ltb; assert.ok(g.C1 > 2.76 && g.kcFloored, 'Gerber-type single span C1 ' + g.C1);
+  // standard route on the same hogging-couple diagram (Serna C1 = sqrt(35 x 240^2 / (240^2 + 9 x 60^2 + 0 + 9 x 60^2)) = 4.70 [hand-derived]):
+  // f = 1 - 0.5(1 - 0.602)[1 - 2(lambda - 0.8)^2], M_b,Rd = chi/f W_y f_y <= M_c,Rd
+  c.reset(Object.assign({}, hog, { mcrMethod: 'standard' }));
   const { a, c: s } = full(); const L = s.ltb;
-  assert.ok(s.C1 > 2.76 && L.kcFloored); near(L.kc, 1 / Math.sqrt(2.76), 1e-12);
+  near(s.C1, Math.sqrt(35 * 240 * 240 / (240 * 240 + 9 * 3600 + 9 * 3600)), 1e-4); assert.ok(s.C1 > 2.76 && L.kcFloored); near(L.kc, 1 / Math.sqrt(2.76), 1e-12);
   const lam = Math.sqrt(a.sec.Sx * 1e3 * a.fy / (L.Mcr * 1e6));
   near(L.fM, Math.min(1 - 0.5 * (1 - 1 / Math.sqrt(2.76)) * (1 - 2 * Math.pow(lam - 0.8, 2)), 1), 1e-9);
-  near(L.MbRd, Math.min(L.chiM / L.fM * a.sec.Sx * 1e3 * a.fy / 1e6, s.McRd), 1e-9); near(L.MbRd, 416.68, 2e-4);
+  near(L.MbRd, Math.min(L.chiM / L.fM * a.sec.Sx * 1e3 * a.fy / 1e6, s.McRd), 1e-9);
   const h = brief(); assert.ok(/k<sub>c<\/sub> floored at 0\.60 \(Table 6\.6\)/.test(row(h, /^&chi;<sub>LT\.mod<\/sub> = Fn/).tag));
   assert.ok(/floored at 1\/&radic;2\.76/.test(report()));
   // psi = -1 end moments: C1 = (1.33 + 0.33)^2 = 2.756 < 2.76 -> raw k_c = 0.6024 kept
@@ -240,18 +247,18 @@ test('[hand-derived] item 10: PFC 180x75x20 under N = 50 kN: N_cr,T = 858.1 kN, 
 
 // ---- item 15: restraint design forces ----
 test('[hand-derived] item 15: 2.5 % of N_f,Ed = M_Ed/h at every lateral restraint and support (advisory), in the brief table and the report', () => {
-  // two-span 12 m (supports 0, 7, 12), restraint at 3.5 m, UDL 15 Q: h = 460 mm
-  c.reset({ restraint: 'ltb', L: 12, supports: [{ pos: 0, type: 'pinned' }, { pos: 7, type: 'pinned' }, { pos: 12, type: 'pinned' }], ltbRestraints: [{ pos: 3.5 }], loads: [{ type: 'udl', x1: 0, x2: 12, w: 15, case: 'Q' }] });
+  // single 12 m span, lateral restraints at 3.5 and 7 m, UDL 15 Q: h = 460 mm
+  c.reset({ restraint: 'ltb', L: 12, ends: E('ss'), ltbRestraints: [{ pos: 3.5 }, { pos: 7 }], loads: [{ type: 'udl', x1: 0, x2: 12, w: 15, case: 'Q' }] });
   const { a, c: ch } = full(); const R = ch.restraintForces; assert.ok(R && R.h === 460);
-  assert.equal(JSON.stringify(R.rows.map(r => [r.x, r.kind])), JSON.stringify([[0, 'support'], [3500, 'lateral'], [7000, 'support'], [12000, 'support']]));
+  assert.equal(JSON.stringify(R.rows.map(r => [r.x, r.kind])), JSON.stringify([[0, 'support'], [3500, 'lateral'], [7000, 'lateral'], [12000, 'support']]));
   R.rows.forEach(r => {
-    // M_Ed = largest |M| at the station over the analysed combinations (patterns included); N_f = M/h; F = 0.025 N_f
+    // M_Ed = largest |M| at the station over the analysed combinations; N_f = M/h; F = 0.025 N_f
     const M = Math.max(...run(`analyse().ulsResults.map(res=>Math.abs(interpAt(res.fb.xs,res.fb.M,${r.x}))/1e6)`)); near(r.MEd, M, 1e-4, 'M at ' + r.x);   // engine reads a fraction inside the station
     near(r.NfEd, r.MEd * 1000 / 460, 1e-12); near(r.F, 0.025 * r.NfEd, 1e-12);
   });
-  assert.ok(R.rows[0].F < 1e-6 && R.rows[2].F > 0 && R.rows[1].F > 0, 'end support M = 0, interior support and restraint carry a force');
+  assert.ok(R.rows[0].F < 1e-6 && R.rows[3].F < 1e-6 && R.rows[1].F > 0 && R.rows[2].F > 0, 'simply supported ends M = 0, the intermediate restraints carry a force');
   assert.ok(!ch.utils.some(u => /restraint/i.test(u.name)), 'advisory only: not in the verdict');
-  const h = brief(); const i = h.indexOf('<table class="ms-combos ms-restraint">'); assert.ok(i > h.indexOf('Lateral Restraint Portions (span by span, fork ends)'), 'table inside the portions block');
+  const h = brief(); const i = h.indexOf('<table class="ms-combos ms-restraint">'); assert.ok(i > h.indexOf('Lateral Restraint Portions (bay by bay, fork ends)'), 'table inside the portions block');
   assert.equal((h.match(/restraint design force, advisory/g) || []).length, 4);
   assert.ok(/Restraint Design Forces \(EN 1993-1-1 5\.3\.3/.test(report()));
   // fully restrained: no discrete restraints, nothing printed

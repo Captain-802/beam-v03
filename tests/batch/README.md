@@ -1,12 +1,49 @@
-# 100-beam verification campaign - headless batch runner
+# Single-span verification campaign - headless batch runner
 
-Runs the EC3 beam checker over a library of 170 distinct beams without a
-browser, records every printed design quantity, and cross-checks the engine
-against independent closed forms computed in the runner. LTB cases are run
-with BOTH Mcr methods (`eigen` FE eigensolver and `standard` closed form), so
-the 170 cases give 296 runs. The 19 Sep 2026 verification campaign added 48
-cases that exercise every gap-closure check (G1-G4) in both directions, the
-independent hand checks of `hand-checks.md` / `hand-checks.cjs` and the
+Runs the EC3 beam checker over a library of 148 distinct single-span beams
+without a browser, records every printed design quantity, and cross-checks the
+engine against independent closed forms computed in the runner. LTB cases are
+run with BOTH Mcr methods (`eigen` FE eigensolver and `standard` closed form),
+so the 148 cases give 252 runs.
+
+**19 Sep 2026 scope change (single span, end degrees of freedom):** the tool
+now handles one span from End 1 (x = 0) to End 2 (x = L), each end carrying
+the six DOF flags U<sub>x</sub>, U<sub>y</sub>, U<sub>z</sub>, R<sub>x</sub>,
+R<sub>y</sub>, R<sub>z</sub> plus warping (`ends: SS() | CANT() | PROPPED() |
+FIXFIX() | ENDS(preset, {e1, e2})` in `cases.cjs`, built from the app's own
+`endsPreset()`). The 23 multi-span, overhang, Gerber and pattern-loading cases
+of the earlier library (UB-14/15/17/23/24/41, UC-07, PFC-10/21, SHS-05,
+RHS-08/09/17, PAT-01..07, UPL-03, TOR-02/06) left with that scope; five were
+rewritten as single-span equivalents where the physics still applies (WEB-07:
+the 300 kN load now sits directly over End 2, types (b) + (c) at the end
+station; UPL-01/02/03/05: the uplift comes from an applied couple at End 2
+instead of an overhang; MIX-02: a propped cantilever with an internal hinge at
+4 m instead of the four-support Gerber beam). Cross-check xiv-pattern
+(three-moment equation) left with the pattern loading. Of the 252 runs 228
+print rows identical to the earlier library's; the 24 that moved are the
+cantilevers and the warping-fixed cases (the cantilever preset restrains the
+root warping, and one warping flag per end now drives both the LTB eigen
+&phi;&prime; = 0 and the torsion FE: UB-49, UB-51, UC-04, PFC-09, TOR-01
+(FAIL &rarr; PASS), TOR-04, TOR-05 with higher M<sub>cr</sub>), the
+fixed-ended struts (UC-12, MIX-07 (FAIL &rarr; PASS): L<sub>cr</sub> = 0.7 L
+from the end fixities instead of the entered 1.0 L) and the five rewritten
+cases. The section below "Results of the current run" keeps the pre-change
+campaign record for reference; the current totals are in `results.md`.
+
+Current run (2026-09-19, single-span library, Node v24.14.1): PASS 181 |
+FAIL 51 | NOT VERIFIED 20 | ERROR 0 (148 cases, 252 runs, 28 s); cross-check
+mismatches 0 (i-Mmax / i-dmax 161/161, ii-equilibrium, vi-governing and
+vii-uplift 252/252, viii-FRd 248/248, iii-McrStd 172/172, iii-zgBlock 81/81,
+v-MbRd&le;McRd 208/208, ix-Aeff 16/16, x-NbT 9/9, xi-kcFloor 79/79, xii-MVN
+4/4, xiii-torsionFE 6/6, xv-MvRd 8/8); iv-McrRatio 10 same-segment outliers
+flagged (the cantilevers, the L<sub>E</sub> &times; 1.2 device, UB-44 with C2
+unpublished, MIX-02/MIX-06 with an internal hinge); trigger mismatches 0.
+Hand checks (`hand-checks.md`): 24 quantities over 14 cases, every difference
+below 0.001 %.
+
+The 19 Sep 2026 verification campaign that preceded the scope change added
+the cases that exercise every gap-closure check (G1-G4) in both directions,
+the independent hand checks of `hand-checks.md` / `hand-checks.cjs` and the
 eigen-vs-standard outlier analysis of `mcr-method-comparison.md`.
 
 ## Files
@@ -67,7 +104,6 @@ engine's intermediate results. Tolerance 0.5 % relative unless stated.
 | xi-kcFloor | k_c floor (G3): the printed k_c must equal max(1/sqrt(C1), 1/sqrt(2.76)) on both routes and be flagged floored exactly when C1 > 2.76 | I/H LTB runs with a trusted C1 and no user override (74 runs) |
 | xii-MVN | cl 6.2.10 (G3): at the engine's worst high-shear station of a uniaxial case with N, rho, N_V,Rd, M_v,y,Rd, a_V, the 6.2.9.1(4) waiver and M_N,V,y,Rd recomputed from the station V, M, N and the raw table; the utilisation must equal the engine's value and the verdict entry. 19 Sep 2026 campaign: rolled I/H Class 1/2 (plastic 6.2.9.1), rolled I/H Class 3 (linear n_V + M/M_v,y,Rd with the elastic web deduction) and RHS/SHS Class 1/2 (Eq 6.39 with a_w,V <= 0.5, no waiver) | UB-48, HSV-01, HSV-05, HSV-07 |
 | xiii-torsionFE | Warping-torsion FE (G4): the engine's peak twist on the FE route recomputed from the classical closed forms of E I_w phi'''' - G I_T phi'' = m_t with the raw P385 constants (I_T, I_w, a = sqrt(E I_w/G I_T)): a cantilever with a single tip point torque, phi_tip = (T/GI_T)[L - a tanh(L/a)] with T_t = 0 at the root and total torque T at the tip (UB-49); a cantilever under a full-span uniform torque m, phi_tip = (m/GI_T)[L^2/2 + a^2(1 - sech(L/a)) - aL tanh(L/a)] with the root total torque mL and zero tip torque (TOR-05; derivation in hand-checks.md HC-14); a fork-fork span with both ends warping-fixed under a full-span uniform torque, phi_mid = (t/GI_T)[L^2/8 - (La/2) tanh(L/4a)] with T_t = 0 at both ends (UB-51); tolerance 1e-4, the printed mesh error must be <= 1e-3 and converged | rolled I/H runs on the FE route with those layouts (6 runs) |
-| xiv-pattern | Pattern loading (G1): for a pinned continuous beam with supports at both ends, no hinges and loads that are all UDLs aligned with span boundaries, the interior support moments and every reaction of EVERY analysed ULS combination (patterns included) recomputed from the three-moment (Clapeyron) equation with each combination's own span loads - the case's Q loads clipped to the pattern's spans independently of the engine, self-weight on every span at the G factor; tolerance 0.5 % (1 kN.m floor) | UB-14, UB-15, UC-07, PFC-10, SHS-05, RHS-08, RHS-09, PAT-01/02/03/06, UPL-03, TOR-02 (32 runs) |
 | xv-MvRd | High-shear M_v,Rd for every family (G3 item 12): at the engine's worst coexistent M-V station, rho from the station V and V_pl(,T),Rd and M_v,y,Rd by family and class (I/H Class 1/2 W_pl - rho A_v^2/4t_w; I/H Class 3 W_el - rho I_web/(h/2); channel W_y - rho t_w h_w^2/4; RHS/SHS W_y - rho t (h - 2t)^2/2) recomputed from the raw table; M/M_v,Rd must equal the engine's value | every run with a reduced coexistent station that is not a pure shear failure (8 runs) |
 
 Cross-check (iii) samples the quarter-point and mid-span ordinates of a diagram
@@ -75,20 +111,17 @@ with a jump (applied in-span couple) on the larger side, the envelope convention
 the engine adopted in the 19 Sep 2026 campaign (`mAtStation()`; finding F1 of
 `mcr-method-comparison.md`).
 
-Since the 19 Sep 2026 gap closure the analysed combination list of a multi-span,
-overhang or Gerber case includes the automatic Q patterns (`a.patterns`, column
-"Combos" in the runs table). Cross-check (iii) re-derives the closed-form inputs
-from the pattern's own load set: `maskedLoads()` clips the case's Q loads to the
-governing pattern's segments independently of the engine (`comboLoadPieces`),
-and the LTB-governing combination of an eigen run is looked up in the analysed
-list (it may be a generated pattern).
+The end conditions of every cross-check are read from the case's `ends` flags
+by the runner's own `endSupports()` / `endOf()` helpers (U<sub>z</sub> + R<sub>y</sub>
+= fixed, U<sub>z</sub> = pinned, R<sub>y</sub> = guided, twist restraints from
+R<sub>x</sub>, warping from `warp`), never from the engine's shim.
 
 The runner also compares the case's `expect` triggers with the triggers it can
 observe from the check output (axial / biaxial / tension / torsion / Annex A /
 flexural buckling / interaction / torsional-flexural gap / restraints / shear
 buckling) and lists the differences.
 
-## Case coverage (170 cases, 296 runs)
+## Case coverage (pre-change record: 170 cases, 296 runs; now 148 cases, 252 runs, see the top of this file)
 
 | Family | Cases | LTB (x2 runs) | Fully restrained | Notes |
 |---|---|---|---|---|
@@ -144,7 +177,7 @@ is seen deciding the verdict in both directions; the eigen-run verdicts are:
 A tag `-id` in `cases.cjs` removes a derived trigger id from `expect` when the
 case is designed to exercise a block that keeps a check from running (AEF-04).
 
-## Results of the current run (2026-09-19, Node v24.14.1, after the review fixes F1-F7)
+## Results of the pre-change campaign run (2026-09-19, Node v24.14.1, after the review fixes F1-F7; superseded by the single-span run at the top of this file)
 
 Verdicts: PASS 202 | FAIL 74 | NOT VERIFIED 20 | ERROR 0 (170 cases, 296 runs,
 48 s with the solve caches of review fix F6; 339 s before them).

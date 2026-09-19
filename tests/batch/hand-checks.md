@@ -10,7 +10,16 @@ UK NA partial factors γ<sub>M0</sub> = γ<sub>M1</sub> = 1.0 and the combinatio
 `node tests/batch/hand-checks.cjs`, which prints the same steps and the table at
 the end; `tests/campaign.test.cjs` pins the figures as regression values.
 
-Anything above 1 % is a finding. Result: **29 comparisons, none above 0.001 %**.
+Anything above 1 % is a finding. Result: **29 comparisons, none above 0.001 %**
+(pre-change campaign). **19 Sep 2026 single-span scope:** HC-05 / HC-06 (the
+two- and three-span pattern moments, PAT-01 / PAT-03) left with the multi-span
+scope and HC-03 was re-derived for the rewritten WEB-07 (3 m simply supported,
+300 kN directly over End 2: the end station evaluates type (b) with the end-zone
+type (c) alongside, c = 0, s<sub>s</sub> + c = 100 < 2h<sub>w</sub>/3 = 188.7,
+the lower F<sub>Rd</sub> = 202.226 kN (type (c)) governs; F<sub>Ed</sub> =
+R<sub>2</sub> = 1.35(5 + 0.3953) &times; 3/2 + 450 = 460.926 kN); `node
+tests/batch/hand-checks.cjs` now prints **24 comparisons, none above 0.001 %**,
+the other entries unchanged.
 The one difference met on the way (HC-13b, a factor 1000 on the bimoment) was a
 unit slip in the first draft of the hand calculation (1 kN·m² = 10⁹ N·mm², not
 10⁶), corrected here; the engine value was right.

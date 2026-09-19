@@ -1,10 +1,10 @@
 /* ===========================================================================
    7. WIRING
    =========================================================================== */
-/* render() is synchronous and a multi-span eccentric eigen case can take tens
-   of seconds (every ULS combination is an eigen + FE torsion solve), so the
-   recompute is debounced: rapid input events collapse into one render after
-   RECOMPUTE_DEBOUNCE_MS of quiet (19 Sep 2026 review). */
+/* render() is synchronous and an eccentric eigen case with several ULS
+   combinations can take seconds (every combination is an eigen + FE torsion
+   solve), so the recompute is debounced: rapid input events collapse into one
+   render after RECOMPUTE_DEBOUNCE_MS of quiet (19 Sep 2026 review). */
 const RECOMPUTE_DEBOUNCE_MS=250;
 let raf=null;
 function recompute(){ if(raf) clearTimeout(raf); raf=setTimeout(()=>{ raf=null; render(); },RECOMPUTE_DEBOUNCE_MS); }
@@ -26,7 +26,6 @@ function readScalarInputs(){
   if($("mcrMethod")) S.mcrMethod=$("mcrMethod").value;
   S.eccOn=$("eccOn").checked;
   S.za=parseFloat($("za").value);
-  S.rootWarp=$("rootWarp").value;
   S.family=$("family").value;
   S.sectionKey=$("pfcSelect").value;
   S.shsType=$("shsType").value;
@@ -43,7 +42,7 @@ function readScalarInputs(){
   S.L=parseFloat($("length").value);
   S.axial=parseFloat($("axial").value);
   S.Mz=parseFloat($("Mz").value);
-  S.leFactor=parseFloat($("leFactor").value);
+  { const le=parseFloat($("leFactor").value); S.leFactor=isFinite(le)? le : null; }   // blank = strut lengths from the end fixities
   S.destab=$("destab").checked;
   const mlt=parseFloat($("mLTo").value); S.mLTo=isFinite(mlt)?mlt:null;
   const mxo=parseFloat($("mxo").value); S.mxo=isFinite(mxo)?mxo:null;
@@ -52,7 +51,6 @@ function readScalarInputs(){
   S.divisor=parseFloat($("divisor").value);
   if($("divisorCant")){ const dc=parseFloat($("divisorCant").value); S.divisorCant=isFinite(dc)?dc:180; }
   if($("deflAbs")){ const da=parseFloat($("deflAbs").value); S.deflAbs=isFinite(da)?da:null; }
-  if($("autoPattern")) S.autoPattern=$("autoPattern").checked;
   S.E=parseFloat($("E").value);
   const ke=parseFloat($("Ke").value); S.Ke=isFinite(ke)?ke:null;
   const autoRob=defaultRobertson(S.family,sec.boxType,sec.tf);
@@ -79,9 +77,7 @@ function wire(){
     .forEach(id=>{ if($(id)) $(id).addEventListener("input",()=>{ readScalarInputs(); recompute(); }); });
   $("za").addEventListener("input",()=>{ readScalarInputs(); renderLoadList(); recompute(); });
   $("destab").addEventListener("change",()=>{ readScalarInputs(); recompute(); });
-  if($("autoPattern")) $("autoPattern").addEventListener("change",()=>{ readScalarInputs(); recompute(); });
-  $("eccOn").addEventListener("change",()=>{ readScalarInputs(); renderSupportList(); renderLoadList(); recompute(); });   // support list: the torsion warping switch follows eccOn
-  $("rootWarp").addEventListener("change",()=>{ readScalarInputs(); recompute(); });
+  $("eccOn").addEventListener("change",()=>{ readScalarInputs(); renderEndsList(); renderLoadList(); recompute(); });   // end rows: the warping flag is shown once eccentricity is on
   function refreshAutoFields(){
     const sec=activeSection();
     $("py").value=pyFromGrade(S.grade,sec.tf); S.py=null;
@@ -113,18 +109,17 @@ function wire(){
   $("shsType").addEventListener("change",()=>{
     S.shsType=$("shsType").value; syncInputs(); refreshAutoFields(); recompute(); });
   $("length").addEventListener("change",()=>{ // stretch full-span loads/supports that sat at old end
-    readScalarInputs(); syncSelfWeightLoads(); renderSupportList(); renderHingeList(); renderLoadList(); recompute(); });
+    readScalarInputs(); syncSelfWeightLoads(); renderEndsList(); renderHingeList(); renderLoadList(); recompute(); });
+  // end presets (data-preset: cant | ss | propped | fixed, or any END_PRESETS key);
+  // the seating / hold-down / stiffener entries of the ends are kept
+  const PRESET_ALIAS={cant:'cantilever', ss:'ss', propped:'fixed-pinned', fixed:'fixed-fixed'};
   document.querySelectorAll("[data-preset]").forEach(b=>b.addEventListener("click",()=>{
-    const L=S.L, p=b.dataset.preset;
-    S.supports = p==='cant'? [{pos:0,type:'fixed'}]
-      : p==='ss'? [{pos:0,type:'pinned'},{pos:L,type:'pinned'}]
-      : p==='propped'? [{pos:0,type:'fixed'},{pos:L,type:'pinned'}]
-      : [{pos:0,type:'fixed'},{pos:L,type:'fixed'}];
+    const p=PRESET_ALIAS[b.dataset.preset]||b.dataset.preset;
+    const keep=k=>({holdDown:S.ends[k].holdDown, ss:S.ends[k].ss, stiff:S.ends[k].stiff});
+    S.ends=endsPreset(p,{e1:keep('e1'),e2:keep('e2')});
     S.hinges=[];   // a preset can leave an existing hinge as a mechanism
-    if(p==='cant'){ S.leFactor=1.0; } $("leFactor").value=S.leFactor;
-    renderSupportList(); renderHingeList(); recompute();
+    renderEndsList(); renderHingeList(); recompute();
   }));
-  $("addSupport").addEventListener("click",()=>{ S.supports.push({pos:+(S.L).toFixed(2),type:'pinned'}); renderSupportList(); recompute(); });
   $("addHinge").addEventListener("click",()=>{ if(!S.hinges) S.hinges=[]; S.hinges.push({pos:+(S.L/2).toFixed(2)}); renderHingeList(); recompute(); });
   document.querySelectorAll("[data-add]").forEach(b=>b.addEventListener("click",()=>{
     const L=S.L, t=b.dataset.add;

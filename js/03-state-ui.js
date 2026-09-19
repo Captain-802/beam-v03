@@ -6,23 +6,166 @@ const DEFAULT_COMBOS=[
   {id:'c1', label:'ULS: 1.35G + 1.5Q (Eq 6.10)',          factors:{G:1.35,Q:1.5,W:0,E:0},   sls:false, on:true},
   {id:'s1', label:'SLS: Variable actions only (NA 2.23)',  factors:{G:0,  Q:1.0,W:0,E:0},    sls:true,  on:true},
 ];
+/* ---------------------------------------------------------------------------
+   Member ends (19 Sep 2026 scope change: the tool handles ONE span, x = 0 =
+   End 1 to x = L = End 2). Each end carries six degrees of freedom plus
+   warping, each RESTRAINED (true) or FREE (false):
+     ux   axial translation                -> axial load path of N_Ed
+     uy   lateral translation (minor axis) -> LTB eigen v = 0; minor-axis strut
+     uz   vertical translation             -> in-plane solver (vertical support)
+     rx   twist about the member axis      -> LTB eigen phi = 0; torsion FE phi = 0
+     ry   rotation about the major axis    -> in-plane solver (rotational fixity)
+     rz   rotation about the minor axis    -> LTB eigen v' = 0; minor-axis strut
+     warp warping (phi' = 0)               -> LTB eigen phi' = 0; torsion FE phi' = 0
+   plus, for an end that carries a vertical reaction (uz): holdDown (uplift
+   resisted by a designed connection), ss (stiff bearing length, mm; blank =
+   the lower bound 0) and stiff (bearing stiffener provided). Internal hinges
+   (S.hinges) stay: an in-plane moment release at x, lateral / twist
+   continuity kept. Intermediate supports, overhangs and multi-span logic are
+   out of scope.
+   In-plane mapping (endInPlaneType): uz + ry = 'fixed', uz only = 'pinned',
+   ry only = 'guided' (sliding end: rotation held, vertical free), neither =
+   'none' (free end, absent from the solver's support list).
+   --------------------------------------------------------------------------- */
+const END_DOFS=['ux','uy','uz','rx','ry','rz','warp'];
+const END_DOF_LABELS={ux:'U<sub>x</sub> axial',uy:'U<sub>y</sub> lateral',uz:'U<sub>z</sub> vertical',rx:'R<sub>x</sub> twist',ry:'R<sub>y</sub> major-axis rotation (in-plane)',rz:'R<sub>z</sub> minor-axis rotation (lateral bending)',warp:'warping &phi;&prime; = 0'};
+/* Presets (pure): every preset restrains U_x at End 1 only, so the axial load
+   path is statically determinate; tick U_x at End 2 for a fully built-in far
+   end (printed as "axial statically indeterminate: N taken as applied").
+   Warping is restrained only at a cantilever root (the seventh flag of the
+   scope note); every other preset leaves warping free (fork ends). */
+const END_PRESETS={
+  'ss':           {label:'Simply supported', e1:{ux:1,uy:1,uz:1,rx:1}, e2:{uy:1,uz:1,rx:1}},
+  'fixed-fixed':  {label:'Fixed - fixed', e1:{ux:1,uy:1,uz:1,rx:1,ry:1,rz:1}, e2:{uy:1,uz:1,rx:1,ry:1,rz:1}},
+  'fixed-pinned': {label:'Propped cantilever (fixed - pinned)', e1:{ux:1,uy:1,uz:1,rx:1,ry:1,rz:1}, e2:{uy:1,uz:1,rx:1}},
+  'cantilever':   {label:'Cantilever (End 1 fully restrained, End 2 free)', e1:{ux:1,uy:1,uz:1,rx:1,ry:1,rz:1,warp:1}, e2:{}},
+  'guided-fixed': {label:'Fixed - guided (End 2 sliding: rotation held, vertical free)', e1:{ux:1,uy:1,uz:1,rx:1,ry:1,rz:1}, e2:{uy:1,rx:1,ry:1,rz:1}},
+  'pinned-guided':{label:'Pinned - guided (End 2 sliding: rotation held, vertical free)', e1:{ux:1,uy:1,uz:1,rx:1}, e2:{uy:1,rx:1,ry:1,rz:1}}
+};
+END_PRESETS['fixed-guided']=END_PRESETS['guided-fixed'];   // alias: End 1 fixed, End 2 guided
+/* Normalised flag set of one end (pure; tolerant of a partial object). */
+function endFlags(o){
+  const e={};
+  END_DOFS.forEach(k=>{ e[k]=!!(o&&o[k]); });
+  e.holdDown=!!(o&&o.holdDown);
+  e.ss=(o&&o.ss!=null&&o.ss!==''&&Number.isFinite(+o.ss))? +o.ss : null;
+  e.stiff=!!(o&&o.stiff);
+  return e;
+}
+/* Ends object of a preset with optional per-end overrides {e1:{...}, e2:{...}} (pure). */
+function endsPreset(name,overrides){
+  const p=END_PRESETS[name];
+  if(!p) throw new Error('Unknown end preset "'+name+'" (ss | fixed-fixed | fixed-pinned | cantilever | guided-fixed | pinned-guided)');
+  const ov=overrides||{};
+  return {e1:endFlags(Object.assign({},p.e1,ov.e1||{})), e2:endFlags(Object.assign({},p.e2,ov.e2||{}))};
+}
+/* Name of the preset the ends match on the seven DOF flags, else null (pure). */
+function endsPresetName(ends){
+  const cur=[ends&&ends.e1,ends&&ends.e2].map(endFlags);
+  for(const k of Object.keys(END_PRESETS)){
+    if(k==='fixed-guided') continue;
+    const p=endsPreset(k);
+    if([p.e1,p.e2].every((e,i)=>END_DOFS.every(d=>e[d]===cur[i][d]))) return k;
+  }
+  return null;
+}
+/* The two ends as a list [{key, n, x (m), ...flags}] (pure; reads S.L). */
+function endsList(st){
+  st=st||S;
+  const E=st.ends||{};
+  return [Object.assign({key:'e1',n:1,x:0},endFlags(E.e1)), Object.assign({key:'e2',n:2,x:+st.L},endFlags(E.e2))];
+}
+function endInPlaneType(e){ return e.uz&&e.ry? 'fixed' : e.uz? 'pinned' : e.ry? 'guided' : 'none'; }
+/* In-plane support list the solver and the checks expect: [{end, pos (m),
+   type 'pinned'|'fixed'|'guided', holdDown, ss, stiff}]; a free end is absent. */
+function endsToSupports(st){
+  return endsList(st).map(e=>{ const type=endInPlaneType(e); return type==='none'? null : {end:e.n,pos:e.x,type,holdDown:e.holdDown,ss:e.ss,stiff:e.stiff}; }).filter(Boolean);
+}
+/* Vertically held ends (a reaction is possible) with their solver-reaction index. */
+function verticalEnds(st){ return endsToSupports(st).map((sp,i)=>Object.assign({i},sp)).filter(sp=>sp.type!=='guided'); }
+/* In-plane cantilever: End 1 fixed (U_z + R_y), End 2 free of both. */
+function isCantilever(st){ const [e1,e2]=endsList(st); return !!(e1.uz&&e1.ry&&!e2.uz&&!e2.ry); }
+/* An end that is free vertically (cantilever tip, guided tip): the deflection
+   limit is L/divisorCant instead of span/divisor. */
+function hasFreeVerticalEnd(st){ const [e1,e2]=endsList(st); return !(e1.uz&&e2.uz); }
+/* LTB boundary conditions of the two ends for the eigen model: v from U_y,
+   v' from R_z, phi from R_x, phi' from warping; an end restraining none of
+   them (free end) contributes nothing. Positions in mm. */
+function ltbEndRestraints(st){
+  return endsList(st).filter(e=>e.uy||e.rz||e.rx||e.warp).map(e=>({x:e.x*1000,v:e.uy?1:0,vp:e.rz?1:0,phi:e.rx?1:0,phip:e.warp?1:0,end:e.n}));
+}
+/* Twist-restrained ends for the torsion models: phi = 0 from R_x, phi' = 0
+   from warping. Positions in mm. */
+function twistEnds(st){ return endsList(st).filter(e=>e.rx).map(e=>({end:e.n,pos:e.x*1000,warpFix:!!e.warp})); }
+/* LTB / BS 5950 effective-length factor: the entered L_E/L, else 1.0 (the
+   closed forms take k = k_w = 1 fork ends over the member length). */
+function ltbLeFactor(st){ st=st||S; return (st.leFactor!=null&&st.leFactor!==''&&Number.isFinite(+st.leFactor))? +st.leFactor : 1.0; }
+/* Strut effective-length factor of one buckling plane from the end fixities
+   (SCI P360 Table 6.2 / BS 5950-1 Table 22 style; pure). t1, r1 = translation
+   / rotation held at End 1 in that plane, t2, r2 at End 2. */
+function lcrAxisFactor(t1,r1,t2,r2){
+  const held=(t1?1:0)+(t2?1:0);
+  if(held===2){
+    const nr=(r1?1:0)+(r2?1:0);
+    if(nr===2) return {K:0.7, text:'held in position at both ends and in direction at both ends: 0.7 L'};
+    if(nr===1) return {K:0.85, text:'held in position at both ends, in direction at one end: 0.85 L'};
+    return {K:1.0, text:'held in position at both ends, in direction at neither: 1.0 L'};
+  }
+  if(held===1){
+    const heldR= t1? r1 : r2, freeR= t1? r2 : r1;
+    if(heldR&&!freeR) return {K:2.0, text:'held in position and direction at one end, the other end free: 2.0 L'};
+    if(heldR&&freeR) return {K:1.2, text:'held in position and direction at one end, the other end held in direction but not in position (sway permitted, guided): 1.2 L'};
+    if(!heldR&&freeR) return {K:2.0, text:'pinned at the held end, the other end guided (rotation held, sway permitted): 2.0 L (theoretical value; not a P360 Table 6.2 row)'};
+    return {K:null, mechanism:true, text:'held in position at one end only and in direction at neither end: sway mechanism'};
+  }
+  return {K:null, mechanism:true, text:'held in position at neither end: mechanism'};
+}
+/* Strut effective lengths of both axes from the end fixities (pure): y-y
+   (major-axis buckling, in-plane) from U_z / R_y, z-z (minor-axis buckling)
+   from U_y / R_z. The entered L_E/L factor overrides both. Returns {Ky, Kz,
+   basisY, basisZ, basis, mechanismY, mechanismZ, override, defaultKy,
+   defaultKz}; the basis texts carry [verify]. */
+function lcrDefaults(st){
+  st=st||S;
+  const [e1,e2]=endsList(st);
+  const y=lcrAxisFactor(e1.uz,e1.ry,e2.uz,e2.ry), z=lcrAxisFactor(e1.uy,e1.rz,e2.uy,e2.rz);
+  const override=(st.leFactor!=null&&st.leFactor!==''&&Number.isFinite(+st.leFactor));
+  const out={defaultKy:y.K, defaultKz:z.K, mechanismY:!!y.mechanism, mechanismZ:!!z.mechanism, override,
+    basisY:'y-y: '+y.text, basisZ:'z-z: '+z.text};
+  if(override){
+    out.Ky=+st.leFactor; out.Kz=+st.leFactor;
+    out.basis='user L<sub>E</sub>/L factor '+(+st.leFactor).toFixed(2)+' on both axes (the end fixities would give '+(y.K!=null? 'y-y '+y.K.toFixed(2) : 'y-y mechanism')+', '+(z.K!=null? 'z-z '+z.K.toFixed(2) : 'z-z mechanism')+') [verify]';
+  } else {
+    out.Ky=y.K; out.Kz=z.K;
+    out.basis='from the end fixities (P360 Table 6.2 / BS 5950 Table 22 style) &mdash; '+out.basisY+'; '+out.basisZ+' [verify]';
+  }
+  return out;
+}
+/* Printed description of the end restraints (pure). */
+function endsDescription(st){
+  const sym={ux:'U<sub>x</sub>',uy:'U<sub>y</sub>',uz:'U<sub>z</sub>',rx:'R<sub>x</sub>',ry:'R<sub>y</sub>',rz:'R<sub>z</sub>',warp:'&phi;&prime;'};
+  const held=e=>END_DOFS.filter(k=>e[k]).map(k=>sym[k]);
+  return endsList(st).map(e=>'End '+e.n+' (x = '+(e.x||0)+' m): '+(held(e).length? held(e).join(', ')+' restrained' : 'free')).join('; ');
+}
+
+
+
 const DEMO={
   code:"EC3",
   family:"ub", sectionKey:"180x75x20", shsType:"HF", shsKey:"150x150x6.3", ubKey:"457 x 191 x 82", ucKey:"203 x 203 x 60", rhsKey:"200 x 100 x 8.0",
   grade:"S275", py:null, anet:null,
   L:8.0,
-  supports:[{pos:0,type:'pinned',ss:100},{pos:8.0,type:'pinned',ss:100}],   // ss: stiff bearing length of the seating (mm along the member); blank = lower bound 0
+  ends:endsPreset('ss',{e1:{ss:100},e2:{ss:100}}),   // End 1 (x = 0) / End 2 (x = L) degree-of-freedom flags; ss: stiff bearing length of the seating (mm along the member); blank = lower bound 0
   hinges:[],
   loads:[{type:'udl',x1:0,x2:8.0,w:19.7,case:'G'},{type:'udl',x1:0,x2:8.0,w:19.8,case:'Q'}],
   combos:JSON.parse(JSON.stringify(DEFAULT_COMBOS)),
-  axial:0, Mz:0, leFactor:1.0, destab:false, mLTo:null, mxo:null, C1o:null,
-  LT:null,             // torsional buckling length L_T (m) for a channel under N (cl 6.3.1.4); blank = spacing of the twist restraints (supports + restraints with phi held), capped at L_cr,y
-  divisor:360, divisorCant:180, deflAbs:null,   // span/360 between supports; L/180 for cantilever segments (UK NA Table NA.2 [verify]); absolute mm cap (null = none)
-  autoPattern:true,                             // automatic span-wise Q patterns for multi-span / cantilevered members (expandPatternCombos)
+  axial:0, Mz:0, leFactor:null, destab:false, mLTo:null, mxo:null, C1o:null,   // leFactor: blank = strut lengths from the end fixities (lcrDefaults), LTB L_E = L; a number overrides both axes
+  LT:null,             // torsional buckling length L_T (m) for a channel under N (cl 6.3.1.4); blank = spacing of the twist restraints (ends with R_x held + restraints with phi held), capped at L_cr,y
+  divisor:360, divisorCant:180, deflAbs:null,   // span/360 between two vertically held ends; L/180 when an end is vertically free (cantilever / guided tip, UK NA Table NA.2 [verify]); absolute mm cap (null = none)
   E:210000, Ke:null, robX:null, robY:null,
   restraint:'full',
   mcrMethod:'eigen',   // EC3 unrestrained Mcr: 'eigen' (FE eigensolver, default) | 'standard' (closed form, SN003a/SN006a)
-  eccOn:false, za:0, rootWarp:'free',
+  eccOn:false, za:0,
   pfcMirror:false,
   plate:{on:false, side:'bottom', t:10, outL:0, outR:150}
 };
@@ -97,51 +240,34 @@ function syncLoadHeightHint(sec, show){
   el.style.display=show ? '' : 'none';
 }
 
-function renderSupportList(){
-  const c=$("supportList"); c.innerHTML="";
-  // In EC3 unrestrained mode every vertical support is a fork (v = phi = 0);
-  // these per-support checkboxes ADD lateral-bending (v') and warping (phi')
-  // fixity to the LTB model only - the SCI Mcr tool's dU = F / dtheta = F -
-  // without touching the vertical bending model (unlike a Fixed support).
-  const ltbBCOn = S.code==='EC3' && (S.restraint||'full')!=='full';
+function renderEndsList(){
+  const c=$("supportList"); if(!c) return; c.innerHTML="";
   const webBearingOn = webBearingInputsOn();
-  // Torsion boundary condition (19 Sep 2026 G4): every support prevents twist;
-  // this option adds phi' = 0 (warping fixed) at the support in the
-  // warping-torsion FE. Default unticked = fork end, warping free (P385).
+  const ltbBCOn = S.code==='EC3' && (S.restraint||'full')!=='full';
   const torsionBCOn = torsionWarpInputsOn();
-  S.supports.forEach((sp,i)=>{
+  const preset=endsPresetName(S.ends);
+  endsList().forEach(e=>{
     const row=document.createElement("div"); row.className="row";
-    row.innerHTML=`<div class="rowhead"><b style="font-size:12px">Support ${i+1}</b>
-      <button class="del" data-si="${i}">remove</button></div>
-      <div class="grid2">
-        <div class="fld"><span>Position, m</span><input type="number" step="0.01" value="${sp.pos}" data-sp="pos" data-i="${i}"></div>
-        <div class="fld"><span>Type</span><select data-sp="type" data-i="${i}">
-          <option value="pinned"${sp.type==='pinned'?' selected':''}>Pinned</option>
-          <option value="fixed"${sp.type==='fixed'?' selected':''}>Fixed</option></select></div>
-      </div>
-      ${webBearingOn? `<div class="grid2" style="margin-top:4px">
-        <div class="fld"><span>Stiff bearing s<sub>s</sub>, mm (blank = lower bound 0: NOT VERIFIED if it fails)</span><input type="number" step="1" min="0" placeholder="0 (enter the seating length)" value="${sp.ss!=null&&sp.ss!==''&&isFinite(+sp.ss)? sp.ss : ''}" data-sp="ss" data-i="${i}"></div>
-        <label class="checkline" style="align-self:end"><input type="checkbox" data-spc="stiff" data-i="${i}"${sp.stiff?' checked':''}> <span>bearing stiffener provided (EN 1993-1-5 9.4)</span></label>
-      </div>` : ''}
-      <div class="ltb-checks" style="margin-top:4px">
-        <label class="checkline"><input type="checkbox" data-spc="holdDown" data-i="${i}"${sp.holdDown?' checked':''}> <span>hold-down provided (uplift resisted)</span></label>${torsionBCOn? `
-        <label class="checkline"><input type="checkbox" data-spc="warpFix" data-i="${i}"${sp.warpFix?' checked':''}> <span>warping restrained for torsion (&phi;&prime; = 0; unticked = fork end, warping free)</span></label>`:''}${ltbBCOn? `
-        <label class="checkline"><input type="checkbox" data-spc="vp" data-i="${i}"${sp.vp?' checked':''}> <span>lat. bending v&prime; fixed (LTB)</span></label>
-        <label class="checkline"><input type="checkbox" data-spc="phip" data-i="${i}"${sp.phip?' checked':''}> <span>warping &phi;&prime; fixed (LTB)</span></label>`:''}
-      </div>`;
+    const vertical=e.uz;
+    const dof=k=>`<label class="checkline"><input type="checkbox" data-end="${e.key}" data-dof="${k}"${e[k]?' checked':''}> <span>${END_DOF_LABELS[k]}</span></label>`;
+    row.innerHTML=`<div class="rowhead"><b style="font-size:12px">End ${e.n} (x = ${e.x} m)</b><span style="font-size:11px;color:#6b7280">${endInPlaneType(e)==='none'? 'free end' : endInPlaneType(e)+' in plane'}${preset? '' : ' (custom)'}</span></div>
+      <div class="ltb-checks">${dof('ux')}${dof('uy')}${dof('uz')}${dof('rx')}${dof('ry')}${dof('rz')}${(ltbBCOn||torsionBCOn)? dof('warp') : ''}</div>
+      ${vertical? `<div class="ltb-checks" style="margin-top:4px">
+        <label class="checkline"><input type="checkbox" data-end="${e.key}" data-dof="holdDown"${e.holdDown?' checked':''}> <span>hold-down provided (uplift resisted)</span></label>${webBearingOn? `
+        <label class="checkline"><input type="checkbox" data-end="${e.key}" data-dof="stiff"${e.stiff?' checked':''}> <span>bearing stiffener provided (EN 1993-1-5 9.4)</span></label>` : ''}
+      </div>${webBearingOn? `<div class="grid2" style="margin-top:4px">
+        <div class="fld"><span>Stiff bearing s<sub>s</sub>, mm (blank = lower bound 0: NOT VERIFIED if it fails)</span><input type="number" step="1" min="0" placeholder="0 (enter the seating length)" value="${e.ss!=null? e.ss : ''}" data-end="${e.key}" data-ss="1"></div>
+      </div>` : ''}` : ''}`;
     c.appendChild(row);
   });
-  c.querySelectorAll("[data-sp]").forEach(el=>el.addEventListener("input",e=>{
-    const i=+e.target.dataset.i, k=e.target.dataset.sp;
+  c.querySelectorAll("[data-dof]").forEach(el=>el.addEventListener("change",e=>{
+    const k=e.target.dataset.end, d=e.target.dataset.dof;
+    S.ends[k][d]=e.target.checked; renderEndsList(); recompute();
+  }));
+  c.querySelectorAll("[data-ss]").forEach(el=>el.addEventListener("input",e=>{
     // ss: blank = lower bound 0 (NOT VERIFIED if the station fails); a number is kept as entered
-    S.supports[i][k]= k==='pos'? parseFloat(e.target.value) : k==='ss'? (e.target.value===''? null : parseFloat(e.target.value)) : e.target.value; recompute();
+    S.ends[e.target.dataset.end].ss = e.target.value===''? null : parseFloat(e.target.value); recompute();
   }));
-  c.querySelectorAll("[data-spc]").forEach(el=>el.addEventListener("change",e=>{
-    const i=+e.target.dataset.i, k=e.target.dataset.spc;
-    S.supports[i][k]=e.target.checked; recompute();
-  }));
-  c.querySelectorAll(".del").forEach(b=>b.addEventListener("click",e=>{
-    S.supports.splice(+e.target.dataset.si,1); renderSupportList(); recompute(); }));
 }
 function renderHingeList(){
   const c=$("hingeList"); if(!c) return; c.innerHTML="";
@@ -310,10 +436,15 @@ function syncInputs(){
   $("ec3FactorsRow").style.display = (S.code==='EC3' && !sciMode)? '' : 'none';
   $("leRow").style.display = sciMode? 'none' : '';
   $("za").value = S.za||0;
-  $("rootWarp").value = S.rootWarp||'free';
   $("zaRow").style.display = (S.code==='EC3' && !sciMode)? '' : 'none';
   syncLoadHeightHint(sec, S.code==='EC3' && !sciMode);
-  $("warpRow").style.display = (S.code==='EC3' && !sciMode)? '' : 'none';
+  // STAGED: 19 Sep 2026 - the "Root warping" select, the "+ Add support" button and the
+  // "Automatic pattern loading" switch are superseded by the end DOF flags of the
+  // single-span model; they are hidden here until the UI half of the scope change
+  // removes them from index.html.
+  if($("warpRow")) $("warpRow").style.display='none';
+  if($("addSupport")) $("addSupport").style.display='none';
+  if($("autoPattern")){ const lab=$("autoPattern").parentElement; if(lab){ lab.style.display='none'; const hint=lab.nextElementSibling; if(hint&&hint.classList&&hint.classList.contains('hint')) hint.style.display='none'; } }
   if($("mcrMethod")){
     $("mcrMethod").value = S.mcrMethod==='standard'? 'standard' : 'eigen';
     $("mcrMethodRow").style.display = (S.code==='EC3' && !sciMode)? '' : 'none';
@@ -324,17 +455,17 @@ function syncInputs(){
   $("grade").value=S.grade;
   $("py").value = S.py!=null? S.py : pyFromGrade(S.grade,sec.tf);
   $("anet").value = S.anet!=null? S.anet : "";
-  $("length").value=S.L; $("axial").value=S.axial; if($("Mz")) $("Mz").value=S.Mz; $("leFactor").value=S.leFactor;
+  $("length").value=S.L; $("axial").value=S.axial; if($("Mz")) $("Mz").value=S.Mz;
+  $("leFactor").value=S.leFactor??""; $("leFactor").placeholder='auto: from the end fixities';
   $("destab").checked=S.destab; $("mLTo").value=S.mLTo??""; $("mxo").value=S.mxo??"";
   $("C1o").value=S.C1o??"";
   if($("LT")){ $("LT").value=S.LT??""; $("LTRow").style.display=(S.code==='EC3' && S.family==='pfc')? '' : 'none'; }
   $("divisor").value=S.divisor; $("E").value=S.E; $("Ke").value=S.Ke??"";
   if($("divisorCant")) $("divisorCant").value=S.divisorCant??180;
   if($("deflAbs")) $("deflAbs").value=S.deflAbs??"";
-  if($("autoPattern")) $("autoPattern").checked = S.autoPattern==null? true : !!S.autoPattern;
   const autoRob=defaultRobertson(S.family,sec.boxType,sec.tf);
   $("robertsonX").value = S.robX!=null? S.robX : autoRob.x;
   $("robertsonY").value = S.robY!=null? S.robY : autoRob.y;
-  renderSupportList(); renderHingeList(); renderLoadList(); renderComboList();
+  renderEndsList(); renderHingeList(); renderLoadList(); renderComboList();
   updatePlateUI();
 }

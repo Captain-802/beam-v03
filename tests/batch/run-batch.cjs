@@ -1,9 +1,10 @@
 'use strict';
 /* ===========================================================================
-   Headless batch runner - 100-beam verification campaign
+   Headless batch runner - single-span verification campaign
    ---------------------------------------------------------------------------
    Loads the app through tests/harness.cjs (Node vm, no DOM), runs analyse()
-   and checks() for every case in tests/batch/cases.cjs - both Mcr methods
+   and checks() for every case in tests/batch/cases.cjs (single span, End 1 /
+   End 2 degree-of-freedom flags, 19 Sep 2026 scope) - both Mcr methods
    ('eigen' and 'standard') when restraint === 'ltb' - and writes
      tests/batch/results.json   full records
      tests/batch/results.md     one row per run + summary tables
@@ -70,6 +71,18 @@ function mcrClosedFormIndependent(sec, E, LE, C1, C2, zg, zgUsed) {
   const zgTerm = (zgUsed && C2 != null && C2 > 0) ? C2 * zg : 0;
   return C1 * T1 * (Math.sqrt(Math.max(Iw / Iz + G_STEEL * It / T1 + zgTerm * zgTerm, 0)) - zgTerm) / 1e6; // kN.m
 }
+/* In-plane support list of a case's ends, derived here from the DOF flags
+   (U_z + R_y = fixed, U_z = pinned, R_y = guided, neither = absent) so the
+   cross-checks stay independent of the engine's own endsToSupports(). */
+function endSupports(o) {
+  return [['e1', 0, 1], ['e2', o.L, 2]].map(([k, x, n]) => {
+    const e = (o.ends || {})[k] || {};
+    const type = e.uz && e.ry ? 'fixed' : e.uz ? 'pinned' : e.ry ? 'guided' : null;
+    return type ? { end: n, pos: x, type, ss: e.ss, stiff: !!e.stiff, holdDown: !!e.holdDown, warpFix: !!e.warp, rx: !!e.rx, uy: !!e.uy } : null;
+  }).filter(Boolean);
+}
+const endOf = (o, n) => ((o.ends || {})['e' + n] || {});
+const isCantCase = o => { const e1 = endOf(o, 1), e2 = endOf(o, 2); return !!(e1.uz && e1.ry && !e2.uz && !e2.ry); };
 const interp = (xs, ys, xq) => {
   if (xq <= xs[0]) return ys[0];
   if (xq >= xs[xs.length - 1]) return ys[ys.length - 1];
@@ -89,39 +102,14 @@ const interp = (xs, ys, xq) => {
      zg     - most destabilising signed height of the loads active in the
               combination: per-load zg when eccOn (else za), sign reversed for
               an upward load; za when no transverse load is active
-     LE     - leFactor x (destab ? 1.2 : 1) x segment length
+     LE     - leFactor (blank = 1) x (destab ? 1.2 : 1) x segment length
    Returns {C1, C2, zg, zgApplied, LE, route, blockExpected}. */
-/* Effective load list of a combination, applied independently of the engine:
-   a pattern combination (mask = {case, segs:[{a,b} mm]}) keeps only the parts
-   of its patterned-case loads that lie inside the masked segments (distributed
-   loads clipped with the trapezoid interpolated at the cut, point loads and
-   couples assigned to the first segment containing them). Other cases and
-   unmasked combinations return the case's own list. */
-function maskedLoads(o, mask) {
-  if (!mask) return o.loads;
-  const segs = mask.segs.map(s => [s.a / 1000, s.b / 1000]);
-  const segIdx = x => { for (let i = 0; i < segs.length; i++) if (x >= segs[i][0] - 1e-9 && x <= segs[i][1] + 1e-9) return i; return -1; };
-  const out = [];
-  for (const ld of o.loads) {
-    if (ld.case !== mask.case) { out.push(ld); continue; }
-    if (ld.type === 'point' || ld.type === 'moment') { if (segIdx(ld.pos) >= 0) out.push(ld); continue; }
-    for (const [a, b] of segs) {
-      const x1 = Math.max(ld.x1, a), x2 = Math.min(ld.x2, b);
-      if (x2 - x1 <= 1e-9) continue;
-      const wAt = x => ld.type === 'udl' ? ld.w : ld.w1 + (ld.w2 - ld.w1) * (x - ld.x1) / (ld.x2 - ld.x1);
-      out.push(ld.type === 'udl' ? Object.assign({}, ld, { x1, x2 }) : Object.assign({}, ld, { x1, x2, w1: wAt(x1), w2: wAt(x2) }));
-    }
-  }
-  return out;
-}
-function stdInputsIndependent(o, fac, fb, xa, xb, mask) {
+function stdInputsIndependent(o, fac, fb, xa, xb) {
   const L = o.L, Lmm = L * 1000, whole = xa <= 1e-6 && Math.abs(xb - Lmm) <= 1e-6;
-  const loads = maskedLoads(o, mask);
-  const sup = o.supports;
-  const supAt = x => sup.find(sp => Math.abs(sp.pos * 1000 - x) < 1e-6);
-  const sA = supAt(xa), sB = supAt(xb);
-  const endSupported = !!(sA && sB), endFixed = !!(sA && sB && sA.type === 'fixed' && sB.type === 'fixed');
-  const interior = sup.some(sp => sp.pos * 1000 > xa + 1e-6 && sp.pos * 1000 < xb - 1e-6) || (o.hinges || []).some(h => h.pos * 1000 > xa + 1e-6 && h.pos * 1000 < xb - 1e-6);
+  const loads = o.loads;
+  const e1 = endOf(o, 1), e2 = endOf(o, 2);
+  const endSupported = !!(e1.uz && e2.uz), endFixed = !!(e1.uz && e2.uz && e1.ry && e2.ry);
+  const interior = (o.hinges || []).some(h => h.pos * 1000 > xa + 1e-6 && h.pos * 1000 < xb - 1e-6);
   let nUdl = 0, nPoint = 0, nCentral = 0, nOther = 0, nMom = 0, zgBest = null;
   for (const ld of loads) {
     const f = fac[ld.case] || 0; if (!f) continue;
@@ -147,7 +135,7 @@ function stdInputsIndependent(o, fac, fb, xa, xb, mask) {
   let C1, C2 = null, route;
   const notLoaded = nUdl + nPoint + nOther === 0;
   const isLinear = fb.xs.every((x, i) => x < xa + 1e-4 || x > xb - 1e-4 || Math.abs(fb.M[i] / 1e6 - (M0 + (ML - M0) * (x - xa) / Ls)) <= 0.05 * Mm);
-  const isCant = sup.length === 1 && sup[0].type === 'fixed';
+  const isCant = isCantCase(o);
   if (o.C1o != null) { C1 = o.C1o; route = 'override'; }
   else if (isCant) { C1 = 1; route = 'cantilever'; }   // box cantilever: the closed form keeps C1 = 1 (I/H cantilevers take SN006a, checked above)
   else if (Mm < 1e-9) { C1 = 1; C2 = 0; route = 'negligible'; }
@@ -173,10 +161,10 @@ function stdInputsIndependent(o, fac, fb, xa, xb, mask) {
 /* Applicability of the single-load closed forms (i). Returns null or
    {kind:'ss'|'cant', udl: sum of full-span w by case, point: sum of P by case}. */
 function closedFormLayout(o) {
-  const sup = o.supports, L = o.L, loads = o.loads;
+  const sup = endSupports(o), L = o.L, loads = o.loads;
   if ((o.hinges || []).length) return null;
-  const isSS = sup.length === 2 && sup.every(s => s.type === 'pinned') && sup.some(s => s.pos === 0) && sup.some(s => Math.abs(s.pos - L) < 1e-9);
-  const isCant = sup.length === 1 && sup[0].type === 'fixed' && sup[0].pos === 0;
+  const isSS = sup.length === 2 && sup.every(s => s.type === 'pinned');
+  const isCant = isCantCase(o);
   if (!isSS && !isCant) return null;
   const udl = {}, point = {};
   let nPoint = 0;
@@ -226,7 +214,7 @@ function runOne(cs, method) {
       const a=analyse(); const c=checks(a);
       const gl=comboLoads(a.governM.combo);
       return {a,c,gl,sec:a.sec,sw:selfWeightValue(a.sec),E:a.E,py:a.py,za:(+S.za||0),
-        gM:a.governM.combo.factors, gD:a.governD.combo.factors, gMask:a.governM.combo.mask||null, gLabel:a.governM.combo.label};
+        gM:a.governM.combo.factors, gD:a.governD.combo.factors, gLabel:a.governM.combo.label};
     })()`);
   } catch (e) {
     rec.verdict = 'ERROR';
@@ -235,9 +223,8 @@ function runOne(cs, method) {
     return rec;
   }
   rec.ms = Number(process.hrtime.bigint() - t0) / 1e6;
-  const { a, c, gl, sec, sw, E, py, za, gM, gD, gMask, gLabel } = out;
+  const { a, c, gl, sec, sw, E, py, za, gM, gD, gLabel } = out;
   rec.nCombos = a.ulsResults.length;
-  rec.patterns = a.patterns ? { active: !!a.patterns.active, nUls: a.patterns.nUls, nSls: a.patterns.nSls } : null;
   rec.governCombo = gLabel;
   rec.uplift = a.uplift ? a.uplift.supports.map(u => ({ n: u.n, R: num(u.R), combo: u.combo })) : [];
   const utils = c.utils || [];
@@ -338,10 +325,10 @@ function runOne(cs, method) {
           add('iii-McrStd', rel(exp, L.Mcr) <= TOL, `SN006a: C*Mcr0 = ${fmt(L.C, 3)} x ${fmt(Mcr0, 2)} = ${fmt(exp, 2)} vs engine ${fmt(L.Mcr, 2)} kN.m`);
         } else add('iii-McrStd', true, 'SN006a not covered for this loading (blocked by the engine)', 'info');
       } else {
-        // whole member, governing-moment combination (a generated pattern where one governs): every input from the case
-        const ind = stdInputsIndependent(cs.overrides, gM, a.governM.fb, 0, cs.overrides.L * 1000, gMask);
+        // whole member, governing-moment combination: every input from the case
+        const ind = stdInputsIndependent(cs.overrides, gM, a.governM.fb, 0, cs.overrides.L * 1000);
         const exp = mcrClosedFormIndependent(sec, E, ind.LE, ind.C1, ind.C2, ind.zg, ind.zgApplied);
-        add('iii-McrStd', rel(exp, L.Mcr) <= TOL, `SN003a (independent ${ind.route}${gMask ? ', pattern ' + gLabel : ''}): C1 ${fmt(ind.C1, 3)}, C2 ${ind.C2 == null ? '-' : fmt(ind.C2, 3)}, zg ${fmt(ind.zg, 0)} mm${ind.zgApplied ? ' applied' : ''}, LE ${fmt(ind.LE / 1000, 2)} m -> ${fmt(exp, 2)} vs engine ${fmt(L.Mcr, 2)} kN.m (engine route ${L.c1route || '-'})`);
+        add('iii-McrStd', rel(exp, L.Mcr) <= TOL, `SN003a (independent ${ind.route}): C1 ${fmt(ind.C1, 3)}, C2 ${ind.C2 == null ? '-' : fmt(ind.C2, 3)}, zg ${fmt(ind.zg, 0)} mm${ind.zgApplied ? ' applied' : ''}, LE ${fmt(ind.LE / 1000, 2)} m -> ${fmt(exp, 2)} vs engine ${fmt(L.Mcr, 2)} kN.m (engine route ${L.c1route || '-'})`);
         const blocked = (c.unsupported || []).some(m => /C<sub>2<\/sub> only for the simply supported and fixed-ended/.test(m));
         add('iii-zgBlock', blocked === ind.blockExpected, `destabilising zg on a non-tabulated diagram: block expected ${ind.blockExpected}, engine blocked ${blocked}`);
       }
@@ -354,12 +341,12 @@ function runOne(cs, method) {
           add('iii-McrStd', rel(exp, s.Mcr) <= TOL && rel(Mcr0i, s.sn006.Mcr0 / 1e6) <= TOL, `SN006a (comparison): C ${fmt(s.sn006.C, 3)} x Mcr0 ${fmt(Mcr0i, 2)} = ${fmt(s.sn006.C * Mcr0i, 2)} vs engine ${fmt(s.Mcr, 2)} kN.m`);
         }
       } else {
-        // the comparison describes the LTB-governing combination (label printed by the engine, possibly a
-        // generated pattern) over its segment; its factors and mask come from the analysed list
+        // the comparison describes the LTB-governing combination (label printed by the engine) over its
+        // segment; its factors come from the analysed list
         const govRes = L.governCombo ? a.ulsResults.find(r => r.combo.label === L.governCombo) : null;
         const gov = govRes ? govRes.combo : null;
         if (gov && govRes) {
-          const ind = stdInputsIndependent(cs.overrides, gov.factors, govRes.fb, s.seg.xa, s.seg.xb, gov.mask || null);
+          const ind = stdInputsIndependent(cs.overrides, gov.factors, govRes.fb, s.seg.xa, s.seg.xb);
           const exp = mcrClosedFormIndependent(sec, E, ind.LE, ind.C1, ind.C2, ind.zg, ind.zgApplied);
           add('iii-McrStd', rel(exp, s.Mcr) <= TOL, `SN003a (comparison, independent ${ind.route}, segment ${fmt(s.seg.xa / 1000, 2)}-${fmt(s.seg.xb / 1000, 2)} m, ${gov.label}): C1 ${fmt(ind.C1, 3)}, C2 ${ind.C2 == null ? '-' : fmt(ind.C2, 3)}, zg ${fmt(ind.zg, 0)} mm${ind.zgApplied ? ' applied' : ''}, LE ${fmt(ind.LE / 1000, 2)} m -> ${fmt(exp, 2)} vs engine ${fmt(s.Mcr, 2)} kN.m`);
         } else {
@@ -371,16 +358,16 @@ function runOne(cs, method) {
   }
 
   // (vii) uplift: a negative reaction of the governing-moment combination must be reported by the
-  //       engine for that support, and every reported lifting support must carry a hold-down message
+  //       engine for that end, and every reported lifting end must carry a hold-down message
   {
-    const negGov = a.reactions.map((r, i) => ({ i: i + 1, V: r.V })).filter(r => r.V < -1);
+    const negGov = a.reactions.map(r => ({ i: r.end, V: r.V, type: r.type })).filter(r => r.type !== 'guided' && r.V < -1);
     const reported = new Set((a.uplift ? a.uplift.supports : []).map(u => u.n));
     const okA = negGov.every(r => reported.has(r.i));
     const msgs = (c.unsupported || []).concat(c.advisory || []).filter(m => /^Hold-down/.test(m));
-    // a support lifting in the governing (ULS) combination must be BLOCKING unless its hold-down box is ticked
-    const okC = negGov.every(r => { const sp = cs.overrides.supports[r.i - 1]; return sp && sp.holdDown ? true : (c.unsupported || []).some(m => new RegExp('^Hold-down required: .*at support ' + r.i + ' ').test(m)); });
-    const okB = (a.uplift && a.uplift.supports.length) ? a.uplift.supports.every(u => msgs.some(m => new RegExp('at support ' + u.n + ' ').test(m))) : msgs.length === 0;
-    add('vii-uplift', okA && okB && okC, negGov.length ? `governing combination lifts support(s) ${negGov.map(r => r.i + ' (' + fmt(r.V / 1000, 2) + ' kN)').join(', ')}; engine reports ${[...reported].join(', ') || 'none'}` : `no uplift in the governing combination; engine reports ${[...reported].join(', ') || 'none'} (${msgs.length} hold-down message(s))`);
+    // an end lifting in the governing (ULS) combination must be BLOCKING unless its hold-down box is ticked
+    const okC = negGov.every(r => endOf(cs.overrides, r.i).holdDown ? true : (c.unsupported || []).some(m => new RegExp('^Hold-down required: .*at End ' + r.i + ' ').test(m)));
+    const okB = (a.uplift && a.uplift.supports.length) ? a.uplift.supports.every(u => msgs.some(m => new RegExp('at End ' + u.n + ' ').test(m))) : msgs.length === 0;
+    add('vii-uplift', okA && okB && okC, negGov.length ? `governing combination lifts End ${negGov.map(r => r.i + ' (' + fmt(r.V / 1000, 2) + ' kN)').join(', ')}; engine reports ${[...reported].join(', ') || 'none'}` : `no uplift in the governing combination; engine reports ${[...reported].join(', ') || 'none'} (${msgs.length} hold-down message(s))`);
   }
 
   // (viii) web transverse forces (EN 1993-1-5 clause 6, G2): F_Rd at the governing station recomputed
@@ -397,9 +384,9 @@ function runOne(cs, method) {
     const eps = Math.sqrt(235 / py), hw = isBox ? sec.d : sec.D - 2 * sec.tf, tw = sec.tw, tf = sec.tf, Lmm = a.L;
     const bfRaw = isBox ? sec.B / 2 : sec.B, bfLim = (isBox || chan) ? tw + 15 * eps * tf : tw + 30 * eps * tf;
     const bf = Math.min(bfRaw, bfLim), m1 = bf / tw, m2f = 0.02 * Math.pow(hw / tf, 2);
-    const noStiff = !(o.supports || []).some(sp => sp.stiff) && !(o.loads || []).some(ld => ld.stiff);
+    const noStiff = !endSupports(o).some(sp => sp.stiff) && !(o.loads || []).some(ld => ld.stiff);
     const d = Math.min(s.x, Lmm - s.x);
-    const ssSup = s.n ? ((o.supports[s.n - 1] || {}).ss != null ? +o.supports[s.n - 1].ss : 0) : null;   // blank = lower bound 0 (19 Sep 2026 review)
+    const ssSup = s.n ? (endOf(o, s.n).ss != null ? +endOf(o, s.n).ss : 0) : null;   // blank = lower bound 0 (19 Sep 2026 review)
     const ssLoad = (s.loadIdx && s.loadIdx.length) ? Math.min(...s.loadIdx.map(i => (o.loads[i - 1] || {}).ss != null ? +o.loads[i - 1].ss : 0)) : null;
     const ssIn = s.kind === 'support' ? ssSup : s.kind === 'load' ? ssLoad : s.kind === 'both' ? Math.min(ssSup, ssLoad) : null;
     if (ssIn != null && noStiff) {
@@ -459,14 +446,13 @@ function runOne(cs, method) {
     const tp = sec.tp, G = 81000, Ag = sec.A * 100;
     const IT = (tp && tp.IT ? tp.IT : sec.J) * 1e4, Iw = ((tp && tp.Iw != null ? tp.Iw : sec.Iw) || 0) * 1e12, y0 = tp.esc;
     const iy = sec.rx * 10, iz = sec.ry * 10, i0sq = iy * iy + iz * iz + y0 * y0;
-    // L_T (19 Sep 2026 review): the case's L_T, else the largest spacing of the TWIST restraints (supports and
-    // restraints with phi !== false; free overhangs beyond the outermost counted double) capped at L_cr,y - never the
-    // lateral-only spacing L_cr,z
+    // L_T (19 Sep 2026 review): the case's L_T, else the largest spacing of the TWIST restraints (ends with R_x held
+    // and restraints with phi !== false) capped at L_cr,y - never the lateral-only spacing L_cr,z
     const LcrY = c.buck.LcrY;
-    const twistPts = [...new Set((o.supports || []).map(sp => +sp.pos * 1000).concat((o.ltbRestraints || []).filter(r => r.phi !== false).map(r => +r.pos * 1000)).map(x => +x.toFixed(3)))].sort((p, q) => p - q);
+    const twistEndPts = [[1, 0], [2, o.L]].filter(([n]) => endOf(o, n).rx).map(([, x]) => x * 1000);
+    const twistPts = [...new Set(twistEndPts.concat((o.ltbRestraints || []).filter(r => r.phi !== false).map(r => +r.pos * 1000)).map(x => +x.toFixed(3)))].sort((p, q) => p - q);
     let LTsp = 0; for (let i = 1; i < twistPts.length; i++) LTsp = Math.max(LTsp, twistPts[i] - twistPts[i - 1]);
-    LTsp = Math.max(LTsp, 2 * twistPts[0], 2 * (a.L - twistPts[twistPts.length - 1]));
-    const LT = (cs.overrides.LT > 0) ? cs.overrides.LT * 1000 : ((o.ltbRestraints || []).some(r => r.phi !== false) && (o.supports || []).length >= 2 && LTsp > 0) ? Math.min(LTsp, LcrY) : LcrY;
+    const LT = (cs.overrides.LT > 0) ? cs.overrides.LT * 1000 : ((o.ltbRestraints || []).some(r => r.phi !== false) && twistEndPts.length >= 2 && LTsp > 0) ? Math.min(LTsp, LcrY) : LcrY;
     const NcrT = (G * IT + Math.PI ** 2 * E * Iw / (LT * LT)) / i0sq, NcrY = Math.PI ** 2 * E * sec.Ix * 1e4 / (LcrY * LcrY);
     const beta = 1 - y0 * y0 / i0sq;
     const NcrTF = (NcrY + NcrT) / (2 * beta) * (1 - Math.sqrt(1 - 4 * beta * NcrY * NcrT / (NcrY + NcrT) ** 2));
@@ -509,68 +495,6 @@ function runOne(cs, method) {
         `x = ${fmt(m.x / 1000, 2)} m (${form}): V ${fmt(m.V, 1)} kN, rho ${fmt(rho, 4)}, N_V,Rd ${fmt(NV, 1)}, M_v,y,Rd ${fmt(MvY, 1)}, M_N,V,y,Rd ${fmt(MNVy, 1)} kN.m: utilisation ${fmt(u, 4)} vs engine ${fmt(m.u, 4)}`);
     }
   }
-  // (xiv) G1 item 1.3: pattern loading on a pinned continuous beam (supports at both ends, no hinges) whose loads are
-  //       all UDLs aligned with span boundaries: the interior support moments and the reactions of EVERY analysed ULS
-  //       combination (patterns included) recomputed from the three-moment equation (Clapeyron) with each
-  //       combination's own span loads (Q clipped to the pattern's spans independently of the engine), self-weight
-  //       on every span at the G factor; tolerance 0.5 % on M (1 kN.m floor) and on R
-  {
-    const sup = o.supports, Lm = o.L;
-    const pts = sup.map(s => s.pos).sort((p, q) => p - q);
-    const pinned = sup.every(s => s.type === 'pinned') && pts.length >= 3 && pts[0] === 0 && Math.abs(pts[pts.length - 1] - Lm) < 1e-9 && !(o.hinges || []).length;
-    const onBoundary = x => pts.some(p => Math.abs(p - x) < 1e-9);
-    const aligned = pinned && o.loads.every(ld => ld.type === 'udl' && onBoundary(ld.x1) && onBoundary(ld.x2));
-    if (aligned) {
-      const n = pts.length - 1, Ls = [];
-      for (let i = 0; i < n; i++) Ls.push(pts[i + 1] - pts[i]);
-      const solveThreeMoment = w => {   // w[i] kN/m per span -> interior moments M[1..n-1] (kN.m, hogging negative), M[0] = M[n] = 0
-        const M = new Array(n + 1).fill(0);
-        if (n < 2) return M;
-        // tridiagonal system rows j = 1..n-1: M[j-1] L_j + 2 M[j] (L_j + L_{j+1}) + M[j+1] L_{j+1} = -(w_j L_j^3 + w_{j+1} L_{j+1}^3)/4
-        const sub = [], dia = [], sup2 = [], rhs = [];
-        for (let j = 1; j < n; j++) { sub.push(Ls[j - 1]); dia.push(2 * (Ls[j - 1] + Ls[j])); sup2.push(Ls[j]); rhs.push(-(w[j - 1] * Ls[j - 1] ** 3 + w[j] * Ls[j] ** 3) / 4); }
-        const k = rhs.length, cp = new Array(k), dp = new Array(k);
-        cp[0] = sup2[0] / dia[0]; dp[0] = rhs[0] / dia[0];
-        for (let i = 1; i < k; i++) { const den = dia[i] - sub[i] * cp[i - 1]; cp[i] = sup2[i] / den; dp[i] = (rhs[i] - sub[i] * dp[i - 1]) / den; }
-        const x = new Array(k); x[k - 1] = dp[k - 1];
-        for (let i = k - 2; i >= 0; i--) x[i] = dp[i] - cp[i] * x[i + 1];
-        for (let j = 1; j < n; j++) M[j] = x[j - 1];
-        return M;
-      };
-      let worst = 0, detail = [], nComb = 0;
-      a.ulsResults.forEach(res => {
-        const cb = res.combo, fac = cb.factors, mask = cb.mask || null;
-        const w = new Array(n).fill(sw * (fac.G || 0));
-        o.loads.forEach(ld => {
-          const f = fac[ld.case] || 0; if (!f) return;
-          for (let i = 0; i < n; i++) {
-            const mid = (pts[i] + pts[i + 1]) / 2;
-            if (mid < ld.x1 || mid > ld.x2) continue;
-            if (mask && ld.case === mask.case && !mask.segIdx.includes(i)) continue;
-            w[i] += ld.w * f;
-          }
-        });
-        const M = solveThreeMoment(w);
-        // reactions from the span end shears: with sagging positive, M(x) = M_i + V_l x - w x^2/2 and M(L_i) = M_{i+1}
-        // give V_l = w_i L_i/2 + (M_{i+1} - M_i)/L_i at the left end of span i, V_r = w_i L_i - V_l at its right end
-        const R = new Array(n + 1).fill(0);
-        for (let i = 0; i < n; i++) {
-          const Vl = w[i] * Ls[i] / 2 + (M[i + 1] - M[i]) / Ls[i];
-          const Vr = w[i] * Ls[i] - Vl;
-          R[i] += Vl; R[i + 1] += Vr;
-        }
-        const Mref = Math.max(1, ...M.map(Math.abs));
-        for (let j = 1; j < n; j++) {
-          const Me = interp(res.fb.xs, res.fb.M, pts[j] * 1000) / 1e6;
-          const e = Math.abs(Me - M[j]) / Mref; worst = Math.max(worst, e);
-          if (j === 1 || e > TOL) detail.push(`${cb.label.replace(/ULS: [^(]*/, '').trim() || 'base'}: M${j} ${fmt(M[j], 2)} vs ${fmt(Me, 2)}`);
-        }
-        R.forEach((Rj, j) => { const Re = res.r.reactions[j].V / 1000; const e = Math.abs(Re - Rj) / Math.max(Math.abs(Rj), 1); worst = Math.max(worst, e); if (e > TOL) detail.push(`${cb.label}: R${j + 1} ${fmt(Rj, 2)} vs ${fmt(Re, 2)}`); });
-        nComb++;
-      });
-      add('xiv-pattern', worst <= TOL, `${n} spans, ${nComb} ULS combination(s): three-moment support moments and reactions vs engine, worst rel. diff ${(worst * 100).toExponential(2)} % (${detail.slice(0, 4).join('; ')})`);
-    }
-  }
   // (xiii) G4 item 11: warping-torsion FE against the classical closed forms of the Vlasov equation, from the raw P385 constants
   //   cantilever with a single tip point torque and no other torque: phi_tip = (T/GI_T)[L - a tanh(L/a)], root T_t = 0, tip total torque = T
   //   fork-fork, both ends warping fixed, full-span uniform torque only: phi_mid = (t/GI_T)[L^2/8 - (La/2) tanh(L/4a)], T_t = 0 at both ends
@@ -578,13 +502,13 @@ function runOne(cs, method) {
     const tp = sec.tp, G = 81000, Lmm = o.L * 1000;
     const IT = (tp && tp.IT ? tp.IT : sec.J) * 1e4, Iw = ((tp && tp.Iw != null ? tp.Iw : sec.Iw) || 0) * 1e12;
     const GIt = G * IT, aa = Math.sqrt(E * Iw / GIt);
-    const sup = o.supports, loads = o.loads.filter(l => l.type !== 'moment' && Math.abs(+l.e || 0) > 0);
-    const isCant = sup.length === 1 && sup[0].type === 'fixed';
+    const sup = endSupports(o), loads = o.loads.filter(l => l.type !== 'moment' && Math.abs(+l.e || 0) > 0);
+    const isCant = isCantCase(o) && !!endOf(o, 1).warp;   // the closed forms below take a warping-fixed root
     const tipOnly = isCant && loads.length && loads.every(l => l.type === 'point' && Math.abs(l.pos - o.L) < 1e-9) && o.loads.every(l => l.type !== 'udl' && l.type !== 'trap' || Math.abs(+l.e || 0) === 0);
     // cantilever with full-span uniform torque only (root warping fixed, tip free): phi_tip = (m/GI_T)[L^2/2 + a^2(1 - sech(L/a)) - a L tanh(L/a)]
     // (solution of E I_w phi'''' - G I_T phi'' = m with phi(0) = phi'(0) = 0, B(L) = 0, T(L) = 0; hand-derived, tests/batch/hand-checks.md)
     const udlOnly = isCant && loads.length && loads.every(l => l.type === 'udl' && l.x1 === 0 && Math.abs(l.x2 - o.L) < 1e-9) && o.loads.every(l => l.type === 'udl' || Math.abs(+l.e || 0) === 0);
-    const bothFix = sup.length === 2 && sup.every(s => s.warpFix) && sup[0].pos === 0 && sup[1].pos === o.L && loads.length && loads.every(l => l.type === 'udl' && l.x1 === 0 && l.x2 === o.L) && o.loads.every(l => l.type === 'udl' || Math.abs(+l.e || 0) === 0);
+    const bothFix = sup.length === 2 && sup.every(s => s.warpFix && s.rx) && loads.length && loads.every(l => l.type === 'udl' && l.x1 === 0 && l.x2 === o.L) && o.loads.every(l => l.type === 'udl' || Math.abs(+l.e || 0) === 0);
     if (tipOnly || udlOnly || bothFix) {
       const fac = gM;   // governing-moment combination = the only ULS combination of these single-segment layouts
       let T = 0, t = 0;

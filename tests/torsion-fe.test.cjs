@@ -13,6 +13,7 @@ const assert = require('node:assert/strict');
 const { app } = require('./harness.cjs');
 const c = app();
 const run = x => c.run(x);
+const E = (p, o) => c.ends(p, o);   // ends preset of the single-span model
 function near(actual, expected, rel = 1e-6, what = '') { assert.ok(Math.abs(actual - expected) <= rel * Math.max(1e-300, Math.abs(expected)), `${what} ${actual} != ${expected} (rel ${Math.abs(actual - expected) / Math.abs(expected)})`); }
 const MX = 'const mx=a=>Math.max(...a.map(Math.abs));';
 const UB = `${MX} S.family='ub'; S.ubKey='457 x 191 x 82'; const sec=activeSection(); const IT=sec.tp.IT*1e4, Iw=sec.tp.Iw*1e12, GIt=81000*IT, EIw=210000*Iw, aa=Math.sqrt(EIw/GIt);`;
@@ -82,9 +83,9 @@ test('[validation 1b] fork-fork point torque at 0.3L (Case 3) and rising linear 
 test('[validation 2, hand-derived] cantilever tip torque: phi(L) = (T/GI_T)[L - a tanh(L/a)], root bimoment B(0) = T a tanh(L/a), free tip T = B = 0', () => {
   const r = run(`(()=>{ ${UB}
     const L=4000, T=10e6;
-    const fe=warpingTorsionFE({L,EIw,GIt,supports:[{pos:0,type:'fixed'}],torques:[{type:'point',pos:L,P:T}]});
+    const fe=warpingTorsionFE({L,EIw,GIt,supports:[{pos:0,warpFix:true}],torques:[{type:'point',pos:L,P:T}]});   // twist + warping held at the root (the cantilever preset's R_x + warping flags)
     const n=fe.xs.length;
-    return {aa,GIt,EIw, phiL:fe.phi[n-1], p1root:fe.p1[0], phi0:fe.phi[0], Broot:fe.reactions[0].B, B0:fe.B[0], Ttip:fe.T[n-1], Btip:fe.B[n-1], Troot:fe.reactions[0].T, bc:fe.bc, mesh:fe.meshError, bcText:torsionFeBcText([{pos:0,type:'fixed'}],L)}; })()`);
+    return {aa,GIt,EIw, phiL:fe.phi[n-1], p1root:fe.p1[0], phi0:fe.phi[0], Broot:fe.reactions[0].B, B0:fe.B[0], Ttip:fe.T[n-1], Btip:fe.B[n-1], Troot:fe.reactions[0].T, bc:fe.bc, mesh:fe.meshError, bcText:torsionFeBcText([{pos:0,warpFix:true}],L)}; })()`);
   // [hand-derived] T/GI_T = 1e7/5.6052e10 = 1.7841e-4 rad/mm; a tanh(L/a) = 1858.57 x tanh(2.1522) = 1858.57 x 0.97331 = 1808.96 mm;
   // phi(L) = 1.7841e-4 x (4000 - 1808.96) = 0.39090 rad
   const cf = (10e6 / r.GIt) * (4000 - r.aa * Math.tanh(4000 / r.aa));
@@ -94,8 +95,8 @@ test('[validation 2, hand-derived] cantilever tip torque: phi(L) = (T/GI_T)[L - 
   near(Math.abs(r.Broot), 10e6 * r.aa * Math.tanh(4000 / r.aa), 1e-6, 'root bimoment'); near(Math.abs(r.B0), 1.80896e10, 1e-4);
   // free tip: the tip torque is the internal torque just inside the tip (T = P), B = 0; root reaction = -T
   near(r.Ttip, 10e6, 1e-6); assert.ok(Math.abs(r.Btip) < 1, 'B = 0 at the free tip'); near(r.Troot, -10e6, 1e-6);
-  assert.equal(JSON.stringify(r.bc), JSON.stringify([{ pos: 0, warpFix: true, root: true }]));
-  assert.ok(/cantilever: root at x = 0 m with &phi; = 0 and &phi;&prime; = 0 \(warping fixed\), free tip/.test(r.bcText), r.bcText);
+  assert.equal(JSON.stringify(r.bc), JSON.stringify([{ pos: 0, warpFix: true }]));
+  assert.ok(/torsion cantilever: twist restrained at x = 0 m \(&phi; = 0, &phi;&prime; = 0: warping fixed\); free end at x = 4 m/.test(r.bcText), r.bcText);
   assert.ok(r.mesh < 1e-6);
 });
 
@@ -143,7 +144,7 @@ test('[validation 4] mesh convergence: the error against the Case 3 closed form 
 });
 
 test('[hand-derived] partial-span eccentric UDL on a UB (matrix probe 457x191x82, 8 m, 2-6 m, e = 100 mm) is evaluated by the FE, cross-checked against the superposition of 400 P385 Case 3 point torques, and no longer blocked', () => {
-  c.reset({ restraint: 'ltb', eccOn: true, L: 8, supports: [{ pos: 0, type: 'pinned' }, { pos: 8, type: 'pinned' }], loads: [{ type: 'udl', x1: 2, x2: 6, w: 10, case: 'Q', e: 100 }] });
+  c.reset({ restraint: 'ltb', eccOn: true, L: 8, ends:E('ss'), loads: [{ type: 'udl', x1: 2, x2: 6, w: 10, case: 'Q', e: 100 }] });
   const { a, c: ch } = full();
   assert.ok(a.torsO && a.torsO.ok && a.torsO.method === 'fe', JSON.stringify(a.torsO));
   assert.ok(!ch.unsupported.some(m => /partial-span|multi-span|not covered/i.test(m)), ch.unsupported.join(' | '));
@@ -171,10 +172,10 @@ test('[hand-derived] partial-span eccentric UDL on a UB (matrix probe 457x191x82
 
 test('cantilever with an eccentric tip load: FE with the root warping fixed, free tip T_t = 0, total root torque = P e, evaluated on both Mcr routes', () => {
   for (const m of ['eigen', 'standard']) {
-    c.reset({ mcrMethod: m, restraint: 'ltb', eccOn: true, L: 4, supports: [{ pos: 0, type: 'fixed' }], loads: [{ type: 'point', pos: 4, P: 20, case: 'Q', e: 80 }] });
+    c.reset({ mcrMethod: m, restraint: 'ltb', eccOn: true, L: 4, ends:E('cantilever'), loads: [{ type: 'point', pos: 4, P: 20, case: 'Q', e: 80 }] });
     const { a, c: ch } = full();
-    assert.equal(a.torsO.method, 'fe'); assert.equal(JSON.stringify(a.torsO.feReasons), JSON.stringify(['cantilever']));
-    assert.ok(/cantilever: root at x = 0 m with &phi; = 0 and &phi;&prime; = 0/.test(a.torsO.bcText));
+    assert.equal(a.torsO.method, 'fe'); assert.equal(JSON.stringify(a.torsO.feReasons), JSON.stringify(['twist restrained at End 1 only (torsion cantilever)', 'warping-fixed end']));
+    assert.ok(/torsion cantilever: twist restrained at x = 0 m \(&phi; = 0, &phi;&prime; = 0: warping fixed\); free end at x = 4 m/.test(a.torsO.bcText), a.torsO.bcText);
     assert.ok(!ch.unsupported.some(m2 => /cantilever|multi-span|not covered/i.test(m2)), m + ': ' + ch.unsupported.join(' | '));
     assert.ok(util(ch, /Annex A/) != null && util(ch, /P385 3\.1\.2/) != null, m + ': torsion checks present');
     // ULS torque 1.5 x 20 kN x 80 mm = 2.4 kN.m: total torque at the root (the tip torque itself); St Venant part at the root = 0 (phi' = 0) and at the
@@ -187,19 +188,24 @@ test('cantilever with an eccentric tip load: FE with the root warping fixed, fre
   }
 });
 
-test('two-span PFC with a full-length eccentric UDL: FE per generated pattern combination, Annex A runs on both routes (no channel torsion gap), hold-down aside', () => {
+test('PFC with a full-length eccentric UDL and twist restrained at End 1 only (torsion cantilever on a simply supported span): FE per combination, Annex A runs on both routes (no channel torsion gap)', () => {
   for (const m of ['eigen', 'standard']) {
-    c.reset({ mcrMethod: m, family: 'pfc', sectionKey: '180x75x20', restraint: 'ltb', eccOn: true, L: 8, supports: [{ pos: 0, type: 'pinned', holdDown: true }, { pos: 4, type: 'pinned' }, { pos: 8, type: 'pinned', holdDown: true }], loads: [{ type: 'udl', x1: 0, x2: 8, w: 4, case: 'Q', e: 20 }] });
+    c.reset({ mcrMethod: m, family: 'pfc', sectionKey: '180x75x20', restraint: 'ltb', eccOn: true, L: 4, ends: E('ss', { e1: { rz: true }, e2: { rx: false } }), loads: [{ type: 'udl', x1: 0, x2: 4, w: 4, case: 'Q', e: 20 }] });
     const { a, c: ch } = full();
-    assert.equal(a.torsO.method, 'fe'); assert.equal(JSON.stringify(a.torsO.feReasons), JSON.stringify(['3 supports (multi-span / overhang layout)'])); assert.equal(a.torsO.nSols, 3);
-    assert.ok(!ch.unsupported.some(m2 => /multi-span|Channel with eccentric load|not covered/i.test(m2)), m + ': ' + ch.unsupported.join(' | '));
+    assert.equal(a.torsO.method, 'fe'); assert.equal(JSON.stringify(a.torsO.feReasons), JSON.stringify(['twist restrained at End 1 only (torsion cantilever)'])); assert.equal(a.torsO.nSols, 1);
+    assert.ok(/torsion cantilever: twist restrained at x = 0 m \(fork, &phi; = 0, warping free\); free end at x = 4 m/.test(a.torsO.bcText), a.torsO.bcText);
+    assert.ok(!ch.unsupported.some(m2 => /Channel with eccentric load|not covered/i.test(m2)), m + ': ' + ch.unsupported.join(' | '));
     assert.ok(ch.annex && Number.isFinite(ch.annex.u), m + ': Annex A evaluated');
     assert.ok(a.torsO.converged && a.torsO.meshError < 1e-3);
   }
+  // the pure FE with no twist restraint at all throws; through analyse() the validation names the torsional mechanism
+  assert.throws(() => run(`(()=>{ ${UB} return warpingTorsionFE({L:4000,EIw,GIt,supports:[],torques:[{type:'point',pos:4000,P:1e6}]}); })()`), /no support prevents twist/);
+  c.reset({ restraint: 'ltb', eccOn: true, L: 4, ends: E('ss', { e1: { rx: false }, e2: { rx: false } }), loads: [{ type: 'point', pos: 2, P: 10, case: 'Q', e: 50 }] });
+  assert.throws(() => run('analyse()'), /torque but neither end restrains twist R<sub>x<\/sub>: torsional mechanism/);
 });
 
 test('closed forms stay the default where they apply (fork-fork full-span UDL + point torque on a PFC): method "closed", and the FE with the same torque list agrees within 0.5 % on the cross-section utilisation', () => {
-  c.reset({ family: 'pfc', sectionKey: '180x75x20', restraint: 'ltb', eccOn: true, L: 4, supports: [{ pos: 0, type: 'pinned' }, { pos: 4, type: 'pinned' }], loads: [{ type: 'udl', x1: 0, x2: 4, w: 5, case: 'Q', e: 20 }, { type: 'point', pos: 1.5, P: 6, case: 'Q', e: 20 }] });
+  c.reset({ family: 'pfc', sectionKey: '180x75x20', restraint: 'ltb', eccOn: true, L: 4, ends:E('ss'), loads: [{ type: 'udl', x1: 0, x2: 4, w: 5, case: 'Q', e: 20 }, { type: 'point', pos: 1.5, P: 6, case: 'Q', e: 20 }] });
   const { a, c: ch } = full();
   assert.equal(a.torsO.method, 'closed'); assert.equal(JSON.stringify(a.torsO.feReasons), '[]'); assert.equal(a.torsO.methodLabel, 'SCI P385 App C closed forms (Cases 3/4/10)');
   assert.ok(ch.tor && !ch.tor.fe && ch.tor.meshError === null && ch.tor.meshConverged);
@@ -215,16 +221,16 @@ test('closed forms stay the default where they apply (fork-fork full-span UDL + 
   cmp.forEach((p, i) => near(p[1], p[0], 5e-3, 'closed vs FE ' + i));
 });
 
-test('per-support "warping restrained for torsion" option: both ends fixed on a fork-fork UB routes to the FE, lowers phi_max and M_w changes, prints the BCs; the option is exposed on the EC3 path with torsion active on open sections', () => {
-  const lay = { restraint: 'ltb', eccOn: true, L: 8, supports: [{ pos: 0, type: 'pinned' }, { pos: 8, type: 'pinned' }], loads: [{ type: 'udl', x1: 0, x2: 8, w: 10, case: 'Q', e: 100 }] };
+test('per-end warping flag: both ends warping-fixed on a fork-fork UB routes to the FE, lowers phi_max and M_w changes, prints the BCs; the option is exposed on the EC3 path with torsion active on open sections', () => {
+  const lay = { restraint: 'ltb', eccOn: true, L: 8, ends:E('ss'), loads: [{ type: 'udl', x1: 0, x2: 8, w: 10, case: 'Q', e: 100 }] };
   c.reset(lay); const free = full();
   assert.equal(free.a.torsO.method, 'closed');
-  c.reset(Object.assign({}, lay, { supports: [{ pos: 0, type: 'pinned', warpFix: true }, { pos: 8, type: 'pinned', warpFix: true }] })); const fix = full();
-  assert.equal(fix.a.torsO.method, 'fe'); assert.equal(JSON.stringify(fix.a.torsO.feReasons), JSON.stringify(['warping-fixed support']));
+  c.reset(Object.assign({}, lay, { ends:E('ss',{e1:{warp:true}, e2:{warp:true}}) })); const fix = full();
+  assert.equal(fix.a.torsO.method, 'fe'); assert.equal(JSON.stringify(fix.a.torsO.feReasons), JSON.stringify(['warping-fixed end']));
   assert.ok(fix.c.tor.phiUmax < 0.5 * free.c.tor.phiUmax, 'twist reduced: ' + [free.c.tor.phiUmax, fix.c.tor.phiUmax]);
   assert.ok(Math.abs(fix.c.tor.TtEnds[0]) < 1e-9 && Math.abs(fix.c.tor.TtEnds[1]) < 1e-9, 'St Venant torque zero at warping-fixed ends (all torque carried by warping there)');
   near(Math.abs(fix.c.tor.TEnds[0]), Math.abs(free.c.tor.TEnds[0]), 1e-6, 'total end torque unchanged (symmetric layout: half the applied torque each end)');
-  const h = brief(); const ta = row(h, /^Torsion analysis$/); assert.ok(ta && /x = 0 m \(&phi; = 0, &phi;&prime; = 0: warping fixed\)/.test(ta.vals) && /warping-fixed support/.test(ta.vals), JSON.stringify(ta));
+  const h = brief(); const ta = row(h, /^Torsion analysis$/); assert.ok(ta && /x = 0 m \(&phi; = 0, &phi;&prime; = 0: warping fixed\)/.test(ta.vals) && /warping-fixed end/.test(ta.vals), JSON.stringify(ta));
   assert.equal(run('torsionWarpInputsOn()'), true);
   c.reset(Object.assign({}, lay, { eccOn: false })); assert.equal(run('torsionWarpInputsOn()'), false);
   c.reset(Object.assign({}, lay, { family: 'rhs' })); assert.equal(run('torsionWarpInputsOn()'), false);
@@ -232,7 +238,7 @@ test('per-support "warping restrained for torsion" option: both ends fixed on a 
 });
 
 test('mesh-convergence guard: an unconverged FE solution blocks PASS with the printed error, the brief prints BLOCKED on the method row and the NOT VERIFIED row in the Torsion Design block', () => {
-  c.reset({ restraint: 'ltb', eccOn: true, L: 8, supports: [{ pos: 0, type: 'pinned' }, { pos: 8, type: 'pinned' }], loads: [{ type: 'udl', x1: 2, x2: 6, w: 10, case: 'Q', e: 100 }] });
+  c.reset({ restraint: 'ltb', eccOn: true, L: 8, ends:E('ss'), loads: [{ type: 'udl', x1: 2, x2: 6, w: 10, case: 'Q', e: 100 }] });
   const r = run(`(()=>{ const a=analyse(); a.torsO.converged=false; a.torsO.meshError=0.012; const ch=checks(a); const h=renderMasterSeriesBrief(a,ch,a.sec); return {pass:ch.pass, uns:ch.unsupported, conv:ch.tor.meshConverged, html:h}; })()`);
   assert.equal(r.pass, false); assert.equal(r.conv, false);
   const msg = r.uns.find(m => /Warping-torsion FE mesh has not converged/.test(m)); assert.ok(msg && /120 to 240 elements/.test(msg) && /1\.20 %/.test(msg) && /limit 0\.5 %/.test(msg), r.uns.join(' | '));
@@ -248,11 +254,11 @@ test('mesh-convergence guard: an unconverged FE solution blocks PASS with the pr
 // crept with the mesh instead of converging (blocking PASS at 4.4 % on the
 // default mesh). The one-sided element values are now kept at such a node.
 test('[hand-derived] interior warping-fixed support: B jumps by the reaction bimoment; single fixed support at mid-member with opposite tip torques gives B(root-) = +T a tanh(l/a), B(root+) = -T a tanh(l/a), max|B| at the root, mesh error <= 0.5 %', () => {
-  // 8 m member, single (root) support at x = 4 m -> warping fixed automatically; tip torques +T at x = 0 and -T at x = 8 m:
+  // 8 m member, single twist restraint at x = 4 m with warping fixed (pure FE: the app itself models end restraints only); tip torques +T at x = 0 and -T at x = 8 m:
   // each half is the validation-2 cantilever, B(root) = T a tanh(l/a) with opposite signs on the two sides -> the average is 0
   const r = run(`(()=>{ ${UB}
     const L=8000, T=10e6;
-    const fe=warpingTorsionFE({L,EIw,GIt,supports:[{pos:4000,type:'fixed'}],torques:[{type:'point',pos:0,P:T},{type:'point',pos:L,P:-T}]});
+    const fe=warpingTorsionFE({L,EIw,GIt,supports:[{pos:4000,warpFix:true}],torques:[{type:'point',pos:0,P:T},{type:'point',pos:L,P:-T}]});
     const i=fe.xs.findIndex(x=>Math.abs(x-4000)<1e-9);
     let bm=0,bp=0; fe.B.forEach((b,k)=>{ if(Math.abs(b)>bm){bm=Math.abs(b);bp=fe.xs[k];} });
     return {aa,GIt, xs:fe.xs.slice(i-1,i+2), B:fe.B.slice(i-1,i+2), Bmax:bm, Bpos:bp, mesh:fe.meshError, parts:fe.meshErrorParts, Breac:fe.reactions[0].B, phiTip:[fe.phi[0],fe.phi[fe.phi.length-1]]}; })()`);
@@ -270,26 +276,3 @@ test('[hand-derived] interior warping-fixed support: B jumps by the reaction bim
   near(Math.abs(r.phiTip[0]), (10e6 / r.GIt) * (4000 - r.aa * Math.tanh(4000 / r.aa)), 1e-6); assert.ok(r.phiTip[0] * r.phiTip[1] < 0);
 });
 
-test('[hand-derived] overhang with the interior support warping-fixed (review layout): the back span stays untwisted, B(support+) = T a tanh(l/a) of the 4 m cantilever, reported at x = 6 m; mesh converged and PASS not blocked through analyse()/checks()', () => {
-  // 457x191x82, 10 m, supports at 0 (fork, hold-down) and 6 m (warping restrained), 20 kN Q at the tip with e = 100 mm:
-  // ULS torque T = 1.5 x 20 x 100 = 3000 kN.mm; the overhang is a cantilever rooted at x = 6 m (phi = phi' = 0), l = 4000 mm
-  const lay = { restraint: 'ltb', mcrMethod: 'eigen', eccOn: true, L: 10, supports: [{ pos: 0, type: 'pinned', holdDown: true, ss: 100 }, { pos: 6, type: 'pinned', warpFix: true, ss: 100 }],
-    loads: [{ type: 'point', pos: 10, P: 20, case: 'Q', e: 100 }] };
-  c.reset(lay);
-  const r = run(`(()=>{ ${MX} const a=analyse(); const ch=checks(a); const O=a.torsO; const g=O.sols[0].sol;
-    const i=g.xs.findIndex(x=>Math.abs(x-6000)<1e-9);
-    return {method:O.method, mesh:O.meshError, conv:O.converged, aa:O.aa, GIt:O.GIt, B:g.B.slice(i-1,i+2), xs:g.xs.slice(i-1,i+2), Bmax:mx(g.B), BMax:ch.tor.BMax, BMaxPos:ch.tor.BMaxPos,
-      phiBack:mx(g.phi.filter((v,k)=>g.xs[k]<=6000)), phiTip:g.phi[g.phi.length-1], pass:ch.pass, uns:ch.unsupported, label:O.sols[0].combo.label}; })()`);
-  assert.equal(r.method, 'fe'); assert.ok(r.conv && r.mesh <= 1e-3, 'mesh error ' + r.mesh);
-  assert.ok(!r.uns.some(m => /mesh has not converged/.test(m)), r.uns.join(' | '));
-  // [hand-derived] B = 3.0e6 N.mm x 1858.57 x tanh(2.1522) = 3.0e6 x 1808.96 = 5.4269e9 N.mm2 = 5.427 kN.m2; back span B = 0 (no torque, phi = 0 at both ends and phi' = 0 at x = 6 m)
-  const Bcf = 3.0e6 * r.aa * Math.tanh(4000 / r.aa);
-  near(Bcf, 5.4269e9, 1e-4);
-  assert.ok(Math.abs(r.B[0]) < 1e-3 * Bcf, 'B(support-) = 0 on the untwisted back span: ' + r.B[0]);
-  near(Math.abs(r.B[2]), Bcf, 1e-4, 'B(support+)'); near(Math.abs(r.B[1]), Bcf, 1e-4, 'B at the support = the cantilever side');
-  near(r.Bmax, Bcf, 1e-4, 'max|B|'); near(r.BMax, Bcf / 1e9, 1e-4, 'ch.tor.BMax kN.m2'); near(r.BMaxPos, 6000, 1e-9, 'B_Ed printed at the support (mm)');
-  assert.ok(r.phiBack < 1e-9, 'back span untwisted');
-  // tip twist (T/GI_T)[l - a tanh(l/a)] = 3.0e6/5.6052e10 x 2191.04 = 0.11727 rad
-  near(Math.abs(r.phiTip), (3.0e6 / r.GIt) * (4000 - r.aa * Math.tanh(4000 / r.aa)), 1e-6);
-  assert.ok(r.pass, r.uns.join(' | '));
-});

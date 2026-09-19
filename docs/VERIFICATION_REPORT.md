@@ -13,6 +13,8 @@ Contents:
 
 Status at the end of the branch: `node --test tests/*.test.cjs` 113 tests pass (9 files); `node tests/batch/run-batch.cjs` 170 cases / 296 runs, PASS 202 / FAIL 74 / NOT VERIFIED 20 / ERROR 0, 0 cross-check mismatches, 0 trigger mismatches (re-run for this report: identical counts, 47.4 s); `pwsh ./build-single-html.ps1` reproduces `dist/beam-design-single.html` and the parity test passes.
 
+> **Addendum, 19 Sep 2026 (scope change, engine half):** after this report was written the owner limited the tool to ONE span with six degrees of freedom per end (plus warping); intermediate supports, overhangs, multi-span logic and the automatic pattern loading were removed. AUDIT.md "19 Sep 2026 scope change" records the new state model (`S.ends`, presets, the `guided` support type, `endsStability()` validation, `lcrDefaults()` strut lengths from the end fixities) and the deliberate behaviour changes (cantilever root warping restrained by the preset; one warping flag per end for LTB and torsion; fixed-ended / propped struts at 0.7 L / 0.85 L by default). The figures below that concern multi-span, overhang, Gerber and pattern cases (sections 1, 2.1 item 1.3, 4.1–4.5, 5.3 F3) describe the pre-change branch; the single-span batch is 148 cases / 252 runs, PASS 181 / FAIL 51 / NOT VERIFIED 20 / ERROR 0, 0 cross-check mismatches, and the suite is 110 tests (tests/batch/README.md, top section). Section 6 still applies with those counts.
+
 ---
 
 ## 1. What changed on the branch

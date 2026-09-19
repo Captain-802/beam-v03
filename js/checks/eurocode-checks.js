@@ -45,11 +45,11 @@ function checksEC3(a){
   const Mx=Math.abs(a.Mmax);
   const localUtil=MNRd>0? Mx/MNRd : 0;
 
-  const isCant=(S.supports.length===1 && S.supports[0].type==='fixed');
+  const isCant=isCantilever(S);
   const c1r = S.C1o!=null? {C1:S.C1o, method:'user override'} : computeC1(a,isCant);
   const C1=c1r.C1;
 
-  const LE=S.leFactor*(S.destab?1.2:1)*a.L;
+  const LE=ltbLeFactor()*(S.destab?1.2:1)*a.L;
   let MbRd,ltbUtil,lamLT=null,chiLT=null,kc=null,fmod=null,curveInfo=null,Mcr=null,chiLTmod=null;
   if(sec.isBox){
     MbRd=McRd; ltbUtil=MbRd>0? Mx/MbRd:0;
@@ -157,10 +157,10 @@ function cmTableB3(a){
     return {Cm:Math.max(0.6+0.4*psi,0.4),label:'linear end-moment diagram, &psi; = '+psi.toFixed(2)};
   }
   // Table B.3's transverse-load diagrams do not describe arbitrary partial,
-  // multiple, reversing or multi-span loads. No beneficial Cm is inferred
-  // from a single midpoint for those layouts.
+  // multiple or reversing loads. No beneficial Cm is inferred from a single
+  // midpoint for those layouts.
   const active=pieces.filter(p=>Math.abs(p.factor)>1e-12);
-  const simpleSpan=S.supports.length===2&&Math.min(...S.supports.map(s=>+s.pos))===0&&Math.max(...S.supports.map(s=>+s.pos))===S.L&&!(S.hinges||[]).length;
+  const simpleSpan=endsList().every(e=>e.uz)&&!(S.hinges||[]).length;   // both ends held vertically (pinned or fixed), no hinge
   const canonical=active.every(p=>p.type==='udl'&&p.x1<=1e-9&&Math.abs(p.x2-a.L)<1e-6||(p.type==='point'&&Math.abs(p.pos-a.L/2)<1e-6));
   if(!simpleSpan||!canonical||(hasDist&&hasConc)) return {Cm:1,label:'C_m = 1: arbitrary or mixed moment diagram; no Table B.3 reduction assumed'};
   const Mh=Math.abs(M0)>=Math.abs(ML)? M0:ML;
@@ -197,20 +197,19 @@ function lcrZFromRestraints(a){
   // buckling length; between adjacent lateral restraints k = 1.0 and L is the
   // distance between restraint points. Applied only in the EC3 unrestrained
   // mode, where the intermediate-lateral-restraint list is visible and edited;
-  // only restraints that hold lateral displacement v count. Free overhangs
-  // beyond the outermost lateral point are treated as cantilever segments (k=2).
-  // Returns null (keep LE x L) when there are no intermediate v-restraints,
-  // for a cantilever, or if anything is degenerate - so the default behaviour
-  // is exactly the previous one.
+  // only restraints that hold lateral displacement v count; the bays run
+  // between the ends that hold U_y. Returns null (keep the end-fixity length)
+  // when there are no intermediate v-restraints, when only one end holds U_y
+  // (lateral cantilever), or if anything is degenerate.
   if(!(S.code==='EC3' && (S.restraint||'full')!=='full')) return null;
   const ir=(S.ltbRestraints||[]).filter(r=>r.v!==false).map(r=>(+r.pos)*1000).filter(x=>isFinite(x)&&x>=0&&x<=a.L);
   if(!ir.length) return null;
-  if(S.supports.length<2) return null;           // cantilever: keep LE x L
-  const pts=[...new Set(S.supports.map(s=>(+s.pos)*1000).concat(ir).map(x=>+x.toFixed(3)))].sort((p,q)=>p-q);
+  const endPts=endsList().filter(e=>e.uy).map(e=>e.x*1000);   // ends holding lateral translation U_y
+  if(endPts.length<2) return null;               // lateral cantilever: keep the end-fixity default
+  const pts=[...new Set(endPts.concat(ir).map(x=>+x.toFixed(3)))].sort((p,q)=>p-q);
   if(pts.length<2) return null;
   let gmax=0;
   for(let i=1;i<pts.length;i++) gmax=Math.max(gmax,pts[i]-pts[i-1]);
-  gmax=Math.max(gmax, 2*pts[0], 2*(a.L-pts[pts.length-1]));
   return gmax>1e-6? gmax : null;
 }
 /* Torsional buckling length from the TWIST restraints (19 Sep 2026 review
@@ -218,22 +217,21 @@ function lcrZFromRestraints(a){
    the torsional / warping restraint at the ends of the torsional segment. A
    restraint that holds lateral displacement v only (phi unticked) does not
    bound the torsional mode, so L_T is the largest spacing between points that
-   prevent twist: every support (fork / torsional restraint) and every
-   intermediate restraint with phi !== false; free overhangs beyond the
-   outermost twist restraint count double (cantilever segment), as in
-   lcrZFromRestraints(). Mirrors lcrZFromRestraints(): null (keep the
-   flexural default) when there are no intermediate twist restraints, for a
-   cantilever, or in the fully restrained mode. */
+   prevent twist: every end whose R_x is restrained and every intermediate
+   restraint with phi !== false. Mirrors lcrZFromRestraints(): null (keep the
+   flexural default) when there are no intermediate twist restraints, when
+   only one end holds twist (torsion cantilever: L_cr,y), or in the fully
+   restrained mode. */
 function lcrTFromTwistRestraints(a){
   if(!(S.code==='EC3' && (S.restraint||'full')!=='full')) return null;
   const ir=(S.ltbRestraints||[]).filter(r=>r.phi!==false).map(r=>(+r.pos)*1000).filter(x=>isFinite(x)&&x>=0&&x<=a.L);
   if(!ir.length) return null;
-  if(S.supports.length<2) return null;
-  const pts=[...new Set(S.supports.map(s=>(+s.pos)*1000).concat(ir).map(x=>+x.toFixed(3)))].sort((p,q)=>p-q);
+  const endPts=endsList().filter(e=>e.rx).map(e=>e.x*1000);
+  if(endPts.length<2) return null;
+  const pts=[...new Set(endPts.concat(ir).map(x=>+x.toFixed(3)))].sort((p,q)=>p-q);
   if(pts.length<2) return null;
   let gmax=0;
   for(let i=1;i<pts.length;i++) gmax=Math.max(gmax,pts[i]-pts[i-1]);
-  gmax=Math.max(gmax, 2*pts[0], 2*(a.L-pts[pts.length-1]));
   return gmax>1e-6? gmax : null;
 }
 /* ---- k_c floor (19 Sep 2026 gap closure, item 3.5) ----
@@ -312,7 +310,7 @@ function torsionalFlexuralBuckling(sec,fy,E,LcrY,LcrZ,Ag,gM1,LcrT){
   // caller), never the lateral-only spacing L_cr,z; LcrZ is kept for reporting
   const LTdef= (LcrT!=null && isFinite(LcrT) && LcrT>0)? LcrT : LcrY;
   const LT= LTin!=null? LTin : LTdef;
-  const LTSrc= LTin!=null? 'user L<sub>T</sub>' : (LcrT!=null && LcrT<LcrY-1e-6)? 'spacing of twist restraints (supports and restraints with &phi; held)' : 'L<sub>cr,y</sub> (no intermediate twist restraint)';
+  const LTSrc= LTin!=null? 'user L<sub>T</sub>' : (LcrT!=null && LcrT<LcrY-1e-6)? 'spacing of twist restraints (ends with R<sub>x</sub> held and restraints with &phi; held)' : 'L<sub>cr,y</sub> (no intermediate twist restraint)';
   const NcrT=(G*IT+Math.PI*Math.PI*E*Iw/(LT*LT))/i0sq;            // N
   const NcrY=Math.PI*Math.PI*E*sec.Ix*1e4/(LcrY*LcrY);           // N, flexural about the axis of symmetry (y-y, major)
   const beta=1-(y0*y0)/i0sq;
@@ -340,26 +338,27 @@ function annexB2(a,sec,fy,cl,MbRdI,useB1,isCant,aeff){
   const Aeff= aeffOn? aeff.Aeff : Ag;
   const aeffFac= aeffOn? Math.sqrt(Aeff/Ag) : 1;
   // Strut lengths per axis (destabilising x1.2 is an LTB concept, not applied).
-  // Major axis: LE factor x L (end conditions are the user's judgement, cf.
-  // P360 Table 6.2). Minor axis: reduced to the largest spacing between
-  // adjacent lateral restraint points where intermediate restraints are
-  // modelled (SCI P360 6.2 bracing-point assumption), never longer than LE x L.
-  // Cantilever strut (single fixed support, N_Ed > 0): the sway-mode buckling
-  // length is L_cr = 2.0 L about both axes (EN 1993-1-1 6.3.1.3(1) with the
-  // classical fixed-free effective length; SCI P360 Table 6.2 "fixed-free" =
-  // 2.0 L) unless the user has entered an L_E/L factor other than 1.0, which is
-  // kept as an explicit override.
+  // Both axes default from the END FIXITIES (lcrDefaults, js/03-state-ui.js:
+  // P360 Table 6.2 / BS 5950 Table 22 style - 0.7 L fixed-fixed, 0.85 L one
+  // end fixed, 1.0 L pinned-pinned, 2.0 L fixed-free (cantilever), 1.2 L
+  // fixed-guided; y-y from U_z / R_y, z-z from U_y / R_z, printed [verify]);
+  // the entered L_E/L factor overrides both. Minor axis: further reduced to
+  // the largest spacing between adjacent lateral restraint points where
+  // intermediate restraints are modelled (SCI P360 6.2 bracing-point
+  // assumption), never longer than its end-fixity length.
+  const lcr=lcrDefaults(S);
+  if(Fc>1e-9 && (lcr.Ky==null || lcr.Kz==null)) throw 'Strut buckling: the end fixities form a mechanism ('+(lcr.Ky==null? lcr.basisY : lcr.basisZ)+'); N_Ed cannot be carried.';
   const cantStrut = !!isCant && Fc>1e-9;
-  const leOverride = Math.abs((+S.leFactor)-1)>1e-9;
-  const Ky = (cantStrut && !leOverride)? 2.0 : +S.leFactor;
-  const lcrBasis = cantStrut
-    ? (leOverride ? 'cantilever strut: user L<sub>E</sub>/L factor '+g(Ky,2)+' kept as entered (default for a cantilever is 2.0)' : 'cantilever strut (fixed-free, sway mode): L<sub>cr</sub> = 2.0 L about both axes by default; enter an L<sub>E</sub>/L factor other than 1 to override')
-    : 'L<sub>E</sub>/L factor '+g(Ky,2)+' as entered';
+  const leOverride = !!lcr.override;
+  const Ky = lcr.Ky!=null? lcr.Ky : 1.0;
+  const KzEnd = lcr.Kz!=null? lcr.Kz : 1.0;
+  const lcrBasis = lcr.basis;
   const LcrY=Ky*a.L;
+  const LcrZEnd=KzEnd*a.L;
   const lz=lcrZFromRestraints(a);
-  const LcrZ=lz!=null? Math.min(lz,LcrY) : LcrY;
+  const LcrZ=lz!=null? Math.min(lz,LcrZEnd) : LcrZEnd;
   const Kz=LcrZ/a.L;
-  const lczFromRestraints=(lz!=null && LcrZ<LcrY-1e-6);
+  const lczFromRestraints=(lz!=null && LcrZ<LcrZEnd-1e-6);
   const Lcr=LcrY;                                 // kept for report compatibility
   const lam1=Math.PI*Math.sqrt(E/fy);
   const rx=sec.rx*10, ry=sec.ry*10;
@@ -418,7 +417,7 @@ function annexB2(a,sec,fy,cl,MbRdI,useB1,isCant,aeff){
   const mzTerm = MzEd>1e-9 ? MzEd/Mcz : 0;                            // Mz,Ed / Mc,z,Rd
   const u1=ny + kyy*Mx/Mrd + kyz*mzTerm;           // Eq 6.61
   const u2=nz + kzy*Mx/Mrd + kzz*mzTerm;           // Eq 6.62
-  return {Fc,Mx,Lcr,LcrY,LcrZ,Ky,Kz,cantStrut,leOverride,lcrBasis,lczFromRestraints,lam1,lamY,lamZ,cvY,cvZ,chiY,chiZ,NbY,NbZ,NbYeff,NbZeff,ny,nz,
+  return {Fc,Mx,Lcr,LcrY,LcrZ,Ky,Kz,KzEnd,cantStrut,leOverride,lcrBasis,lcrBasisY:lcr.basisY,lcrBasisZ:lcr.basisZ,lczFromRestraints,lam1,lamY,lamZ,cvY,cvZ,chiY,chiZ,NbY,NbZ,NbYeff,NbZeff,ny,nz,
     Cmy,Cmz,CmLT,cmLabel:cm.label,swayNote,useB1,c12,rhsRow,kyy,kzz,kyz,kzy,kzyLbl,MbRdI,MbRdEff:Mrd,wFac,Mcz,MzEd,mzTerm,biax:MzEd>1e-9,u1,u2,
     aeffOn,Aeff,Ag,aeffFac,tfb};
 }
@@ -502,10 +501,12 @@ function webTransverseCheck(a,sec,fy,eps,cl){
     let s=find(x); if(!s){ s={x,loads:[],support:null}; st.push(s); }
     s.loads.push({i,ss:ssOf(ld.ss),stiff:!!ld.stiff,e:(S.eccOn&&Number.isFinite(+ld.e))? Math.abs(+ld.e) : 0});
   });
-  S.supports.forEach((sp,i)=>{
+  // every end that carries a vertical reaction (U_z held): i = index into the
+  // solver's reaction list, n = end number
+  verticalEnds(S).forEach(sp=>{
     const x=(+sp.pos)*1000;
     let s=find(x); if(!s){ s={x,loads:[],support:null}; st.push(s); }
-    s.support={i,ss:ssOf(sp.ss),stiff:!!sp.stiff,type:sp.type};
+    s.support={i:sp.i,n:sp.end,ss:ssOf(sp.ss),stiff:!!sp.stiff,type:sp.type};
   });
   st.sort((p,q)=>p.x-q.x);
   // declared stiffeners bound the web panels (a); none declared -> a = L
@@ -531,9 +532,9 @@ function webTransverseCheck(a,sec,fy,eps,cl){
   st.forEach(s=>{
     const kind= s.loads.length&&s.support? 'both' : s.support? 'support' : 'load';
     const stiff= s.loads.some(l=>l.stiff)||(s.support&&s.support.stiff);
-    const n= s.support? s.support.i+1 : null;
+    const n= s.support? s.support.n : null;
     const loadIdx=s.loads.map(l=>l.i+1);
-    const label= kind==='support'? 'support '+n : kind==='load'? 'point load '+loadIdx.join('+') : 'point load '+loadIdx.join('+')+' over support '+n;
+    const label= kind==='support'? 'End '+n+' reaction' : kind==='load'? 'point load '+loadIdx.join('+') : 'point load '+loadIdx.join('+')+' over End '+n;
     const rec={x:s.x,kind,label,n,loadIdx,stiff:!!stiff,isEnd:(s.x<=tol||s.x>=L-tol)};
     if(stiff){
       rec.msg='stiffener declared - design stiffener separately (EN 1993-1-5 9.4)';
@@ -591,7 +592,7 @@ function webTransverseCheck(a,sec,fy,eps,cl){
     if(ssDefault && (rec.eta2>1.0001 || rec.u72>1.0001)){
       rec.nv=true;
       rec.msg='NOT VERIFIED: s<sub>s</sub> not entered; at the lower bound s<sub>s</sub> = 0 the station gives F<sub>Ed</sub>/F<sub>Rd</sub> = '+g(rec.eta2,3)+(rec.u72>1.0001? ' and 7.2 = '+g(rec.u72,3) : '');
-      out.unsupported.push('Web transverse force at x = '+g(s.x/1000,3)+' m ('+label+'): the stiff bearing length s<sub>s</sub> is not entered; at the lower bound s<sub>s</sub> = 0 the station gives F<sub>Ed</sub>/F<sub>Rd</sub> = '+g(rec.eta2,3)+' (F<sub>Ed</sub> = '+g(rec.F,1)+' kN, F<sub>Rd</sub> = '+g(rec.FRdTot,1)+' kN, type ('+rec.type+'))'+(rec.u72>1.0001? ' and (&eta;<sub>2</sub> + 0.8&eta;<sub>1</sub>)/1.4 = '+g(rec.u72,3) : '')+'. F<sub>Rd</sub> rises with the seating length: enter s<sub>s</sub> (mm along the member, EN 1993-1-5 6.3(1)) in the support row, or tick "bearing stiffener provided"; PASS is blocked until then.');
+      out.unsupported.push('Web transverse force at x = '+g(s.x/1000,3)+' m ('+label+'): the stiff bearing length s<sub>s</sub> is not entered; at the lower bound s<sub>s</sub> = 0 the station gives F<sub>Ed</sub>/F<sub>Rd</sub> = '+g(rec.eta2,3)+' (F<sub>Ed</sub> = '+g(rec.F,1)+' kN, F<sub>Rd</sub> = '+g(rec.FRdTot,1)+' kN, type ('+rec.type+'))'+(rec.u72>1.0001? ' and (&eta;<sub>2</sub> + 0.8&eta;<sub>1</sub>)/1.4 = '+g(rec.u72,3) : '')+'. F<sub>Rd</sub> rises with the seating length: enter s<sub>s</sub> (mm along the member, EN 1993-1-5 6.3(1)) in the end row, or tick "bearing stiffener provided"; PASS is blocked until then.');
     }
     out.stations.push(rec);
   });
@@ -666,7 +667,7 @@ function restraintForces(a,sec){
   if((S.restraint||'full')==='full') return null;
   const h=sec.D;
   const pts=[];
-  S.supports.forEach((s,i)=>pts.push({x:(+s.pos)*1000,kind:'support',n:i+1,label:'support '+(i+1)+' (torsional restraint)'}));
+  endsList().filter(e=>e.rx).forEach(e=>pts.push({x:e.x*1000,kind:'support',n:e.n,label:'End '+e.n+' (torsional restraint, R<sub>x</sub> held)'}));
   (S.ltbRestraints||[]).forEach((r,i)=>{ const x=(+r.pos)*1000; if(!isFinite(x)||x<-1e-6||x>a.L+1e-6) return; if(r.v===false&&r.phi===false) return;
     pts.push({x,kind:'lateral',n:i+1,label:'lateral restraint '+(i+1)+(r.v===false? ' (twist only)' : '')}); });
   pts.sort((p,q)=>p.x-q.x || (p.kind==='support'? -1 : 1));
@@ -680,7 +681,7 @@ function restraintForces(a,sec){
     return Object.assign({},p,{MEd,combo,NfEd,F:0.025*NfEd});
   });
   const Fmax=rows.reduce((m,r)=>Math.max(m,r.F),0);
-  return {h,rows,Fmax,basis:'N<sub>f,Ed</sub> = M<sub>Ed</sub>/h at the restraint station (h = overall depth, EN 1993-1-1 5.3.3(3)); restraint design force 2.5 % N<sub>f,Ed</sub> (6.3.5.2(5)(b), SCI practice) &mdash; advisory, not part of the member verdict; the bracing system must also satisfy the 5.3.3 stiffness/imperfection requirements. A station with M<sub>Ed</sub> = 0 (simply supported end) gets no flange force from this rule; its fork restraint must still prevent twist.'};
+  return {h,rows,Fmax,basis:'N<sub>f,Ed</sub> = M<sub>Ed</sub>/h at the restraint station (h = overall depth, EN 1993-1-1 5.3.3(3)); restraint design force 2.5 % N<sub>f,Ed</sub> (6.3.5.2(5)(b), SCI practice) &mdash; advisory, not part of the member verdict; the bracing system must also satisfy the 5.3.3 stiffness/imperfection requirements. A station with M<sub>Ed</sub> = 0 (simply supported end) gets no flange force from this rule; its torsional restraint must still prevent twist.'};
 }
 function checksEC3Restrained(a){
   // SCI worked-example procedure: fully laterally restrained beam to BS EN 1993-1-1 (UK NA).
@@ -905,7 +906,7 @@ function checksEC3Restrained(a){
       const gm=O.sols.find(se=>se.combo===a.governM.combo)||O.sols[0];
       // Method of the elastic warping analysis (19 Sep 2026 gap closure, G4):
       // 'closed' = P385 App C Cases 3/4/10, 'fe' = the warping-torsion FE of
-      // js/checks/torsion-fe.js (cantilevers, multi-span, partial-span torque,
+      // js/checks/torsion-fe.js (torsion cantilevers, partial-span torque,
       // warping-fixed ends). The FE mesh is doubled once; PASS is refused when
       // the change exceeds the tool threshold TORSION_FE_MESH_BLOCK.
       const feMethod=O.method==='fe';
@@ -1059,8 +1060,9 @@ function checksEC3Restrained(a){
   const holdDown=holdDownCheck(a);
   holdDown.unsupported.forEach(m=>unsupported.push(m));
   holdDown.advisory.forEach(m=>advisory.push(m));
-  if(a.patterns&&a.patterns.note) advisory.push(a.patterns.note);
-  const isCantR=(S.supports.length===1 && S.supports[0].type==='fixed');
+  if(a.stability&&a.stability.notes) a.stability.notes.forEach(m=>advisory.push(m));
+  if(a.companionNote) advisory.push(a.companionNote);
+  const isCantR=isCantilever(S);
   const buck=(ax && !ax.tension)? annexB2(a,sec,fy,cl,McRd,true,isCantR,aeff) : null; // fully restrained: not susceptible -> Table B.1; MbRd = Mc,Rd
   if(buck && buck.tfb && !buck.tfb.ok) unsupported.push('PFC under axial compression: '+buck.tfb.reason+'; torsional / torsional-flexural buckling (cl 6.3.1.4) cannot be verified, PASS is blocked.');
   const utils=[
@@ -1156,14 +1158,14 @@ function c1Inputs(fb,xa,xb){
   return {M1,M2,Mo,psi,mu,xa,xb};
 }
 // ---- Governing segment for the C1 inputs ----
-// Whole member for a single span or a cantilever. For a multi-span or
-// intermediately restrained member: the bay between adjacent lateral-restraint
-// points (supports and v-restraints) that contains the governing combination's
-// peak moment. Returns {xa, xb, whole} in mm.
+// Whole member for a span without intermediate lateral restraints or a
+// cantilever. With intermediate restraints: the bay between adjacent
+// lateral-restraint points (ends holding U_y and v-restraints) that contains
+// the governing combination's peak moment. Returns {xa, xb, whole} in mm.
 function c1Segment(a){
   const L=a.L;
-  const isCant=(S.supports.length===1 && S.supports[0].type==='fixed');
-  const pts=[...new Set(S.supports.map(s=>+(((+s.pos)*1000).toFixed(3)))
+  const isCant=isCantilever(S);
+  const pts=[...new Set(endsList().filter(e=>e.uy).map(e=>+((e.x*1000).toFixed(3)))
     .concat((S.ltbRestraints||[]).filter(r=>r.v!==false).map(r=>+(((+r.pos)*1000).toFixed(3))))
     .filter(x=>isFinite(x)&&x>=-1e-6&&x<=L+1e-6))].sort((p,q)=>p-q);
   if(isCant || pts.length<3) return {xa:0,xb:L,whole:true};
@@ -1316,16 +1318,16 @@ function sn003aC1(a,isCant,seg,diag){
   }
   // The four tabulated transverse-load shapes (SN003a Table 3.2, k = kw = 1)
   // are recognised from the LOAD LIST of the combination (full-span UDL family
-  // only, or central point load(s) only, no applied moments) on a whole
-  // segment with a support at each end and no support or hinge inside it:
-  // simply supported ends with no significant end moment, or both ends fixed.
-  // The quarter-point/mid-span ratio of the diagram is kept as a guard (the
-  // point-load row tolerates a self-weight moment share of about 9%).
-  const supAt=x=>S.supports.find(s=>Math.abs((+s.pos)*1000-x)<1e-6);
-  const sA=supAt(xa), sB=supAt(xb);
-  const endSupported=!!(sA&&sB);
-  const endFixed=!!(sA&&sB&&sA.type==='fixed'&&sB.type==='fixed');
-  const interiorBreak=S.supports.some(s=>(+s.pos)*1000>xa+1e-6&&(+s.pos)*1000<xb-1e-6) || (S.hinges||[]).some(h=>(+h.pos)*1000>xa+1e-6&&(+h.pos)*1000<xb-1e-6);
+  // only, or central point load(s) only, no applied moments) on the whole
+  // member with a vertical support (U_z) at each end and no hinge inside it:
+  // simply supported ends (R_y free) with no significant end moment, or both
+  // ends fixed (U_z + R_y). The quarter-point/mid-span ratio of the diagram
+  // is kept as a guard (the point-load row tolerates a self-weight moment
+  // share of about 9%).
+  const [eA,eB]=endsList();
+  const endSupported=!!(eA.uz&&eB.uz);
+  const endFixed=!!(eA.uz&&eB.uz&&eA.ry&&eB.ry);
+  const interiorBreak=(S.hinges||[]).some(h=>(+h.pos)*1000>xa+1e-6&&(+h.pos)*1000<xb-1e-6);
   const whole=(!seg)||(seg.xa<=1e-6&&Math.abs(seg.xb-a.L)<=1e-6);
   const r=(Math.abs(Mq)+Math.abs(Mq3))/(2*Mm);
   if(whole && endSupported && !interiorBreak){
@@ -1362,7 +1364,7 @@ function mcrSN006aFor(a,sec,factors,zg){
   const gcb=asCombo(factors||a.governM.combo), gfac=gcb.factors;
   const za=(zg!=null)? +zg : stdZgFor(gcb).zg;
   const eta=za/(hs/2);
-  const warp=(S.rootWarp==='restrained')?'restr':'free';
+  const warp=(endsList()[0].warp)?'restr':'free';   // root warping condition = End 1 warping flag
   // classify tip loading from the loads (2% de-minimis on the support moment)
   let Mq=0,MF=0,Mm2=0,nF2=0,nM2=0,other=false;
   const Lmm=S.L*1000;
@@ -1406,7 +1408,7 @@ function mcrSN006aFor(a,sec,factors,zg){
 // Returns kN.m: {route, Mcr (null if not covered), C1, C2, label, c1in, seg,
 // LE, zg, zgSource, zgUsed, zgNote (HTML), zgBlocked}.
 function mcrStandardFor(a,sec,seg,diag){
-  const isCant=(S.supports.length===1 && S.supports[0].type==='fixed');
+  const isCant=isCantilever(S);
   seg=seg||c1Segment(a);
   const fb=(diag&&diag.fb)||a.governM.fb;
   const fac=(diag&&diag.combo)||((diag&&diag.factors)? {factors:diag.factors} : a.governM.combo);   // combination (pattern-aware)
@@ -1419,7 +1421,7 @@ function mcrStandardFor(a,sec,seg,diag){
       zg:zgi.zg, zgSource:zgi.source, zgUsed:Math.abs(zgi.zg)>1e-9, zgNote:'z<sub>g</sub> = '+(zgi.zg>0?'+':'')+zgi.zg.toFixed(0)+' mm through &eta; = '+r.eta.toFixed(2)+' (SN006a)', zgBlocked:false};
   }
   const c1r=sn003aC1(a,isCant,seg.whole? undefined : seg,{fb,combo:fac});
-  const LE=S.leFactor*(S.destab?1.2:1)*(seg.xb-seg.xa);
+  const LE=ltbLeFactor()*(S.destab?1.2:1)*(seg.xb-seg.xa);
   const cf=mcrClosedForm(sec,a.E,LE,c1r.C1,c1r.C2,zgi.zg);
   const zs=stdZgStatus(zgi.zg,c1r.C2,cf.zgUsed);
   const route= sec.kind==='channel'? 'channel' : c1r.route;
@@ -1447,15 +1449,15 @@ function checksEC3UnrestrainedSCI(a){
   const unsupported=b.unsupported.slice();
   const advisory=(b.advisory||[]).slice();
   const Wy=b.Wy;
-  const isCant=(S.supports.length===1 && S.supports[0].type==='fixed');
-  const LE=S.leFactor*(S.destab?1.2:1)*a.L;
+  const isCant=isCantilever(S);
+  const LE=ltbLeFactor()*(S.destab?1.2:1)*a.L;
   const gfac=a.governM.combo;     // governing-moment combination (pattern-aware load list)
   const c1r=sn003aC1(a,isCant);   // whole member: the closed form treats the member as one segment
   const C1=c1r.C1, kcr=kcFromC1(C1), invSqrtC1=kcr.kcRaw, kc=kcr.kc;   // k_c floored at 1/sqrt(2.76) = 0.60 (Table 6.6 lower bound)
   const zgi=stdZgFor(gfac);       // load height of the governing combination (per-load z_g, most destabilising)
   const zgStd=zgi.zg;
   const segStd=c1Segment(a);
-  if(!segStd.whole) advisory.push("Standard (closed-form) M<sub>cr</sub>: the member is treated as ONE segment of length L<sub>E</sub> = "+(S.leFactor*(S.destab?1.2:1)).toFixed(2)+"&times;L with C<sub>1</sub> from the whole-member moment diagram; intermediate lateral restraints and the span-by-span check of a continuous beam are not applied on this route (conservative on L<sub>E</sub>). Use the FE eigenvalue method for span-by-span M<sub>cr</sub>, or verify each span separately.");
+  if(!segStd.whole) advisory.push("Standard (closed-form) M<sub>cr</sub>: the member is treated as ONE segment of length L<sub>E</sub> = "+(ltbLeFactor()*(S.destab?1.2:1)).toFixed(2)+"&times;L with C<sub>1</sub> from the whole-member moment diagram; intermediate lateral restraints are not applied on this route (conservative on L<sub>E</sub>). Use the FE eigenvalue method for the bay-by-bay M<sub>cr</sub>, or verify each bay separately.");
   const curve=ltbCurveNA(sec);
   // chi_LT chain of cl 6.3.2.3 (NA 2.17: lamLT0 = 0.4, beta = 0.75) with the
   // NA 2.18 f-factor from kc = 1/sqrt(C1); f = 1 when `noF` (cantilevers)
@@ -1532,8 +1534,7 @@ function checksEC3UnrestrainedSCI(a){
     // the primary basis; the Mcr route rescues it, mirroring the old I-section pattern.
     let chanMcr=null;
     const chanMcrOK = !(a.tors&&a.tors.on) && Math.abs(zgStd)<1e-9 && !isCant &&
-      S.supports.length===2 && Math.min(...S.supports.map(s=>+s.pos))<=1e-6 &&
-      Math.abs(Math.max(...S.supports.map(s=>+s.pos))-S.L)<=1e-6 && (sec.Iw||0)>0;
+      endsList().every(e=>e.uz&&e.uy&&e.rx) && (sec.Iw||0)>0;   // vertically supported fork ends at both ends
     let MbMcr2=Mb;
     if(chanMcrOK){
       const G=81000, Iz=sec.Iy*1e4, It=sec.J*1e4, Iw=(sec.Iw||0)*1e12;
@@ -1654,7 +1655,7 @@ function checksEC3UnrestrainedSCI(a){
   // member buckling: susceptible to torsional deformation unless closed section
   // or LTB plays no part (chiLT = 1); cantilever/channel handled per path.
   // The Mb,Rd handed to Eq 6.61/6.62 is the design value above (Mcr route).
-  const isCantU=(S.supports.length===1 && S.supports[0].type==='fixed');
+  const isCantU=isCantilever(S);
   const useB1u = sec.isBox || ltb.na || (ltb.MbRd>=b.McRd*0.9999);
   const buck=(b.ax && !b.ax.tension)? annexB2(a,sec,fy,b.cl,ltb.MbRd>0? ltb.MbRd : b.McRd,useB1u,isCantU,b.aeff) : null;
   if(buck && buck.tfb && !buck.tfb.ok) unsupported.push('PFC under axial compression: '+buck.tfb.reason+'; torsional / torsional-flexural buckling (cl 6.3.1.4) cannot be verified, PASS is blocked.');

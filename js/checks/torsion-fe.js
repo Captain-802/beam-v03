@@ -27,13 +27,13 @@
    Consistent nodal torques of a linearly varying m_t over an element (same
    integrals as the bending solver's distributed-load vector).
 
-   Boundary conditions:
-       every support         phi = 0 (twist prevented - fork / torsional
-                             restraint, as P385 assumes at every support)
+   Boundary conditions (from the end degree-of-freedom flags, 19 Sep 2026
+   single-span scope: an entry per end whose twist R_x is restrained):
+       twist restrained      phi = 0 (fork / torsional restraint); one such
+                             end = torsion cantilever
        warping free          phi'' = 0 (natural, nothing imposed) - default,
                              matching P385 fork ends
-       warping fixed         phi' = 0 imposed (per-support option, or the
-                             root of a cantilever: single fixed support)
+       warping fixed         phi' = 0 imposed (the end's warping flag)
        free end / tip        natural: T = 0 and B = 0 come out of the
                              assembled equilibrium exactly
        in-plane hinge        twist and warping continuous (a bending release
@@ -109,23 +109,22 @@ function torsionFeBandSolve(K, F, hb){
   for(let i=n-1;i>=0;i--){ let v=y[i]; for(let j=i+1;j<=Math.min(n-1,i+hb);j++) v-=C[j][i-j+hb]*z[j]; z[i]=v/C[i][hb]; }
   return Array.from(z,(v,i)=>v/scale[i]);
 }
-/* Effective support list for the torsion model: every support prevents twist;
-   warpFix = the per-support option, or automatically the root of a cantilever
-   (a single fixed support). Positions in mm. */
+/* Twist-restraint list of the torsion model: every entry prevents twist
+   (phi = 0); warpFix imposes phi' = 0 there as well. Positions in mm. Nothing
+   is inferred from the count: a single entry is a torsion cantilever whose
+   root warping is fixed only when its flag says so. */
 function torsionFeSupports(supports){
-  const root = supports.length===1;
-  return supports.map(s=>({pos:+s.pos, warpFix: root || !!s.warpFix, root}));
+  return supports.map(s=>({pos:+s.pos, warpFix:!!s.warpFix}));
 }
 /* Printed description of the boundary conditions (pure). */
 function torsionFeBcText(supports, L){
   const m=v=>(v/1000).toFixed(2).replace(/\.?0+$/,'');
-  const sp=torsionFeSupports(supports);
-  if(sp.length===1) return 'cantilever: root at x = '+m(sp[0].pos)+' m with &phi; = 0 and &phi;&prime; = 0 (warping fixed), free tip (T = B = 0)';
+  const sp=torsionFeSupports(supports).slice().sort((p,q)=>p.pos-q.pos);
   const items=sp.map(s=>'x = '+m(s.pos)+' m ('+(s.warpFix? '&phi; = 0, &phi;&prime; = 0: warping fixed' : 'fork, &phi; = 0, warping free')+')');
   const ends=[];
-  if(sp[0].pos>1e-6) ends.push('free end at x = 0');
-  if(L-sp[sp.length-1].pos>1e-6) ends.push('free end at x = '+m(L)+' m');
-  return 'supports '+items.join(', ')+(ends.length? '; '+ends.join(', ') : '');
+  if(sp[0].pos>1e-6) ends.push('free end at x = 0 (T = B = 0)');
+  if(L-sp[sp.length-1].pos>1e-6) ends.push('free end at x = '+m(L)+' m (T = B = 0)');
+  return (sp.length===1? 'torsion cantilever: twist restrained at ' : 'twist restrained at ')+items.join(', ')+(ends.length? '; '+ends.join(', ') : '');
 }
 /* One solve on a mesh of nSub base subdivisions. Returns nodal DOFs and the
    element end forces; see torsionFeRecover for the station values. */

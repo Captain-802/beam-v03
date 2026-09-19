@@ -86,7 +86,7 @@ function build3DScene(){
              inner:prof.inner? prof.inner.map(p=>[+p[0].toFixed(2),+p[1].toFixed(2)]):null,
              plate:pl? [[pl.x1,pl.z1],[pl.x2,pl.z1],[pl.x2,pl.z2],[pl.x1,pl.z2]]:null},
     name:(sec.key||'')+' '+({pfc:'PFC',shs:'SHS',rhs:'RHS',ub:'UB',uc:'UC'}[S.family]||''),
-    supports:S.supports.map(s=>({x:(+s.pos)*1000,type:s.type,vp:!!s.vp,phip:!!s.phip})),
+    supports:endsToSupports(S).map(s=>{ const e=endsList()[s.end-1]; return {x:(+s.pos)*1000,type:s.type,vp:!!e.rz,phip:!!e.warp}; }),
     restraints:(S.code==='EC3'&&(S.restraint||'full')!=='full'? (S.ltbRestraints||[]):[]).map(r=>({
       x:(+r.pos)*1000, v:r.v!==false, phi:r.phi!==false, vp:!!r.vp, phip:!!r.phip})),
     loads
@@ -216,9 +216,11 @@ function viewer3dMain(SCENE){
     // standard support symbols: pinned = solid triangle on a base plate under
     // the soffit; fixed = end plate clamped across the section at the beam end
     SCENE.supports.forEach(s=>{
-      if(s.type==='fixed'){
+      if(s.type==='fixed'||s.type==='guided'){
+        // fixed = end plate clamped across the section; guided = the same plate
+        // standing clear of the soffit (rotation held, vertical free)
         const p = s.x < L/2 ? [s.x-90,s.x-2] : [s.x+2,s.x+90];
-        cuboid(p[0],p[1],-B*0.85,B*0.85,-D*0.8,D*0.8,'#7c8694');
+        cuboid(p[0],p[1],-B*0.85,B*0.85,-D*0.8,D*0.8, s.type==='guided'? '#a3acb8' : '#7c8694');
       } else {
         const zSoff=-D/2-(SCENE.plateT||0), hTri=D*0.5, zBase=zSoff-hTri;
         wedge(s.x,D*0.4,-B*0.32,B*0.32,zSoff-1,hTri,'#68727f');

@@ -102,9 +102,8 @@ function msbRhoShear(V,Vpl){ return Math.min(Math.pow(2*V/Math.max(Vpl,1e-9)-1,2
 function msbWplN(MN_kNm,fy){ return MN_kNm*1e3/fy; }
 // Phi_LT of cl 6.3.2.3 (the expression the check engine evaluates)
 function msbPhiLT(lam,alphaLT){ return 0.5*(1+alphaLT*(lam-0.4)+0.75*lam*lam); }
-// 1-based index of a combination among the analysed ULS (or SLS) combinations:
-// the expanded list of analyse() (user combinations each followed by their
-// automatic patterns) when `a` is given, else the enabled entries of S.combos
+// 1-based index of a combination among the analysed ULS (or SLS) combinations
+// (the list of analyse() when `a` is given, else the enabled entries of S.combos)
 function msbCaseIndex(combo,sls,a){
   const list= a? (sls? a.slsResults : a.ulsResults).map(r=>r.combo) : (S.combos||[]).filter(cb=>cb.on && (sls? cb.sls : !cb.sls));
   let i=list.indexOf(combo);
@@ -217,7 +216,7 @@ function renderMasterSeriesBrief(a,c,sec){
   sec=sec||a.sec;
   const LT=c.ltb||null, AX=c.ax||null, B=c.buck||null, T=c.tor||null, AN=c.annex||null;
   const fullRest=(S.restraint||'full')==='full';
-  const isCant=(S.supports.length===1 && S.supports[0].type==='fixed');
+  const isCant=isCantilever(S);
   const eigen=!!(LT && LT.eigen);
   const ltbChecked=!fullRest && !(LT && LT.na);
   const utils=c.utils||[];
@@ -259,22 +258,15 @@ function renderMasterSeriesBrief(a,c,sec){
   });
   const swE=selfWeightEccentricity(sec);
   loadLines.push('G SW '+g(selfWeightValue(sec),4)+' kN/m 0&ndash;'+g(S.L)+' m'+(S.eccOn&&Math.abs(swE)>1e-9? ' e = '+g(swE,1)+' mm' : '')+' ( automatic )');
-  // automatic pattern loading (item 1.3): the generated combinations are listed
-  // with the loads, in MasterSeries' "pattern" position; the gamma_G,inf limitation is stated
-  const PT=a.patterns||null;
-  if(PT && PT.segs && PT.segs.length>1){
-    if(PT.active){
-      loadLines.push('<b>Pattern loading</b> ('+PT.segText+'): '+PT.nUls+' ULS + '+PT.nSls+' SLS combinations generated &mdash; Q on each span, adjacent pairs, alternate spans, max-reaction sets (4+ spans); G/W/E at their entered factors on every span');
-      a.ulsResults.concat(a.slsResults).filter(r=>r.combo.pattern).forEach(r=>loadLines.push('&nbsp;&nbsp;'+(r.combo.sls? 'SLS ':'ULS ')+msbCaseIndex(r.combo,!!r.combo.sls,a)+': '+msbEsc(r.combo.label)));
-    } else loadLines.push('<span class="ms-note"><b>Pattern loading OFF</b> ('+PT.segText+'): only the entered combinations are analysed; adverse / relieving span patterns must be entered by hand.</span>');
-  }
+  // end restraints of the single span (19 Sep 2026 scope): the seven DOF flags of each end
+  loadLines.push('<b>End restraints</b>: '+endsDescription(S)+((S.hinges||[]).length? '; internal hinge(s) at '+S.hinges.map(h=>g(+h.pos,2)+' m').join(', ')+' (in-plane moment release)' : ''));
   // gamma_G,inf companions (19 Sep 2026 review): G at 1.0 (STR set B) and 0.9 (EQU set A) of every ULS combination
-  // with G > 1.0, solved for the support reactions (uplift / hold-down, web bearing); listed after the patterns
+  // with G > 1.0, solved for the end reactions (uplift / hold-down, web bearing)
   if(a.ulsCompanions && a.ulsCompanions.length){
     loadLines.push('<b>&gamma;<sub>G,inf</sub> companions</b> (reactions only): '+a.ulsCompanions.length+' &mdash; G at 1.0 (STR set B) and 0.9 (EQU set A) of every ULS combination with G &gt; 1.0, variable factors as entered');
     a.ulsCompanions.forEach((r,i)=>loadLines.push('&nbsp;&nbsp;ULS C'+(i+1)+': '+r.combo.label));
   }
-  if(PT && PT.limitation) loadLines.push('<span class="ms-note">'+PT.limitation+'</span>');
+  if(a.companionNote) loadLines.push('<span class="ms-note">'+a.companionNote+'</span>');
   const sketch=(typeof beamDiagram==='function'? beamDiagram(a) : '')+(typeof plot==='function'? plot(a.diag.xs,a.diag.M,{color:'#1a237e',fill:'#c9d3ea',unit:'kN.m',flip:true,fmt:v=>f1(v,2)}) : '');
   h+='<div class="ms-loading"><div class="ms-loadlist">'+loadLines.join('<br>')+'</div><div class="ms-sketch">'+sketch+'</div></div>';
 
@@ -292,23 +284,23 @@ function renderMasterSeriesBrief(a,c,sec){
      '<tr><td class="num">1</td><td class="num">x = '+msbM(xa/1000)+'</td><td class="num">'+f1(Math.abs(N),2)+Ntag+'</td><td class="num">'+f1(torqueAt(xa),2)+'</td><td class="num">'+f1(V1,2)+'</td><td class="num">0.00</td><td class="num">'+f1(M1,2)+'</td><td class="num">'+f1(S.Mz||0,2)+'</td><td class="num">'+f1(MmaxP,2)+'</td><td class="num">'+f1(S.Mz||0,2)+'</td><td class="num">'+f1(dfl.dmax,2)+'</td></tr>'+
      '<tr><td class="num"></td><td class="num">x = '+msbM(xb/1000)+'</td><td class="num">'+f1(Math.abs(N),2)+Ntag+'</td><td class="num">'+f1(torqueAt(xb),2)+'</td><td class="num">'+f1(V2,2)+'</td><td class="num">0.00</td><td class="num">'+f1(M2,2)+'</td><td class="num">'+f1(S.Mz||0,2)+'</td><td class="num">@ '+f1(MposP,3)+'</td><td class="num">@ &mdash;</td><td class="num">@ '+f1(dfl.dpos/1000,3)+'</td></tr>'+
      '</tbody></table>';
-  const reactLine=a.reactions.map(r=>'R @ '+msbM(r.pos/1000)+' m = '+f1(r.V/1000,2)+' kN'+(r.type==='fixed'? ', M = '+f1(-r.M/1e6,2)+' kN.m' : '')).join(' &nbsp; ');
+  const reactLine=a.reactions.map(r=>'End '+(r.end||'')+' @ '+msbM(r.pos/1000)+' m: '+(r.type==='guided'? 'M = '+f1(-r.M/1e6,2)+' kN.m (guided, no vertical reaction)' : 'R = '+f1(r.V/1000,2)+' kN'+(r.type==='fixed'? ', M = '+f1(-r.M/1e6,2)+' kN.m' : ''))).join(' &nbsp; ');
   h+='<div class="ms-note">Reactions ('+a.governM.combo.label+'): '+reactLine+'. V<sub>z</sub> = 0: no minor-axis shear in the single-plane model; M<sub>z</sub> is the entered constant design moment.</div>';
   // uplift / hold-down (item 1.2): one row per lifting support, in the Member Forces block
   const HD=c.holdDown||null;
   if(HD && HD.rows && HD.rows.length){
     HD.rows.forEach(u=>{
       if(u.level==='sls'){
-        h+=msbRow('Uplift at SLS only, support '+u.n+' (x = '+msbM(u.pos/1000)+' m)', 'R = &minus;'+f1(Math.abs(u.RSls),2)+' kN (SLS combination '+msbEsc(u.comboSls)+'); no ULS combination lifts this support, incl. the &gamma;<sub>G,inf</sub> companions (G at 1.0 STR set B, 0.9 EQU set A) (advisory)', 'R = &minus;'+f1(Math.abs(u.RSls),2)+' kN', 'advisory');
+        h+=msbRow('Uplift at SLS only, End '+u.n+' (x = '+msbM(u.pos/1000)+' m)', 'R = &minus;'+f1(Math.abs(u.RSls),2)+' kN (SLS combination '+msbEsc(u.comboSls)+'); no ULS combination lifts this end, incl. the &gamma;<sub>G,inf</sub> companions (G at 1.0 STR set B, 0.9 EQU set A) (advisory)', 'R = &minus;'+f1(Math.abs(u.RSls),2)+' kN', 'advisory');
         return;
       }
-      const lbl='Hold-down '+(u.holdDown? 'provided' : 'required')+' at support '+u.n+' (x = '+msbM(u.pos/1000)+' m)';
-      const vals='R = &minus;'+f1(Math.abs(u.RUls),2)+' kN (combination '+msbEsc(u.comboUls)+')'+(u.RSls!=null? '; SLS uplift &minus;'+f1(Math.abs(u.RSls),2)+' kN ('+msbEsc(u.comboSls)+')' : '')+'; '+u.nCombos+' combination(s) lift this support';
+      const lbl='Hold-down '+(u.holdDown? 'provided' : 'required')+' at End '+u.n+' (x = '+msbM(u.pos/1000)+' m)';
+      const vals='R = &minus;'+f1(Math.abs(u.RUls),2)+' kN (combination '+msbEsc(u.comboUls)+')'+(u.RSls!=null? '; SLS uplift &minus;'+f1(Math.abs(u.RSls),2)+' kN ('+msbEsc(u.comboSls)+')' : '')+'; '+u.nCombos+' combination(s) lift this end';
       if(u.holdDown) h+=msbRow(lbl, vals+' &mdash; design the hold-down connection for this force (advisory)', 'R = &minus;'+f1(Math.abs(u.RUls),2)+' kN', 'hold-down');
     });
     h+=msbNotVerifiedRows(nv.forces);
   }
-  if(a.uplift && !a.uplift.any) h+=msbRow('Uplift', 'no support lifts in any of the '+(a.uplift.nCombos!=null? a.uplift.nCombos : a.ulsResults.length+a.slsResults.length)+' combinations (all reactions &ge; 0'+((a.ulsCompanions&&a.ulsCompanions.length)? '; incl. the '+a.ulsCompanions.length+' &gamma;<sub>G,inf</sub> companions with G at 1.0 and 0.9' : '')+')', 'R<sub>min</sub> &ge; 0', 'OK');
+  if(a.uplift && !a.uplift.any) h+=msbRow('Uplift', 'no end lifts in any of the '+(a.uplift.nCombos!=null? a.uplift.nCombos : a.ulsResults.length+a.slsResults.length)+' combinations (all reactions &ge; 0'+((a.ulsCompanions&&a.ulsCompanions.length)? '; incl. the '+a.ulsCompanions.length+' &gamma;<sub>G,inf</sub> companions with G at 1.0 and 0.9' : '')+')', 'R<sub>min</sub> &ge; 0', 'OK');
   if(nULS>1 || a.slsResults.length>1){
     h+='<table class="ms-combos"><thead><tr><th>Combination</th><th>V<sub>max</sub> (kN)</th><th>M<sub>max</sub> (kN.m @ m)</th><th>&delta; (mm)</th></tr></thead><tbody>'+
        a.ulsResults.map(r=>'<tr><td>'+r.combo.label+(r===a.governM? ' (governs M)':'')+'</td><td class="num">'+f1(r.Vmax/1000,3)+'</td><td class="num">'+f1(r.Mmax/1e6,3)+' @ '+g(r.Mpos/1000,3)+'</td><td class="num">&mdash;</td></tr>').join('')+
@@ -343,7 +335,7 @@ function renderMasterSeriesBrief(a,c,sec){
     h+=msbRow('A<sub>eff</sub> = A &minus; '+(ae.nWebs>1? '2':'')+'(1 &minus; &rho;)b&#772;t<sub>w</sub>', 'web Class 4 in uniform compression: d/t = '+f1(ae.dt,2)+' &gt; 42&epsilon; = '+f1(ae.limit,2)+'; &lambda;&#772;<sub>p</sub> = (b&#772;/t)/(28.4&epsilon;&radic;k<sub>&sigma;</sub>) = '+f1(ae.dt,2)+'/(28.4 x '+f1(ae.eps,3)+' x &radic;4) = '+msbR(ae.lamP)+'; &rho; = (&lambda;&#772;<sub>p</sub> &minus; 0.055(3+&psi;))/&lambda;&#772;<sub>p</sub>&sup2; = '+msbR(ae.rho)+' (&psi; = 1); b<sub>eff</sub> = '+msbMM(ae.beff)+' mm = b<sub>e1</sub> + b<sub>e2</sub> = 2 x '+msbMM(ae.be1)+'; '+f1(ae.A/100,2)+' &minus; '+(ae.nWebs>1? '2 x ':'')+f1(ae.bineff*ae.tw/100,2)+' cm&sup2; (e<sub>N</sub> = 0, symmetric)', f1(ae.Aeff/100,2)+' cm&sup2;', 'EN 1993-1-5 4.4');
   }
   const ulsIdx=a.ulsResults.map((r,i)=>i+1), slsIdx=a.slsResults.map((r,i)=>i+1);
-  h+=msbRow('Auto Design Load Cases', msbCaseRanges(ulsIdx)+(slsIdx.length? '; SLS '+msbCaseRanges(slsIdx) : '')+(a.patterns&&a.patterns.active? ' (incl. '+a.patterns.nUls+' + '+a.patterns.nSls+' automatic patterns)' : ''),'','');
+  h+=msbRow('Auto Design Load Cases', msbCaseRanges(ulsIdx)+(slsIdx.length? '; SLS '+msbCaseRanges(slsIdx) : ''),'','');
   h+=msbNotVerifiedRows(nv.class);
 
   /* ---- 5.3 Local Capacity Check / Moment Capacity Check ---- */
@@ -421,13 +413,14 @@ function renderMasterSeriesBrief(a,c,sec){
   if(B && B.Fc>1e-9){
     h+=msbHead('Compression Resistance N.b.Rd');
     const NcrY=msbNcr(a.E,sec.Ix,B.LcrY), NcrZ=msbNcr(a.E,sec.Iy,B.LcrZ);
-    const Ky=(B.Ky!=null? B.Ky : S.leFactor);
-    h+=msbRow('L<sub>ey</sub> = K<sub>y</sub>.L<sub>y</sub>', g(Ky,2)+' x '+msbM(S.L)+' ='+(B.cantStrut? ' ('+msbEsc(B.lcrBasis)+')' : ''), msbM(B.LcrY/1000)+' m', B.cantStrut? (B.leOverride? 'user L<sub>E</sub>' : 'cantilever 2.0L') : '');
+    const Ky=B.Ky, Kz=(B.KzEnd!=null? B.KzEnd : B.Kz);
+    const kTag=B.leOverride? 'user L<sub>E</sub>' : (B.cantStrut? 'cantilever 2.0L' : 'end fixities [verify]');
+    h+=msbRow('L<sub>ey</sub> = K<sub>y</sub>.L<sub>y</sub>', g(Ky,2)+' x '+msbM(S.L)+' = ('+msbEsc(B.leOverride? B.lcrBasis : B.lcrBasisY)+')', msbM(B.LcrY/1000)+' m', kTag);
     const Acm=(B.aeffOn? B.Aeff : sec.A*100)/100, Albl=B.aeffOn? 'A<sub>eff</sub>' : 'A';
     if(B.aeffOn) h+=msbRow('A<sub>eff</sub> (Class-4 web in uniform compression)', 'N<sub>Rk</sub> = A<sub>eff</sub>f<sub>y</sub>; &lambda;&#772; = &radic;(A<sub>eff</sub>f<sub>y</sub>/N<sub>cr</sub>) (6.3.1.3(1)); Table 6.7 Class-4 column with W<sub>eff.y</sub> = W<sub>el.y</sub> (flanges Class &le; 3; web Class 4 only in uniform compression, e<sub>N</sub> = 0) [assumption printed]', f1(Acm,2)+' cm&sup2;', 'EN 1993-1-5 4.4');
     h+=msbRow('&lambda;&#772;<sub>y</sub> = &radic;'+Albl+'.f<sub>y</sub>/N<sub>cr</sub>', '&radic;'+f1(Acm,2)+'x'+msbInt(c.fy)+'/'+f1(NcrY,2)+' (N<sub>cr,y</sub> = &pi;&sup2;EI<sub>y</sub>/L<sub>ey</sub>&sup2;)', msbR(B.lamY), '');
     h+=msbRow('N<sub>b.y.Rd</sub> = '+(B.aeffOn? 'A<sub>eff</sub>' : 'Area')+'.&chi;.f<sub>y</sub>/&gamma;<sub>M1</sub>', f1(Acm,2)+'x'+msbR(B.chiY)+'x'+msbInt(c.fy)+'/10/1 =', msbKN(B.NbY)+' kN', 'Curve '+B.cvY.curve);
-    h+=msbRow('L<sub>ez</sub> = K<sub>z</sub>.L<sub>z</sub>', B.lczFromRestraints? 'largest lateral-restraint spacing =' : g(Ky,2)+' x '+msbM(S.L)+' =', msbM(B.LcrZ/1000)+' m', B.lczFromRestraints? 'P360 6.2' : (B.cantStrut? (B.leOverride? 'user L<sub>E</sub>' : 'cantilever 2.0L') : ''));
+    h+=msbRow('L<sub>ez</sub> = K<sub>z</sub>.L<sub>z</sub>', B.lczFromRestraints? 'largest lateral-restraint spacing (&le; '+g(Kz,2)+' x '+msbM(S.L)+' from the end fixities) =' : g(Kz,2)+' x '+msbM(S.L)+' = ('+msbEsc(B.leOverride? B.lcrBasis : B.lcrBasisZ)+')', msbM(B.LcrZ/1000)+' m', B.lczFromRestraints? 'P360 6.2' : kTag);
     h+=msbRow('&lambda;&#772;<sub>z</sub> = &radic;'+Albl+'.f<sub>y</sub>/N<sub>crz</sub>', '&radic;'+f1(Acm,2)+'x'+msbInt(c.fy)+'/'+f1(NcrZ,2)+' (N<sub>cr,z</sub> = &pi;&sup2;EI<sub>z</sub>/L<sub>ez</sub>&sup2;)', msbR(B.lamZ), '');
     h+=msbRow('N<sub>b.z.Rd</sub> = '+(B.aeffOn? 'A<sub>eff</sub>' : 'Area')+'.&chi;.f<sub>y</sub>/&gamma;<sub>M1</sub>', f1(Acm,2)+'x'+msbR(B.chiZ)+'x'+msbInt(c.fy)+'/10/1 =', msbKN(B.NbZ)+' kN', 'Curve '+B.cvZ.curve);
     // [beam-v03 addition, 19 Sep 2026 G3] channel: torsional / torsional-flexural buckling (cl 6.3.1.4)
@@ -488,7 +481,7 @@ function renderMasterSeriesBrief(a,c,sec){
   const chiModLine=(chi,lam,kc,f,chiMod,tag)=>msbRow('&chi;<sub>LT.mod</sub> = Fn(&chi;<sub>LT</sub>, &lambda;&#772;<sub>LT</sub>, k<sub>c</sub>, f)', msbR(chi)+', '+msbR(lam)+', '+msbDash(kc,v=>f1(v,3))+', '+msbR(f), msbR(chiMod), tag);
   const mbLine=(chiMod,Mb,capped)=>msbRow('M<sub>b.Rd</sub> = &chi;'+Wlbl+'.f<sub>y</sub>'+(capped!==false? ' &le; M<sub>c.y.Rd</sub>' : ''), msbR(chiMod)+' x '+WyTxt+' x '+msbInt(c.fy)+(capped!==false? ' &le; '+msbKNm(c.McRd) : '')+' =', msbKNm(Mb)+' kN.m', '');
   const ratioLine=(Mx,Mb)=>msbRow('M<sub>y.Ed</sub>/M<sub>b.Rd</sub>', msbKNm(Mx)+' / '+msbKNm(Mb), (Mb>0&&isFinite(c.ltbUtil))? msbR(c.ltbUtil) : '&mdash;', (Mb>0&&isFinite(c.ltbUtil))? msbWarn(c.ltbUtil<=1.0001) : 'not evaluated');
-  const leK=S.leFactor*(S.destab?1.2:1);
+  const leK=ltbLeFactor()*(S.destab?1.2:1);
   if(fullRest){
     h+=msbRow('M<sub>b.Rd</sub> = M<sub>c.y.Rd</sub>', 'Fully Restrained', msbKNm(c.McRd)+' kN.m', '');
   } else if(!LT){
@@ -514,9 +507,9 @@ function renderMasterSeriesBrief(a,c,sec){
       h+=ratioLine(c.Mx,0);
     } else {
       const sg=LT.spanGoverns? LT.spanGov : null;
-      const supExtras=S.supports.map(s=>{ const ex=[]; const vpOn= s.type==='fixed'? (S.fixedLateral!==false||s.vp) : !!s.vp; const wpOn= s.type==='fixed'? (S.rootWarp==='restrained'||s.phip) : !!s.phip; if(vpOn) ex.push('v&prime;'); if(wpOn) ex.push('&phi;&prime;'); return ex.length? 'x = '+g(+s.pos,2)+' m: +'+ex.join(', ')+' fixed' : null; }).filter(t=>t);
-      if(sg) h+=msbRow('Governing span '+msbM(sg.a/1000)+'&ndash;'+msbM(sg.b/1000)+' m (isolated, fork ends)', 'M<sub>y.Ed</sub> = '+msbKNm(sg.Ms)+', M<sub>cr</sub> = '+msbKNm(sg.Mcr)+', &lambda;&#772; = '+msbR(sg.lam)+', &chi; = '+msbR(sg.chi), msbKNm(sg.Mb)+' kN.m', 'span by span');
-      h+=msbRow('L<sub>e</sub> = portion between restraints', (isCant? 'root at x = 0 (fixed), tip free; root warping '+(S.rootWarp==='restrained'?'restrained':'free') : 'restraints at x = '+(LT.vPoints||[]).map(x=>msbM(x/1000)).join(', ')+' m (fork)')+(supExtras.length? '; '+supExtras.join('; ') : ''), msbM((xb-xa)/1000)+' m', 'FE');
+      const endBc=endsList().map(e=>{ const held=[]; if(e.uy) held.push('v'); if(e.rz) held.push('v&prime;'); if(e.rx) held.push('&phi;'); if(e.warp) held.push('&phi;&prime;'); return 'End '+e.n+' '+(held.length? held.join(', ')+' = 0' : 'free'); }).join('; ');
+      if(sg) h+=msbRow('Governing bay '+msbM(sg.a/1000)+'&ndash;'+msbM(sg.b/1000)+' m (isolated, fork ends)', 'M<sub>y.Ed</sub> = '+msbKNm(sg.Ms)+', M<sub>cr</sub> = '+msbKNm(sg.Mcr)+', &lambda;&#772; = '+msbR(sg.lam)+', &chi; = '+msbR(sg.chi), msbKNm(sg.Mb)+' kN.m', 'bay by bay');
+      h+=msbRow('L<sub>e</sub> = portion between restraints', endBc+((LT.vPoints||[]).length>2? '; lateral restraint points at x = '+(LT.vPoints||[]).map(x=>msbM(x/1000)).join(', ')+' m' : ''), msbM((xb-xa)/1000)+' m', 'FE');
       const zgTxt=(LT.zgValues&&LT.zgValues.length>1)? '; z<sub>g</sub> = '+LT.zgValues.map(z=>g(z,0)).join(', ')+' mm' : (Math.abs(LT.zg||0)>1e-9? '; z<sub>g</sub> = '+g(LT.zg,0)+' mm (load reversed: '+msbKNm(LT.McrRev)+')' : '');
       const mcrBad = LT.mcrConverged===false || (LT.meshError||0)>0.005;
       h+=msbRow('M<sub>cr</sub> = FE eigenvalue (n<sub>Elem</sub>, mesh error)', msbInt(LT.nElem)+' elements, '+f1((LT.meshError||0)*100,3)+' %'+(LT.nCombos>1? '; governing: '+msbEsc(LT.governCombo) : '')+zgTxt+(LT.nSolves!=null? '; '+LT.nCombos+' combination(s), '+LT.nSolves+' solve(s)'+(LT.nCached? ' + '+LT.nCached+' cached' : '') : ''), msbKNm(LT.Mcr)+' kN.m'+(sg? ' (whole member)' : ''), mcrBad? '<span class="ms-warn">BLOCKED</span>' : 'converged');
@@ -579,7 +572,7 @@ function renderMasterSeriesBrief(a,c,sec){
   const RF=c.restraintForces||null;
   if((LT && LT.segments && LT.segments.length) || (RF && RF.rows && RF.rows.length)){
     const hasSeg=!!(LT && LT.segments && LT.segments.length);
-    h+=msbHead(hasSeg? 'Lateral Restraint Portions (span by span, fork ends)' : 'Lateral Restraint Portions (restraint design forces)');
+    h+=msbHead(hasSeg? 'Lateral Restraint Portions (bay by bay, fork ends)' : 'Lateral Restraint Portions (restraint design forces)');
     if(hasSeg){
       let worst=null; LT.segments.forEach(s2=>{ if(s2.ok && (!worst||s2.util>worst.util)) worst=s2; });
       h+='<table class="ms-combos"><thead><tr><th>Portion</th><th>From &ndash; To (m)</th><th>L<sub>e</sub> (m)</th><th>M<sub>y.Ed</sub> (kN.m)</th><th>M<sub>cr</sub> (kN.m)</th><th>&lambda;&#772;<sub>LT</sub></th><th>&chi;<sub>LT</sub></th><th>M<sub>b.Rd</sub> (kN.m)</th><th>M<sub>y.Ed</sub>/M<sub>b.Rd</sub></th><th></th></tr></thead><tbody>'+
@@ -688,21 +681,14 @@ function renderMasterSeriesBrief(a,c,sec){
 
   /* ---- 5.9 Deflection Check ---- */
   h+=msbHead('Deflection Check - Load Case '+caseD);
-  const defSeg = a.deflection && (a.deflection.start>1e-6 || a.deflection.end<a.L-1e-6);
   const dCant = a.deflection? !!a.deflection.cant : isCant;
   const dAbs = a.deflection && a.deflection.abs!=null ? a.deflection.abs : null;
   const dAbsGov = !!(a.deflection && a.deflection.absGoverns);
-  // limit label: Span/divisor (L/divisorCant for a cantilever segment), with the absolute cap when entered
+  // limit label: Span/divisor (L/divisorCant when an end is vertically free), with the absolute cap when entered
   const limLbl=(cant,div)=>(cant? 'Tip &delta; &le; L/' : 'In-span &delta; &le; Span/')+msbInt(div)+(dAbs!=null? ' (&le; '+msbMM(dAbs)+' mm)' : '');
   const limVals=(sg)=>msbMM(Math.abs(sg.dmax))+' &le; '+(sg.absGoverns? msbMM(sg.abs)+' mm (absolute limit governs; '+g(sg.span,0)+' / '+msbInt(sg.divisor)+' = '+msbMM(sg.limSpan)+' mm)' : g(sg.span,0)+' / '+msbInt(sg.divisor)+' = '+msbMM(sg.limit)+' mm'+(sg.abs!=null? ' (absolute limit '+msbMM(sg.abs)+' mm not governing)' : ''))+' @ x = '+msbM(sg.dpos/1000)+' m';
   const gseg = a.deflection || {dmax:c.dmax,dpos:dfl.dpos,span:c.span,divisor:c.divisor,limit:c.dlimit,limSpan:c.dlimit,abs:null,absGoverns:false};
-  h+=msbRow(limLbl(dCant,c.divisor), limVals(gseg)+(defSeg? ' (segment '+msbM(a.deflection.start/1000)+'&ndash;'+msbM(a.deflection.end/1000)+' m'+(dCant? ', cantilever' : '')+')' : '')+(dCant? '; cantilever L/'+msbInt(c.divisor)+' per UK NA to EN 1993-1-1 Table NA.2 [verify]' : ''), msbMM(c.dmax)+' mm', msbWarn(c.defOk)+(dAbsGov? ' abs' : ''));
-  // per-segment limits (multi-span / overhang members): every segment with its own limit and governing SLS case
-  if(a.deflSegments && a.deflSegments.length>1){
-    a.deflSegments.forEach(sg=>{
-      h+=msbRow((sg.cant? 'Cantilever ' : 'Span ')+sg.no+' ('+msbM(sg.start/1000)+'&ndash;'+msbM(sg.end/1000)+' m): '+(sg.cant? 'tip &delta; &le; L/' : '&delta; &le; Span/')+msbInt(sg.divisor), limVals(sg)+' ('+msbEsc(sg.combo)+')', msbMM(Math.abs(sg.dmax))+' mm', msbWarn(sg.util<=1.0001));
-    });
-  }
+  h+=msbRow(limLbl(dCant,c.divisor), limVals(gseg)+(dCant? ' (vertically free end: tip deflection relative to the held end; L/'+msbInt(c.divisor)+' per UK NA to EN 1993-1-1 Table NA.2 [verify], cantilever row)' : ''), msbMM(c.dmax)+' mm', msbWarn(c.defOk)+(dAbsGov? ' abs' : ''));
 
   /* ---- 5.10 Unity bar ---- */
   const findU=(re)=>{ const u=utils.find(u=>re.test(u.name)); return u? u.val : null; };

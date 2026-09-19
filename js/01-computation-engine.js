@@ -36,14 +36,21 @@ function buildNodes(L,supports,loads,nSub,extra){
   nodes=[...new Set(nodes.map(x=>+x.toFixed(6)))].sort((a,b)=>a-b);
   return nodes;
 }
-function solveBeam(L,EI,supports,loads,nSub=120,hinges){
-  // A zero-energy displacement is piecewise linear across moment releases.
-  // Check its restraint matrix directly: finite round-off in a large FE matrix
-  // can otherwise disguise an exact mechanism as a very flexible stable beam.
+/* Restraint rank of the in-plane model (pure). A zero-energy displacement is
+   piecewise linear across moment releases: w(x) = a + b x/L + sum c_h <x-h>/L.
+   Every support contributes the rows it restrains: vertical translation
+   (types 'pinned' and 'fixed') and rotation (types 'fixed' and 'guided' - a
+   guided / sliding end holds the rotation and leaves the translation free).
+   The model is stable when the rows span all (2 + number of releases)
+   rigid-body freedoms. Returns {rank, needed, ok}. */
+function beamRestraintRank(L,supports,hinges){
   const releases=[...new Set((hinges||[]).filter(x=>x>0&&x<L))].sort((a,b)=>a-b);
   const basis=x=>[1,x/L,...releases.map(h=>Math.max(0,(x-h)/L))];
   const rows=[];
-  supports.forEach(s=>{ rows.push(basis(s.pos)); if(s.type==='fixed') rows.push([0,1,...releases.map(h=>s.pos>h?1:0)]); });
+  supports.forEach(s=>{
+    if(s.type==='pinned'||s.type==='fixed') rows.push(basis(s.pos));
+    if(s.type==='fixed'||s.type==='guided') rows.push([0,1,...releases.map(h=>s.pos>h?1:0)]);
+  });
   let rank=0;
   for(let col=0;col<releases.length+2;col++){
     let pivot=rank;
@@ -54,7 +61,17 @@ function solveBeam(L,EI,supports,loads,nSub=120,hinges){
     for(let j=rank+1;j<rows.length;j++){ const v=rows[j][col]; for(let k=col;k<rows[j].length;k++) rows[j][k]-=v*rows[rank][k]; }
     rank++;
   }
-  if(rank<releases.length+2) throw new Error('Unstable beam mechanism: supports do not restrain every segment separated by internal hinges.');
+  return {rank,needed:releases.length+2,ok:rank>=releases.length+2,releases};
+}
+function solveBeam(L,EI,supports,loads,nSub=120,hinges){
+  // Support types: 'pinned' (vertical translation held), 'fixed' (translation +
+  // rotation held), 'guided' (rotation held, translation free - a sliding /
+  // guided end: reaction moment, no vertical reaction). A free end is simply
+  // absent from the list. Check the restraint matrix directly: finite
+  // round-off in a large FE matrix can otherwise disguise an exact mechanism
+  // as a very flexible stable beam.
+  supports.forEach(s=>{ if(!['pinned','fixed','guided'].includes(s.type)) throw new Error('solveBeam: unknown support type "'+s.type+'" (pinned | fixed | guided)'); });
+  if(!beamRestraintRank(L,supports,hinges).ok) throw new Error('Unstable beam mechanism: the end restraints do not hold every segment separated by internal hinges.');
   // Internal hinges = major-axis (in-plane) MOMENT RELEASES. At a hinge node the
   // two adjacent elements get INDEPENDENT rotation DOFs (sharing the translation),
   // so the transmitted bending moment is zero and the slope is discontinuous; the
@@ -98,9 +115,12 @@ function solveBeam(L,EI,supports,loads,nSub=120,hinges){
       }
     }
   });
+  // restrained DOFs per support type: the rotation DOF of a member end is the
+  // node's single rotation (an end node is never a hinge node)
+  const holdsW=t=>t==='pinned'||t==='fixed', holdsTh=t=>t==='fixed'||t==='guided';
   const fixed=new Set();
   supports.forEach(s=>{ const i=idx.get(+(+s.pos).toFixed(6)); if(i==null) return;
-    fixed.add(wDof[i]); if(s.type==='fixed') fixed.add(rotR(i)); });
+    if(holdsW(s.type)) fixed.add(wDof[i]); if(holdsTh(s.type)) fixed.add(rotR(i)); });
   const free=[]; for(let d=0;d<ndof;d++) if(!fixed.has(d)) free.push(d);
   const Kff=free.map(r=>free.map(c=>K[r][c])), Ff=free.map(r=>F[r]);
   const df=linsolve(Kff,Ff), d=new Array(ndof).fill(0);
@@ -108,13 +128,13 @@ function solveBeam(L,EI,supports,loads,nSub=120,hinges){
   const R=new Array(ndof).fill(0);
   for(let i=0;i<ndof;i++){ let s=0; for(let j=0;j<ndof;j++) s+=K[i][j]*d[j]; R[i]=s-F[i]; }
   const reactions=supports.map(s=>{ const i=idx.get(+(+s.pos).toFixed(6));
-    return {pos:s.pos,type:s.type,V:i!=null?R[wDof[i]]:0,M:(s.type==='fixed'&&i!=null)?R[rotR(i)]:0}; });
+    return {pos:s.pos,type:s.type,end:s.end,V:(holdsW(s.type)&&i!=null)?R[wDof[i]]:0,M:(holdsTh(s.type)&&i!=null)?R[rotR(i)]:0}; });
   const w=nodes.map((_,i)=>d[wDof[i]]);
   return {nodes,w,reactions};
 }
 function sfdBmd(L,supports,loads,reactions,N=1000){
   const PF=[],PM=[];
-  reactions.forEach(r=>{ PF.push([r.pos,r.V]); if(r.type==='fixed') PM.push([r.pos,-r.M]); });
+  reactions.forEach(r=>{ PF.push([r.pos,r.V]); if(r.type==='fixed'||r.type==='guided') PM.push([r.pos,-r.M]); });
   // Applied point moments: with the solver's reaction convention (verified: R1=+M/L up,
   // V=+M/L), a ccw-positive applied moment REDUCES the sagging BM as x crosses it -
   // the diagram must close to zero at a pin. The previous +ld.M sign left the BMD
