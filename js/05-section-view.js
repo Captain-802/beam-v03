@@ -124,6 +124,18 @@ function sectionViewZoomActivate(e){
   if(e){ e.preventDefault(); e.stopPropagation(); }
   sectionViewZoomOpen();
 }
+/* Bind the zoom of every clickable section card under `root` after it has
+   been inserted (render() calls this on the report container): the card
+   carries data-section-zoom instead of inline onclick / onkeydown attributes,
+   which a Content Security Policy without 'unsafe-inline' would drop (house
+   rule: no inline handlers; 19 Sep 2026 review). */
+function sectionViewBindZoom(root){
+  if(!root || typeof root.querySelectorAll!=='function') return;
+  root.querySelectorAll('[data-section-zoom]').forEach(el=>{
+    el.addEventListener('click',sectionViewZoomActivate);
+    el.addEventListener('keydown',sectionViewZoomActivate);
+  });
+}
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape') sectionViewZoomClose();
 });
@@ -245,7 +257,7 @@ function sectionLoadLineView(sec, opts){
     + ' &middot; <span style="color:#dc2626">&#9679;</span> SC <span style="color:#2563eb">&#9679;</span> C'
     + (zoomed? '' : ' &middot; <b>click to enlarge</b>');
   const cardClass='section-view-card'+(zoomed?' section-view-card-zoomed':' section-view-card-clickable');
-  const cardAttrs=zoomed ? '' : ' tabindex="0" role="button" aria-label="Zoom section load lines" title="Click to enlarge" onclick="sectionViewZoomActivate(event)" onkeydown="sectionViewZoomActivate(event)"';
+  const cardAttrs=zoomed ? '' : ' tabindex="0" role="button" aria-label="Zoom section load lines" title="Click to enlarge" data-section-zoom="1"';
   return '<div class="'+cardClass+'"'+cardAttrs+'>' +
     '<div class="dt">Section load lines</div>' +
     '<svg class="section-view-svg" viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Cross-section load lines and eccentricities from shear centre">' +

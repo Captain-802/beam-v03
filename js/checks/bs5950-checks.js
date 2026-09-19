@@ -1,3 +1,58 @@
+/* ---------------------------------------------------------------------------
+   BS 5950-1:2000 LTB effective length from the end flags (pure; reads
+   st.ends, st.leFactor, st.destab; 19 Sep 2026 review finding: a released
+   U_y / R_x passed on L_E = 1.0 L). Returns {LE (mm), K, basis (HTML,
+   [verify]), row, msg (HTML, blocking) | null}.
+   - An entered L_E/L factor: K = factor x (1.2 when destabilising), as before
+     (the user's own Table 13 / 14 reading).
+   - Fork ends at both ends (U_y + R_x held): Table 13, compression flange
+     laterally restrained, nominal torsional restraint - "both flanges free to
+     rotate on plan" (R_z free at both ends) 1.0 L normal / 1.2 L
+     destabilising; "both flanges fully restrained against rotation on plan"
+     (R_z held at both ends) 0.7 L / 0.85 L; R_z at one end only: Table 13 has
+     no one-end row, the 1.0 L / 1.2 L row is taken (conservative).
+   - Cantilever (in-plane fixed root - free tip) whose root holds U_y, R_z and
+     R_x: Table 14 (d) "restrained laterally, torsionally and against
+     rotation on plan" (the root warping flag is not distinguished by the
+     table), tip: free 0.8 L / 1.4 L; torsional restraint (R_x) 0.6 L / 0.6 L;
+     lateral and torsional restraint (U_y + R_x) 0.5 L / 0.5 L; a tip holding
+     U_y only is taken as free (the Table 14 "lateral restraint to top flange"
+     row is not claimed for a shear-centre restraint: conservative).
+   - Any other end flag set (an end releasing U_y or R_x, a lateral
+     cantilever, a cantilever root releasing R_z): no tabulated row - blocked
+     until an L_E/L factor is entered.
+   The destabilising column of the table is used directly (not the x1.2 device
+   of the entered-factor path).
+   --------------------------------------------------------------------------- */
+function bs5950LtbLength(st,L){
+  st=st||S;
+  const [e1,e2]=endsList(st);
+  const destab=!!st.destab;
+  const sym={uy:'U<sub>y</sub>',rx:'R<sub>x</sub>'};
+  if(st.leFactor!=null&&st.leFactor!==''&&Number.isFinite(+st.leFactor)){
+    const K=(+st.leFactor)*(destab?1.2:1);
+    return {LE:K*L, K, row:'user', msg:null,
+      basis:'entered L<sub>E</sub>/L = '+(+st.leFactor).toFixed(2)+(destab? ' &times; 1.2 (destabilising)' : '')+' (the end fixities would give: '+bs5950LtbLength(Object.assign({},st,{leFactor:null}),L).basis+')'};
+  }
+  const cantIP=!!(e1.uz&&e1.ry&&!e2.uz&&!e2.ry);   // in-plane cantilever: Table 14, never Table 13
+  if(cantIP && e1.uy&&e1.rz&&e1.rx){
+    const tip= (e2.uy&&e2.rx)? 'lateral and torsional restraint (U<sub>y</sub> + R<sub>x</sub>)' : e2.rx? 'torsional restraint (R<sub>x</sub>)' : 'free'+(e2.uy? ' (U<sub>y</sub> at the tip not claimed as the top-flange row: conservative)' : '');
+    const K= (e2.uy&&e2.rx)? 0.5 : e2.rx? 0.6 : (destab? 1.4 : 0.8);
+    const row='Table 14 (d): root restrained laterally, torsionally and against rotation on plan; tip '+tip;
+    return {LE:K*L, K, row, msg:null, basis:K.toFixed(2)+' L from the end flags - cantilever, '+row+', '+(destab? 'destabilising' : 'normal')+' loading (the root warping flag is not distinguished by Table 14) [verify]'};
+  }
+  const forkBoth=!!(e1.uy&&e1.rx&&e2.uy&&e2.rx);
+  if(!cantIP && forkBoth){
+    const rzBoth=!!(e1.rz&&e2.rz), rzOne=!rzBoth&&!!(e1.rz||e2.rz);
+    const K= rzBoth? (destab? 0.85 : 0.7) : (destab? 1.2 : 1.0);
+    const row= rzBoth? 'Table 13: both flanges fully restrained against rotation on plan (R<sub>z</sub> held at both ends)' : 'Table 13: both flanges free to rotate on plan'+(rzOne? ' (R<sub>z</sub> held at one end only: no one-end row, taken as free to rotate - conservative)' : '');
+    return {LE:K*L, K, row, msg:null, basis:K.toFixed(2)+' L from the end flags - fork ends (U<sub>y</sub> + R<sub>x</sub>) at both ends, compression flange laterally restrained with nominal torsional restraint, '+row+', '+(destab? 'destabilising' : 'normal')+' loading [verify]'};
+  }
+  const rel=[e1,e2].map(e=>{ const r=['uy','rx'].filter(k=>!e[k]).map(k=>sym[k]); return r.length? 'End '+e.n+' releases '+r.join(' and ') : null; }).filter(Boolean);
+  const why= cantIP? 'the cantilever root (End 1) does not hold U<sub>y</sub>, R<sub>z</sub> and R<sub>x</sub> (Table 14 (d))' : rel.join('; ');
+  return {LE:1.0*L, K:1.0, row:'none', basis:'no tabulated row for these end flags (1.0 L printed, not accepted)',
+    msg:'BS 5950 lateral-torsional buckling: the end flags have no Table 13 / Table 14 row - '+why+'. L<sub>E</sub> cannot be taken as 1.0 L for a released end; enter the L<sub>E</sub>/L factor for these end conditions (Table 13 for a beam with both ends held, Table 14 for a cantilever) under Axial &amp; lateral-torsional buckling. PASS is blocked.'};
+}
 function checksBS5950(a){
   const sec=a.sec, py=a.py, E=a.E;
   const unsupported=[];
@@ -86,7 +141,7 @@ function checksBS5950(a){
   // m-factors. Table 18 note: mLT = 1.0 for cantilevers AND for members with
   // DESTABILISING loading conditions (previously the destabilising switch only
   // lengthened LE and kept mLT < 1, which Table 18 does not permit).
-  const isCant=(S.supports.length===1 && S.supports[0].type==='fixed');
+  const isCant=isCantilever(S);
   const mf=mFactors(a.Mq,a.Mh,a.Mq3,a.Mmax,a.M24);
   let mLT=(isCant||S.destab)?1:mf.mLT, mx=mf.mx;
   if(S.mLTo!=null) mLT=S.mLTo;
@@ -94,7 +149,12 @@ function checksBS5950(a){
   // LTB   BS 5950 box-section path. SHS naturally returns very low ?LT because
   // Ix Iy; RHS uses the closed-section ?LT expression rather than a rough Table
   // 15 screen.
-  const LE=S.leFactor*(S.destab?1.2:1)*a.L;
+  // LTB effective length: the entered L_E/L factor (x1.2 destabilising) or, when
+  // blank, Table 13 / 14 from the end flags (bs5950LtbLength; blocked where no
+  // row exists - 19 Sep 2026 review)
+  const leBS=bs5950LtbLength(S,a.L);
+  const LE=leBS.LE;
+  if(leBS.msg) unsupported.push(leBS.msg);
   const ry=sec.ry*10;
   let lam=null,v=null,betaW=null,lamLT=null,pb=null,lamL0=null,Mb,ltbUtil,rhsFlag=false,phiB=null,gammaPrime=null;
   if(sec.isBox){
@@ -126,16 +186,27 @@ function checksBS5950(a){
   const a_robX = S.robX!=null? S.robX : autoRob.x;
   const a_robY = S.robY!=null? S.robY : autoRob.y;
   const rx=sec.rx*10;
-  const pcx=pcFunc(LE/rx,py,a_robX,E), pcy=pcFunc(LE/ry,py,a_robY,E);
-  const Pc=Ag*pcx/1000, Pcy=Ag*pcy/1000;
+  // strut lengths: the entered L_E/L factor, else from the end fixities
+  // (lcrDefaults, Table 22 style, x-x from U_z / R_y and y-y from U_y / R_z);
+  // the destabilising x1.2 is kept on the strut length as before on this path
+  const lcr=lcrDefaults(S);
   const Fc=Math.max(F,0);
+  if(Fc>0 && (lcr.Ky==null || lcr.Kz==null)) throw 'Strut buckling: the end fixities form a mechanism ('+(lcr.Ky==null? lcr.basisY : lcr.basisZ)+'); F_c cannot be carried.';
+  const Kx=lcr.Ky!=null? lcr.Ky : 1.0, Ky=lcr.Kz!=null? lcr.Kz : 1.0;
+  const LcrX=Kx*(S.destab?1.2:1)*a.L, LcrY=Ky*(S.destab?1.2:1)*a.L, lcrBasis=lcr.basis;
+  const pcx=pcFunc(LcrX/rx,py,a_robX,E), pcy=pcFunc(LcrY/ry,py,a_robY,E);
+  const Pc=Ag*pcx/1000, Pcy=Ag*pcy/1000;
   if(Fc>0 && sec.kind==='channel') unsupported.push("BS 5950 PFC/channel compression must use the UK channel strut approach/Table 25 or verified Blue Book data; the previous generic Robertson placeholder is not accepted.");
   const pyZx=py*Zx/1e6;
   const u1=Fc/Pc + mx*Mx/pyZx;
   const u2=Fc/Pcy + mLT*Mx/Mb;
-  // deflection
-  const span=a.deflection?a.deflection.span:a.L, divisor=S.divisor, dlimit=span/divisor;
+  // deflection - governing segment with its own limit (span/divisor, L/divisorCant
+  // for a cantilever segment, capped by the optional absolute limit), from analyse()
+  const span=a.deflection?a.deflection.span:a.L;
+  const divisor=(a.deflection&&a.deflection.divisor!=null)? a.deflection.divisor : S.divisor;
+  const dlimit=(a.deflection&&a.deflection.limit!=null)? a.deflection.limit : span/divisor;
   const dmax=Math.abs(a.deflection?a.deflection.dmax:a.dmax), defOk=dmax<=dlimit;
+  const deflCant=!!(a.deflection&&a.deflection.cant), deflAbsGoverns=!!(a.deflection&&a.deflection.absGoverns);
 
   if(S.eccOn && S.loads.some(ld=>Math.abs(ld.e||0)>1e-9)) unsupported.push("Load eccentricity / torsion design is implemented for the EC3 code path only; switch Design code to EC3.");
   const utils=[
@@ -152,7 +223,7 @@ function checksBS5950(a){
 
   return {eps,cl,clsName,unsupported,advisory,bTBS:bT_BS,Av,Pv,Fv,lowShear,shearBuckle,Mcx,hsNote,Zx,Sx,rhsFlag,
     Ag,Anet,Ke,Ae,Pz,F,n,Srx,Mrx,Mx,localUtil,isCant,mLT,mx,mf,
-    LE,lam,v,betaW,phiB,gammaPrime,lamLT,pb,lamL0,Mb,ltbUtil,a_robX,a_robY,pcx,pcy,Pc,Pcy,Fc,pyZx,u1,u2,
-    span,divisor,dlimit,dmax,defOk,utils,gov,pass};
+    LE,leK:leBS.K,leBasis:leBS.basis,leRow:leBS.row,leMsg:leBS.msg,LcrX,LcrY,Kx,Ky,lcrBasis,lam,v,betaW,phiB,gammaPrime,lamLT,pb,lamL0,Mb,ltbUtil,a_robX,a_robY,pcx,pcy,Pc,Pcy,Fc,pyZx,u1,u2,
+    span,divisor,dlimit,dmax,defOk,deflCant,deflAbsGoverns,utils,gov,pass};
 }
 

@@ -6,6 +6,49 @@ const f1=(v,d=1)=>{ if(!isFinite(v))return" "; const n=Math.abs(v)<5e-7?0:v; ret
 const sname=k=>k.replace(/x/g,' ');
 function st(ok,t,fl){ return `<div class="status ${ok?'ok':'fail'}">${ok?t:(fl||'FAIL')}</div>`; }
 
+/* Web transverse forces (EN 1993-1-5 clause 6 + 7.2) block of the detailed
+   report: geometry, the governing station's derivation and one row per
+   station. Pure function of c.web (webTransverseCheck); nothing recomputed. */
+function renderWebTransverseBlock(c,sec,a){
+  const W=c.web; if(!W) return '';
+  const typeName=t=>t==='a'? 'type (a), interior load resisted by web shear' : t==='b'? 'type (b), load transferred through the web to the opposite flange' : 'type (c), load near an unstiffened end';
+  let h=`
+  <div class="section-title smallgap">Web Transverse Forces (EN 1993-1-5 Cl. 6, interaction Cl. 7.2)</div>
+  <div class="calc-block">
+    <div>Web geometry h<sub>w</sub>, t<sub>w</sub>, t<sub>f</sub>; b<sub>f</sub> &le; ${W.isBox||W.chan? 't<sub>w</sub> + 15&epsilon;t<sub>f</sub>':'t<sub>w</sub> + 30&epsilon;t<sub>f</sub>'}</div><div class="formula">${W.isBox? 'each web a plate of thickness t, flat depth from the section table (corner geometry); flange share per web B/2':'clear depth between flanges'}: h<sub>w</sub> = ${g(W.hw,1)}, t<sub>w</sub> = ${g(W.tw,1)}, t<sub>f</sub> = ${g(W.tf,1)} mm; b<sub>f</sub> = min(${g(W.bfRaw,1)}, ${g(W.bfLim,1)}) = ${g(W.bf,1)} mm; f<sub>yw</sub> = f<sub>yf</sub> = ${g(W.fyw,0)} N/mm&sup2;</div><div class="value">${W.nWebs} web${W.nWebs>1?'s':''}</div><div></div>
+    <div>m<sub>1</sub> = f<sub>yf</sub>b<sub>f</sub>/(f<sub>yw</sub>t<sub>w</sub>); m<sub>2</sub> = 0.02(h<sub>w</sub>/t<sub>f</sub>)&sup2; if &lambda;&#772;<sub>F</sub> &gt; 0.5, else 0</div><div class="formula">${g(W.fyf,0)}&times;${g(W.bf,1)}/(${g(W.fyw,0)}&times;${g(W.tw,1)}); 0.02&times;(${g(W.hw,1)}/${g(W.tf,1)})&sup2;</div><div class="value">${g(W.m1,3)}; ${g(W.m2full,3)}</div><div class="status">6.5(1)</div>
+    <div>a (distance between transverse stiffeners)</div><div class="formula">${W.aBasis}</div><div class="value"></div><div class="status">6.4(1)</div>`;
+  const G=W.show||W.gov2;
+  if(G){
+    const s=G, t=s.gov, cs=s.cases[s.g2], c72=s.cases[s.g72];
+    const stNv=(ok)=> s.nv? '<div class="status" style="color:#b91c1c">NOT VERIFIED</div>' : st(ok,'OK');
+    const ssTxt=`s<sub>s</sub> = ${g(s.ss,1)} mm${s.ssDefault? ' (not entered: lower bound 0)' : (s.kind==='load'&&s.ssIn===0? ' (default 0)' : ' (entered)')}${s.ssCap? ', capped at h<sub>w</sub> (6.3(1))':''}; d = ${g(s.d,1)} mm to the member end; c = max(d &minus; s<sub>s</sub>/2, 0) = ${g(s.c,1)} mm`;
+    h+=`
+    <div><b>${s.nv? 'Worst station (NOT VERIFIED: s<sub>s</sub> not entered, lower bound 0)' : 'Governing station'} x = ${g(s.x/1000,3)} m: ${s.label}</b></div><div class="formula">${typeName(t.type)}${s.types.length>1? ' &mdash; types '+s.types.map(x=>'('+x+')').join(', ')+' evaluated ('+s.sols.map(q=>'F<sub>Rd,'+q.type+'</sub> = '+f1(q.FRd,1)).join(', ')+' kN), the lower governs' : ''}; ${ssTxt}</div><div class="value"></div><div></div>
+    <div>k<sub>F</sub> = ${t.type==='c'? '2 + 6(s<sub>s</sub> + c)/h<sub>w</sub> &le; 6' : (t.type==='b'? '3.5' : '6')+' + 2(h<sub>w</sub>/a)&sup2;'}</div><div class="formula">${t.type==='c'? '2 + 6&times;'+g(s.ss+s.c,1)+'/'+g(W.hw,1) : (t.type==='b'? '3.5' : '6')+' + 2&times;('+g(W.hw,1)+'/'+g(s.a,0)+')&sup2;'}</div><div class="value">${g(t.kF,3)}</div><div class="status">Fig 6.1(${t.type})</div>
+    <div>F<sub>cr</sub> = 0.9k<sub>F</sub>Et<sub>w</sub>&sup3;/h<sub>w</sub></div><div class="formula">0.9&times;${g(t.kF,3)}&times;${g(a.E,0)}&times;${g(W.tw,1)}&sup3;/${g(W.hw,1)}</div><div class="value">${f1(t.Fcr,1)} kN</div><div class="status">6.4(1)</div>
+    ${t.type==='c'? `<div>l<sub>e</sub> = k<sub>F</sub>Et<sub>w</sub>&sup2;/(2f<sub>yw</sub>h<sub>w</sub>) &le; s<sub>s</sub> + c</div><div class="formula">${g(t.kF,3)}&times;${g(a.E,0)}&times;${g(W.tw,1)}&sup2;/(2&times;${g(W.fyw,0)}&times;${g(W.hw,1)}) = ${g(t.leRaw,1)} &le; ${g(s.ss+s.c,1)}</div><div class="value">${g(t.le,1)} mm</div><div class="status">6.5(4)</div>
+    <div>l<sub>y</sub> = min[l<sub>e</sub> + t<sub>f</sub>&radic;(m<sub>1</sub>/2 + (l<sub>e</sub>/t<sub>f</sub>)&sup2; + m<sub>2</sub>), l<sub>e</sub> + t<sub>f</sub>&radic;(m<sub>1</sub> + m<sub>2</sub>)]</div><div class="formula">m<sub>2</sub> = ${g(t.m2,3)}${t.iter? ' (first pass &lambda;&#772;<sub>F</sub> = '+g(t.lam1,3)+' &le; 0.5, so m<sub>2</sub> = 0)':''}; min[${g(t.l1,1)}, ${g(t.l2,1)}]</div><div class="value">${g(t.ly,1)} mm</div><div class="status">6.5(4)</div>`
+    : `<div>l<sub>y</sub> = s<sub>s</sub> + 2t<sub>f</sub>(1 + &radic;(m<sub>1</sub> + m<sub>2</sub>)) &le; a</div><div class="formula">m<sub>2</sub> = ${g(t.m2,3)}${t.iter? ' (first pass &lambda;&#772;<sub>F</sub> = '+g(t.lam1,3)+' &le; 0.5, so m<sub>2</sub> = 0)':''}; ${g(s.ss,1)} + 2&times;${g(W.tf,1)}&times;(1 + &radic;(${g(W.m1,3)} + ${g(t.m2,3)})) = ${g(t.l1,1)}${t.capA? ' &gt; a = '+g(s.a,0)+' (capped)':''}</div><div class="value">${g(t.ly,1)} mm</div><div class="status">6.5(3)</div>`}
+    <div>&lambda;&#772;<sub>F</sub> = &radic;(l<sub>y</sub>t<sub>w</sub>f<sub>yw</sub>/F<sub>cr</sub>); &chi;<sub>F</sub> = 0.5/&lambda;&#772;<sub>F</sub> &le; 1</div><div class="formula">&radic;(${g(t.ly,1)}&times;${g(W.tw,1)}&times;${g(W.fyw,0)}/${f1(t.Fcr*1000,0)}) = ${g(t.lam,3)}; 0.5/${g(t.lam,3)} = ${g(t.chiRaw,3)}${t.chiRaw>1? ' &rarr; 1.0':''}</div><div class="value">&chi;<sub>F</sub> = ${g(t.chi,3)}</div><div class="status">6.4(1)</div>
+    <div>F<sub>Rd</sub> = f<sub>yw</sub>L<sub>eff</sub>t<sub>w</sub>/&gamma;<sub>M1</sub>, L<sub>eff</sub> = &chi;<sub>F</sub>l<sub>y</sub></div><div class="formula">${g(W.fyw,0)}&times;${g(t.Leff,1)}&times;${g(W.tw,1)}/1.0${W.isBox? ' per web; share to this web '+g(s.share,3)+(s.eMax>0? ' (lever rule, e = '+g(s.eMax,0)+' mm)':' (e = 0)')+'; F<sub>Rd</sub> for the load = '+f1(s.FRdTot,1)+' kN':''}</div><div class="value">${f1(t.FRd,1)} kN</div><div class="status">6.2(1)</div>
+    <div>F<sub>Ed</sub> / F<sub>Rd</sub> &le; 1.0</div><div class="formula">${cs.P!==0&&s.support? 'P = '+f1(Math.abs(cs.P),1)+', R = '+f1(cs.R,1)+' kN: ':''}F<sub>Ed</sub> = ${f1(cs.F,1)} kN (${cs.combo}; ${cs.flange} flange, ${cs.flangeState}) / ${f1(s.FRdTot,1)}</div><div class="value">${g(cs.eta2,3)}</div>${stNv(cs.eta2<=1.0001)}
+    <div>&eta;<sub>2</sub> + 0.8&eta;<sub>1</sub> &le; 1.4 (&eta;<sub>1</sub> = M<sub>Ed</sub>/M<sub>c,Rd</sub>${W.NEd>1e-9? ' + N<sub>Ed</sub>/N<sub>pl,Rd</sub>':''})</div><div class="formula">${g(c72.eta2,3)} + 0.8&times;(${f1(c72.M,1)}/${f1(W.McRd0,1)}${W.NEd>1e-9? ' + '+f1(W.NEd,1)+'/'+f1(W.NplRd,1):''} = ${g(c72.eta1,3)}) = ${g(c72.u72raw,3)} &le; 1.4 (${c72.combo})${c72.flangeComp? '' : '; loaded flange in tension: 7.2(2) refers to 6.2.1(5), expression applied as a screen [verify]'}</div><div class="value">${g(c72.u72,3)}</div>${stNv(c72.u72<=1.0001)}`;
+  }
+  h+=`
+  </div>
+  <table class="force-table" style="font-size:12px">
+    <thead><tr><th>x (m)</th><th>Station</th><th>Type</th><th>s<sub>s</sub> (mm)</th><th>k<sub>F</sub></th><th>l<sub>y</sub> (mm)</th><th>&lambda;&#772;<sub>F</sub></th><th>&chi;<sub>F</sub></th><th>F<sub>Rd</sub> (kN)</th><th>F<sub>Ed</sub> (kN)</th><th>Load case</th><th>F<sub>Ed</sub>/F<sub>Rd</sub></th><th>(&eta;<sub>2</sub>+0.8&eta;<sub>1</sub>)/1.4</th><th></th></tr></thead>
+    <tbody>${W.stations.map(s=>{
+      if(s.stiff) return `<tr><td class="num">${g(s.x/1000,3)}</td><td>${s.label}</td><td colspan="11">${s.msg}</td><td>advisory</td></tr>`;
+      const t=s.gov, cs=s.cases[s.g2];
+      return `<tr><td class="num">${g(s.x/1000,3)}</td><td>${s.label}</td><td>(${t.type})</td><td class="num">${g(s.ss,1)}${s.ssDefault?'*':''}</td><td class="num">${g(t.kF,3)}</td><td class="num">${g(t.ly,1)}</td><td class="num">${g(t.lam,3)}</td><td class="num">${g(t.chi,3)}</td><td class="num">${f1(s.FRdTot,1)}</td><td class="num">${f1(cs.F,1)}</td><td>${cs.combo}</td><td class="num">${g(s.eta2,3)}</td><td class="num">${g(s.u72,3)}</td><td style="font-weight:700;color:${(s.eta2<=1.0001&&s.u72<=1.0001)?'#166534':'#b91c1c'}">${s.nv? 'NOT VERIFIED' : (s.eta2<=1.0001&&s.u72<=1.0001)? (s===W.gov2? 'governs':'OK') : 'FAIL'}</td></tr>`;
+    }).join('')}</tbody>
+  </table>
+  <div class="note" style="margin-left:0">${W.anyDefaultSs? '* s<sub>s</sub> not entered at this end: evaluated at the lower bound s<sub>s</sub> = 0 (F<sub>Rd</sub> rises with the seating length: a station passing at 0 is verified for any seating, one failing at 0 is NOT VERIFIED until s<sub>s</sub> is entered under End conditions). ':''}Point loads act on the top flange (bottom flange for an upward load) and reactions on the bottom flange; s<sub>s</sub> &le; h<sub>w</sub> (6.3(1)); type (c) is evaluated whenever s<sub>s</sub> + c &lt; 2h<sub>w</sub>/3 (the value at which k<sub>F</sub>(c) reaches the long-panel 6) and the lower F<sub>Rd</sub> of types (a) and (c) governs; a point load over an end holding U<sub>z</sub> is type (b) with F<sub>Ed</sub> = max(P, R). &eta;<sub>1</sub> uses the unreduced class-consistent M<sub>c,Rd</sub> (${W.cls<=2? 'W<sub>pl,y</sub>':'W<sub>el,y</sub>'}) [verify: EN 1993-1-5 4.6 writes &eta;<sub>1</sub> with W<sub>eff</sub>]. Not evaluated: distributed loads as patch loads, loads hung from the bottom flange, the closely spaced total-load check (6.3(3)), flange-induced buckling (section 8); a declared bearing stiffener must be designed to 9.4.</div>`;
+  return h;
+}
+
 function render(){
   const rep=$("report");
   let a,c;
@@ -14,7 +57,11 @@ function render(){
   const sec=a.sec;
   const sci = S.code==='EC3' && (S.restraint||'full')==='full';
   const sciU = S.code==='EC3' && !sci;
-  const famLabel = sec.isBox? (S.family==='rhs'? 'RHS [Hot-finished]' : `SHS [${sec.boxType==='CF'?'Cold-formed':'Hot-finished'}]`) : S.family==='ub'? 'UB' : S.family==='uc'? 'UC' : 'PFC';
+  // EC3 unrestrained Mcr method actually used by the check engine (c.mcrMethod is
+  // set by both routes; 'standard' = closed form, 'eigen' = FE eigensolver)
+  const mcrStd = sciU && c.mcrMethod==='standard';
+  const mcrMethodLabel = mcrStd? 'standard closed-form method (NCCI SN003a / SN006a, C<sub>1</sub> tables)' : 'FE eigenvalue method';
+  const famLabel = sec.isBox? (S.family==='rhs'? `RHS [${sec.boxType==='CF'?'Cold-formed':'Hot-finished'}]` : `SHS [${sec.boxType==='CF'?'Cold-formed':'Hot-finished'}]`) : S.family==='ub'? 'UB' : S.family==='uc'? 'UC' : 'PFC';
   const gradeTxt=`${S.grade} (p<sub>y</sub> = ${g(a.py,0)} N/mm )`;
   const vt=c.tor&&c.tor.vt ? c.tor.vt : null;
   const vtX=vt ? vt.x/1000 : 0;
@@ -42,7 +89,25 @@ function render(){
   });
   const loadLines=[autoSwLine,...userLoadLines].join("<br>");
   const sectionView = typeof sectionLoadLineView === 'function' ? sectionLoadLineView(sec) : '';
-  const reactLine=a.reactions.map(r=>`R@${g(r.pos/1000)}m = ${f1(r.V/1000,2)} kN`+(r.type==='fixed'?`, M = ${f1(-r.M/1e6,2)} kN m`:'')).join("   ");
+  // End 1 / End 2 reactions of the governing-moment combination: R (upward positive) and the
+  // end moment in the diagram convention as the end type carries them; "guided: M only"
+  const reactLine=endsList().map(e=>{
+    const r=a.reactions.find(q=>q.end===e.n);
+    if(!r) return `End ${e.n} (x = ${g(e.x)} m): free end, no reaction`;
+    if(r.type==='guided') return `End ${e.n} (x = ${g(e.x)} m): guided: M only, M = ${f1(reactionEndMomentKNm(r),2)} kN m`;
+    return `End ${e.n} (x = ${g(e.x)} m): R = ${f1(r.V/1000,2)} kN`+(r.type==='fixed'? `, M = ${f1(reactionEndMomentKNm(r),2)} kN m` : ' (pinned: no M)');
+  }).join(" &nbsp; | &nbsp; ");
+  // End conditions line (19 Sep 2026 scope): the seven DOF flags of each end, the derived end types, the preset and the hinges
+  const endsLine=`<div class="note" style="margin-left:0">End conditions: ${endsConditionsLine(S)}.</div>`;
+  // uplift / hold-down rows (every combination's reactions; item 1.2)
+  const HD=c.holdDown||null;
+  const upliftLines=(HD&&HD.rows&&HD.rows.length)
+    ? HD.rows.map(u=>{
+        if(u.level==='sls') return `<div class="note" style="margin-left:0"><b>Uplift at SLS only, End ${u.n} (x = ${g(u.pos/1000,2)} m):</b> R = &minus;${f1(Math.abs(u.RSls),2)} kN (SLS combination ${u.comboSls}); no ULS combination lifts this end, including the &gamma;<sub>G,inf</sub> companions with G at 1.0 (STR set B) and 0.9 (EQU set A) (advisory).</div>`;
+        return `<div class="note" style="margin-left:0;color:${u.holdDown?'#374151':'#b91c1c'}"><b>Hold-down ${u.holdDown?'provided':'required'} at End ${u.n} (x = ${g(u.pos/1000,2)} m):</b> R = &minus;${f1(Math.abs(u.RUls),2)} kN (combination ${u.comboUls})${u.RSls!=null? `; SLS uplift &minus;${f1(Math.abs(u.RSls),2)} kN (${u.comboSls})`:''}; ${u.nCombos} combination(s) lift this end${u.holdDown? ' &mdash; design the hold-down connection for this force (advisory)' : ' &mdash; NOT VERIFIED until "hold-down provided" is ticked for this end'}.</div>`; }).join('')
+    : (a.uplift? `<div class="note" style="margin-left:0">Uplift: no end lifts in any of the ${a.uplift.nCombos!=null? a.uplift.nCombos : a.ulsResults.length+a.slsResults.length} combinations (all reactions &ge; 0${(a.ulsCompanions&&a.ulsCompanions.length)? '; incl. the '+a.ulsCompanions.length+' &gamma;<sub>G,inf</sub> companions with G at 1.0 and 0.9' : ''}).</div>` : '');
+  // gamma_G,inf companions (reactions only)
+  const patternBlock=a.companionNote? `<div class="note" style="margin-left:0">${a.companionNote}</div>` : '';
 
   // load combination results table   one row per enabled combo, flagging which one governs
   const comboRows = a.ulsResults.map(res=>{
@@ -56,6 +121,7 @@ function render(){
   }).join('');
   const combosBlock = `
   <div class="section-title smallgap">Load Combinations Considered</div>
+  ${patternBlock}
   <table class="force-table" style="font-size:13px">
     <thead><tr><th>ULS combination</th><th>Max F<sub>v</sub> (kN)</th><th>Max M<sub>x</sub> (kN m @ m)</th><th>Governs</th></tr></thead>
     <tbody>${comboRows}</tbody>
@@ -70,7 +136,7 @@ function render(){
     c.gov.name.startsWith('Shear')?a.governV.combo.label:
     c.gov.name.startsWith('Member buckling')&&c.buck?c.buck.combo||a.governM.combo.label:
     c.gov.name.startsWith('LTB ')&&c.ltb?c.ltb.governCombo||'':'');
-  const codeLabel = S.code==='EC3'? (sci? 'EN 1993-1-1 (UK NA) &mdash; fully restrained beam' : (c.ltb&&c.ltb.na? 'EN 1993-1-1 (UK NA) &mdash; closed section beam' : 'EN 1993-1-1 (UK NA) &mdash; unrestrained beam (LTB)')) : 'BS 5950-1:2000';
+  const codeLabel = S.code==='EC3'? (sci? 'EN 1993-1-1 (UK NA) &mdash; fully restrained beam' : (c.ltb&&c.ltb.na? 'EN 1993-1-1 (UK NA) &mdash; closed section beam' : 'EN 1993-1-1 (UK NA) &mdash; unrestrained beam (LTB, M<sub>cr</sub> '+(mcrStd?'standard closed form':'FE eigenvalue')+')')) : 'BS 5950-1:2000';
   const banner=`<div class="banner ${c.pass?'pass':'failb'}">
     <div><div class="verdict">${verdict}</div><div style="font-size:12px;color:#374151;font-family:Arial">${codeLabel} member check   ${sname(sec.key)} ${famLabel}   ${S.grade}</div></div>
     <div class="util">Governing: <b>${c.gov.name} = ${g(c.gov.val,3)}</b>${verdictCombo?' ('+verdictCombo+')':''}<br>
@@ -96,32 +162,45 @@ function render(){
   notes.push('PASS applies only to the implemented member checks and the enabled load combinations. Support bearing, connections and the complete structural system require separate verification.');
   if(S.combos.some(cb=>cb.id!=='c1'&&!cb.sls&&cb.on)) notes.push('Custom ULS factors are used as entered; confirm the complete combination set and favourable/unfavourable actions for the selected standard.');
   if(c.combinationChecks&&c.combinationChecks.length>1) notes.push('BS 5950 m-factors are evaluated separately for every ULS combination. The verdict uses the worst utilisation; the detailed envelope calculation below may have a different governing diagram.');
-  if(a.deflection&&a.deflection.span<a.L-1e-6) notes.push('Deflection is checked for each support-to-support span and each end overhang using its own length and the entered divisor. Governing segment: '+g(a.deflection.start/1000,2)+' to '+g(a.deflection.end/1000,2)+' m.');
   if(c.unsupported&&c.unsupported.length) c.unsupported.forEach(n=>notes.push(`<b>NOT COVERED:</b> ${n}`));
   if(c.advisory&&c.advisory.length) c.advisory.forEach(n=>notes.push(`<b>ADVISORY (does not block PASS):</b> ${n}`));
-  if((sci||sciU)&&c.tor&&c.tor.p385) notes.push("Open-section torsion per SCI P385: elastic Method B with fork ends and free warping, using Appendix C Cases 3/4/10. The rotation-induced minor moment is included. Plastic redistribution and growth of eccentricity as the section twists are not iterated. The EC3 destabilising switch does not add this second-order torsional effect.");
-  if((sci||sciU)&&c.tor) notes.push("Torsion: each applied load acts at its own offset e from the shear centre; loads with e = 0 and applied moments generate no torque. Automatic self-weight acts through the centroid, so it has e = 0 for doubly symmetric sections but e = e<sub>sc</sub> for PFC channels. The verification conservatively assumes maximum shear, bending and torsion are coincident (SCI example note). All supports are assumed to prevent twist &mdash; fork supports; friction-grip connections or similar may be required. Torsion is evaluated on the EC3 code path only.");
+  if((sci||sciU)&&c.tor&&c.tor.p385) notes.push(c.tor.fe
+    ? "Open-section torsion per SCI P385 Method B (elastic warping analysis), solved by the general warping-torsion finite-element model EI<sub>w</sub>&phi;&#8279; &minus; GI<sub>T</sub>&phi;&Prime; = m<sub>t</sub>(x) of js/checks/torsion-fe.js ("+c.tor.methodLabel+"; two-node elements with &phi; and &phi;&prime; DOFs; "+c.tor.bcText+"; twist and warping continuous through in-plane hinges) because the Appendix C closed forms do not apply: "+(c.tor.feReasons||[]).join('; ')+". Mesh doubled once: change "+(c.tor.meshError*100).toFixed(3)+" % (PASS refused above "+(c.tor.meshBlock*100).toFixed(1)+" %). The rotation-induced minor moment is included. Plastic redistribution and growth of eccentricity as the section twists are not iterated. The EC3 destabilising switch does not add this second-order torsional effect."
+    : "Open-section torsion per SCI P385: elastic Method B with fork ends and free warping, using Appendix C Cases 3/4/10. The rotation-induced minor moment is included. Plastic redistribution and growth of eccentricity as the section twists are not iterated. The EC3 destabilising switch does not add this second-order torsional effect.");
+  if((sci||sciU)&&c.tor) notes.push("Torsion: each applied load acts at its own offset e from the shear centre; loads with e = 0 and applied moments generate no torque. Automatic self-weight acts through the centroid, so it has e = 0 for doubly symmetric sections but e = e<sub>sc</sub> for PFC channels. The verification conservatively assumes maximum shear, bending and torsion are coincident (SCI example note). Twist is prevented at every end whose R<sub>x</sub> is restrained ("+endsList().filter(e=>e.rx).map(e=>'End '+e.n).join(', ')+"); the connection must provide that torsional restraint (friction-grip or similar). Torsion is evaluated on the EC3 code path only.");
   if((sci||sciU)&&c.coex&&c.coex.pureShearFail) notes.push("Coexistent M&ndash;V: V<sub>Ed</sub> exceeds V<sub>pl,Rd</sub> at the reported section, so the cl 6.2.8 reduced moment formula is bypassed; the section has already failed in pure shear.");
+  if((sci||sciU)&&c.web&&c.web.checked) notes.push("Web transverse forces (EN 1993-1-5 clause 6): F<sub>Rd</sub> = f<sub>yw</sub>L<sub>eff</sub>t<sub>w</sub>/&gamma;<sub>M1</sub> at every point load and every end reaction of every ULS combination, with the clause 7.2 interaction &eta;<sub>2</sub> + 0.8&eta;<sub>1</sub> &le; 1.4 at the same station; governing station x = "+g(c.web.gov2.x/1000,3)+" m ("+c.web.gov2.label+", type ("+c.web.gov2.type+")), F<sub>Ed</sub>/F<sub>Rd</sub> = "+g(c.web.util2,3)+". A failing station needs a bearing stiffener (tick \"bearing stiffener provided\" once it is designed to EN 1993-1-5 9.4) or a longer stiff bearing s<sub>s</sub>.");
   if(sci){
     if(c.hsNote) notes.push(c.hsNote+".");
     if(c.ax) notes.push(c.ax.tension
       ? "Tension + bending: cross-section by cl 6.2.9; member buckling per cl 6.3.3 is not required because N<sub>Ed</sub> is tensile."
-      : "Axial compression + bending: cross-section by cl 6.2.9; member buckling by cl 6.3.3 / Annex B Method 2, Table B.1 (fully restrained &mdash; not susceptible to torsional deformation, &chi;<sub>LT</sub> = 1, M<sub>b,Rd</sub> = M<sub>c,Rd</sub>); C<sub>m</sub> per Table B.3. Strut length L<sub>cr</sub> = L<sub>E</sub>-factor &times; L (edit under Axial &amp; LTB; note a cantilever strut classically takes L<sub>cr</sub> = 2L).");
+      : "Axial compression + bending: cross-section by cl 6.2.9; member buckling by cl 6.3.3 / Annex B Method 2, Table B.1 (fully restrained &mdash; not susceptible to torsional deformation, &chi;<sub>LT</sub> = 1, M<sub>b,Rd</sub> = M<sub>c,Rd</sub>); C<sub>m</sub> per Table B.3. Strut lengths L<sub>cr,y</sub> = "+g(c.buck? c.buck.Ky : 1,2)+"L, L<sub>cr,z</sub> = "+g(c.buck? c.buck.Kz : 1,2)+"L ("+(c.buck? c.buck.lcrBasis : '')+").");
     notes.push("Fully restrained beam: design follows the SCI worked-example procedure to BS EN 1993-1-1 (UK NA) &mdash; classification (Table 5.2), shear resistance (cl 6.2.6), shear-buckling screen (cl 6.2.6(6)), moment resistance (cl 6.2.5, with the cl 6.2.8 shear check made at the point of maximum bending moment), and vertical deflection. &gamma;<sub>M0</sub> = 1.0 (UK NA); &eta; = 1.0 taken conservatively.");
     notes.push("Vertical deflection is checked against span/"+g(c.divisor,0)+" under the enabled SLS combination(s). NA 2.23 applies the limit to deflection due to <b>variable actions only</b>, so the default SLS combination carries Q only (edit under Load Combinations if a different criterion is required).");
   } else if(sciU){
     if(c.hsNote) notes.push(c.hsNote+".");
     if(c.ltb&&c.ltb.na){
-      notes.push("Closed hollow section: lateral-torsional buckling is not required by EN 1993-1-1 cl 6.3.2.1(2); M<sub>b,Rd</sub> is taken as M<sub>c,Rd</sub> and the FE M<sub>cr</sub> eigensolver is skipped.");
+      notes.push("Closed hollow section: &lambda;&#772;<sub>LT</sub> = "+g(c.ltb.lamLTmcr,3)+" &le; 0.4 from the SN003a M<sub>cr</sub> with I<sub>w</sub> = 0, so lateral-torsional buckling effects may be ignored (EN 1993-1-1 cl 6.3.2.2(4)"+(S.family==='shs'? "; a square hollow section is also not susceptible by cl 6.3.2.1(2)" : "")+"); M<sub>b,Rd</sub> = M<sub>c,Rd</sub> (standard closed-form route; "+(c.ltb.zgNote||'')+").");
+    } else if(mcrStd){
+      const ci=c.ltb.c1in;
+      notes.push("Unrestrained beam: design follows BS EN 1993-1-1 (UK NA) with <b>M<sub>cr</sub> by the STANDARD closed-form method</b> (user selection): C<sub>1</sub> from the moment diagram &mdash; "+(c.ltb.c1label||c.c1label)+" &mdash; then "+(c.ltb.cant? "NCCI SN006a M<sub>cr</sub> = C&middot;M<sub>cr,0</sub> for the cantilever" : c.ltb.channel? "the P385/P362 channel &kappa; chain with the doubly symmetric M<sub>cr</sub> route where valid" : "M<sub>cr</sub> = C<sub>1</sub>(&pi;&sup2;EI<sub>z</sub>/L<sub>E</sub>&sup2;)&radic;[I<sub>w</sub>/I<sub>z</sub> + L<sub>E</sub>&sup2;GI<sub>t</sub>/(&pi;&sup2;EI<sub>z</sub>)] (NCCI SN003a, k = k<sub>w</sub> = 1, G = 81000 N/mm&sup2;"+(c.ltb.zgUsed? ", C<sub>2</sub>z<sub>g</sub> load-height term applied":"")+") with L<sub>E</sub> = "+g(ltbLeFactor()*(S.destab?1.2:1),2)+"&times;L = "+g(c.LE/1000,2)+" m")+". Load height: "+(c.ltb.zgNote||'')+(c.ltb.zgSource==='loads'? " (the most destabilising per-load value among the loads active in the governing combination)" : "")+". This is the route MasterSeries-type software prints; the FE eigensolver was not run (M<sub>cr,eigen</sub> = n/a). Select the FE eigenvalue method under Axial &amp; LTB to compare.");
+      if(ci) notes.push("C<sub>1</sub> inputs (MasterSeries convention, "+(c.ltb.c1seg&&c.ltb.c1seg.whole===false? 'segment '+g(c.ltb.c1seg.xa/1000,2)+'&ndash;'+g(c.ltb.c1seg.xb/1000,2)+' m' : 'whole member')+"): M<sub>1</sub>, M<sub>2</sub> = segment end moments (M<sub>2</sub> the larger), M<sub>o</sub> = mid-segment moment above the chord, &psi; = M<sub>1</sub>/M<sub>2</sub>, &mu; = M<sub>o</sub>/M<sub>2</sub> (capped at 300): "+f1(ci.M1,1)+", "+f1(ci.M2,1)+", "+f1(ci.Mo,1)+" kN&middot;m, "+f1(ci.psi,3)+", "+f1(ci.mu,3)+".");
+      notes.push("Design basis for the LTB verdict: "+c.ltbBasis+".");
     } else {
-      notes.push("Unrestrained beam: design follows BS EN 1993-1-1 (UK NA) with M<sub>cr</sub> solved directly by the finite-element eigenvalue method over the governing moment diagram. Load height z<sub>g</sub>, mono-symmetry z<sub>j</sub>, lateral restraints, and cantilever root warping are included in M<sub>cr</sub>; no SN003a/SN006a C-table or P362 simplified slenderness route is used.");
+      notes.push("Unrestrained beam: design follows BS EN 1993-1-1 (UK NA) with <b>M<sub>cr</sub> by the FE eigenvalue method</b> solved directly over the governing moment diagram. Load height z<sub>g</sub>, mono-symmetry z<sub>j</sub>, lateral restraints, and cantilever root warping are included in M<sub>cr</sub>; no SN003a/SN006a C-table or P362 simplified slenderness route is used for the verdict.");
+      if(c.ltb&&c.ltb.McrStandard!=null) notes.push("Comparison with the standard closed-form method for the same segment ("+(c.ltb.c1seg&&c.ltb.c1seg.whole===false? g(c.ltb.c1seg.xa/1000,2)+'&ndash;'+g(c.ltb.c1seg.xb/1000,2)+' m' : 'whole member')+"): M<sub>cr,standard</sub> = "+f1(c.ltb.McrStandard,1)+" kN&middot;m ("+(c.ltb.std&&c.ltb.std.route==='sn006a'? 'SN006a, C = ' : 'C<sub>1</sub> = ')+g(c.ltb.std?c.ltb.std.C1:0,3)+", "+(c.ltb.std?c.ltb.std.label:'')+(c.ltb.std&&c.ltb.std.LE? ", L<sub>E</sub> = "+g(c.ltb.std.LE/1000,2)+" m":"")+"); <b>M<sub>cr,eigen</sub> / M<sub>cr,standard</sub> = "+f1(c.ltb.McrRatio,2)+"</b>. Both values describe the LTB-governing combination "+(c.ltb.governCombo||'')+" (its own moment diagram and loads; closed-form "+(c.ltb.std&&c.ltb.std.zgNote? c.ltb.std.zgNote : '')+"). The eigen value is the design basis; the ratio shows what the closed form would give with its tabulated C<sub>1</sub>, whole-segment L<sub>E</sub> and single z<sub>g</sub>.");
+      else if(c.ltb&&c.ltb.std) notes.push("The standard closed-form M<sub>cr</sub> is not available for this arrangement ("+(c.ltb.std.label||'')+"), so no eigen/standard ratio is printed.");
       notes.push("Design basis for the LTB verdict: "+c.ltbBasis+".");
     }
     if(c.ax) notes.push("Axial + bending per EN 1993-1-1: cross-section by cl 6.2.9 ("+(c.ax.cls3?'elastic, Class 3':'plastic M<sub>N,Rd</sub>, Class 1/2')+"); "+(c.ax.tension
       ? "member buckling per cl 6.3.3 is not required because N<sub>Ed</sub> is tensile. Tension: N<sub>t,Rd</sub> = min(N<sub>pl,Rd</sub>, 0.9A<sub>net</sub>f<sub>u</sub>/&gamma;<sub>M2</sub>); the beneficial effect of tension on LTB is conservatively ignored"
-      : "member buckling by cl 6.3.3 with Annex B Method 2 interaction factors (Table "+(c.buck&&c.buck.useB1?'B.1 &mdash; not susceptible to torsional deformation':'B.2 &mdash; susceptible')+", C<sub>m</sub> per Table B.3 from the governing moment diagram). Strut lengths: L<sub>cr,y</sub> = L<sub>E</sub>-factor &times; L"+(c.buck&&c.buck.lczFromRestraints?"; L<sub>cr,z</sub> = largest lateral-restraint spacing (SCI P360 6.2)":"; L<sub>cr,z</sub> = L<sub>E</sub>-factor &times; L")+". The destabilising &times;1.2 switch is an LTB concept and is NOT applied to strut buckling")+". N<sub>Ed</sub> is the direct design value (not run through the combinations). Validated against an independent commercial-software SHS beam-column worked example (C<sub>m</sub> 0.4, k<sub>zy</sub> 0.24, Eq 6.61 0.184, Eq 6.62 0.110).");
-    if(c.coex&&!c.coex.pureShearFail) notes.push("Coexistent bending and shear are verified at every section along the span per cl 6.2.8(3) (rolled I/H, Class 1/2): where V<sub>Ed</sub> &gt; 0.5V<sub>pl"+((c.tor&&c.tor.VplTRd!=null)?",T":"")+",Rd</sub>, the moment is checked against the reduced M<sub>v,Rd</sub> = (W<sub>pl,y</sub> &minus; &rho;A<sub>v</sub>&sup2;/4t<sub>w</sub>)f<sub>y</sub>.");
-    if(!(c.ltb&&c.ltb.na)) notes.push("&chi;<sub>LT</sub> uses &lambda;&#772;<sub>LT,0</sub>=0.4, &beta;=0.75 and buckling curve per NA 2.17 (Table 6.3: h/b&le;2 &rarr; b; 2&lt;h/b&le;3.1 &rarr; c; h/b&gt;3.1 &rarr; d); &chi;<sub>LT,mod</sub>=&chi;<sub>LT</sub>/f with k<sub>c</sub>=1/&radic;C<sub>1</sub> (NA 2.18), where C<sub>1</sub> is back-calculated from the shape-only eigen result for k<sub>c</sub> only. The design strength f<sub>y</sub> from the flange thickness is used consistently in every expression, including Eq 6.56.");
+      : "member buckling by cl 6.3.3 with Annex B Method 2 interaction factors (Table "+(c.buck&&c.buck.useB1?'B.1 &mdash; not susceptible to torsional deformation':'B.2 &mdash; susceptible')+", C<sub>m</sub> per Table B.3 from the governing moment diagram). Strut lengths: L<sub>cr,y</sub> = "+g(c.buck? c.buck.Ky : 1,2)+"L, L<sub>cr,z</sub> = "+g(c.buck? c.buck.Kz : 1,2)+"L ("+(c.buck? c.buck.lcrBasis : '')+(c.buck&&c.buck.lczFromRestraints? "; L<sub>cr,z</sub> reduced to the largest lateral-restraint spacing, SCI P360 6.2" : "")+"). The destabilising &times;1.2 switch is an LTB concept and is NOT applied to strut buckling")+". N<sub>Ed</sub> is the direct design value (not run through the combinations). Validated against an independent commercial-software SHS beam-column worked example (C<sub>m</sub> 0.4, k<sub>zy</sub> 0.24, Eq 6.61 0.184, Eq 6.62 0.110).");
+    if(c.coex&&!c.coex.pureShearFail) notes.push("Coexistent bending and shear are verified at every section along the span per cl 6.2.8(3) (every family, Class 1&ndash;3): where V<sub>Ed</sub> &gt; 0.5V<sub>pl"+((c.tor&&c.tor.VplTRd!=null)?",T":"")+",Rd</sub>, the moment is checked against the reduced M<sub>v,Rd</sub> = "+(c.coex.form||'')+".");
+    if(c.mvn) notes.push("Bending, shear and axial force / minor-axis moment together (cl 6.2.10(3)): at every station with V<sub>Ed</sub> &gt; 0.5V<sub>pl,Rd</sub> the yield strength of the shear area is reduced to (1 &minus; &rho;)f<sub>y</sub> and the cl 6.2.9 interaction is re-evaluated with N<sub>V,Rd</sub>, M<sub>v,y,Rd</sub>, M<sub>v,z,Rd</sub> and the parameter a<sub>V</sub> of the reduced-yield section (worst station x = "+g(c.mvn.x/1000,2)+" m, "+g(c.mvn.u,3)+"). The uniaxial case is the plain ratio M<sub>y,Ed</sub>/M<sub>N,V,y,Rd</sub>; the &alpha;/&beta; exponents apply to the biaxial case only.");
+    if(c.buck&&c.buck.tfb&&c.buck.tfb.ok) notes.push("Channel under axial compression: torsional and torsional-flexural buckling per cl 6.3.1.4 with y<sub>0</sub> = e<sub>sc</sub> from SCI P385 Table A.3, N<sub>cr,T</sub> from G I<sub>T</sub> and E I<sub>w</sub> over L<sub>T</sub> = "+g(c.buck.tfb.LT/1000,2)+" m ("+c.buck.tfb.LTSrc+"), N<sub>cr,TF</sub> coupled with the y-y flexural mode (the axis of symmetry); &chi;<sub>T</sub> on curve "+c.buck.tfb.cvT.curve+" (Table 6.2 U-sections [verify]). The Annex B interaction is written for doubly symmetric sections; the lower of &chi;<sub>T</sub> and the flexural &chi; is used in both axial terms as a conservative extension.");
+    if(c.aeff&&c.aeff.active) notes.push("Class-4 web in uniform compression: A<sub>eff</sub> = "+g(c.aeff.Aeff/100,2)+" cm&sup2; ("+g(c.aeff.ratio,3)+"A, EN 1993-1-5 4.4 with &psi; = 1, k<sub>&sigma;</sub> = 4) replaces A in N<sub>c,Rd</sub>, N<sub>b,Rd</sub> and the Table 6.7 Class-4 column of Eq 6.61/6.62 (W<sub>eff,y</sub> = W<sub>el,y</sub>, e<sub>N</sub> = 0). The cross-section interaction under the combined actions keeps the class found under the actual stress distribution.");
+    if(c.ltb&&c.ltb.kcFloored) notes.push("k<sub>c</sub> = 1/&radic;C<sub>1</sub> = "+g(c.ltb.kcRaw,3)+" is floored at 1/&radic;2.76 = 0.602, the lower bound of Table 6.6 (&psi; = &minus;1), because C<sub>1</sub> = "+g(c.ltb.C1,3)+" &gt; 2.76 lies outside the calibrated range of the f-factor.");
+    if(!(c.ltb&&c.ltb.na)) notes.push("&chi;<sub>LT</sub> uses &lambda;&#772;<sub>LT,0</sub>=0.4, &beta;=0.75 and buckling curve per NA 2.17 (Table 6.3: h/b&le;2 &rarr; b; 2&lt;h/b&le;3.1 &rarr; c; h/b&gt;3.1 &rarr; d); &chi;<sub>LT,mod</sub>=&chi;<sub>LT</sub>/f with k<sub>c</sub>=1/&radic;C<sub>1</sub> (NA 2.18), where C<sub>1</sub> is "+(mcrStd? "the tabulated/derived value used for M<sub>cr</sub>" : "back-calculated from the shape-only eigen result for k<sub>c</sub> only")+". The design strength f<sub>y</sub> from the flange thickness is used consistently in every expression, including Eq 6.56.");
   } else if(S.code==='BS5950'){
   if(c.shearBuckle) notes.push("d/t &gt; 70e   shear buckling must be checked (cl 4.2.3 / 4.4.5); not covered here (none of the tabulated sections normally reach this limit).");
   if(c.hsNote) notes.push(c.hsNote+".");
@@ -129,7 +208,7 @@ function render(){
   if(sec.isBox && S.family==='shs') notes.push(`Closed square section: the BS box-section LTB calculation gives ?<sub>LT</sub> 0 and p<sub>b</sub>=p<sub>y</sub>, so M<sub>b</sub> is governed by M<sub>cx</sub>.`);
   if(sec.isBox && S.family==='rhs') notes.push(`RHS lateral torsional buckling now uses the BS box-section ?<sub>LT</sub>=2.25v(F<sub>b</sub>? <sub>w</sub>) calculation rather than the previous rough Table 15 screen.`);
   if(sec.isBox && S.family==='shs') notes.push(`Strut curve: ${sec.boxType==='CF'?'cold-formed ? curve c (a=5.5)':'hot-finished ? curve a (a=2.0)'} per Table 23, both axes (r<sub>x</sub>=r<sub>y</sub> for a square section). Override in "Robertson const." if a different curve applies.`);
-  if(sec.isBox && S.family==='rhs') notes.push(`Strut curve: hot-finished box section ? curve a (a=2.0) per Table 23, both axes. Note r<sub>x</sub>?r<sub>y</sub> for a true RHS, so P<sub>c</sub> and P<sub>cy</sub> genuinely differ even though the curve is the same both ways. Override in "Robertson const." if a different curve applies.`);
+  if(sec.isBox && S.family==='rhs') notes.push(`Strut curve: ${sec.boxType==='CF'?'cold-formed box section ? curve c (a=5.5)':'hot-finished box section ? curve a (a=2.0)'} per Table 23, both axes. Note r<sub>x</sub>?r<sub>y</sub> for a true RHS, so P<sub>c</sub> and P<sub>cy</sub> genuinely differ even though the curve is the same both ways. Override in "Robertson const." if a different curve applies.`);
   if(S.family==='ub') notes.push(`Strut curve (Table 23, rolled I-section): x-x curve ${sec.tf<=40?'a (a=2.0)':'b (a=3.5)'}, y-y curve ${sec.tf<=40?'b (a=3.5)':'c (a=5.5)'} for flange thickness ${sec.tf<=40?'=':'>'}40&nbsp;mm. Override per-axis in "Robertson const." if a different curve applies.`);
   if(S.family==='uc') notes.push(`Strut curve (Table 23, rolled H-section): x-x curve ${sec.tf<=40?'b (a=3.5)':'c (a=5.5)'}, y-y curve ${sec.tf<=40?'c (a=5.5)':'d (a=8.0)'} for flange thickness ${sec.tf<=40?'=':'>'}40&nbsp;mm   one curve lower than a rolled I-section at the same thickness. Override per-axis in "Robertson const." if a different curve applies.`);
   if(sec.kind==='channel') notes.push(`Strut curve: BS&nbsp;5950 directs channel struts to Table 25 (a distinct method from the generic curve a d system). PFC compression is blocked from PASS unless verified Table&nbsp;25/Blue Book data is implemented.`);
@@ -185,7 +264,8 @@ function render(){
     <div>Internal web (bending) d/t = ${g(sec.dt,2)}</div><div>limit 72e=${g(72*c.eps,1)} (Cl.1) / 83e / 124e</div><div class="right">Class ${c.cl.wc}</div><div class="right">Class ${c.cl.wc}</div>
     <div>Class = max(flange, web)   Table 5.2</div><div>${g(sec.bT,2)}, ${g(sec.dt,2)}, f<sub>y</sub>=${g(a.py,0)}</div><div class="right"></div><div class="right"><b>${c.clsName}</b></div>
   </div>`; }
-  function classBlockSCIfn(){ if(sec.isBox) return classBlockEC3fn(); return `
+  const aeffLineBox = (c.aeff&&c.aeff.active)? `<div class="calc-block"><div>A<sub>eff</sub> &mdash; walls Class 4 in uniform compression (EN 1993-1-5 4.4)</div><div class="formula">d/t = ${g(c.aeff.dt,2)} &gt; 42&epsilon; = ${g(c.aeff.limit,2)}: &lambda;&#772;<sub>p</sub> = ${g(c.aeff.lamP,3)}, &rho; = ${g(c.aeff.rho,3)} (&psi; = 1, k<sub>&sigma;</sub> = 4); two webs: A<sub>eff</sub> = A &minus; 2(1&minus;&rho;)b&#772;t = ${g(c.aeff.A/100,2)} &minus; 2&times;${g(c.aeff.bineff*c.aeff.tw/100,2)} cm&sup2; (e<sub>N</sub> = 0); used in N<sub>c,Rd</sub>, N<sub>b,Rd</sub> and the Table 6.7 Class-4 column (W<sub>eff,y</sub> = W<sub>el,y</sub>) [assumption printed]</div><div class="value">${g(c.aeff.Aeff/100,2)} cm&sup2;</div><div class="status">${g(c.aeff.ratio,3)} A</div></div>` : '';
+  function classBlockSCIfn(){ if(sec.isBox) return classBlockEC3fn()+aeffLineBox; return `
   <div class="section-title">Classification of Cross-Section (EN 1993-1-1 Table 5.2)</div>
   <div class="props">
     <div>Section (${g(sec.mass,1)} kg/m)</div><div>${sname(sec.key)} ${famLabel} [${S.grade}]&nbsp; h=${g(sec.D,1)}, b=${g(sec.B,1)}, t<sub>w</sub>=${g(sec.tw,1)}, t<sub>f</sub>=${g(sec.tf,1)}, r=${g(sec.r,1)} mm</div><div></div><div></div>
@@ -195,14 +275,18 @@ function render(){
     <div>c/t<sub>f</sub> = ${g(sec.bT,2)}</div><div>Class 1 limit: 9&epsilon; = 9&times;${g(c.eps,2)} = ${g(9*c.eps,2)}</div><div class="right">${g(sec.bT,2)} ${sec.bT<=9*c.eps?'&lt;':'&gt;'} ${g(9*c.eps,2)}</div><div class="right">Class ${c.cl.fc}</div>
     <div>Web: c = d = ${g(sec.d,1)} mm; c/t<sub>w</sub> = ${g(sec.dt,2)}</div><div>${c.cl.webCase==='bending+compression'
       ? `bending + compression (Table 5.2): &alpha; = ${g(c.cl.alphaW,3)}, &psi; = ${g(c.cl.psiW,2)}; limits ${g(c.cl.wlim[0],1)}&epsilon; / ${g(c.cl.wlim[1],1)}&epsilon; / ${g(c.cl.wlim[2],1)}&epsilon;`
-      : `Class 1 limit: 72&epsilon; = 72&times;${g(c.eps,2)} = ${g(72*c.eps,2)}`}</div><div class="right">${g(sec.dt,2)} ${sec.dt<=c.cl.wlim[0]*c.eps?'&lt;':'&gt;'} ${g(c.cl.wlim[0]*c.eps,2)}</div><div class="right">Class ${c.cl.wc}</div>
-    <div>Section class under pure bending</div><div>max(flange, web)</div><div class="right"></div><div class="right"><b>${c.clsName}</b></div>
+      : c.cl.webCase==='bending'? `Class 1 limit: 72&epsilon; = 72&times;${g(c.eps,2)} = ${g(72*c.eps,2)}`
+      : `${c.cl.webCase}; limits ${g(c.cl.wlim[0],1)}&epsilon; / ${g(c.cl.wlim[1],1)}&epsilon; / ${g(c.cl.wlim[2],1)}&epsilon;`}${c.cl.mzStress? ' &mdash; M<sub>z</sub> does not stress the web of an I/H section (it lies on the z-z axis), so the y-y limits apply' : ''}</div><div class="right">${g(sec.dt,2)} ${sec.dt<=c.cl.wlim[0]*c.eps?'&lt;':'&gt;'} ${g(c.cl.wlim[0]*c.eps,2)}</div><div class="right">Class ${c.cl.wc}</div>
+    ${c.cl.mzStress? `<div>Flange outstands under M<sub>y</sub> + M<sub>z</sub> (+N), Table 5.2 sheet 2</div><div>&sigma; = N/A + M<sub>y</sub>/W<sub>el,y</sub> &plusmn; M<sub>z</sub>y/I<sub>z</sub>: outstand compressed by M<sub>z</sub> root ${f1(c.cl.mzStress.compRoot,1)}, tip ${f1(c.cl.mzStress.compTip,1)} N/mm&sup2; (both compressive: &alpha; = 1, limits 9&epsilon;/&alpha;, 10&epsilon;/&alpha;, 21&epsilon;&radic;k<sub>&sigma;</sub> with k<sub>&sigma;</sub> &ge; 0.43 &mdash; the uniform-compression bound 9&epsilon;/10&epsilon;/14&epsilon; governs); opposite outstand root ${f1(c.cl.mzStress.relRoot,1)}, tip ${f1(c.cl.mzStress.relTip,1)} N/mm&sup2; (${c.cl.mzStress.relState}: laxer limits, does not govern)</div><div class="right"></div><div class="right">Class ${c.cl.fc}</div>` : ''}
+    ${c.aeff&&c.aeff.active? `<div>A<sub>eff</sub> &mdash; web Class 4 in uniform compression (EN 1993-1-5 4.4)</div><div>d/t = ${g(c.aeff.dt,2)} &gt; 42&epsilon; = ${g(c.aeff.limit,2)}: &lambda;&#772;<sub>p</sub> = (b&#772;/t)/(28.4&epsilon;&radic;k<sub>&sigma;</sub>) = ${g(c.aeff.dt,2)}/(28.4&times;${g(c.aeff.eps,3)}&times;2) = ${g(c.aeff.lamP,3)}; &rho; = (&lambda;&#772;<sub>p</sub> &minus; 0.055(3+&psi;))/&lambda;&#772;<sub>p</sub>&sup2; = ${g(c.aeff.rho,3)} (&psi; = 1, k<sub>&sigma;</sub> = 4); b<sub>eff</sub> = &rho;b&#772; = ${g(c.aeff.beff,1)} mm (b<sub>e1</sub> = b<sub>e2</sub> = ${g(c.aeff.be1,1)}); A<sub>eff</sub> = A &minus; ${c.aeff.nWebs>1?'2&times;':''}(1&minus;&rho;)b&#772;t<sub>w</sub> = ${g(c.aeff.A/100,2)} &minus; ${c.aeff.nWebs>1?'2&times;':''}${g(c.aeff.bineff*c.aeff.tw/100,2)} cm&sup2; (e<sub>N</sub> = 0). Used in N<sub>c,Rd</sub>, N<sub>b,Rd</sub> and the Table 6.7 Class-4 column of Eq 6.61/6.62 with W<sub>eff,y</sub> = W<sub>el,y</sub> (flanges Class &le; 3; web Class ${c.cl.wc} under the combined actions) [assumption printed]</div><div class="right">${g(c.aeff.Aeff/100,2)} cm&sup2;</div><div class="right">${g(c.aeff.ratio,3)} A</div>` : ''}
+    <div>Section class under the actual stress distribution</div><div>max(flange, web)${c.aeff&&c.aeff.active? '; Class 4 in uniform compression (A<sub>eff</sub>)' : ''}</div><div class="right"></div><div class="right"><b>${c.clsName}</b></div>
   </div>`; }
   const classBlock = (sci||sciU)? classBlockSCIfn() : S.code==='EC3'? classBlockEC3fn() : classBlockBSfn();
 
   function ltbBlockBSfn(){ return sec.isBox ? `
   <div class="section-title smallgap">Lateral Torsional Buckling (Cl. 4.3.6.1${S.family==='rhs'?' / Table 15':''})</div>
   <div class="calc-block">
+    <div>L<sub>E</sub> = ${g(c.leK,2)} L</div><div class="formula">${g(c.leK,2)} ${g(S.L,3)} m: ${c.leBasis||''}; end flags ${endsConditionsLine(S)}${c.leMsg? ' &mdash; <b>NOT VERIFIED</b> (no tabulated row: enter L<sub>E</sub>/L)' : ''}</div><div class="value">${g(c.LE/1000,3)} m</div><div class="status">${c.leRow==='user'? 'entered' : c.leMsg? 'blocked' : 'Table 13/14 [verify]'}</div>
     <div>? = L<sub>E</sub>/r<sub>y</sub></div><div class="formula">${f1(c.LE,0)} / ${g(sec.ry*10,1)}</div><div class="value">${f1(c.lam,2)}</div><div></div>
     <div>F<sub>b</sub> = v(S<sub>x</sub> ?'/(AJ))</div><div class="formula">?'=(1-I<sub>y</sub>/I<sub>x</sub>)(1-J/(2.6I<sub>x</sub>))</div><div class="value">${f1(c.phiB,3)}</div><div></div>
     <div> <sub>w</sub></div><div class="formula">${c.cl.cls<=2?'Class 1/2 ? 1.0':'Z<sub>x</sub>/S<sub>x</sub>'}</div><div class="value">${g(c.betaW,3)}</div><div></div>
@@ -212,7 +296,7 @@ function render(){
   </div>` : `
   <div class="section-title smallgap">Lateral Torsional Buckling   M<sub>b</sub> (Cl. 4.3 / Annex B)</div>
   <div class="calc-block">
-    <div>L<sub>E</sub> = ${g(S.leFactor,2)}${S.destab?'   1.2':''} L</div><div class="formula">${g(S.leFactor,2)}${S.destab?' 1.2':''} ${g(S.L,3)} m</div><div class="value">${g(c.LE/1000,3)} m</div><div></div>
+    <div>L<sub>E</sub> = ${g(c.leK,2)} L</div><div class="formula">${g(c.leK,2)} ${g(S.L,3)} m: ${c.leBasis||''}; end flags ${endsConditionsLine(S)}${c.leMsg? ' &mdash; <b>NOT VERIFIED</b> (no tabulated row: enter L<sub>E</sub>/L)' : ''}; strut lengths L<sub>cr,x</sub> = ${g(c.LcrX/1000,3)} m, L<sub>cr,y</sub> = ${g(c.LcrY/1000,3)} m (${c.lcrBasis||''})</div><div class="value">${g(c.LE/1000,3)} m</div><div class="status">${c.leRow==='user'? 'entered' : c.leMsg? 'blocked' : 'Table 13/14 [verify]'}</div>
     <div>? = L<sub>E</sub> / r<sub>y</sub></div><div class="formula">${f1(c.LE,0)} / ${g(sec.ry*10,1)}</div><div class="value">${f1(c.lam,2)}</div><div></div>
     <div>v = 1/[1+0.05(?/x) ]<sup> </sup></div><div class="formula">x = ${g(sec.x,1)} (torsional index)</div><div class="value">${g(c.v,3)}</div><div class="status">N=0.5</div>
     <div> <sub>w</sub></div><div class="formula">${c.cl.cls<=2?'Class 1/2 ? 1.0':'Z<sub>x</sub>/S<sub>x</sub>'}</div><div class="value">${g(c.betaW,3)}</div><div></div>
@@ -230,7 +314,7 @@ function render(){
   </div>` : `
   <div class="section-title smallgap">Lateral Torsional Buckling   M<sub>b,Rd</sub> (Cl. 6.3.2.2/6.3.2.3)</div>
   <div class="calc-block">
-    <div>L<sub>cr</sub> = ${g(S.leFactor,2)}${S.destab?'   1.2':''} L</div><div class="formula">${g(S.leFactor,2)}${S.destab?' 1.2':''} ${g(S.L,3)} m</div><div class="value">${g(c.LE/1000,3)} m</div><div></div>
+    <div>L<sub>cr</sub> = ${g(ltbLeFactor(),2)}${S.destab?'   1.2':''} L</div><div class="formula">${g(ltbLeFactor(),2)}${S.destab?' 1.2':''} ${g(S.L,3)} m</div><div class="value">${g(c.LE/1000,3)} m</div><div></div>
     <div>C<sub>1</sub></div><div class="formula" style="font-size:12.5px">${c.c1method}</div><div class="value">${g(c.C1,3)}</div><div class="status">NCCI SN003</div>
     <div>M<sub>cr</sub> = C<sub>1</sub>(p EI<sub>z</sub>/L )v[I<sub>w</sub>/I<sub>z</sub>+L GI<sub>t</sub>/(p EI<sub>z</sub>)]</div><div class="formula">I<sub>z</sub>=${g(sec.Iy,0)} cm4, I<sub>t</sub>=${g(sec.J,2)} cm4, I<sub>w</sub>=${g(sec.Iw,4)} dm6</div><div class="value">${f1(c.Mcr,2)} kN m</div><div></div>
     <div>?<sub>LT</sub> = v(W<sub>y</sub>f<sub>y</sub>/M<sub>cr</sub>)</div><div class="formula">v(${g(c.cl.cls<=2?sec.Sx:sec.Zx,1)} ${g(a.py,0)}/${f1(c.Mcr,2)})</div><div class="value">${f1(c.lamLT,3)}</div><div></div>
@@ -241,27 +325,44 @@ function render(){
     <div>M<sub>b,Rd</sub> = ?<sub>LT,mod</sub>W<sub>y</sub>f<sub>y</sub>/?<sub>M1</sub> = M<sub>c,Rd</sub></div><div class="formula">${f1(c.chiLTmod,3)} ${g(c.cl.cls<=2?sec.Sx:sec.Zx,1)} ${g(a.py,0)}</div><div class="value">${f1(c.MbRd,2)} kN m</div>${st(c.ltbUtil<=1,'OK')}
   </div>`; }
   const LT=c.ltb||{};
-  const sciUltbBlocks = !sciU? '' : LT.na? `
-  <div class="section-title smallgap">Buckling Resistance (Cl. 6.3.2, SN003a &mdash; warping neglected for a closed section)</div>
+  // MasterSeries-style C1 line for the standard method:
+  //   C1 = fn(M1, M2, Mo, psi, mu) | M1, M2, Mo, psi, mu - derivation | C1 | route tag
+  const C1_ROUTE_TAG={uniform:'uniform load',point:'central point load','fixed-uniform':'fixed-ended UDL','fixed-point':'fixed-ended point load','end-moment':'end-moment gradient',serna:'Serna general',sn006a:'cantilever SN006a',channel:'channel',box:'closed section',override:'user override',negligible:'negligible M',cantilever:'cantilever'};
+  const c1LineStd=()=>{ const ci=LT.c1in; if(!ci) return '';
+    const isC=!!LT.cant, sym=isC?'C':'C<sub>1</sub>';
+    const segTxt=(LT.c1seg&&LT.c1seg.whole===false)? ' [segment '+g(LT.c1seg.xa/1000,2)+'&ndash;'+g(LT.c1seg.xb/1000,2)+' m]' : '';
+    return `<div>${sym} = fn(M<sub>1</sub>, M<sub>2</sub>, M<sub>o</sub>, &psi;, &mu;)${isC?' &rarr; SN006a C = fn(&kappa;<sub>wt</sub>, &eta;)':''}</div><div class="formula">${f1(ci.M1,1)}, ${f1(ci.M2,1)}, ${f1(ci.Mo,1)}, ${f1(ci.psi,3)}, ${f1(ci.mu,3)}${segTxt} &mdash; ${LT.c1label||c.c1label}</div><div class="value">${sym} = ${g(LT.C1show!=null?LT.C1show:c.C1,3)}</div><div class="status">${C1_ROUTE_TAG[LT.c1route]||LT.c1route||''}</div>`; };
+  const stdHead='M<sub>cr</sub> method: STANDARD closed form';
+  const sciUltbBlocks = !sciU? '' : LT.box? `
+  <div class="section-title smallgap">Equivalent Uniform Moment Factor C<sub>1</sub> (${stdHead})</div>
+  <div class="calc-block">${c1LineStd()}</div>
+  <div class="section-title smallgap">Buckling Resistance (Cl. 6.3.2, SN003a &mdash; warping neglected for a closed section; ${stdHead})</div>
   <div class="calc-block">
     <div>&pi;&sup2;EI<sub>z</sub>/L&sup2;</div><div class="formula">&pi;&sup2;&times;${g(a.E,0)}&times;${g(sec.Iy,0)}&times;10<sup>4</sup>/${g(c.LE,0)}&sup2;</div><div class="value">${f1(LT.T1,0)} kN</div><div></div>
-    <div>M<sub>cr</sub> = C<sub>1</sub>(&pi;&sup2;EI<sub>z</sub>/L&sup2;)&radic;[L&sup2;GI<sub>t</sub>/(&pi;&sup2;EI<sub>z</sub>)]</div><div class="formula">C<sub>1</sub> = ${g(c.C1,3)}; G = 81000; I<sub>t</sub> = ${g(sec.J,0)} cm<sup>4</sup></div><div class="value">${f1(LT.Mcr,0)} kN&middot;m</div><div></div>
+    <div>Load height z<sub>g</sub></div><div class="formula">${LT.zgNote||''}</div><div class="value">${LT.zgUsed? 'C<sub>2</sub>z<sub>g</sub> = '+g(LT.C2*LT.zg,1)+' mm' : 'not applied'}</div>${LT.zgBlocked? '<div class="status fail">BLOCKED</div>' : '<div></div>'}
+    <div>M<sub>cr</sub> = C<sub>1</sub>(&pi;&sup2;EI<sub>z</sub>/L&sup2;)&radic;[L&sup2;GI<sub>t</sub>/(&pi;&sup2;EI<sub>z</sub>)${LT.zgUsed? ' + (C<sub>2</sub>z<sub>g</sub>)&sup2;] &minus; C<sub>2</sub>z<sub>g</sub>' : ']'}</div><div class="formula">C<sub>1</sub> = ${g(c.C1,3)}; G = 81000; I<sub>t</sub> = ${g(sec.J,0)} cm<sup>4</sup></div><div class="value">${f1(LT.Mcr,0)} kN&middot;m</div><div></div>
     <div>&lambda;&#772;<sub>LT</sub> = &radic;(W<sub>y</sub>f<sub>y</sub>/M<sub>cr</sub>)</div><div class="formula">&radic;(${g(c.cl.cls<=2?sec.Sx:sec.Zx,0)}&times;10&sup3;&times;${g(a.py,0)}/${f1(LT.Mcr,0)}&times;10<sup>6</sup>)</div><div class="value">${f1(LT.lamLTmcr,2)}</div><div></div>
-    ${LT.ignM? `<div>&lambda;&#772;<sub>LT</sub> &lt; &lambda;&#772;<sub>LT,0</sub> = 0.4 (NA 2.17)</div><div class="formula">${f1(LT.lamLTmcr,2)} &lt; 0.4 &mdash; lateral&ndash;torsional buckling effects may be ignored (cl 6.3.2.2(4))</div><div class="value">&chi;<sub>LT,mod</sub> = 1.000</div><div class="status ok">Ignored</div>` : `<div>&Phi;<sub>LT</sub>; &chi;<sub>LT</sub>; f; &chi;<sub>LT,mod</sub> (curve d)</div><div class="formula">&Phi;=${g(LT.PhiM,3)}; &chi;<sub>LT</sub>=${g(LT.chiM,3)}; f=${g(LT.fM,3)}</div><div class="value">&chi;<sub>LT,mod</sub> = ${g(LT.chiModM,3)}</div><div></div>`}
-    <div>M<sub>b,Rd</sub></div><div class="formula">${LT.ignM?'= M<sub>c,Rd</sub>':'&chi;<sub>LT,mod</sub>W<sub>y</sub>f<sub>y</sub>/&gamma;<sub>M1</sub>'}</div><div class="value">${f1(LT.MbRd,1)} kN&middot;m</div>${st(c.ltbUtil<=1,'OK')}
+    ${LT.ignM? `<div>&lambda;&#772;<sub>LT</sub> &le; &lambda;&#772;<sub>LT,0</sub> = 0.4 (NA 2.17)</div><div class="formula">${f1(LT.lamLTmcr,2)} &le; 0.4 &mdash; lateral&ndash;torsional buckling effects may be ignored (cl 6.3.2.2(4)${S.family==='shs'? '; square hollow section also exempt by cl 6.3.2.1(2)' : ''})</div><div class="value">&chi;<sub>LT,mod</sub> = 1.000</div><div class="status ok">Ignored</div>` : `<div>Buckling curve (NA Table NA.1, ${sec.boxType==='CF'? 'cold-formed' : 'hot-finished'} hollow section)</div><div class="formula">h/b = ${g(sec.D/sec.B,2)} &rarr; curve ${LT.curve.curve}</div><div class="value">&alpha;<sub>LT</sub> = ${g(LT.curve.alphaLT,2)}</div><div></div>
+    <div>&Phi;<sub>LT</sub>; &chi;<sub>LT</sub>; f (k<sub>c</sub> = 1/&radic;C<sub>1</sub>); &chi;<sub>LT,mod</sub></div><div class="formula">&Phi;=${g(LT.PhiM,3)}; &chi;<sub>LT</sub>=${g(LT.chiM,3)}; f=${g(LT.fM,3)}</div><div class="value">&chi;<sub>LT,mod</sub> = ${g(LT.chiModM,3)}</div><div></div>`}
+    <div>M<sub>b,Rd</sub></div><div class="formula">${LT.ignM?'= M<sub>c,Rd</sub>':'&chi;<sub>LT,mod</sub>W<sub>y</sub>f<sub>y</sub>/&gamma;<sub>M1</sub> &le; M<sub>c,Rd</sub>'}</div><div class="value">${f1(LT.MbRd,1)} kN&middot;m</div><div></div>
+    <div>M<sub>Ed</sub> / M<sub>b,Rd</sub></div><div class="formula">${f1(c.Mx,1)} / ${f1(LT.MbRd,1)}</div><div class="value">${g(c.Mx/Math.max(LT.MbRd,1e-9),2)}</div>${st(c.Mx<=LT.MbRd*1.0001,'OK','exceeded')}
   </div>` : LT.cant? `
-  <div class="section-title smallgap">Lateral&ndash;Torsional Buckling &mdash; Cantilever (NCCI SN006a-EN-EU)</div>
+  <div class="section-title smallgap">Equivalent Uniform Moment Factor C (${stdHead})</div>
+  <div class="calc-block">${c1LineStd()}</div>
+  <div class="section-title smallgap">Lateral&ndash;Torsional Buckling &mdash; Cantilever (NCCI SN006a-EN-EU; ${stdHead})</div>
   <div class="calc-block">
     <div>M<sub>cr,0</sub> = (&pi;/L)&radic;(EI<sub>z</sub>GI<sub>t</sub>)</div><div class="formula">L = ${g(S.L,2)} m; SN006a boundary conditions &mdash; L<sub>E</sub> factor and destabilising switch not applied</div><div class="value">${f1(LT.Mcr0,1)} kN&middot;m</div><div></div>
     <div>&kappa;<sub>wt</sub> = (1/L)&radic;(EI<sub>w</sub>/GI<sub>t</sub>)</div><div class="formula">warping at root: ${LT.warp==='restr'? 'restrained':'free'}</div><div class="value">${g(LT.kwt,3)}</div><div></div>
-    <div>&eta; = z<sub>a</sub>/(h<sub>s</sub>/2)</div><div class="formula">z<sub>a</sub> = ${g(S.za||0,0)} mm; h<sub>s</sub> = h &minus; t<sub>f</sub> = ${g(sec.D-sec.tf,1)} mm</div><div class="value">${g(LT.eta,2)}</div><div></div>
+    <div>&eta; = z<sub>g</sub>/(h<sub>s</sub>/2)</div><div class="formula">z<sub>g</sub> = ${g(LT.zg||0,0)} mm${LT.zgSource==='loads'? ' (most destabilising per-load value of the governing combination)' : ' (default z<sub>g</sub>)'}; h<sub>s</sub> = h &minus; t<sub>f</sub> = ${g(sec.D-sec.tf,1)} mm</div><div class="value">${g(LT.eta,2)}</div><div></div>
     ${LT.C>0? `<div>C &mdash; ${LT.caseLbl}</div><div class="formula">${LT.Cq!=null&&LT.CF!=null? 'C<sub>q</sub> = '+g(LT.Cq,2)+'; C<sub>F</sub> = '+g(LT.CF,2)+'; M<sub>q</sub> = '+f1(Math.abs(LT.Mq),1)+', M<sub>F</sub> = '+f1(Math.abs(LT.MF),1)+' kN&middot;m; Eq (7)':'Tables 3.1&ndash;3.3, bilinear interpolation'}</div><div class="value">${g(LT.C,2)}</div><div></div>
     <div>M<sub>cr</sub> = C&middot;M<sub>cr,0</sub></div><div class="formula">${g(LT.C,2)} &times; ${f1(LT.Mcr0,1)}</div><div class="value">${f1(LT.Mcr,1)} kN&middot;m</div><div></div>
     <div>&lambda;&#772;<sub>LT</sub>; &chi;<sub>LT</sub> (curve ${LT.curve.curve})</div><div class="formula">&lambda;&#772; = ${f1(LT.lamLTmcr,2)}${LT.ignM? ' &le; 0.4 &mdash; LTB ignored (cl 6.3.2.2(4))':''}</div><div class="value">&chi; = ${g(LT.chiM,3)}</div><div></div>
     <div>M<sub>b,Rd</sub> = &chi;<sub>LT</sub>W<sub>y</sub>f<sub>y</sub>/&gamma;<sub>M1</sub></div><div class="formula">${g(LT.chiM,3)}&times;${g(c.cl.cls<=2?sec.Sx:sec.Zx,0)}&times;${g(a.py,0)}/1.0</div><div class="value">${f1(LT.MbRd,1)} kN&middot;m</div><div></div>
     <div>M<sub>Ed</sub> / M<sub>b,Rd</sub></div><div class="formula">${f1(c.Mx,1)} / ${f1(LT.MbRd,1)}</div><div class="value">${g(c.Mx/Math.max(LT.MbRd,1e-9),2)}</div>${st(c.Mx<=LT.MbRd*1.0001,'OK','exceeded')}` : `<div>C &mdash; ${LT.caseLbl}</div><div class="formula">see the NOT COVERED note</div><div class="value">&mdash;</div><div class="status fail">BLOCKED</div>`}
   </div>` : LT.channel? `
-  <div class="section-title smallgap">Lateral&ndash;Torsional Buckling &mdash; Channel (P385/P362 chain)</div>
+  <div class="section-title smallgap">Equivalent Uniform Moment Factor C<sub>1</sub> (${stdHead})</div>
+  <div class="calc-block">${c1LineStd()}</div>
+  <div class="section-title smallgap">Lateral&ndash;Torsional Buckling &mdash; Channel (P385/P362 chain; ${stdHead})</div>
   <div class="calc-block">
     <div>&lambda;&#772;<sub>LT</sub> = (L/i<sub>z</sub>)/${g(LT.kappa,0)} (${S.grade})</div><div class="formula">(${g(c.LE,0)}/${g(LT.ry,1)})/${g(LT.kappa,0)}</div><div class="value">${g(LT.lamLTmcr,3)}</div><div></div>
     ${LT.ignM? `<div>&lambda;&#772;<sub>LT</sub> &le; 0.4</div><div class="formula">LTB may be ignored (cl 6.3.2.2(4))</div><div class="value">&chi;<sub>LT</sub> = 1.000</div><div></div>` : `<div>&chi;<sub>LT</sub> (curve d, &alpha;<sub>LT</sub>=0.76; no f-factor)</div><div class="formula">&Phi; = ${g(LT.PhiM,3)}</div><div class="value">${g(LT.chiM,3)}</div><div></div>`}
@@ -272,52 +373,50 @@ function render(){
     <div>M<sub>b,Rd</sub> (M<sub>cr</sub> route)</div><div class="formula">${g(LT.chanMcr.chiMod,3)}&times;${g(sec.Sx,0)}&times;${g(a.py,0)} &le; M<sub>c,Rd</sub></div><div class="value">${f1(LT.chanMcr.Mb,1)} kN&middot;m</div><div></div>` : ''}
     <div>M<sub>Ed</sub> / M<sub>b,Rd</sub></div><div class="formula">${f1(c.Mx,1)} / ${f1(LT.MbRd,1)}</div><div class="value">${g(c.Mx/Math.max(LT.MbRd,1e-9),2)}</div>${st(c.Mx<=LT.MbRd*1.0001,'OK','exceeded')}
   </div>` : `
-  <div class="section-title smallgap">LTB &mdash; Non-Dimensional Slenderness, Simplified Method (P362 Expn 6.55)</div>
-  <div class="calc-block">
-    <div>C<sub>1</sub> (loading shape)</div><div class="formula">${c.c1label}</div><div class="value">C<sub>1</sub> = ${g(c.C1,3)}; 1/&radic;C<sub>1</sub> = ${g(LT.invSqrtC1,2)}</div><div></div>
-    <div>&lambda;<sub>z</sub> = L/i<sub>z</sub></div><div class="formula">${g(c.LE,0)}/${g(LT.ry,1)}</div><div class="value">${f1(LT.lamZ,1)}</div><div></div>
-    <div>&lambda;<sub>1</sub> = &pi;&radic;(E/f<sub>y</sub>)</div><div class="formula">&pi;&radic;(${g(a.E,0)}/${g(a.py,0)})</div><div class="value">${f1(LT.lam1,1)}</div><div></div>
-    <div>&lambda;&#772;<sub>z</sub> = &lambda;<sub>z</sub>/&lambda;<sub>1</sub></div><div class="formula">${f1(LT.lamZ,1)}/${f1(LT.lam1,1)}</div><div class="value">${g(LT.lamZbar,3)}</div><div></div>
-    <div>&radic;&beta;<sub>w</sub></div><div class="formula">${c.cl.cls<=2?'Class 1/2 &rarr; W<sub>y</sub>=W<sub>pl,y</sub> &rarr; 1.0':'&radic;(W<sub>el,y</sub>/W<sub>pl,y</sub>)'}</div><div class="value">${g(LT.rootBw,2)}</div><div></div>
-    <div>&lambda;&#772;<sub>LT</sub> = (1/&radic;C<sub>1</sub>)&middot;0.9&middot;&lambda;&#772;<sub>z</sub>&middot;&radic;&beta;<sub>w</sub></div><div class="formula">${g(LT.invSqrtC1,2)}&times;0.9&times;${g(LT.lamZbar,3)}&times;${g(LT.rootBw,2)}</div><div class="value">${g(LT.lamLTsimp,2)}</div><div></div>
+  <div class="section-title smallgap">Equivalent Uniform Moment Factor C<sub>1</sub> (${stdHead})</div>
+  <div class="calc-block">${c1LineStd()}
+    <div>k<sub>c</sub> = 1/&radic;C<sub>1</sub> &ge; 1/&radic;2.76 (NA 2.18; Table 6.6 lower bound)</div><div class="formula">1/&radic;${g(c.C1,3)} = ${g(LT.invSqrtC1,3)}${LT.kcFloored? ' &rarr; floored at 1/&radic;2.76 = 0.602 (&psi; = &minus;1 row of Table 6.6)' : ''}</div><div class="value">${g(LT.kc,3)}</div><div></div>
   </div>
 
-  <div class="section-title smallgap">Reduction Factor for LTB (Cl. 6.3.2.3, NA 2.17 / NA 2.18)</div>
-  <div class="calc-block">
-    <div>Buckling curve (NA Table 6.3, rolled I/H)</div><div class="formula">h/b = ${g(sec.D,1)}/${g(sec.B,1)} = ${g(LT.hb,2)} &rarr; curve ${LT.curve.curve}</div><div class="value">&alpha;<sub>LT</sub> = ${g(LT.curve.alphaLT,2)}</div><div></div>
-    ${LT.ignS? `<div>&lambda;&#772;<sub>LT</sub> &le; &lambda;&#772;<sub>LT,0</sub> = 0.4</div><div class="formula">LTB effects may be ignored (cl 6.3.2.2(4))</div><div class="value">&chi;<sub>LT,mod</sub> = 1.000</div><div></div>` : `
-    <div>&Phi;<sub>LT</sub> = 0.5[1+&alpha;<sub>LT</sub>(&lambda;&#772;<sub>LT</sub>&minus;0.4)+0.75&lambda;&#772;<sub>LT</sub>&sup2;]</div><div class="formula">0.5[1+${g(LT.curve.alphaLT,2)}(${g(LT.lamLTsimp,2)}&minus;0.4)+0.75&times;${g(LT.lamLTsimp,2)}&sup2;]</div><div class="value">${g(LT.PhiS,3)}</div><div></div>
-    <div>&chi;<sub>LT</sub> = 1/[&Phi;+&radic;(&Phi;&sup2;&minus;0.75&lambda;&#772;&sup2;)] &le; min(1, 1/&lambda;&#772;&sup2;)</div><div class="formula">1/&lambda;&#772;&sup2; = ${g(1/(LT.lamLTsimp*LT.lamLTsimp),3)}</div><div class="value">${g(LT.chiS,3)}</div><div></div>
-    <div>k<sub>c</sub> = 1/&radic;C<sub>1</sub>;&nbsp; f = 1&minus;0.5(1&minus;k<sub>c</sub>)[1&minus;2(&lambda;&#772;<sub>LT</sub>&minus;0.8)&sup2;] &le; 1</div><div class="formula">k<sub>c</sub> = ${g(LT.kc,2)}</div><div class="value">f = ${g(LT.fS,3)}</div><div></div>
-    <div>&chi;<sub>LT,mod</sub> = &chi;<sub>LT</sub>/f</div><div class="formula">${g(LT.chiS,3)}/${g(LT.fS,3)}</div><div class="value">${g(LT.chiModS,3)}</div><div></div>`}
-    <div>M<sub>b,Rd</sub> = &chi;<sub>LT,mod</sub>&middot;W<sub>${c.cl.cls<=2?'pl':'el'},y</sub>&middot;f<sub>y</sub>/&gamma;<sub>M1</sub></div><div class="formula">${g(LT.ignS?1:LT.chiModS,3)}&times;${g(c.cl.cls<=2?sec.Sx:sec.Zx,0)}&times;${g(a.py,0)}/1.0</div><div class="value">${f1(LT.MbSimp,0)} kN&middot;m</div><div></div>
-    <div>M<sub>Ed</sub> / M<sub>b,Rd</sub></div><div class="formula">${f1(c.Mx,1)} / ${f1(LT.MbSimp,0)}</div><div class="value">${g(c.Mx/Math.max(LT.MbSimp,1e-9),2)}</div>${st(c.Mx<=LT.MbSimp*1.0001,'OK','exceeded')}
-  </div>
-
-  <div class="section-title smallgap">LTB &mdash; Elastic Critical Moment Method (SN003a; z<sub>g</sub>=0, k=k<sub>w</sub>=1, G=81000 N/mm&sup2;)</div>
+  <div class="section-title smallgap">LTB &mdash; Elastic Critical Moment, ${stdHead} (SN003a, k=k<sub>w</sub>=1, G=81000 N/mm&sup2;; DESIGN BASIS; FE eigensolver not run)</div>
   <div class="calc-block">
     <div>&pi;&sup2;EI<sub>z</sub>/L&sup2;</div><div class="formula">&pi;&sup2;&times;${g(a.E,0)}&times;${g(sec.Iy,0)}&times;10<sup>4</sup>/${g(c.LE,0)}&sup2;</div><div class="value">${f1(LT.T1,0)} kN</div><div></div>
     <div>I<sub>w</sub>/I<sub>z</sub></div><div class="formula">${g((sec.Iw||0)*1e6,0)} cm<sup>6</sup> / ${g(sec.Iy,0)} cm<sup>4</sup></div><div class="value">${f1(LT.IwIz,1)} cm&sup2;</div><div></div>
     <div>GI<sub>t</sub></div><div class="formula">81000&times;${g(sec.J,0)}&times;10<sup>4</sup></div><div class="value">${f1(LT.GIt,2)} kN&middot;m&sup2;</div><div></div>
-    ${LT.zgUsed? `<div>Load height (SN003a): z<sub>g</sub>, C<sub>2</sub></div><div class="formula">z<sub>g</sub> = ${g(LT.zg,0)} mm above the shear centre; C<sub>2</sub> = ${g(LT.C2,3)} &rarr; M<sub>cr</sub> term {&radic;(&hellip;+(C<sub>2</sub>z<sub>g</sub>)&sup2;) &minus; C<sub>2</sub>z<sub>g</sub>}</div><div class="value">C<sub>2</sub>z<sub>g</sub> = ${g(LT.C2*LT.zg,1)} mm</div><div></div>`:''}
+    <div>Load height z<sub>g</sub>${LT.zgSource==='loads'? ' (most destabilising per-load value of the governing combination)' : ' (default z<sub>g</sub>)'}</div><div class="formula">${LT.zgNote||''}${LT.zgUsed? ' &rarr; M<sub>cr</sub> term {&radic;(&hellip;+(C<sub>2</sub>z<sub>g</sub>)&sup2;) &minus; C<sub>2</sub>z<sub>g</sub>}' : ''}</div><div class="value">${LT.zgUsed? 'C<sub>2</sub>z<sub>g</sub> = '+g(LT.C2*LT.zg,1)+' mm' : 'not applied'}</div>${LT.zgBlocked? '<div class="status fail">BLOCKED</div>' : '<div></div>'}
     <div>M<sub>cr</sub> = C<sub>1</sub>(&pi;&sup2;EI<sub>z</sub>/L&sup2;)&radic;[I<sub>w</sub>/I<sub>z</sub> + GI<sub>t</sub>/(&pi;&sup2;EI<sub>z</sub>/L&sup2;)]${LT.zgUsed? ' with the C<sub>2</sub>z<sub>g</sub> term':''}</div><div class="formula">${g(c.C1,3)}&times;${f1(LT.T1,0)}&times;&radic;[${g(LT.IwIz/1e4,5)}+${g(LT.GIt/LT.T1,5)}] m</div><div class="value">${f1(LT.Mcr,1)} kN&middot;m</div><div></div>
     <div>&lambda;&#772;<sub>LT</sub> = &radic;(W<sub>y</sub>f<sub>y</sub>/M<sub>cr</sub>)</div><div class="formula">&radic;(${g(c.cl.cls<=2?sec.Sx:sec.Zx,0)}&times;10&sup3;&times;${g(a.py,0)}/${f1(LT.Mcr,1)}&times;10<sup>6</sup>)</div><div class="value">${f1(LT.lamLTmcr,2)}</div><div></div>
-    ${LT.ignM? `<div>&lambda;&#772;<sub>LT</sub> &le; 0.4 &rarr; LTB may be ignored</div><div class="formula">cl 6.3.2.2(4)</div><div class="value">&chi;<sub>LT,mod</sub> = 1.000</div><div></div>` : `
-    <div>&Phi;<sub>LT</sub>; &chi;<sub>LT</sub>; f; &chi;<sub>LT,mod</sub></div><div class="formula">&Phi;=${g(LT.PhiM,3)}; &chi;<sub>LT</sub>=${g(LT.chiM,3)}; f=${g(LT.fM,3)}</div><div class="value">&chi;<sub>LT,mod</sub> = ${g(LT.chiModM,3)}</div><div></div>`}
-    <div>M<sub>b,Rd</sub> (M<sub>cr</sub> method)</div><div class="formula">${g(LT.ignM?1:LT.chiModM,3)}&times;${g(c.cl.cls<=2?sec.Sx:sec.Zx,0)}&times;${g(a.py,0)}/1.0</div><div class="value">${f1(LT.MbMcr,0)} kN&middot;m</div><div></div>
-    <div>M<sub>Ed</sub> / M<sub>b,Rd</sub></div><div class="formula">${f1(c.Mx,1)} / ${f1(LT.MbMcr,0)}</div><div class="value">${g(c.Mx/Math.max(LT.MbMcr,1e-9),2)}</div>${st(c.Mx<=LT.MbMcr*1.0001,'OK','exceeded')}
+    <div>Buckling curve (NA Table NA.1, rolled I/H)</div><div class="formula">h/b = ${g(sec.D,1)}/${g(sec.B,1)} = ${g(LT.hb,2)} &rarr; curve ${LT.curve.curve}</div><div class="value">&alpha;<sub>LT</sub> = ${g(LT.curve.alphaLT,2)}</div><div></div>
+    ${LT.ignM? `<div>&lambda;&#772;<sub>LT</sub> &le; &lambda;&#772;<sub>LT,0</sub> = 0.4 &rarr; LTB may be ignored</div><div class="formula">cl 6.3.2.2(4)</div><div class="value">&chi;<sub>LT,mod</sub> = 1.000</div><div></div>` : `
+    <div>&Phi;<sub>LT</sub> = 0.5[1+&alpha;<sub>LT</sub>(&lambda;&#772;<sub>LT</sub>&minus;0.4)+0.75&lambda;&#772;<sub>LT</sub>&sup2;]</div><div class="formula">0.5[1+${g(LT.curve.alphaLT,2)}(${g(LT.lamLTmcr,2)}&minus;0.4)+0.75&times;${g(LT.lamLTmcr,2)}&sup2;]</div><div class="value">${g(LT.PhiM,3)}</div><div></div>
+    <div>&chi;<sub>LT</sub> = 1/[&Phi;+&radic;(&Phi;&sup2;&minus;0.75&lambda;&#772;&sup2;)] &le; min(1, 1/&lambda;&#772;&sup2;)</div><div class="formula">1/&lambda;&#772;&sup2; = ${g(1/(LT.lamLTmcr*LT.lamLTmcr),3)}</div><div class="value">${g(LT.chiM,3)}</div><div></div>
+    <div>k<sub>c</sub> = 1/&radic;C<sub>1</sub>;&nbsp; f = 1&minus;0.5(1&minus;k<sub>c</sub>)[1&minus;2(&lambda;&#772;<sub>LT</sub>&minus;0.8)&sup2;] &le; 1</div><div class="formula">k<sub>c</sub> = ${g(LT.kc,2)}</div><div class="value">f = ${g(LT.fM,3)}</div><div></div>
+    <div>&chi;<sub>LT,mod</sub> = &chi;<sub>LT</sub>/f</div><div class="formula">${g(LT.chiM,3)}/${g(LT.fM,3)}</div><div class="value">${g(LT.chiModM,3)}</div><div></div>`}
+    <div>M<sub>b,Rd</sub> = &chi;<sub>LT,mod</sub>&middot;W<sub>${c.cl.cls<=2?'pl':'el'},y</sub>&middot;f<sub>y</sub>/&gamma;<sub>M1</sub> &le; M<sub>c,Rd</sub></div><div class="formula">${g(LT.ignM?1:LT.chiModM,3)}&times;${g(c.cl.cls<=2?sec.Sx:sec.Zx,0)}&times;${g(a.py,0)}/1.0 &le; ${f1(c.McRd,1)}</div><div class="value">${f1(LT.MbRd,1)} kN&middot;m</div><div></div>
+    <div>M<sub>Ed</sub> / M<sub>b,Rd</sub></div><div class="formula">${f1(c.Mx,1)} / ${f1(LT.MbRd,1)}</div><div class="value">${g(c.Mx/Math.max(LT.MbRd,1e-9),2)}</div>${st(c.Mx<=LT.MbRd*1.0001,'OK','exceeded')}
+  </div>
+
+  <div class="section-title smallgap">Comparison only &mdash; Simplified Slenderness, P362 Expn (6.55) (not the design basis)</div>
+  <div class="calc-block">
+    <div>&lambda;<sub>z</sub> = L/i<sub>z</sub></div><div class="formula">${g(c.LE,0)}/${g(LT.ry,1)}</div><div class="value">${f1(LT.lamZ,1)}</div><div></div>
+    <div>&lambda;<sub>1</sub> = &pi;&radic;(E/f<sub>y</sub>)</div><div class="formula">&pi;&radic;(${g(a.E,0)}/${g(a.py,0)})</div><div class="value">${f1(LT.lam1,1)}</div><div></div>
+    <div>&lambda;&#772;<sub>z</sub> = &lambda;<sub>z</sub>/&lambda;<sub>1</sub>;&nbsp; &radic;&beta;<sub>w</sub></div><div class="formula">${f1(LT.lamZ,1)}/${f1(LT.lam1,1)}; ${c.cl.cls<=2?'Class 1/2 &rarr; W<sub>y</sub>=W<sub>pl,y</sub> &rarr; 1.0':'&radic;(W<sub>el,y</sub>/W<sub>pl,y</sub>)'}</div><div class="value">${g(LT.lamZbar,3)}; ${g(LT.rootBw,2)}</div><div></div>
+    <div>&lambda;&#772;<sub>LT</sub> = (1/&radic;C<sub>1</sub>)&middot;0.9&middot;&lambda;&#772;<sub>z</sub>&middot;&radic;&beta;<sub>w</sub></div><div class="formula">${g(LT.invSqrtC1,2)}&times;0.9&times;${g(LT.lamZbar,3)}&times;${g(LT.rootBw,2)}</div><div class="value">${g(LT.lamLTsimp,2)}</div><div></div>
+    ${LT.ignS? `<div>&lambda;&#772;<sub>LT</sub> &le; 0.4</div><div class="formula">LTB effects may be ignored (cl 6.3.2.2(4))</div><div class="value">&chi;<sub>LT,mod</sub> = 1.000</div><div></div>` : `<div>&Phi;<sub>LT</sub>; &chi;<sub>LT</sub>; f; &chi;<sub>LT,mod</sub> (curve ${LT.curve.curve})</div><div class="formula">&Phi;=${g(LT.PhiS,3)}; &chi;<sub>LT</sub>=${g(LT.chiS,3)}; f=${g(LT.fS,3)}</div><div class="value">&chi;<sub>LT,mod</sub> = ${g(LT.chiModS,3)}</div><div></div>`}
+    <div>M<sub>b,Rd</sub> (simplified) = &chi;<sub>LT,mod</sub>&middot;W<sub>y</sub>&middot;f<sub>y</sub>/&gamma;<sub>M1</sub> &le; M<sub>c,Rd</sub></div><div class="formula">${g(LT.ignS?1:LT.chiModS,3)}&times;${g(c.cl.cls<=2?sec.Sx:sec.Zx,0)}&times;${g(a.py,0)}/1.0</div><div class="value">${f1(LT.MbSimp,1)} kN&middot;m</div><div></div>
+    <div>M<sub>Ed</sub> / M<sub>b,Rd</sub> (simplified)</div><div class="formula">${f1(c.Mx,1)} / ${f1(LT.MbSimp,1)} &mdash; informational; the verdict uses the M<sub>cr</sub> route above</div><div class="value">${g(c.Mx/Math.max(LT.MbSimp,1e-9),2)}</div><div class="status">comparison</div>
   </div>`;
   const torsionCard = ((sci||sciU)&&c.tor)? `
   <div class="diagcard">
     <div class="dt">Torsional moment (kN&middot;m) &mdash; per-load shear-centre eccentricities (${a.tors.governT})</div>
     ${plot(a.tors.diag.xs,a.tors.diag.T,{color:'#7a4',fill:'#dcebc4',unit:'kN&middot;m',fmt:v=>f1(v,2)})}
-    <div class="note" style="margin-left:0">All supports are assumed to prevent twist (fork supports); the torque diagram is drawn for the combination governing torsion.</div>
+    <div class="note" style="margin-left:0">Twist is prevented at every end whose R<sub>x</sub> is restrained (${endsList().filter(e=>e.rx).map(e=>'End '+e.n).join(', ')}); the torque diagram is drawn for the combination governing torsion.</div>
   </div>` : '';
   const ltbBlock = sci? `
   <div class="section-title smallgap">Lateral&ndash;Torsional Buckling (Cl. 6.3.2.1)</div>
   <div class="calc-block">
     <div>Restraint condition</div><div class="formula">Beam fully laterally restrained &mdash; compression flange held in position throughout its length</div><div class="value">LTB cannot occur</div><div class="status ok">Not required</div>
-  </div>` : sciU? ltbEigenReport(c,a,sec) : ltbBlockBSfn();
+  </div>` : sciU? (mcrStd? sciUltbBlocks : ltbEigenReport(c,a,sec)) : ltbBlockBSfn();
 
   const sciAvFormula = sec.isBox? 'A<sub>v</sub> = AD/(D+B)'
     : sec.kind==='channel'? 'A<sub>v</sub> = A &minus; 2bt<sub>f</sub> + (t<sub>w</sub>+r)t<sub>f</sub>'
@@ -354,15 +453,17 @@ function render(){
     <div>V<sub>pl,T,Rd</sub> = [1 &minus; &tau;<sub>t,Ed</sub>/((f<sub>y</sub>/&radic;3)/&gamma;<sub>M0</sub>)]&middot;V<sub>pl,Rd</sub></div><div class="formula">[1 &minus; ${f1(vtTau,1)}/${f1(a.py/Math.sqrt(3),1)}]&times;${f1(c.VcRd,0)}</div><div class="value">${f1(vtVpl,0)} kN</div><div></div>
     <div>V<sub>Ed</sub> / V<sub>pl,T,Rd</sub></div><div class="formula">${f1(vtV,1)} / ${f1(vtVpl,0)}</div><div class="value">${c.tor.vtZeroCapacity?'&infin;':g(c.tor.vtUtil,3)}</div>${st(!c.tor.vtZeroCapacity&&c.tor.vtUtil<=1,'OK')}
   </div>` : c.tor&&c.tor.p385? `
-  <div class="section-title smallgap">Torsion Analysis &mdash; SCI P385 Method B (elastic; fork ends, warping free)</div>
+  <div class="section-title smallgap">Torsion Analysis &mdash; SCI P385 Method B (elastic; ${c.tor.fe? 'warping-torsion FE' : 'fork ends, warping free'})</div>
   <div class="calc-block">
+    <div>Method</div><div class="formula">${c.tor.fe? 'EI<sub>w</sub>&phi;&#8279; &minus; GI<sub>T</sub>&phi;&Prime; = m<sub>t</sub>(x) solved by '+c.tor.methodLabel+' (two-node elements, &phi; and &phi;&prime; DOFs); '+c.tor.bcText+'; closed forms not applicable: '+(c.tor.feReasons||[]).join('; ')+'. Mesh doubled once: peak twist / St Venant torque / bimoment changed by '+(c.tor.meshError*100).toFixed(3)+' % (limit '+(c.tor.meshBlock*100).toFixed(1)+' %)' : c.tor.methodLabel+' superposed per combination; '+c.tor.bcText}</div><div class="value">${c.tor.fe? (c.tor.meshConverged? 'mesh converged' : 'mesh NOT converged') : 'closed form'}</div>${c.tor.fe? st(c.tor.meshConverged,'OK') : '<div></div>'}
     <div>Torsional bending constant a = &radic;(EI<sub>w</sub>/GI<sub>T</sub>)</div><div class="formula">I<sub>T</sub> = ${g(c.tor.IT/1e4,1)} cm<sup>4</sup>; I<sub>w</sub> = ${g(c.tor.Iw/1e12,3)} dm<sup>6</sup> (P385 App A)</div><div class="value">a = ${f1(c.tor.aa/1000,2)} m; L/a = ${f1(c.tor.X,2)}</div><div></div>
     ${c.tor.e0!=null? `<div>Shear centre (channel)</div><div class="formula">e<sub>0</sub> = ${g(c.tor.e0,1)} mm from web centreline${c.tor.esc!=null? '; e<sub>sc</sub> = '+g(c.tor.esc,1)+' mm from centroid':''} &mdash; e measured from the shear centre</div><div class="value"></div><div></div>`:''}
     <div>T<sub>Ed</sub> (max. internal)</div><div class="formula">torque diagram by statics (fork ends)</div><div class="value">${f1(c.tor.TEd,2)} kN&middot;m</div><div></div>
-    <div>Max rotation &phi; (ULS)</div><div class="formula">Cases 3/4/10 closed forms, superposed per combination</div><div class="value">${c.tor.phiUmax.toFixed(4)} rad = ${f1(c.tor.phiUmax*180/Math.PI,2)}&deg;</div><div></div>
+    <div>Max rotation &phi; (ULS)</div><div class="formula">${c.tor.fe? c.tor.methodLabel+', every ULS combination' : 'Cases 3/4/10 closed forms, superposed per combination'}</div><div class="value">${c.tor.phiUmax.toFixed(4)} rad = ${f1(c.tor.phiUmax*180/Math.PI,2)}&deg;</div><div></div>
+    <div>Bimoment B<sub>Ed</sub> = EI<sub>w</sub>&phi;&Prime; (max)</div><div class="formula">@ x = ${g((c.tor.BMaxPos||0)/1000,2)} m</div><div class="value">${f1(c.tor.BMax,3)} kN&middot;m&sup2;</div><div></div>
     <div>Warping flange moment M<sub>w,Ed</sub> = EI<sub>w</sub>&phi;&Prime;/(h&minus;t<sub>f</sub>)</div><div class="formula">max over span</div><div class="value">${f1(c.tor.MwMax,2)} kN&middot;m</div><div></div>
     <div>Rotation-induced M<sub>z,Ed</sub> = &phi;&middot;M<sub>y,Ed</sub></div><div class="formula">max coincident value (mandatory, P385)</div><div class="value">${f1(c.tor.MzMax,2)} kN&middot;m</div><div></div>
-    <div>End torque reactions T<sub>t</sub> (for connection design)</div><div class="formula">x = 0 / x = L</div><div class="value">${f1(Math.abs(c.tor.TtEnds[0]),2)} / ${f1(Math.abs(c.tor.TtEnds[1]),2)} kN&middot;m</div><div></div>
+    <div>End torques T<sub>t</sub> (St Venant part, for connection design)</div><div class="formula">GI<sub>T</sub>&phi;&prime; at x = 0 / x = L${c.tor.TEnds? '; total torque T = GI<sub>T</sub>&phi;&prime; &minus; EI<sub>w</sub>&phi;&#8244; = '+f1(Math.abs(c.tor.TEnds[0]),2)+' / '+f1(Math.abs(c.tor.TEnds[1]),2)+' kN&middot;m' : ''}</div><div class="value">${f1(Math.abs(c.tor.TtEnds[0]),2)} / ${f1(Math.abs(c.tor.TtEnds[1]),2)} kN&middot;m</div><div></div>
   </div>
 
   <div class="section-title smallgap">Bending + Torsion Cross-Section (P385 &sect;3.1.2${c.tor.cls12? ' &mdash; plastic, Class 1/2':' &mdash; elastic, Class 3'})</div>
@@ -387,24 +488,39 @@ function render(){
   <div class="section-title smallgap">Moment Resistance (Cl. 6.2.5)</div>
   <div class="calc-block">
     <div>Shear at point of max. moment (Cl. 6.2.8)</div><div class="formula">V<sub>Ed</sub> @ x=${g(a.Mpos,2)} m: ${f1(c.VatM,1)} kN vs 0.5V<sub>pl${c.tor&&c.tor.VplTRd!=null?',T':''},Rd</sub> = ${f1(c.halfVpl,0)} kN (cl 6.2.8(${c.tor&&c.tor.VplTRd!=null?'4':'2'}))</div><div class="value">${c.lowShearAtM? 'no reduction':'M<sub>c,Rd</sub> reduced'}</div>${st(c.lowShearAtM,'Low shear','High shear')}
-    <div>M<sub>c,Rd</sub> = M<sub>pl,Rd</sub> = W<sub>${c.cl.cls<=2?'pl':'el'},y</sub>&middot;f<sub>y</sub>/&gamma;<sub>M0</sub></div><div class="formula">${g(c.cl.cls<=2?sec.Sx:sec.Zx,0)}&times;${g(a.py,0)}/1.0 &times;10<sup>&minus;3</sup></div><div class="value">${f1(c.McRd,0)} kN&middot;m</div><div></div>
+    <div>M<sub>c,Rd</sub> = ${c.mvForm? 'M<sub>v,Rd</sub> = '+c.mvForm : 'M<sub>'+(c.cl.cls<=2?'pl':'el')+',Rd</sub> = W<sub>'+(c.cl.cls<=2?'pl':'el')+',y</sub>&middot;f<sub>y</sub>/&gamma;<sub>M0</sub>'}</div><div class="formula">${g(c.cl.cls<=2?sec.Sx:sec.Zx,0)}&times;${g(a.py,0)}/1.0 &times;10<sup>&minus;3</sup>${c.mvForm? ' with &rho; = '+g(c.rhoAtM,3)+' at the point of maximum moment (cl 6.2.8(3))' : ''}</div><div class="value">${f1(c.McRd,0)} kN&middot;m</div><div></div>
     <div>M<sub>y,Ed</sub> / M<sub>c,Rd</sub> &le; 1.0</div><div class="formula">${f1(c.Mx,0)} / ${f1(c.McRd,0)}</div><div class="value">${g(c.momUtil,2)}</div>${st(c.momUtil<=1,'OK')}
     ${c.coex? (c.coex.pureShearFail
       ? `<div>Coexistent M&ndash;V along the span (cl 6.2.8)</div><div class="formula">@ x = ${g(c.coex.x/1000,2)} m: M = ${f1(c.coex.M,1)} kN&middot;m with V = ${f1(c.coex.V,0)} kN &gt; V<sub>pl${c.tor&&c.tor.VplTRd!=null?',T':''},Rd</sub> = ${f1(c.coex.VplRd,0)} kN; pure shear resistance fails, so M<sub>v,Rd</sub> is not evaluated</div><div class="value">V<sub>Ed</sub>/V<sub>pl${c.tor&&c.tor.VplTRd!=null?',T':''},Rd</sub> = ${f1(c.coex.u,3)}</div><div class="status fail">Shear FAIL</div>`
-      : `<div>Coexistent M&ndash;V along the span (cl 6.2.8)</div><div class="formula">@ x = ${g(c.coex.x/1000,2)} m: M = ${f1(c.coex.M,1)} kN&middot;m with V = ${f1(c.coex.V,0)} kN &gt; 0.5V<sub>pl,Rd</sub>; M<sub>v,Rd</sub> = ${f1(c.coex.MvRd,0)} kN&middot;m</div><div class="value">${g(c.coex.u,2)}</div>${st(c.coex.u<=1.0001,'OK')}`):''}
-  </div>` : '';
+      : `<div>Coexistent M&ndash;V along the span (cl 6.2.8)</div><div class="formula">@ x = ${g(c.coex.x/1000,2)} m: M = ${f1(c.coex.M,1)} kN&middot;m with V = ${f1(c.coex.V,0)} kN &gt; 0.5V<sub>pl,Rd</sub>, &rho; = ${g(c.coex.rho||0,3)}; M<sub>v,Rd</sub> = ${c.coex.form||''} = ${f1(c.coex.MvRd,0)} kN&middot;m</div><div class="value">${g(c.coex.u,2)}</div>${st(c.coex.u<=1.0001,'OK')}`):''}
+    ${c.mvn? `<div>Bending + shear + ${c.mvn.N>1e-9? 'axial'+(c.mvn.biax? ' + M<sub>z</sub>':'') : 'M<sub>z</sub>'} (cl 6.2.10): ${c.mvn.plastic? (c.mvn.biax? '(M<sub>y</sub>/M<sub>N,V,y,Rd</sub>)<sup>&alpha;</sup> + (M<sub>z</sub>/M<sub>N,V,z,Rd</sub>)<sup>&beta;</sup>' : 'M<sub>y,Ed</sub>/M<sub>N,V,y,Rd</sub>') : 'N<sub>Ed</sub>/N<sub>V,Rd</sub> + M<sub>y</sub>/M<sub>v,y,Rd</sub>'+(c.mvn.biax? ' + M<sub>z</sub>/M<sub>v,z,Rd</sub>' : '')}</div><div class="formula">@ x = ${g(c.mvn.x/1000,2)} m (${c.mvn.combo}): V = ${f1(c.mvn.V,0)} kN, &rho; = ${g(c.mvn.rho,3)}; (1&minus;&rho;)f<sub>y</sub> on A<sub>v</sub>: N<sub>V,Rd</sub> = (A &minus; &rho;A<sub>v</sub>)f<sub>y</sub> = ${f1(c.mvn.NV,0)} kN (n<sub>V</sub> = ${g(c.mvn.nV,3)}), M<sub>v,y,Rd</sub> = ${c.mvn.formY} = ${f1(c.mvn.MvY,0)}${c.mvn.biax? ', M<sub>v,z,Rd</sub> = '+c.mvn.formZ+' = '+f1(c.mvn.MvZ,1) : ''} kN&middot;m${c.mvn.plastic? '; a<sub>V</sub> = '+g(c.mvn.aV,3)+(c.mvn.afV!=null? ', a<sub>f,V</sub> = '+g(c.mvn.afV,3) : '')+(c.mvn.waiver? '; 6.2.9.1(4) no reduction (N<sub>Ed</sub> &le; 0.25N<sub>V,Rd</sub> and &le; 0.5h<sub>w</sub>t<sub>w</sub>(1&minus;&rho;)f<sub>y</sub>)' : '')+'; M<sub>N,V,y,Rd</sub> = '+f1(c.mvn.MNVy,0)+(c.mvn.biax? ', M<sub>N,V,z,Rd</sub> = '+f1(c.mvn.MNVz,1)+' kN&middot;m; &alpha; = '+g(c.mvn.alpha,2)+', &beta; = '+g(c.mvn.beta,2) : ' kN&middot;m') : ''}; M<sub>y</sub> = ${f1(c.mvn.M,1)}${c.mvn.biax? ', M<sub>z</sub> = '+f1(c.mvn.Mz,1) : ''} kN&middot;m, N<sub>Ed</sub> = ${f1(c.mvn.N,0)} kN (${c.mvn.form})</div><div class="value">${g(c.mvn.u,3)}</div>${st(c.mvn.u<=1.0001,'OK')}` : ''}
+  </div>
+  ${renderWebTransverseBlock(c,sec,a)}` : '';
 
   const pvFormula = sec.isBox? (sec.D===sec.B? 'P<sub>v</sub>=0.6 p<sub>y</sub> A D/(D+B)=0.6 p<sub>y</sub> A/2' : 'P<sub>v</sub>=0.6 p<sub>y</sub> A D/(D+B)') : 'P<sub>v</sub>=0.6 p<sub>y</sub> t D';
   const VplFormula = sec.isBox? (sec.D===sec.B? 'V<sub>pl,Rd</sub>=A<sub>v</sub>f<sub>y</sub>/(v3?<sub>M0</sub>), A<sub>v</sub>=A D/(D+B)=A/2' : 'V<sub>pl,Rd</sub>=A<sub>v</sub>f<sub>y</sub>/(v3?<sub>M0</sub>), A<sub>v</sub>=A D/(D+B)')
     : sec.kind==='channel' ? 'V<sub>pl,Rd</sub>=A<sub>v</sub>f<sub>y</sub>/(v3?<sub>M0</sub>), A<sub>v</sub>=A-2bt<sub>f</sub>+(t<sub>w</sub>+r)t<sub>f</sub>'
     : 'V<sub>pl,Rd</sub>=A<sub>v</sub>f<sub>y</sub>/(v3?<sub>M0</sub>), A<sub>v</sub>=A-2bt<sub>f</sub>+(t<sub>w</sub>+2r)t<sub>f</sub>=?h<sub>w</sub>t<sub>w</sub>';
 
+  // EC3: the MasterSeries-format design brief (js/06-brief-masterseries.js) is
+  // the main design output; the detailed derivation follows under a
+  // collapsible heading. BS 5950 keeps the detailed report only.
+  let briefBlock='', briefClose='';
+  if(S.code==='EC3' && typeof renderMasterSeriesBrief==='function'){
+    let brief;
+    try{ brief=renderMasterSeriesBrief(a,c,sec); }
+    catch(err){ brief=`<div class="err">Design brief could not be rendered: ${err}</div>`; }
+    briefBlock=`<div class="brief-title">Design Brief</div>${brief}<details class="ms-detail" open><summary>Detailed derivation</summary>`;
+    briefClose='</details>';
+  }
   rep.innerHTML = `
   ${banner}
+  ${briefBlock}
   <div class="report-head">
     <div>
       <h2>Member Loading and Member Forces</h2>
       <div class="meta">${sname(sec.key)} ${famLabel} &nbsp; &nbsp; ${gradeTxt} &nbsp; &nbsp; L = ${g(S.L)} m</div>
+      ${endsLine}
       <div class="loadlist">${loadLines}</div>
     </div>
     ${sectionView}
@@ -413,7 +529,8 @@ function render(){
   <div class="diagcard">
     <div class="dt">Loading</div>
     ${beamDiagram(a)}
-    <div class="note" style="margin-left:0">Reactions (governing-moment combo, ${a.governM.combo.label}): ${reactLine}</div>
+    <div class="note" style="margin-left:0">Reactions (governing-moment combo, ${a.governM.combo.label}; R upward positive, M sagging positive): ${reactLine}</div>
+    ${upliftLines}
   </div>
 
   ${combosBlock}
@@ -477,6 +594,12 @@ function render(){
   </div>`}
 
   ${ltbBlock}
+  ${(sciU&&c.restraintForces&&c.restraintForces.rows&&c.restraintForces.rows.length)? `
+  <div class="section-title smallgap">Restraint Design Forces (EN 1993-1-1 5.3.3 / 6.3.5.2 basis &mdash; advisory)</div>
+  <div class="calc-block">
+    ${c.restraintForces.rows.map(r=>`<div>x = ${g(r.x/1000,2)} m: ${r.label}</div><div class="formula">M<sub>Ed</sub> = ${f1(r.MEd,1)} kN&middot;m (${r.combo}); N<sub>f,Ed</sub> = M<sub>Ed</sub>/h = ${f1(r.MEd,1)}&times;10&sup3;/${g(c.restraintForces.h,1)} = ${f1(r.NfEd,1)} kN</div><div class="value">2.5 % N<sub>f,Ed</sub> = ${f1(r.F,2)} kN</div><div class="status">restraint design force, advisory</div>`).join('')}
+  </div>
+  <div class="note" style="margin-left:0">${c.restraintForces.basis}</div>` : ''}
   ${(sciU&&c.annex)? `
   <div class="section-title smallgap">LTB + Torsion Interaction (BS EN 1993-6 Annex A / P385 &sect;6.2)</div>
   <div class="calc-block">
@@ -488,17 +611,19 @@ function render(){
   <div class="section-title smallgap">Cross-Section Axial + Bending (Cl. 6.2.9)</div>
   <div class="calc-block">
     <div>N<sub>pl,Rd</sub> = Af<sub>y</sub>/&gamma;<sub>M0</sub>${S.anet!=null? ';&nbsp; N<sub>u,Rd</sub> = 0.9A<sub>net</sub>f<sub>u</sub>/&gamma;<sub>M2</sub>':''}</div><div class="formula">${g(sec.A,1)} cm&sup2;&times;${g(a.py,0)}${S.anet!=null? ' ; 0.9&times;'+g(S.anet,1)+' cm&sup2;&times;'+g(fuFromGrade(S.grade),0)+'/1.1 (&gamma;<sub>M2</sub>, UK NA)':''}</div><div class="value">${f1(c.ax.NplRd,1)}${S.anet!=null? ' / '+f1(c.ax.NuRd,1):''} kN</div><div></div>
-    <div>${c.ax.tension? 'N<sub>Ed</sub> / N<sub>t,Rd</sub> (tension)':'N<sub>Ed</sub> / N<sub>pl,Rd</sub>'}</div><div class="formula">${f1(Math.abs(c.F),1)} / ${f1(c.ax.tension? c.ax.NtRd:c.ax.NplRd,1)}; n = ${g(c.ax.n,3)}</div><div class="value">${g(c.ax.nUtil,3)}</div>${st(c.ax.nUtil<=1,'OK')}
+    ${c.ax.aeff&&c.ax.aeff.active? `<div>N<sub>c,Rd</sub> = A<sub>eff</sub>f<sub>y</sub>/&gamma;<sub>M0</sub> (cl 6.2.4(2), Class-4 web in uniform compression)</div><div class="formula">${g(c.ax.aeff.Aeff/100,2)} cm&sup2;&times;${g(a.py,0)}</div><div class="value">${f1(c.ax.NcRd,1)} kN</div><div></div>` : ''}
+    <div>${c.ax.tension? 'N<sub>Ed</sub> / N<sub>t,Rd</sub> (tension)': (c.ax.aeff&&c.ax.aeff.active? 'N<sub>Ed</sub> / N<sub>c,Rd</sub>' : 'N<sub>Ed</sub> / N<sub>pl,Rd</sub>')}</div><div class="formula">${f1(Math.abs(c.F),1)} / ${f1(c.ax.tension? c.ax.NtRd : (c.ax.aeff&&c.ax.aeff.active? c.ax.NcRd : c.ax.NplRd),1)}; n = N<sub>Ed</sub>/N<sub>pl,Rd</sub> = ${g(c.ax.n,3)}</div><div class="value">${g(c.ax.nUtil,3)}</div>${st(c.ax.nUtil<=1,'OK')}
     ${c.ax.chan? `<div>Linear interaction (cl 6.2.1(7))</div><div class="formula">n + M<sub>y,Ed</sub>/M<sub>c,y,Rd</sub> = ${g(c.ax.n,3)} + ${f1(c.Mx,2)}/${f1(c.ax.MN,2)} &mdash; ${c.ax.mnLbl}</div><div class="value">${g(c.ax.mUtil,3)}</div>${st(c.ax.mUtil<=1,'OK')}` : c.ax.cls3? `<div>Elastic interaction (cl 6.2.9.2)</div><div class="formula">N<sub>Ed</sub>/(Af<sub>y</sub>) + M<sub>y,Ed</sub>/(W<sub>el,y</sub>f<sub>y</sub>) = ${g(c.ax.n,3)} + ${f1(c.Mx,1)}/${f1(c.ax.MN,1)}</div><div class="value">${g(c.ax.mUtil,3)}</div>${st(c.ax.mUtil<=1,'OK')}` : `<div>M<sub>N,y,Rd</sub> (cl 6.2.9.1)</div><div class="formula">${c.ax.mnLbl}</div><div class="value">${f1(c.ax.MN,2)} kN&middot;m</div><div></div>
     <div>(M<sub>y,Ed</sub>/M<sub>N,y,Rd</sub>)<sup>&alpha;</sup> + (M<sub>z,Ed</sub>/M<sub>N,z,Rd</sub>)<sup>&beta;</sup></div><div class="formula">(${f1(c.Mx,2)}/${f1(c.ax.MN,2)})<sup>${g(c.ax.alpha,2)}</sup> + ${c.ax.biax? '('+f1(c.ax.Mz,2)+'/'+f1(c.ax.MNz,2)+')<sup>'+g(c.ax.beta,2)+'</sup>' : '0'}</div><div class="value">${g(c.ax.mUtil,3)}</div>${st(c.ax.mUtil<=1,'OK')}`}
   </div>`:''}
   ${(sci||sciU)&&c.buck? `
   <div class="section-title smallgap">Member Buckling Resistance (Cl. 6.3.3, Annex B Method 2 &mdash; Table ${c.buck.useB1?'B.1':'B.2'})</div>
   <div class="calc-block">
-    <div>L<sub>cr,y</sub> = ${g(S.leFactor,2)}&middot;L${c.buck.lczFromRestraints? '; L<sub>cr,z</sub> = restraint spacing (P360 6.2)':''}</div><div class="formula">&lambda;&#772;<sub>y</sub> = ${g(c.buck.lamY,3)} (curve ${c.buck.cvY.curve}); &lambda;&#772;<sub>z</sub> = ${g(c.buck.lamZ,3)} (curve ${c.buck.cvZ.curve})</div><div class="value">${g((c.buck.LcrY!=null?c.buck.LcrY:c.buck.Lcr)/1000,2)}${c.buck.LcrZ!=null&&Math.abs(c.buck.LcrZ-(c.buck.LcrY!=null?c.buck.LcrY:c.buck.Lcr))>1e-6? ' / '+g(c.buck.LcrZ/1000,2):''} m</div><div></div>
-    <div>N<sub>b,y,Rd</sub>; N<sub>b,z,Rd</sub> = &chi;Af<sub>y</sub>/&gamma;<sub>M1</sub></div><div class="formula">&chi;<sub>y</sub> = ${g(c.buck.chiY,3)}; &chi;<sub>z</sub> = ${g(c.buck.chiZ,3)}</div><div class="value">${f1(c.buck.NbY,1)} / ${f1(c.buck.NbZ,1)} kN</div><div></div>
+    <div>L<sub>cr,y</sub> = ${g(c.buck.Ky,2)}&middot;L; L<sub>cr,z</sub> = ${g(c.buck.Kz,2)}&middot;L${c.buck.lczFromRestraints? ' (restraint spacing, P360 6.2)':''}</div><div class="formula">${c.buck.lcrBasis? c.buck.lcrBasis+'; ' : ''}&lambda;&#772;<sub>y</sub> = ${g(c.buck.lamY,3)} (curve ${c.buck.cvY.curve}); &lambda;&#772;<sub>z</sub> = ${g(c.buck.lamZ,3)} (curve ${c.buck.cvZ.curve})</div><div class="value">${g(c.buck.LcrY/1000,2)}${Math.abs(c.buck.LcrZ-c.buck.LcrY)>1e-6? ' / '+g(c.buck.LcrZ/1000,2):''} m</div><div class="status">${c.buck.leOverride? 'user L<sub>E</sub>' : (c.buck.cantStrut? 'cantilever 2.0L' : 'end fixities')}</div>
+    <div>N<sub>b,y,Rd</sub>; N<sub>b,z,Rd</sub> = &chi;${c.buck.aeffOn? 'A<sub>eff</sub>' : 'A'}f<sub>y</sub>/&gamma;<sub>M1</sub></div><div class="formula">&chi;<sub>y</sub> = ${g(c.buck.chiY,3)}; &chi;<sub>z</sub> = ${g(c.buck.chiZ,3)}${c.buck.aeffOn? '; A<sub>eff</sub> = '+g(c.buck.Aeff/100,2)+' cm&sup2;, &lambda;&#772; = &radic;(A<sub>eff</sub>f<sub>y</sub>/N<sub>cr</sub>) (6.3.1.3(1)); Table 6.7 Class-4 column: N<sub>Rk</sub> = A<sub>eff</sub>f<sub>y</sub>, M<sub>y,Rk</sub> = W<sub>el,y</sub>f<sub>y</sub> (W<sub>eff,y</sub> = W<sub>el,y</sub>: flanges Class &le; 3, web Class 4 in uniform compression only, &Delta;M = 0) [assumption]' : ''}</div><div class="value">${f1(c.buck.NbY,1)} / ${f1(c.buck.NbZ,1)} kN</div><div></div>
+    ${c.buck.tfb&&c.buck.tfb.ok? `<div>Torsional / torsional-flexural buckling (cl 6.3.1.4): i<sub>0</sub>&sup2; = i<sub>y</sub>&sup2; + i<sub>z</sub>&sup2; + y<sub>0</sub>&sup2;; N<sub>cr,T</sub> = (GI<sub>T</sub> + &pi;&sup2;EI<sub>w</sub>/L<sub>T</sub>&sup2;)/i<sub>0</sub>&sup2;; N<sub>cr,TF</sub> = (N<sub>cr,y</sub>+N<sub>cr,T</sub>)/2&beta;&middot;[1 &minus; &radic;(1 &minus; 4&beta;N<sub>cr,y</sub>N<sub>cr,T</sub>/(N<sub>cr,y</sub>+N<sub>cr,T</sub>)&sup2;)]</div><div class="formula">y<sub>0</sub> = ${g(c.buck.tfb.y0,1)} mm (${c.buck.tfb.y0Src}); i<sub>0</sub> = &radic;(${g(c.buck.tfb.iy,1)}&sup2; + ${g(c.buck.tfb.iz,1)}&sup2; + ${g(c.buck.tfb.y0,1)}&sup2;) = ${g(c.buck.tfb.i0,1)} mm; I<sub>T</sub> = ${g(c.buck.tfb.IT/1e4,2)} cm<sup>4</sup>, I<sub>w</sub> = ${g(c.buck.tfb.Iw/1e12,5)} dm<sup>6</sup> (${c.buck.tfb.ITSrc}), G = 81000; L<sub>T</sub> = ${g(c.buck.tfb.LT/1000,2)} m (${c.buck.tfb.LTSrc}); N<sub>cr,T</sub> = ${f1(c.buck.tfb.NcrT,1)} kN; N<sub>cr,y</sub> = ${f1(c.buck.tfb.NcrY,1)} kN (flexure about the axis of symmetry y-y), &beta; = 1 &minus; (y<sub>0</sub>/i<sub>0</sub>)&sup2; = ${g(c.buck.tfb.beta,3)}; N<sub>cr,TF</sub> = ${f1(c.buck.tfb.NcrTF,1)} kN; N<sub>cr</sub> = min = ${f1(c.buck.tfb.Ncr,1)} kN (${c.buck.tfb.mode} mode); &lambda;&#772;<sub>T</sub> = &radic;(Af<sub>y</sub>/N<sub>cr</sub>) = ${g(c.buck.tfb.lamT,3)}; curve ${c.buck.tfb.cvT.curve} (Table 6.2, U-sections any axis, related to z-z per 6.3.1.4(3)) [verify]; &chi;<sub>T</sub> = ${g(c.buck.tfb.chiT,3)}; the lower of &chi;<sub>T</sub> and the flexural &chi; feeds the axial terms of Eq 6.61/6.62</div><div class="value">N<sub>b,T,Rd</sub> = ${f1(c.buck.tfb.NbT,1)} kN; N<sub>Ed</sub>/N<sub>b,T,Rd</sub> = ${g(c.buck.tfb.util,3)}</div>${st(c.buck.tfb.util<=1.0001,'OK')}` : ''}
     <div>C<sub>my</sub> = C<sub>mLT</sub> (Table B.3)</div><div class="formula" style="font-size:12.5px">${c.buck.cmLabel}${c.buck.swayNote? ' &mdash; sway buckling mode (cantilever): C<sub>m</sub> = 0.9 floor applied (Table B.3 note)':''}</div><div class="value">${g(c.buck.Cmy,3)}; C<sub>mz</sub> = ${g(c.buck.Cmz,2)}</div><div></div>
-    <div>k<sub>yy</sub>; k<sub>zz</sub>; k<sub>yz</sub>; k<sub>zy</sub></div><div class="formula">${c.buck.kzyLbl}</div><div class="value">${g(c.buck.kyy,3)}; ${g(c.buck.kzz,3)}; ${g(c.buck.kyz,3)}; ${g(c.buck.kzy,3)}</div><div></div>
+    <div>k<sub>yy</sub>; k<sub>zz</sub>; k<sub>yz</sub>; k<sub>zy</sub></div><div class="formula">${c.buck.rhsRow&&c.buck.c12? 'Table B.1 RHS row: k<sub>zz</sub> = C<sub>mz</sub>[1 + (&lambda;&#772;<sub>z</sub> &minus; 0.2)n<sub>z</sub>] &le; C<sub>mz</sub>(1 + 0.8n<sub>z</sub>), k<sub>yz</sub> = k<sub>zz</sub>; ' : c.buck.rhsRow? 'Table B.1 RHS, Class 3 column: k<sub>zz</sub> = C<sub>mz</sub>(1 + 0.6&lambda;&#772;<sub>z</sub>n<sub>z</sub>) &le; C<sub>mz</sub>(1 + 0.6n<sub>z</sub>), k<sub>yz</sub> = k<sub>zz</sub>; ' : ''}${c.buck.kzyLbl}${c.buck.aeffOn? ' (Class 3/4 rows)' : ''}</div><div class="value">${g(c.buck.kyy,3)}; ${g(c.buck.kzz,3)}; ${g(c.buck.kyz,3)}; ${g(c.buck.kzy,3)}</div><div></div>
     <div>N<sub>Ed</sub>/N<sub>b,y,Rd</sub> + k<sub>yy</sub>M<sub>y,Ed</sub>/M<sub>b,Rd</sub>${c.buck.biax?' + k<sub>yz</sub>M<sub>z,Ed</sub>/M<sub>c,z,Rd</sub>':''} (Eq 6.61)</div><div class="formula">${g(c.buck.ny,3)} + ${g(c.buck.kyy,3)}&times;${f1(c.buck.Mx,2)}/${f1(c.buck.MbRdI,2)}${c.buck.biax?' + '+g(c.buck.kyz,3)+'&times;'+f1(c.buck.MzEd,2)+'/'+f1(c.buck.Mcz,2):''}</div><div class="value">${g(c.buck.u1,3)}</div>${c.buck.Fc>1e-6? st(c.buck.u1<=1.0001,'OK') : '<div class="status">N<sub>Ed</sub> = 0</div>'}
     <div>N<sub>Ed</sub>/N<sub>b,z,Rd</sub> + k<sub>zy</sub>M<sub>y,Ed</sub>/M<sub>b,Rd</sub>${c.buck.biax?' + k<sub>zz</sub>M<sub>z,Ed</sub>/M<sub>c,z,Rd</sub>':''} (Eq 6.62)</div><div class="formula">${g(c.buck.nz,3)} + ${g(c.buck.kzy,3)}&times;${f1(c.buck.Mx,2)}/${f1(c.buck.MbRdI,2)}${c.buck.biax?' + '+g(c.buck.kzz,3)+'&times;'+f1(c.buck.MzEd,2)+'/'+f1(c.buck.Mcz,2):''}</div><div class="value">${g(c.buck.u2,3)}</div>${c.buck.Fc>1e-6? st(c.buck.u2<=1.0001,'OK') : '<div class="status">N<sub>Ed</sub> = 0</div>'}
   </div>`:''}
@@ -523,8 +648,8 @@ function render(){
 
   <div class="section-title smallgap">${(sci||sciU)? 'Vertical Deflection of Beam (BS EN 1993-1-1 NA 2.23 &mdash; ' : 'Deflection Check (SLS &mdash; '}${a.governD.combo.label})</div>
   <div class="calc-block">
-    <div>w (governing span utilisation)</div><div class="formula">@ x = ${g(a.deflection?a.deflection.dpos/1000:a.dpos,2)} m</div><div class="value">${f1(c.dmax,1)} mm</div><div></div>
-    <div>Limit = span/${g(c.divisor,0)}</div><div class="formula">${g(c.span,0)}/${g(c.divisor,0)} = ${f1(c.dlimit,1)} mm</div><div class="value">${f1(c.dmax,1)} ${c.defOk?'&lt;':'&gt;'} ${f1(c.dlimit,1)} mm</div>${st(c.defOk,'OK')}
+    <div>${c.deflCant? 'Tip deflection (vertically free end, relative to the held end)' : 'w (governing span utilisation)'}</div><div class="formula">@ x = ${g(a.deflection?a.deflection.dpos/1000:a.dpos,2)} m</div><div class="value">${f1(c.dmax,1)} mm</div><div></div>
+    <div>Limit = ${c.deflCant? 'L/' : 'span/'}${g(c.divisor,0)}${a.deflection&&a.deflection.abs!=null? ', capped at '+f1(a.deflection.abs,1)+' mm (absolute)' : ''}</div><div class="formula">${g(c.span,0)}/${g(c.divisor,0)} = ${f1(a.deflection?a.deflection.limSpan:c.dlimit,1)} mm${c.deflAbsGoverns? ' &gt; absolute limit '+f1(a.deflection.abs,1)+' mm, which governs' : ''}${c.deflCant? ' (vertically free end: L/'+g(c.divisor,0)+' per UK NA to EN 1993-1-1 Table NA.2 [verify], cantilever row)' : ''}</div><div class="value">${f1(c.dmax,1)} ${c.defOk?'&lt;':'&gt;'} ${f1(c.dlimit,1)} mm</div>${st(c.defOk,'OK')}
   </div>
 
   ${(sci||sciU)&&c.tor&&c.tor.p385? `
@@ -541,5 +666,8 @@ function render(){
   </div>`:''}
   <div class="note">${notes.map(n=>'  '+n).join('<br>')}</div>
   <div class="note" style="margin-top:8px;color:#9a8f78">Analysis: 2-node Euler Bernoulli beam elements (direct stiffness); reactions exact, shear/moment by statics, deflection at nodes exact. Section data: SCI P363 Blue Book. This is a design aid   results to be verified by a competent engineer.</div>
-  `;
+  ${briefClose}`;
+  // the section load-line card zooms on click / Enter: listeners bound here
+  // (no inline handlers in the markup)
+  if(typeof sectionViewBindZoom==='function') sectionViewBindZoom(rep);
 }

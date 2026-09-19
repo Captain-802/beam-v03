@@ -12,20 +12,30 @@
    else in the file is touched, so the encoding of the existing source is
    preserved.
 
-   Once it is running and you have re-run your validation examples, the
-   following become dead and can be deleted in a cp1252-safe editor:
+   Mcr METHOD SWITCH  (S.mcrMethod: 'eigen' | 'standard')
+   ---------------------------------------------------------
+   The original closed-form function checksEC3UnrestrainedSCI() from
+   js/checks/eurocode-checks.js is captured BEFORE the reassignment as
+   window.checksEC3UnrestrainedStandard and the patched function delegates
+   to it when S.mcrMethod === 'standard'. That is the STANDARD method:
+   C1 from the NCCI SN003a tables / SCI end-moment curve / Serna quarter-point
+   expression, the SN003a closed-form Mcr with C2*zg where published, SN006a
+   for cantilevers and the P385/P362 channel kappa chain - as MasterSeries-
+   type software does. The eigen method (default) remains the FE eigenvalue
+   solution for the actual moment diagram, load heights, restraints and hinges.
+   Both methods expose ltb.McrStandard (closed form for the same segment) and
+   ltb.McrEigen (null in standard mode: the eigensolver is not run) so the
+   report can print "Mcr eigen / Mcr standard". The helpers below are
+   therefore the standard-method implementation and must STAY ALIVE:
 
-       C1_END_MOMENT        (~line 419)
-       SN006 / sn006C       (~lines 425-489)
-       sernaC1              (~line 495)
-       c1FromPsi            (~line 500)
-       computeC1            (~line 508)
-       mcrEC3               (~line 528)
-       checksEC3            (~lines 1828-1960)   <- already dead, never called
-       sn003aC1             (~lines 2282-2309)
+       C1_END_MOMENT, SN006 / sn006C, sernaC1, c1FromPsi, computeC1, mcrEC3
+                            (js/01-computation-engine.js)
+       sn003aC1, c1Inputs, c1Segment, mcrClosedForm, mcrSN006aFor,
+       mcrStandardFor, cmTableB3, annexB2, checksEC3UnrestrainedSCI
+                            (js/checks/eurocode-checks.js)
 
-   WHAT CHANGES IN THE NUMBERS
-   ---------------------------
+   WHAT CHANGES IN THE NUMBERS (eigen method vs the standard method)
+   -----------------------------------------------------------------
    * C1 is no longer an input. Mcr comes out of the eigenproblem directly
      and lamLT = sqrt(Wy*fy/Mcr).
    * The old `computeC1`/`sn003aC1` returned C1 = 1.0 for every combined
@@ -201,6 +211,10 @@
     rst.forEach(function (r) { forced.push(r.x); });
     pl.forEach(function (q) { forced.push(q.x); });
     dl.forEach(function (q) { forced.push(q.x1); forced.push(q.x2); });
+    /* an applied couple makes M(x) jump; a node there keeps the jump on an
+       element boundary, where the Hermite O(h^4) extrapolation holds (19 Sep
+       2026 review finding F-D: a couple off a node inflated the mesh error) */
+    (p.couplePositions || []).forEach(function (x) { forced.push(x); });
     var nodes = meshNodes(L, forced, nElem), nn = nodes.length, nd = 4 * nn;
 
     function qzg(x) {
@@ -365,72 +379,91 @@
   function zjFor(sec) { return (S.zj != null && isFinite(S.zj)) ? +S.zj : 0; }
 
   function ltbRestraintsFor(a) {
-    var out = [], warpRoot = (S.rootWarp === 'restrained') ? 1 : 0;
-    var fixLat = (S.fixedLateral === false) ? 0 : 1;
-    /* Every support is a fork (v = phi = 0). Per-support checkboxes can ADD
-       lateral-bending (vp) and warping (phip) fixity - the SCI Mcr tool's
-       dU = F / dtheta = F - without changing the vertical model. For fixed
-       supports these OR with the global fixedLateral / rootWarp settings. */
-    S.supports.forEach(function (s) {
-      var x = (+s.pos) * 1000;
-      if (s.type === 'fixed') out.push({ x: x, v: 1, vp: (fixLat || s.vp) ? 1 : 0, phi: 1, phip: (warpRoot || s.phip) ? 1 : 0 });
-      else out.push({ x: x, v: 1, phi: 1, vp: s.vp ? 1 : 0, phip: s.phip ? 1 : 0 });
-    });
+    /* End boundary conditions straight from the end degree-of-freedom flags
+       (19 Sep 2026 single-span scope): v from U_y, v' from R_z, phi from R_x,
+       phi' from warping (ltbEndRestraints, js/03-state-ui.js). A free end
+       (cantilever tip) contributes no restraint at x = L. Intermediate lateral
+       restraints follow with their own four flags. A warping flag is applied
+       only where the section has a warping constant (warpingApplies,
+       js/03-state-ui.js): on an I_w = 0 box the twist equation is second
+       order and phi' is not a boundary condition (finding F-E). */
+    var warp = warpingApplies(a.sec);
+    var out = ltbEndRestraints(S).map(function (r) { return { x: r.x, v: r.v, vp: r.vp, phi: r.phi, phip: warp ? r.phip : 0 }; });
     (S.ltbRestraints || []).forEach(function (r) {
-      out.push({ x: (+r.pos) * 1000, v: r.v !== false, vp: !!r.vp, phi: r.phi !== false, phip: !!r.phip });
+      out.push({ x: (+r.pos) * 1000, v: r.v !== false, vp: !!r.vp, phi: r.phi !== false, phip: warp ? !!r.phip : false });
     });
     return out;
   }
 
   /* Transverse loads of ONE ULS combination, re-signed DOWNWARD
      POSITIVE, each carrying the load-height zg. Moment loads contribute to
-     M(x) but have no load-height term, so they are excluded here.
+     M(x) but have no load-height term, so they are excluded from the load
+     lists; their positions are returned as `couples` so the eigen mesh puts a
+     node at every jump of the moment diagram.
      This deliberately does NOT call comboLoads(), whose sign is inverted. */
   function unitLoadsFor(a, combo) {
     var fac = combo.factors;
-    var dl = [], pl = [];
-    S.loads.forEach(function (ld) {
-      if (ld.isSelfWeight || ld.type === 'moment') return;
-      var f = fac[ld.case] != null ? fac[ld.case] : 0;
+    var dl = [], pl = [], couples = [];
+    comboLoadPieces(combo).forEach(function (p) {
+      var f = p.factor;
       if (!f) return;
-      var zg = typeof loadZgValue === 'function' ? loadZgValue(ld) : (+S.za || 0);
-      if (ld.type === 'point') pl.push({ x: (+ld.pos) * 1000, P: (ld.P || 0) * f * 1000, zg: zg });
-      else if (ld.type === 'udl') dl.push({ x1: (+ld.x1) * 1000, x2: (+ld.x2) * 1000, w1: (ld.w || 0) * f, w2: (ld.w || 0) * f, zg: zg });
-      else if (ld.type === 'trap') dl.push({ x1: (+ld.x1) * 1000, x2: (+ld.x2) * 1000, w1: (ld.w1 || 0) * f, w2: (ld.w2 || 0) * f, zg: zg });
+      if (p.type === 'moment') { if (Math.abs(p.M) > 1e-12) couples.push(p.pos); return; }
+      var zg = typeof loadZgValue === 'function' ? loadZgValue(p.ld) : (+S.za || 0);
+      if (p.type === 'point') pl.push({ x: p.pos, P: p.P * f * 1000, zg: zg });
+      else dl.push({ x1: p.x1, x2: p.x2, w1: p.w1 * f, w2: p.w2 * f, zg: zg });
     });
     var gF = fac.G != null ? fac.G : 0;
     var sw = selfWeightValue(a.sec);
     if (gF !== 0 && sw > 0) dl.push({ x1: 0, x2: a.L, w1: sw * gF, w2: sw * gF, zg: 0 }); // self-weight acts at the centroid
-    return { distLoads: dl, pointLoads: pl };
+    return { distLoads: dl, pointLoads: pl, couples: couples };
   }
 
   /* Full LTB solve for ONE ULS combination (res = {combo, fb}). Returns Mcr,
      plus a GENERALISED C1 defined as
         C1 = Mcr(actual diagram, zg=0, zj=0) / Mcr(uniform moment, same restraints)
      which reduces to the textbook C1 on a fork-fork span and remains
-     meaningful for multi-span and intermediately restrained members,
+     meaningful for intermediately restrained and non-fork-ended members,
      where no tabulated C1 exists. Used only for kc (NA 2.18).
      `shared` caches the combo-independent uniform-moment reference solve so a
      multi-combination run does not repeat it. */
+  /* Memo of eigen solves (19 Sep 2026 review, performance): keyed by every
+     input of the solve - section constants, L, restraints, mesh, zj, the load
+     lists and the sampled moment diagram - so a re-render after an unrelated
+     input (deflection divisor, grade, s_s) or an identical pattern of another
+     parent combination does not repeat a coarse + fine eigen solve. Bounded
+     (oldest entry dropped); `shared.stats` counts solves and cache hits. */
+  var EIGEN_CACHE = new Map(), EIGEN_CACHE_MAX = 96;
+  function mcrEigenMemo(p, momentKey, stats) {
+    var key = JSON.stringify([p.E, p.G, p.Iz, p.It, p.Iw, p.L, p.restraints, p.nElem, !!p.refine, p.zj, p.distLoads || [], p.pointLoads || [], p.couplePositions || [], momentKey]);
+    var hit = EIGEN_CACHE.get(key);
+    if (hit) { EIGEN_CACHE.delete(key); EIGEN_CACHE.set(key, hit); if (stats) stats.cached++; return hit; }
+    var sol = mcrEigen(p);
+    if (stats) stats.solved++;
+    EIGEN_CACHE.set(key, sol);
+    if (EIGEN_CACHE.size > EIGEN_CACHE_MAX) EIGEN_CACHE.delete(EIGEN_CACHE.keys().next().value);
+    return sol;
+  }
   function solveLTB(a, sec, res, shared) {
     var sp = secProps(sec), zj = zjFor(sec), ul = unitLoadsFor(a, res.combo);
     var gfb = res.fb;
     var base = { E: a.E, G: G_STEEL, Iz: sp.Iz, It: sp.It, Iw: sp.Iw, L: a.L,
-                 restraints: ltbRestraintsFor(a), nElem: 32, refine: true };
+                 restraints: ltbRestraintsFor(a), nElem: 32, refine: true, couplePositions: ul.couples };
+    var stats = shared && shared.stats;
+    var mKey = gfb.xs.length + ':' + gfb.M.join(',');
 
-    var actual = mcrEigen(Object.assign({}, base, {
+    var actual = mcrEigenMemo(Object.assign({}, base, {
       moment: momentFromSamples(gfb.xs, gfb.M), zj: zj,
       distLoads: ul.distLoads, pointLoads: ul.pointLoads
-    }));
+    }), mKey, stats);
 
-    var shapeOnly = mcrEigen(Object.assign({}, base, {
+    var shapeOnly = mcrEigenMemo(Object.assign({}, base, {
       moment: momentFromSamples(gfb.xs, gfb.M), zj: 0,
       distLoads: ul.distLoads.map(function (d) { return Object.assign({}, d, { zg: 0 }); }),
       pointLoads: ul.pointLoads.map(function (q) { return Object.assign({}, q, { zg: 0 }); })
-    }));
+    }), mKey, stats);
 
     var uniform = (shared && shared.uniform) ||
-      mcrEigen(Object.assign({}, base, { moment: function () { return 1e6; }, zj: 0 }));
+      mcrEigenMemo(Object.assign({}, base, { moment: function () { return 1e6; }, zj: 0 }), 'uniform', stats);
     if (shared) shared.uniform = uniform;
 
     var C1 = uniform.Mcr > 0 ? shapeOnly.Mcr / uniform.Mcr : 1;
@@ -449,8 +482,11 @@
   }
 
   function ltbCurve(sec) {
-    // UK NA / SCI P362 Table 6.6: hot-finished hollow sections share the
-    // I/H h/b allocation; cold-formed hollow sections use c (h/b<=2) or d.
+    // UK NA Table NA.1 (cl 6.3.2.3): hot-finished hollow sections share the
+    // I/H h/b allocation; cold-formed hollow sections use c (h/b<=2) or d;
+    // channels d. ONE allocation for both Mcr methods: ltbCurveNA() in
+    // js/checks/eurocode-checks.js (the standard route uses the same function).
+    if (typeof ltbCurveNA === 'function') return ltbCurveNA(sec);
     if (sec.isBox && sec.boxType === 'CF') return sec.D/sec.B <= 2 ? { alphaLT: 0.49, curve: 'c' } : { alphaLT: 0.76, curve: 'd' };
     if (sec.kind === 'channel') return { alphaLT: 0.76, curve: 'd' }; // not doubly symmetric
     var hb = sec.D / sec.B;
@@ -460,11 +496,20 @@
   /* ================================================================
      PART 4 - replacement LTB check
      ================================================================ */
+  /* The closed-form (standard) implementation from eurocode-checks.js is kept
+     under its own name; the patched binding delegates to it on request. */
+  var checksEC3UnrestrainedStandard = window.checksEC3UnrestrainedSCI;
+  if (typeof checksEC3UnrestrainedStandard !== 'function')
+    throw new Error('mcr-eigen-patch: checksEC3UnrestrainedSCI (the standard closed-form method) must be loaded before this patch.');
+  window.checksEC3UnrestrainedStandard = checksEC3UnrestrainedStandard;
+  function mcrMethod() { return (S.mcrMethod === 'standard') ? 'standard' : 'eigen'; }
+
   window.checksEC3UnrestrainedSCI = function (a) {
+    if (mcrMethod() === 'standard') return checksEC3UnrestrainedStandard(a);
     var b = checksEC3Restrained(a);
     var sec = a.sec, fy = a.py, gM1 = 1.0, Wy = b.Wy;
     var unsupported = b.unsupported.slice();
-    var isCant = (S.supports.length === 1 && S.supports[0].type === 'fixed');
+    var isCant = isCantilever(S);
     var ltb, warn = [];
 
     /* Closed hollow sections are no longer blanket-exempted. EN 1993-1-1
@@ -482,7 +527,7 @@
        is combo-independent and shared. */
     var combosLTB = (a.ulsResults || []).filter(function (r) { return Math.abs(r.Mmax) > 1e-9; });
     if (!combosLTB.length) combosLTB = [a.governM];
-    var shared = { uniform: null };
+    var shared = { uniform: null, stats: { solved: 0, cached: 0 } };
     var evals = [];
     try {
       combosLTB.forEach(function (res) {
@@ -490,9 +535,14 @@
       });
     } catch (err) {
       unsupported.push('Elastic critical moment: ' + err.message);
+      var stdFail = null;
+      try { stdFail = mcrStandardFor(a, sec); } catch (e3) { stdFail = null; }
       ltb = { eigen: true, failed: true, err: err.message, MbRd: 0, Mcr: 0, C1: 1, kc: 1,
-              curve: ltbCurve(sec), ign: false, chi: 0, f: 1, chiMod: 0, lamLT: 0, warn: warn };
-      return Object.assign({}, b, { sci: false, sciU: true, unsupported: unsupported, ltb: ltb,
+              curve: ltbCurve(sec), ign: false, chi: 0, f: 1, chiMod: 0, lamLT: 0, warn: warn,
+              mcrMethod: 'eigen', McrEigen: null, McrRatio: null,
+              McrStandard: (stdFail && stdFail.Mcr != null) ? stdFail.Mcr : null,
+              std: stdFail, c1in: stdFail ? stdFail.c1in : null, c1seg: stdFail ? stdFail.seg : null, c1route: stdFail ? stdFail.route : null };
+      return Object.assign({}, b, { sci: false, sciU: true, mcrMethod: 'eigen', unsupported: unsupported, ltb: ltb,
         ltbUtil: 99, ltbBasis: 'Mcr could not be computed', C1: 1, c1label: 'n/a',
         LE: a.L, utils: [{ name: 'LTB', val: 99 }], gov: { name: 'LTB', val: 99 }, pass: false,
         annex: null, buck: null });
@@ -517,7 +567,14 @@
 
     var zgAny = evals.some(function (ev) { return Math.abs(ev.sol.zg || 0) > 1e-9; });
     if (zgAny && S.destab) warn.push('The destabilising x1.2 switch is ignored on the EC3 path: load height is carried exactly by per-load zg. Untick it to avoid confusion.');
-    if (Math.abs(S.leFactor - 1) > 1e-9) warn.push('The LE factor no longer affects EC3 LTB; buckling length is set by the restraint positions. It still sets the major-axis strut length (and the minor-axis one where no intermediate lateral restraints are modelled).');
+    /* 19 Sep 2026 verification campaign (UB-40): the switch declares a destabilising load, but with every
+       z_g = 0 the eigenvalue would take the load at the shear centre and print a PASS the closed-form route
+       (L_E x 1.2) refuses - a contradictory input, so PASS is blocked until z_g is entered or the switch cleared. */
+    if (!zgAny && S.destab) unsupported.push('Destabilising loading is ticked but every load height z<sub>g</sub> is 0 (load at the shear centre): the eigenvalue M<sub>cr</sub> carries the load height exactly through z<sub>g</sub> and does not apply the &times;1.2 L<sub>E</sub> device of the closed-form route, so this solve would treat the load as non-destabilising. Enter the load height (e.g. z<sub>g</sub> = +h/2 for a top-flange load, with eccentricity/height inputs on) or untick the switch; PASS is blocked.');
+    if (S.leFactor != null && S.leFactor !== '' && Math.abs(+S.leFactor - 1) > 1e-9) warn.push('The L<sub>E</sub> factor does not affect EC3 LTB on the eigen route; the buckling length is set by the end restraints and the restraint positions. It overrides the strut lengths of both axes (the end-fixity defaults are printed with them).');
+    var warpFlagged = endsList(S).filter(function (e) { return e.warp; }).map(function (e) { return 'End ' + e.n; })
+      .concat((S.ltbRestraints || []).filter(function (r) { return r.phip; }).map(function (r) { return 'restraint at x = ' + g(+r.pos, 2) + ' m'; }));
+    if (warpFlagged.length && !warpingApplies(sec)) warn.push('Warping flag at ' + warpFlagged.join(', ') + ' not applied: this closed section has I<sub>w</sub> = 0, so its twist equation is the second-order St Venant form and &phi;&prime; is not a boundary condition (EN 1993-1-1 6.2.7(7): warping of closed hollow sections may be neglected). The eigen model holds v, v&prime; and &phi; as flagged.');
 
     var curve = ltbCurve(sec);
 
@@ -529,7 +586,7 @@
        eigenmode localises in - isolated fork-fork, shape-only - and never a
        value more favourable than the whole-member ratio (min of the two). */
     var vPtsKc = [];
-    S.supports.forEach(function (s) { vPtsKc.push(+(((+s.pos) * 1000).toFixed(3))); });
+    endsList().forEach(function (e) { if (e.uy) vPtsKc.push(+((e.x * 1000).toFixed(3))); });
     (S.ltbRestraints || []).forEach(function (r) { if (r.v !== false) { var xr = (+r.pos) * 1000; if (isFinite(xr) && xr >= -1e-6 && xr <= a.L + 1e-6) vPtsKc.push(+xr.toFixed(3)); } });
     vPtsKc = vPtsKc.filter(function (x, i) { return vPtsKc.indexOf(x) === i; }).sort(function (p, q) { return p - q; });
     var hasIntermediateKc = !isCant && vPtsKc.length >= 3;
@@ -544,8 +601,9 @@
       var Mf = momentFromSamples(ev.res.fb.xs, ev.res.fb.M);
       var sp2 = secProps(sec);
       try {
+        var cpl2 = unitLoadsFor(a, ev.res.combo).couples.filter(function (x) { return x > xa + 1e-9 && x < xb - 1e-9; }).map(function (x) { return x - xa; });
         var base2 = { E: a.E, G: G_STEEL, Iz: sp2.Iz, It: sp2.It, Iw: sp2.Iw, L: Ls, zj: 0,
-                      restraints: [{ x: 0 }, { x: Ls }], nElem: 24, refine: true };
+                      restraints: [{ x: 0 }, { x: Ls }], nElem: 24, refine: true, couplePositions: cpl2 };
         var shb = mcrEigen(Object.assign({}, base2, { moment: (function (x0) { return function (x) { return Mf(x0 + x); }; })(xa) }));
         var unb = mcrEigen(Object.assign({}, base2, { moment: function () { return 1e6; } }));
         if (!(unb.Mcr > 0) || !shb.converged || !unb.converged) return null;
@@ -570,8 +628,14 @@
         C1c = S.C1o;
         trusted = true;
       }
-      var kcc = 1.0;
-      if (trusted) kcc = Math.min(1 / Math.sqrt(Math.max(C1c, 1e-6)), 1.0);
+      /* k_c = 1/sqrt(C1) floored at 1/sqrt(2.76) = 0.60, the Table 6.6 lower
+         bound (psi = -1); the back-calculated eigen C1 is unbounded (19 Sep
+         2026 gap closure, item 3.5). kcFromC1() in eurocode-checks.js. */
+      var kcc = 1.0, kcRaw = 1.0, kcFloored = false;
+      if (trusted) {
+        var kcr = kcFromC1(C1c);   // eurocode-checks.js is loaded before this patch (asserted above)
+        kcc = kcr.kc; kcRaw = kcr.kcRaw; kcFloored = kcr.floored;
+      }
       var Phi0 = null, chi0 = 1, f0 = 1, chiMod0 = 1, ign0 = true;
       if (lam > 0.4) {
         Phi0 = 0.5 * (1 + curve.alphaLT * (lam - 0.4) + 0.75 * lam * lam);
@@ -581,7 +645,7 @@
         ign0 = false;
       }
       var MbRd0 = Math.min(chiMod0 * Wy * fy / gM1 / 1e6, b.McRd);
-      return { lamLT: lam, C1: C1c, c1label: c1lbl, c1Trusted: trusted, kc: kcc,
+      return { lamLT: lam, C1: C1c, c1label: c1lbl, c1Trusted: trusted, kc: kcc, kcRaw: kcRaw, kcFloored: kcFloored,
                Phi: Phi0, chi: chi0, f: f0, chiMod: chiMod0, ign: ign0,
                MbRd: MbRd0, util: MbRd0 > 0 ? MxC / MbRd0 : 99, MxC: MxC };
     }
@@ -597,7 +661,8 @@
     var sol = govEv.sol, chn = govEv.chain;
     var Mcr = sol.Mcr / 1e6;                     // kN.m
     var lamLT = chn.lamLT;
-    var C1 = chn.C1, c1label = chn.c1label, c1Trusted = chn.c1Trusted, kc = chn.kc;
+    var C1 = chn.C1, c1label = chn.c1label, c1Trusted = chn.c1Trusted, kc = chn.kc, kcRaw = chn.kcRaw, kcFloored = chn.kcFloored;
+    if (kcFloored) warn.push('C<sub>1</sub> = ' + C1.toFixed(3) + ' exceeds 2.76: k<sub>c</sub> = 1/&radic;C<sub>1</sub> = ' + kcRaw.toFixed(3) + ' is floored at 1/&radic;2.76 = ' + kc.toFixed(3) + ', the Table 6.6 lower bound (&psi; = &minus;1 end-moment case), so the f-factor is not extrapolated beyond its calibrated range.');
     if (!c1Trusted) warn.push('The reference solves used to back-calculate C<sub>1</sub> did not converge; k<sub>c</sub> = 1.0 has been used, which is the conservative value (f = 1.0, hence the lower M<sub>b,Rd</sub>). M<sub>cr</sub> itself is unaffected.');
 
     var Phi = chn.Phi, chi = chn.chi, f = chn.f, chiMod = chn.chiMod, ign = chn.ign;
@@ -616,7 +681,7 @@
 
     ltb = { eigen: true, na: false, cant: isCant, channel: sec.kind === 'channel', box: !!sec.isBox,
             Mcr: Mcr, McrRev: sol.McrRev / 1e6, McrUniform: sol.McrUniform / 1e6, McrShape: sol.McrShape / 1e6,
-            C1: C1, c1label: c1label, kc: kc, lamLT: lamLT, lamLTmcr: lamLT,
+            C1: C1, c1label: c1label, kc: kc, kcRaw: kcRaw, kcFloored: kcFloored, lamLT: lamLT, lamLTmcr: lamLT,
             curve: curve, Phi: Phi, chi: chi, f: f, chiMod: chiMod, ign: ign, ignM: ign,
             chiM: chi, chiModM: chiMod, fM: f, PhiM: Phi,           // aliases: Annex A block reads chiM
              MbRd: MbRd, MbMcr: MbRd, MbSimp: MbRd, McrBack: Mcr,    // aliases: Annex A reads Mcr / McrBack
@@ -625,7 +690,7 @@
              c1Trusted: c1Trusted, mcrConverged: allConverged,
              mode: sol.mode, warn: warn, chanTorsionGap: chanTorsionGap,
              MxGov: chn.MxC, governCombo: govEv.res.combo ? govEv.res.combo.label : '',
-             nCombos: evals.length,
+             nCombos: evals.length, nSolves: shared.stats.solved, nCached: shared.stats.cached,
              Iz: sol.sp.Iz, It: sol.sp.It, Iw: sol.sp.Iw, hs: sol.sp.hs };
 
     /* ---- Informational extras (NOT the design basis) ----
@@ -644,7 +709,7 @@
     }
     ltb.modePeakX = modePeakX;
     var vPts = [];
-    S.supports.forEach(function (s) { vPts.push(+(((+s.pos) * 1000).toFixed(3))); });
+    endsList().forEach(function (e) { if (e.uy) vPts.push(+((e.x * 1000).toFixed(3))); });
     (S.ltbRestraints || []).forEach(function (r) { if (r.v !== false) { var xr = (+r.pos) * 1000; if (isFinite(xr) && xr >= -1e-6 && xr <= a.L + 1e-6) vPts.push(+xr.toFixed(3)); } });
     vPts = vPts.filter(function (x, i) { return vPts.indexOf(x) === i; }).sort(function (p, q) { return p - q; });
     ltb.vPoints = vPts;
@@ -665,11 +730,12 @@
         }).filter(function (d) { return d; });
         var plS = ulG.pointLoads.filter(function (q) { return q.x > xa + 1e-9 && q.x < xb - 1e-9; })
           .map(function (q) { return { x: q.x - xa, P: q.P, zg: q.zg || 0 }; });
+        var cplS = ulG.couples.filter(function (x) { return x > xa + 1e-9 && x < xb - 1e-9; }).map(function (x) { return x - xa; });
         var seg = { a: xa, b: xb, ok: false };
         try {
           var rsS = mcrEigen({ E: a.E, G: G_STEEL, Iz: spG.Iz, It: spG.It, Iw: spG.Iw, L: Ls, zj: zjG,
             restraints: [{ x: 0 }, { x: Ls }], moment: (function (x0) { return function (x) { return MfunG(x0 + x); }; })(xa),
-            distLoads: dlS, pointLoads: plS, nElem: 32, refine: true });
+            distLoads: dlS, pointLoads: plS, couplePositions: cplS, nElem: 32, refine: true });
           var MsS = 0; for (var ii = 0; ii <= 200; ii++) { var mmS = Math.abs(MfunG(xa + Ls * ii / 200)); if (mmS > MsS) MsS = mmS; }
           var lamSg = Math.sqrt(Wy * fy / rsS.Mcr);
           var chiSg = 1;
@@ -692,16 +758,15 @@
       '(4 DOF/node: v, v\', &phi;, &phi;\'; z<sub>g</sub> and z<sub>j</sub> included; ' + ltb.nElem + ' elements, Richardson-extrapolated' +
       (evals.length > 1 ? '; ' + evals.length + ' ULS combinations each solved with their own moment diagram, governing: ' + ltb.governCombo : '') + ')';
 
-    /* ---- MULTI-SPAN DESIGN BASIS: LTB span by span (support to support) ----
-       For a continuous beam (>= 2 bays between lateral restraints) each
-       unrestrained span is checked in ISOLATION with fork ends, its own Mcr and
-       its own peak moment - the standard segment method - and the worst span
-       governs the LTB utilisation. Taken as the MAX of the per-span and the
-       whole-member result so nothing (e.g. an overhang not captured as an
-       interior bay) is ever under-checked; isolating a bay is conservative vs
-       the continuous whole-member Mcr, so the span check governs in practice.
-       ltb.segments is empty for a single-span member (<=1 bay), so single-span
-       members are completely unaffected. */
+    /* ---- BAY ISOLATION between intermediate lateral restraints ----
+       With intermediate lateral restraints (>= 2 bays between points holding
+       v) each bay is also checked in ISOLATION with fork ends, its own Mcr and
+       its own peak moment - the conventional segment method - and the LTB
+       utilisation is the MAX of the worst isolated bay and the whole-member
+       eigen result, so a bay is never under-checked; isolating a bay discards
+       the v' / phi' continuity across the restraint and is conservative
+       relative to the whole-member Mcr. ltb.segments is empty without
+       intermediate restraints, so an unrestrained span is unaffected. */
     var spanGov = null;
     if (ltb.segments && ltb.segments.length) {
       ltb.segments.forEach(function (s2) { if (s2.ok && (!spanGov || s2.util > spanGov.util)) spanGov = s2; });
@@ -710,11 +775,34 @@
       ltbUtil = spanGov.util;
       ltb.spanGoverns = true;
       ltb.spanGov = { a: spanGov.a, b: spanGov.b, Ms: spanGov.Ms, Mcr: spanGov.Mcr, lam: spanGov.lam, chi: spanGov.chi, Mb: spanGov.Mb, util: spanGov.util };
-      ltbBasis = 'multi-span beam: lateral-torsional buckling checked SPAN BY SPAN (support to support). ' +
-        'Each unrestrained bay between lateral restraints is solved in isolation with fork ends, its own M<sub>cr</sub> and its own peak moment; the worst span governs. ' +
-        'Governing span ' + g(spanGov.a / 1000, 2) + '&ndash;' + g(spanGov.b / 1000, 2) + ' m: M<sub>Ed</sub> = ' + f1(spanGov.Ms, 1) + ', M<sub>cr</sub> = ' + f1(spanGov.Mcr, 1) + ', M<sub>b,Rd</sub> = ' + f1(spanGov.Mb, 1) + ' kN&middot;m, utilisation ' + g(spanGov.util, 2) + '. ' +
+      ltbBasis = 'intermediately restrained member: lateral-torsional buckling checked BAY BY BAY between the lateral restraints. ' +
+        'Each bay is solved in isolation with fork ends, its own M<sub>cr</sub> and its own peak moment; the worst bay governs. ' +
+        'Governing bay ' + g(spanGov.a / 1000, 2) + '&ndash;' + g(spanGov.b / 1000, 2) + ' m: M<sub>Ed</sub> = ' + f1(spanGov.Ms, 1) + ', M<sub>cr</sub> = ' + f1(spanGov.Mcr, 1) + ', M<sub>b,Rd</sub> = ' + f1(spanGov.Mb, 1) + ' kN&middot;m, utilisation ' + g(spanGov.util, 2) + '. ' +
         '(Whole-member eigen M<sub>cr</sub> = ' + f1(ltb.Mcr, 1) + ' kN&middot;m retained for reference.)';
     }
+
+    /* ---- Standard-method comparison (no eigen solve): closed-form Mcr for
+       the same segment - the governing bay when the bay-by-bay check
+       governs, otherwise the whole member - and for the SAME COMBINATION as
+       the design eigen value (govEv: its own moment diagram for C1 and the
+       MasterSeries-style C1 inputs, its own load factors for the SN003a shape
+       recognition and the load height z_g = most destabilising per-load value
+       of that combination), with C1 from sn003aC1 (SN006a for a cantilever),
+       LE = LE-factor x segment length and C2 where published. ---- */
+    var segC1 = spanGov ? { xa: spanGov.a, xb: spanGov.b, whole: false }
+                        : (typeof c1Segment === 'function' ? c1Segment(a) : { xa: 0, xb: a.L, whole: true });
+    var stdCmp = null;
+    try { stdCmp = mcrStandardFor(a, sec, segC1, { fb: govEv.res.fb, factors: govEv.res.combo.factors, combo: govEv.res.combo }); }
+    catch (eStd) { stdCmp = { route: 'n/a', Mcr: null, C1: null, label: 'closed form not available: ' + eStd.message, c1in: null, seg: segC1 }; }
+    if (stdCmp && !stdCmp.c1in && typeof c1Inputs === 'function') stdCmp.c1in = c1Inputs(govEv.res.fb, segC1.xa, segC1.xb);
+    ltb.mcrMethod = 'eigen';
+    ltb.McrEigen = spanGov ? spanGov.Mcr : Mcr;          // kN.m, the design value's segment
+    ltb.McrStandard = (stdCmp && stdCmp.Mcr != null && isFinite(stdCmp.Mcr)) ? stdCmp.Mcr : null;
+    ltb.McrRatio = (ltb.McrStandard > 0) ? ltb.McrEigen / ltb.McrStandard : null;
+    ltb.std = stdCmp;
+    ltb.c1in = stdCmp ? stdCmp.c1in : null;
+    ltb.c1seg = segC1;
+    ltb.c1route = stdCmp ? stdCmp.route : null;
 
     /* ---- EN 1993-6 Annex A: LTB + minor-axis bending + torsion ---- */
     var annex = null;
@@ -738,7 +826,7 @@
          from a discrete table, where 1.348 meant "SS + central point load" and
          1.127 meant "SS + UDL". It was a proxy for the load case, not for C1.
          C1 is now a continuous eigenvalue ratio that also absorbs intermediate
-         restraints and multi-span shape, so hitting a +/-0.02 window is
+         restraints and the end conditions, so hitting a +/-0.02 window is
          coincidental and can reduce the minor-axis demand spuriously.
 
          1.0 is conservative: the term enters additively as +Cmz*Mz/MzR.
@@ -771,7 +859,9 @@
     var memberMb = Math.min.apply(null, evals.map(function(ev){ return ev.chain.MbRd; }));
     if (spanGov) memberMb = Math.min(memberMb, spanGov.Mb);
     useB1u = sec.isBox || (memberMb >= b.McRd * 0.9999);
-    var buck = (b.ax && !b.ax.tension) ? annexB2(a, sec, fy, b.cl, memberMb, useB1u, isCant) : null;
+    var buck = (b.ax && !b.ax.tension) ? annexB2(a, sec, fy, b.cl, memberMb, useB1u, isCant, b.aeff) : null;
+    if (buck && buck.tfb && !buck.tfb.ok) unsupported.push('PFC under axial compression: ' + buck.tfb.reason + '; torsional / torsional-flexural buckling (cl 6.3.1.4) cannot be verified, PASS is blocked.');
+    var restraintF = restraintForces(a, sec);
     if (buck && buck.lczFromRestraints)
       warn.push('Minor-axis strut buckling length L<sub>cr,z</sub> = ' + (buck.LcrZ / 1000).toFixed(2) + ' m, taken as the largest spacing between adjacent lateral restraint points (SCI P360 6.2: secondary members act as bracing points; k = 1.0 between restraints). ' +
         'Ensure each restraint really is an effective bracing point - adequate stiffness, strength and anchorage. The major axis keeps L<sub>cr,y</sub> = L<sub>E</sub>&times;L = ' + (buck.LcrY / 1000).toFixed(2) + ' m.');
@@ -783,19 +873,25 @@
       { name: 'Deflection', val: b.dmax / b.dlimit }
     ];
     if (b.ax) {
-      utils.push({ name: b.ax.tension ? 'Tension  N_Ed/N_t,Rd' : 'Compression  N_Ed/N_pl,Rd', val: b.ax.nUtil });
+      utils.push({ name: b.ax.tension ? 'Tension  N_Ed/N_t,Rd' : ((b.ax.aeff && b.ax.aeff.active) ? 'Compression  N_Ed/N_c,Rd (A_eff)' : 'Compression  N_Ed/N_pl,Rd'), val: b.ax.nUtil });
       utils.push({ name: b.ax.biax ? ('Biaxial bending' + ((S.axial || 0) !== 0 ? ' + axial' : '') + ' (6.2.9.1)') : 'Bending+axial cross-section (6.2.9)', val: b.ax.mUtil });
       /* Eq 6.61/6.62 are needed with axial compression AND for biaxial bending
          on an LTB-susceptible member with N_Ed = 0: Eq 6.62 then reads
          kzy*My/Mb,Rd + kzz*Mz/Mcz,Rd, which the separate LTB and cross-section
          checks do not cover. */
       if (!b.ax.tension && buck && (buck.Fc > 1e-9 || buck.biax)) {
+        if (buck.tfb && buck.tfb.ok) utils.push({ name: TFB_UTIL_NAME, val: buck.tfb.util });
         utils.push({ name: 'Member buckling y-y (Eq 6.61)', val: buck.u1 });
         utils.push({ name: 'Member buckling z-z (Eq 6.62)', val: buck.u2 });
       }
     }
     if (annex) utils.push({ name: 'LTB+torsion (EN 1993-6 Annex A)', val: annex.u });
     if (b.coex) utils.push({ name: b.coex.pureShearFail ? 'Pure shear failure at M-V check point (6.2.6)' : 'Bending+shear coexistent (6.2.8)', val: b.coex.u });
+    if (b.mvn) utils.push({ name: mvnUtilName(b.mvn), val: b.mvn.u });
+    if (b.web && b.web.checked) {
+      utils.push({ name: WEB_UTIL_NAMES[0], val: b.web.util2 });
+      utils.push({ name: WEB_UTIL_NAMES[1], val: b.web.util72 });
+    }
     if (b.tor && b.tor.box) {
       utils.push({ name: 'Torsion  T_Ed/T_Rd', val: b.tor.torUtil });
       utils.push({ name: 'Shear+torsion  V_Ed/V_pl,T,Rd', val: b.tor.vtUtil });
@@ -807,9 +903,9 @@
     var gov = utils[0]; utils.forEach(function (u) { if (u.val > gov.val) gov = u; });
     var pass = unsupported.length === 0 && utils.every(function (u) { return u.val <= 1.0001; });
 
-    return Object.assign({}, b, { sci: false, sciU: true, unsupported: unsupported, ltb: ltb,
+    return Object.assign({}, b, { sci: false, sciU: true, mcrMethod: 'eigen', unsupported: unsupported, ltb: ltb,
       ltbUtil: ltbUtil, ltbBasis: ltbBasis, C1: C1, c1label: c1label, LE: a.L,
-      utils: utils, gov: gov, pass: pass, annex: annex, buck: buck });
+      utils: utils, gov: gov, pass: pass, annex: annex, buck: buck, restraintForces: restraintF });
   };
 
   /* ================================================================
@@ -838,18 +934,9 @@
     rows += '<div>Section properties</div><div class="formula">I<sub>z</sub> = ' + g(LT.Iz / 1e4, 0) + ' cm<sup>4</sup>; I<sub>T</sub> = ' + g(LT.It / 1e4, 1) +
             ' cm<sup>4</sup>; I<sub>w</sub> = ' + g(LT.Iw / 1e12, 4) + ' dm<sup>6</sup>' + (LT.channel ? ' (about the shear centre)' : '') +
             '; G = 81000 N/mm&sup2;</div><div class="value">z<sub>j</sub> = ' + g(LT.zj, 1) + ' mm</div><div></div>';
-    var supExtras = S.supports.map(function (s) {
-      var ex = [];
-      var vpOn = s.type === 'fixed' ? (S.fixedLateral !== false || s.vp) : !!s.vp;
-      var wpOn = s.type === 'fixed' ? (S.rootWarp === 'restrained' || s.phip) : !!s.phip;
-      if (vpOn) ex.push('v&prime;');
-      if (wpOn) ex.push('&phi;&prime;');
-      return ex.length ? ('x = ' + g(+s.pos, 2) + ' m: +' + ex.join(', ') + ' fixed') : null;
-    }).filter(function (t) { return t; });
-    rows += '<div>Lateral restraints</div><div class="formula">' + S.supports.length + ' support(s) taken as fork restraints (v = &phi; = 0)' +
-            (supExtras.length ? '; additionally ' + supExtras.join('; ') : '') +
+    var endBc = ltbEndBcText(S, sec);
+    rows += '<div>End boundary conditions</div><div class="formula">' + endBc +
             (restr ? '; ' + restr + ' intermediate restraint(s)' : '') +
-            (LT.cant ? '; cantilever root warping ' + (S.rootWarp === 'restrained' ? 'restrained' : 'free') : '') +
             '</div><div class="value">&mdash;</div><div></div>';
     var zref = (typeof loadHeightReference === 'function') ? loadHeightReference(sec) : null;
     var zrefText = zref ? '; refs: top +' + g(zref.topSurface, 0) + ' mm, bottom ' + g(zref.bottomSurface, 0) + ' mm' : '';
@@ -859,9 +946,23 @@
       : 'z<sub>g</sub> = ' + zfmt(LT.zg || 0) + ' mm above the shear centre';
     rows += '<div>Load height</div><div class="formula">' + zgText + zrefText +
             (LT.zg > 0 ? ' (max value destabilising)' : LT.zg < 0 ? ' (max value stabilising)' : '') + '</div><div class="value">M<sub>cr</sub> (load reversed) = ' + f1(LT.McrRev, 1) + ' kN&middot;m</div><div></div>';
-    rows += '<div><b>M<sub>cr</sub></b></div><div class="formula">eigenvalue &times; max|M(x)| &mdash; no C<sub>1</sub>, C<sub>2</sub> or C<sub>3</sub> used' +
-            (LT.nCombos > 1 ? '; each of the ' + LT.nCombos + ' ULS combinations solved with its own diagram &mdash; governing: ' + LT.governCombo : '') + '</div>' +
+    rows += '<div><b>M<sub>cr</sub></b> (FE eigenvalue method)</div><div class="formula">eigenvalue &times; max|M(x)| &mdash; no C<sub>1</sub>, C<sub>2</sub> or C<sub>3</sub> used' +
+            (LT.nCombos > 1 ? '; each of the ' + LT.nCombos + ' ULS combinations solved with its own diagram &mdash; governing: ' + LT.governCombo : '') +
+            (LT.nSolves != null ? '; ' + LT.nSolves + ' eigen solve(s) this render' + (LT.nCached ? ', ' + LT.nCached + ' from the cache' : '') : '') + '</div>' +
             '<div class="value"><b>' + f1(LT.Mcr, 1) + ' kN&middot;m</b></div><div></div>';
+    /* standard closed-form comparison for the same segment (informational) */
+    if (LT.std) {
+      var ci = LT.c1in, sg = LT.c1seg || {};
+      var segTxt = (sg.whole === false) ? 'segment ' + g(sg.xa / 1000, 2) + '&ndash;' + g(sg.xb / 1000, 2) + ' m' : 'whole member';
+      var ciTxt = ci ? 'M<sub>1</sub> = ' + f1(ci.M1, 1) + ', M<sub>2</sub> = ' + f1(ci.M2, 1) + ', M<sub>o</sub> = ' + f1(ci.Mo, 1) + ' kN&middot;m; &psi; = ' + f1(ci.psi, 3) + '; &mu; = ' + f1(ci.mu, 3) + '; ' : '';
+      rows += '<div>Standard closed-form M<sub>cr</sub> (comparison, not the design basis)</div><div class="formula">' +
+              (LT.std.route === 'sn006a' ? 'SN006a cantilever: C = ' : 'SN003a: C<sub>1</sub> = fn(M<sub>1</sub>, M<sub>2</sub>, M<sub>o</sub>, &psi;, &mu;) = ') +
+              (LT.std.C1 != null ? g(LT.std.C1, 3) : '&mdash;') + ' &mdash; ' + ciTxt + (LT.std.label || '') +
+              (LT.std.LE ? '; L<sub>E</sub> = ' + g(LT.std.LE / 1000, 2) + ' m (' + segTxt + ')' : '') +
+              (LT.std.zgUsed ? '; C<sub>2</sub>z<sub>g</sub> term applied' : '') + '</div>' +
+              '<div class="value">' + (LT.McrStandard != null ? f1(LT.McrStandard, 1) + ' kN&middot;m' : 'not covered') +
+              (LT.McrRatio != null ? '<br>eigen / standard = ' + f1(LT.McrRatio, 2) : '') + '</div><div></div>';
+    }
     rows += '<div>&lambda;&#772;<sub>LT</sub> = &radic;(W<sub>y</sub>f<sub>y</sub>/M<sub>cr</sub>)</div><div class="formula">&radic;(' + g(Wy, 0) + '&times;10&sup3;&times;' + g(a.py, 0) + '/' + f1(LT.Mcr, 1) + '&times;10<sup>6</sup>)</div><div class="value">' + f1(LT.lamLT, 3) + '</div><div></div>';
     rows += '<div>Buckling curve</div><div class="formula">' + (sec.isBox ? 'closed section, not listed in NA Table 6.3' : sec.kind === 'channel' ? 'not doubly symmetric' : 'NA Table 6.3, h/b = ' + g(sec.D / sec.B, 2)) +
             '</div><div class="value">curve ' + LT.curve.curve + ' (&alpha;<sub>LT</sub> = ' + g(LT.curve.alphaLT, 2) + ')</div><div></div>';
@@ -871,15 +972,15 @@
       rows += '<div>&Phi;<sub>LT</sub>; &chi;<sub>LT</sub></div><div class="formula">&lambda;&#772;<sub>LT,0</sub> = 0.4, &beta; = 0.75 (NA 2.17); &Phi; = ' + g(LT.Phi, 3) + '</div><div class="value">&chi;<sub>LT</sub> = ' + g(LT.chi, 3) + '</div><div></div>';
       rows += '<div>C<sub>1</sub> (for k<sub>c</sub> only)</div><div class="formula">' + LT.c1label + '</div><div class="value">C<sub>1</sub> = ' + g(LT.C1, 3) + '</div><div></div>';
       if (LT.cant) rows += '<div>k<sub>c</sub> / f</div><div class="formula">not applied to cantilevers (no published k<sub>c</sub>)</div><div class="value">f = 1.000</div><div></div>';
-      else rows += '<div>k<sub>c</sub> = 1/&radic;C<sub>1</sub>; f = 1&minus;0.5(1&minus;k<sub>c</sub>)[1&minus;2(&lambda;&#772;<sub>LT</sub>&minus;0.8)&sup2;] &le; 1</div><div class="formula">k<sub>c</sub> = ' + g(LT.kc, 3) + ' (NA 2.18)</div><div class="value">f = ' + g(LT.f, 3) + '</div><div></div>';
+      else rows += '<div>k<sub>c</sub> = 1/&radic;C<sub>1</sub> &ge; 1/&radic;2.76; f = 1&minus;0.5(1&minus;k<sub>c</sub>)[1&minus;2(&lambda;&#772;<sub>LT</sub>&minus;0.8)&sup2;] &le; 1</div><div class="formula">' + (LT.kcFloored ? '1/&radic;' + g(LT.C1, 3) + ' = ' + g(LT.kcRaw, 3) + ' &rarr; floored at 1/&radic;2.76 = ' + g(LT.kc, 3) + ' (Table 6.6 lower bound, &psi; = &minus;1)' : 'k<sub>c</sub> = ' + g(LT.kc, 3) + ' (NA 2.18; floor 0.60 not reached)') + '</div><div class="value">f = ' + g(LT.f, 3) + '</div><div></div>';
       rows += '<div>&chi;<sub>LT,mod</sub> = &chi;<sub>LT</sub>/f &le; min(1, 1/&lambda;&#772;&sup2;)</div><div class="formula">' + g(LT.chi, 3) + '/' + g(LT.f, 3) + '</div><div class="value">' + g(LT.chiMod, 3) + '</div><div></div>';
     }
     rows += '<div>M<sub>b,Rd</sub> = &chi;<sub>LT,mod</sub>W<sub>' + (c.cl.cls <= 2 ? 'pl' : 'el') + ',y</sub>f<sub>y</sub>/&gamma;<sub>M1</sub> &le; M<sub>c,Rd</sub></div>' +
             '<div class="formula">' + g(LT.ign ? 1 : LT.chiMod, 3) + '&times;' + g(Wy, 0) + '&times;' + g(a.py, 0) + '/1.0</div><div class="value">' + f1(LT.MbRd, 1) + ' kN&middot;m</div><div></div>';
     var MxLTB = LT.spanGoverns ? LT.spanGov.Ms : ((LT.MxGov != null) ? LT.MxGov : c.Mx);
     var MbLTB = LT.spanGoverns ? LT.spanGov.Mb : LT.MbRd;
-    var mEdLbl = LT.spanGoverns ? ' (governing span ' + g(LT.spanGov.a / 1000, 2) + '&ndash;' + g(LT.spanGov.b / 1000, 2) + ' m)' : (LT.nCombos > 1 ? ' (governing combination)' : '');
-    rows += '<div>M<sub>Ed</sub> / M<sub>b,Rd</sub>' + mEdLbl + '</div><div class="formula">' + f1(MxLTB, 1) + ' / ' + f1(MbLTB, 1) + (LT.spanGoverns ? '  &mdash; per-span (support to support)' : '') + '</div><div class="value">' + g(MxLTB / Math.max(MbLTB, 1e-9), 2) + '</div>' + st(c.ltbUtil <= 1, 'OK', 'exceeded');
+    var mEdLbl = LT.spanGoverns ? ' (governing bay ' + g(LT.spanGov.a / 1000, 2) + '&ndash;' + g(LT.spanGov.b / 1000, 2) + ' m)' : (LT.nCombos > 1 ? ' (governing combination)' : '');
+    rows += '<div>M<sub>Ed</sub> / M<sub>b,Rd</sub>' + mEdLbl + '</div><div class="formula">' + f1(MxLTB, 1) + ' / ' + f1(MbLTB, 1) + (LT.spanGoverns ? '  &mdash; per bay (between lateral restraints)' : '') + '</div><div class="value">' + g(MxLTB / Math.max(MbLTB, 1e-9), 2) + '</div>' + st(c.ltbUtil <= 1, 'OK', 'exceeded');
 
     var warnHtml = (LT.warn && LT.warn.length) ? '<div class="note" style="margin-left:0">' + LT.warn.map(function (w) { return '&bull; ' + w; }).join('<br>') + '</div>' : '';
 
@@ -922,20 +1023,20 @@
       var isBasis = !!LT.spanGoverns;
       segHtml =
         '<div class="section-title smallgap">' + (isBasis
-          ? 'Lateral&ndash;Torsional Buckling &mdash; Span by Span (design basis, support to support)'
+          ? 'Lateral&ndash;Torsional Buckling &mdash; Bay by Bay (design basis, between lateral restraints)'
           : 'Segment-Method Comparison (informational &mdash; NOT the design basis)') + '</div>' +
         '<div class="calc-block">' +
         LT.segments.map(function (s2) {
-          if (!s2.ok) return '<div>Span ' + g(s2.a / 1000, 2) + '&ndash;' + g(s2.b / 1000, 2) + ' m</div><div class="formula">could not be solved in isolation: ' + (s2.err || '') + '</div><div class="value">&mdash;</div><div></div>';
+          if (!s2.ok) return '<div>Bay ' + g(s2.a / 1000, 2) + '&ndash;' + g(s2.b / 1000, 2) + ' m</div><div class="formula">could not be solved in isolation: ' + (s2.err || '') + '</div><div class="value">&mdash;</div><div></div>';
           var isWorst = (worstSeg && s2 === worstSeg);
           var tag = isWorst ? ('<div class="status' + (isBasis ? (s2.util <= 1 ? ' ok' : ' fail') : '') + '">' + (isBasis ? 'governs' : 'worst segment') + '</div>') : '<div></div>';
-          return '<div>Span ' + g(s2.a / 1000, 2) + '&ndash;' + g(s2.b / 1000, 2) + ' m (support to support, fork ends)</div>' +
+          return '<div>Bay ' + g(s2.a / 1000, 2) + '&ndash;' + g(s2.b / 1000, 2) + ' m (between lateral restraints, fork ends)</div>' +
             '<div class="formula">M<sub>Ed</sub> = ' + f1(s2.Ms, 1) + '; M<sub>cr</sub> = ' + f1(s2.Mcr, 0) + '; M<sub>b,Rd</sub> = ' + f1(s2.Mb, 0) + ' kN&middot;m; &lambda;&#772;<sub>LT</sub> = ' + g(s2.lam, 3) + '; &chi;<sub>LT</sub> = ' + g(s2.chi, 3) + ' (no f-factor)</div>' +
             '<div class="value">util = ' + g(s2.util, 3) + '</div>' + tag;
         }).join('') +
         '</div>' +
         '<div class="note" style="margin-left:0">' + (isBasis
-          ? 'Multi-span beam: LTB is checked <b>span by span</b>. Each unrestrained bay between lateral restraints is isolated with fork ends and its own share of the moment diagram and loads, giving its own M<sub>cr</sub>; the worst span governs the LTB utilisation above. Isolation conservatively discards the lateral-bending (v&prime;) and warping (&phi;&prime;) continuity across the supports (whole-member eigen M<sub>cr</sub> = ' + f1(LT.Mcr, 1) + ' kN&middot;m is shown for reference only).'
+          ? 'Intermediately restrained member: LTB is checked <b>bay by bay</b>. Each bay between lateral restraints is isolated with fork ends and its own share of the moment diagram and loads, giving its own M<sub>cr</sub>; the worst bay governs the LTB utilisation above. Isolation conservatively discards the lateral-bending (v&prime;) and warping (&phi;&prime;) continuity across the restraints (whole-member eigen M<sub>cr</sub> = ' + f1(LT.Mcr, 1) + ' kN&middot;m is shown for reference only).'
           : 'Conventional check for comparison: each bay between lateral restraints is isolated with fork ends and its own share of the moment diagram and loads. ' +
             'Isolation discards the lateral-bending (v&prime;) and warping (&phi;&prime;) continuity that the adjacent bays provide across the restraint points, so these values are conservative. ' +
             'The design basis is the whole-member eigen solution above: M<sub>cr</sub> = ' + f1(LT.Mcr, 1) + ' kN&middot;m' + (worstSeg ? ' vs the worst isolated segment ' + f1(worstSeg.Mcr, 0) + ' kN&middot;m' : '') + '.') + '</div>';
@@ -949,7 +1050,6 @@
      PART 6 - intermediate lateral restraint UI
      ================================================================ */
   if (S.ltbRestraints == null) S.ltbRestraints = [];
-  if (S.fixedLateral == null) S.fixedLateral = true;
   if (S.zj == null) S.zj = 0;
   if (S.Cmzo === undefined) S.Cmzo = null;   // verified Cmz override; null = conservative 1.0
 
@@ -961,31 +1061,25 @@
     div.innerHTML =
       '<div class="list" id="ltbRestraintList"></div>' +
       '<div class="addbar"><button type="button" id="addLtbRestraint">+ Add lateral restraint</button></div>' +
-      '<label class="checkline ltb-fixed"><input type="checkbox" id="fixedLateral"> <span>Fixed supports restrain lateral bending (v&prime; = 0)</span></label>' +
-      '<div class="hint">Every vertical support is taken as a fork restraint: lateral displacement and twist prevented, ' +
-      'warping and lateral bending free by default &mdash; each support row offers <b>lat. bending v&prime;</b> and ' +
-      '<b>warping &phi;&prime;</b> checkboxes to model laterally clamped or warping-restrained ends (the SCI Mcr tool&rsquo;s ' +
-      'dU = F / d&theta; = F) without changing the vertical bending model. ' +
+      '<div class="hint">The LTB boundary conditions of the two ends come from their degree-of-freedom flags under ' +
+      'Geometry &amp; end conditions: U<sub>y</sub> = lateral displacement v held, R<sub>x</sub> = twist &phi; held (a fork end holds both), ' +
+      'R<sub>z</sub> = lateral bending v&prime; held (laterally clamped end), warping = &phi;&prime; held. A free end holds none of them. ' +
       'Add intermediate restraints where purlins, ties or secondary beams hold the member. ' +
-      'The LTB buckling length follows from these positions &mdash; the L<sub>E</sub> factor and the destabilising &times;1.2 switch ' +
-      'no longer affect EC3 LTB. Restraints that hold lateral displacement v also shorten the minor-axis strut length ' +
-      'L<sub>cr,z</sub> to their spacing (SCI P360 6.2); the major-axis strut length stays L<sub>E</sub>&times;L. ' +
-      'A cantilever needs lateral-bending restraint at its root, or the lateral stiffness matrix is singular.</div>';
+      'The LTB buckling length follows from these conditions and positions &mdash; the L<sub>E</sub> factor and the destabilising &times;1.2 switch ' +
+      'do not affect EC3 LTB on the eigen route. Restraints that hold lateral displacement v also shorten the minor-axis strut length ' +
+      'L<sub>cr,z</sub> to their spacing (SCI P360 6.2); the strut lengths otherwise follow the end fixities. ' +
+      'A lateral cantilever (U<sub>y</sub> held at one end only) needs R<sub>z</sub> and R<sub>x</sub> at that end, or the lateral stiffness matrix is singular.</div>';
     host.parentNode.insertBefore(div, host.nextSibling);
     document.getElementById('addLtbRestraint').addEventListener('click', function () {
+      if (!S.ltbRestraints) S.ltbRestraints = [];   // a state built without the field (an older fixture) - DEMO carries it since the 19 Sep 2026 review
       S.ltbRestraints.push({ pos: (S.L / 2).toFixed(3), v: true, phi: true, vp: false, phip: false });
       renderLtbRestraintList(); recompute();
-    });
-    document.getElementById('fixedLateral').addEventListener('change', function (e) {
-      S.fixedLateral = e.target.checked; recompute();
     });
   }
 
   function renderLtbRestraintList() {
     var el = document.getElementById('ltbRestraintList');
     if (!el) return;
-    var fl = document.getElementById('fixedLateral');
-    if (fl) fl.checked = !!S.fixedLateral;
     el.innerHTML = (S.ltbRestraints || []).map(function (r, i) {
       return '<div class="row"><div class="rowhead">' +
         '<label style="flex:1">x, m <input type="number" step="0.01" data-i="' + i + '" data-k="pos" value="' + r.pos + '"></label>' +
@@ -1022,9 +1116,17 @@
     var p = document.getElementById('ltbRestraintPanel');
     if (p) p.style.display = show ? '' : 'none';
     var c1h = document.getElementById('c1Hint');
-    if (c1h) c1h.innerHTML = 'M<sub>cr</sub> is solved directly by the FE eigensolver &mdash; C<sub>1</sub> is not an input. ' +
-      'It is back-calculated purely to form k<sub>c</sub> = 1/&radic;C<sub>1</sub> (NA 2.18). Override only to force k<sub>c</sub>; ' +
-      'the eigen value is printed alongside.';
+    if (c1h) c1h.innerHTML = (mcrMethod() === 'standard')
+      ? 'Standard method: C<sub>1</sub> is derived from the moment diagram (NCCI SN003a tables for a simply supported UDL / central point load, ' +
+        'the SCI end-moment curve for a linear gradient, otherwise the Serna quarter-point expression); it sets both M<sub>cr</sub> and ' +
+        'k<sub>c</sub> = 1/&radic;C<sub>1</sub>. Override with a verified value (e.g. LTBeam) if required.'
+      : 'M<sub>cr</sub> is solved directly by the FE eigensolver &mdash; C<sub>1</sub> is not an input. ' +
+        'It is back-calculated purely to form k<sub>c</sub> = 1/&radic;C<sub>1</sub> (NA 2.18). Override only to force k<sub>c</sub>; ' +
+        'the eigen value is printed alongside.';
+    /* the restraint panel is only meaningful to the eigen method; the standard
+       route ignores intermediate restraints (whole-member LE = k x L) */
+    var rp = document.getElementById('ltbRestraintPanel');
+    if (rp && show) rp.style.opacity = (mcrMethod() === 'standard') ? '0.55' : '';
   };
 
   /* validate restraint positions */

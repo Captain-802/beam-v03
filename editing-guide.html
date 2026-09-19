@@ -51,6 +51,7 @@
 <main>
   <h1>Beam Design Editing Guide</h1>
   <p>Use this table to decide which small file to send or edit. Keep <code>index.html</code> as the app shell and change logic in the matching JavaScript file.</p>
+  <p><b>Scope (19 Sep 2026):</b> the tool handles one span, End 1 (x = 0) to End 2 (x = L), with seven restrained / free flags per end (U<sub>x</sub>, U<sub>y</sub>, U<sub>z</sub>, R<sub>x</sub>, R<sub>y</sub>, R<sub>z</sub>, warping) held in <code>S.ends</code>; there is no support list, no intermediate support, overhang or pattern loading anywhere in the code, so do not add one to a single file &mdash; every engine reads the end flags (AUDIT.md &ldquo;19 Sep 2026 single-span scope, end-condition DOFs&rdquo;). House rules for every edit: single-file deployable, no external dependency, no inline handler or eval, mm-N units inside the engine, pure check functions, every check prints clause + formula + values + utilisation + status, no invented coefficient without a [verify] tag; after editing run <code>node --test tests/*.test.cjs</code>, <code>node tests/batch/run-batch.cjs</code>, <code>pwsh ./build-single-html.ps1</code> and the parity test (README &ldquo;How to run&rdquo;).</p>
 
   <table>
     <thead>
@@ -107,9 +108,9 @@
         <td>UC Blue Book table, UC map, and <code>TP385_UC</code>.</td>
       </tr>
       <tr>
-        <td>Default example, app state, support rows, load rows, load combinations, input syncing</td>
+        <td>Default example, app state, the End conditions panel (end presets, the seven DOF flags per end, glyphs), load rows, load combinations, input syncing</td>
         <td><a href="js/03-state-ui.js">js/03-state-ui.js</a></td>
-        <td>The <code>S</code> state object, default beam setup, and dynamic controls for supports, loads, and combinations.</td>
+        <td>The <code>S</code> state object, default beam setup, the single-span ends model (<code>S.ends</code>, <code>endsPreset</code>, <code>applyEndPreset</code>, <code>setEndDof</code>, <code>endsPanelHtml</code>, <code>endGlyphSvg</code>) and dynamic controls for loads and combinations.</td>
       </tr>
       <tr>
         <td>Shared analysis runner, load combinations, validation, envelopes, torsion analysis, standards dispatcher</td>
@@ -127,6 +128,11 @@
         <td>Use this for EC3 rule changes only. It must load before the Mcr eigen patch.</td>
       </tr>
       <tr>
+        <td>Warping torsion of open sections outside the P385 closed forms (torsion cantilevers, partial-span torques, warping-fixed ends)</td>
+        <td><a href="js/checks/torsion-fe.js">js/checks/torsion-fe.js</a></td>
+        <td>Pure <code>warpingTorsionFE()</code>: E I<sub>w</sub> &phi;&#8279; &minus; G I<sub>T</sub> &phi;&Prime; = m<sub>t</sub> on (&phi;, &phi;&prime;) elements, twist held at the ends with R<sub>x</sub>, &phi;&prime; = 0 where the end's warping flag is set; feeds the P385 3.1.2 and Annex A checks unchanged.</td>
+      </tr>
+      <tr>
         <td>Shear force diagram, bending moment diagram, deflection diagram, SVG plotting</td>
         <td><a href="js/05-diagrams.js">js/05-diagrams.js</a></td>
         <td>Drawing helpers for report diagrams.</td>
@@ -142,7 +148,12 @@
         <td>Turns calculation results into the visible report. Edit this when numbers are correct but wording/display is wrong.</td>
       </tr>
       <tr>
-        <td>Button actions, event listeners, recompute triggers, reset behavior, presets</td>
+        <td>The MasterSeries-format &ldquo;Design Brief&rdquo; printed above the detailed report (block order, three-column rows, unity bar, NOT VERIFIED rows)</td>
+        <td><a href="js/06-brief-masterseries.js">js/06-brief-masterseries.js</a></td>
+        <td>Pure <code>renderMasterSeriesBrief(a, c, sec)</code> and the small <code>msb*</code> helpers; prints engine values only, never recomputes a resistance. The contract is docs/BRIEF_MAPPING.md.</td>
+      </tr>
+      <tr>
+        <td>Button actions, event listeners, recompute triggers, reset behavior, the End conditions drop-list and quick buttons</td>
         <td><a href="js/07-wiring.js">js/07-wiring.js</a></td>
         <td>Connects controls to the state and recomputes the report.</td>
       </tr>
@@ -160,6 +171,11 @@
         <td>Create one portable HTML file after editing small files</td>
         <td><a href="build-single-html.ps1">build-single-html.ps1</a></td>
         <td>Combines the modular source into <code>dist/beam-design-single.html</code>.</td>
+      </tr>
+      <tr>
+        <td>Regression tests, the headless harness, the 279-case batch campaign and its hand checks</td>
+        <td><a href="tests/">tests/</a></td>
+        <td><code>tests/harness.cjs</code> loads the app in Node without a DOM (<code>ends(preset, overrides)</code> builds an end set); <code>tests/*.test.cjs</code> carry hand-derived expected values; <code>tests/batch/</code> holds the case library, the runner with its independent closed-form cross-checks, <code>results.md</code> and <code>hand-checks.md</code>.</td>
       </tr>
     </tbody>
   </table>
@@ -211,8 +227,10 @@
           showing a misleading <code>0.0 mm</code> deflection at a support.
         </li>
         <li>
-          <b>Class limits:</b> Class 4 sections are blocked for PASS because EN 1993-1-5 effective
-          section properties are not implemented.
+          <b>Class limits:</b> a Class-4 web in uniform compression is evaluated with
+          A<sub>eff</sub> (EN 1993-1-5 4.4) in N<sub>c,Rd</sub>, N<sub>b,Rd</sub> and the Table 6.7
+          Class-4 column; Class 4 under the combined N + M stress gradient and Class-4 flanges
+          are still blocked for PASS (NOT VERIFIED with the reason printed).
         </li>
       </ul>
     </section>
@@ -228,11 +246,11 @@
         type members, where EN 1993-1-5 shear buckling design would be required.
       </p>
       <p>
-        <b>Biaxial bending:</b> the engine is primarily built for major-axis beam bending. It does
-        not currently provide a general applied
-        <code>M<sub>y,Ed</sub> + M<sub>z,Ed</sub></code> cross-section interaction check for
-        user-entered biaxial bending. Minor-axis effects are only introduced in limited specialist
-        paths, such as torsion/open-section interaction, rather than as a general biaxial design mode.
+        <b>Biaxial bending:</b> the applied <code>M<sub>z</sub></code> is one constant design value
+        (no horizontal load component, so no M<sub>z</sub>(x) diagram). It enters the 6.2.9 biaxial
+        interaction, the cl 6.2.10 M-V-N sweep, the Annex B 6.61 / 6.62 terms and the I/H flange
+        classification; torsion combined with an imposed M<sub>z</sub> or with N<sub>Ed</sub> is
+        still blocked for PASS.
       </p>
     </section>
 

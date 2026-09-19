@@ -16,6 +16,7 @@ function tp385For(family,key){
   // P385 A.7 contains 3.2/3.6/6.3 mm walls, not the 3.0/3.5/6.0 mm
   // aliases previously added to this table. Never borrow a thicker wall's Wt.
   if(family==='shs' && (S.shsType==='CF'||[3,3.5,6].includes(Number(key.split('x').at(-1))))) return null;
+  if(family==='rhs' && S.rhsType==='CF') return null; // P385 Table A.8 is hot-finished only
   const m=family==='ub'?TP385_UB:family==='uc'?TP385_UC:family==='pfc'?TP385_PFC:family==='shs'?TP385_SHS:family==='rhs'?TP385_RHS:null;
   const r=m&&m[key]; if(!r) return null;
   if(family==='pfc') return {IT:r[0],a:r[1],Iw:r[2],Wn0:r[3],Wn2:r[4],Sw1:r[5],Sw2:r[6],Sw3:r[7],e0:r[8],esc:r[9]};
@@ -35,10 +36,16 @@ function activeSectionBase(){
       u:null, x:null, J:s.J, A:s.A, isBox:true, boxType:S.shsType, kind:'box'};
   }
   if(S.family==='rhs'){
-    const s = RHSmap[S.rhsKey] || RHS[0];
-    return {key:s.key, mass:s.mass, D:s.D, B:s.B, tw:s.t, tf:s.t, r:0, d:s.dt*s.t,
-      bT:s.bT, dt:s.dt, Ix:s.Ix, Iy:s.Iy, rx:s.rx, ry:s.ry, Zx:s.Zx, Zy:s.Zy, Sx:s.Sx, Sy:s.Sy,
-      u:null, x:null, J:s.J, A:s.A, isBox:true, boxType:'HF', kind:'box'};
+    const cf = S.rhsType==='CF';
+    const map = cf? RHS_CFmap : RHSmap;
+    const s = map[S.rhsKey] || Object.values(map)[0];
+    // SCI P363: c = h - 3t / b - 3t for EC3 local buckling of cold-formed hollow
+    // sections (the table stores the BS 5950 h - 5t / b - 5t flat widths), as SHS_CF.
+    const bT = (cf && S.code==='EC3')? (s.B-3*s.t)/s.t : s.bT;
+    const dt = (cf && S.code==='EC3')? (s.D-3*s.t)/s.t : s.dt;
+    return {key:s.key, mass:s.mass, D:s.D, B:s.B, tw:s.t, tf:s.t, r:0, d:dt*s.t,
+      bT:bT, dt:dt, Ix:s.Ix, Iy:s.Iy, rx:s.rx, ry:s.ry, Zx:s.Zx, Zy:s.Zy, Sx:s.Sx, Sy:s.Sy,
+      u:null, x:null, J:s.J, A:s.A, isBox:true, boxType: cf? 'CF' : 'HF', kind:'box'};
   }
   if(S.family==='ub'){
     const s = UBmap[S.ubKey] || UB[0];
@@ -138,7 +145,7 @@ function defaultRobertson(family,boxType,tf){
   // BS 5950-1:2000 Table 23 (allocation of strut curve) -> Table 24(a..d) Robertson
   // constants a=2.0/3.5/5.5/8.0 for curves a/b/c/d respectively.
   if(family==='shs') return boxType==='CF'? {x:5.5,y:5.5} : {x:2.0,y:2.0}; // HF box: curve a both axes; CF box: curve c both axes
-  if(family==='rhs') return {x:2.0,y:2.0}; // hot-finished box section -> curve a, both axes (Table 23)
+  if(family==='rhs') return boxType==='CF'? {x:5.5,y:5.5} : {x:2.0,y:2.0}; // HF box: curve a both axes; CF box: curve c both axes (Table 23)
   if(family==='ub'){
     // Rolled I-section: x-x/y-y = a/b up to 40mm flange, b/c over 40mm.
     return (tf||0)<=40 ? {x:2.0,y:3.5} : {x:3.5,y:5.5};

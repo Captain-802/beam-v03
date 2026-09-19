@@ -63,14 +63,19 @@ function beamDiagram(a){
   const yB=distTop + (nT>0? nT*tierH : 34) + 8;
   const H=yB+72;
   let inner=`<line x1="${X(0)}" y1="${yB}" x2="${X(L)}" y2="${yB}" stroke="#111" stroke-width="3"/>`;
-  // supports
-  S.supports.forEach(sp=>{ const x=X(sp.pos);
+  // end supports from the in-plane type of each end: pinned = triangle, fixed =
+  // hatched wall, guided (rotation held, vertical free) = sliding block, free = nothing
+  endsToSupports(S).forEach(sp=>{ const x=X(sp.pos), sgn=sp.end===1? -1 : 1;
     if(sp.type==='pinned'){
       inner+=`<polygon points="${x},${yB} ${x-7},${yB+13} ${x+7},${yB+13}" fill="none" stroke="#111" stroke-width="1.6"/>
         <line x1="${x-10}" y1="${yB+16}" x2="${x+10}" y2="${yB+16}" stroke="#111" stroke-width="1.4"/>`;
-    } else {
+    } else if(sp.type==='fixed'){
       inner+=`<line x1="${x}" y1="${yB-16}" x2="${x}" y2="${yB+16}" stroke="#111" stroke-width="2.4"/>`;
-      for(let k=-14;k<=14;k+=6) inner+=`<line x1="${x}" y1="${yB+k}" x2="${x-7}" y2="${yB+k+6}" stroke="#111" stroke-width="1"/>`;
+      for(let k=-14;k<=14;k+=6) inner+=`<line x1="${x}" y1="${yB+k}" x2="${x+sgn*7}" y2="${yB+k+6}" stroke="#111" stroke-width="1"/>`;
+    } else if(sp.type==='guided'){
+      inner+=`<rect x="${x-3}" y="${yB-14}" width="6" height="28" fill="none" stroke="#111" stroke-width="1.6"/>
+        <line x1="${x+sgn*7}" y1="${yB-16}" x2="${x+sgn*7}" y2="${yB+16}" stroke="#111" stroke-width="2.4"/>`;
+      for(let k=-14;k<=14;k+=6) inner+=`<line x1="${x+sgn*7}" y1="${yB+k}" x2="${x+sgn*14}" y2="${yB+k+6}" stroke="#111" stroke-width="1"/>`;
     }
   });
   // ---- distributed loads, tier by tier ----

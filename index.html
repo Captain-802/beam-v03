@@ -13,7 +13,7 @@
 <main class="app">
   <aside class="controls">
     <h1>Steel Beam Designer — Eurocode 3 / BS 5950</h1>
-    <p class="sub">Solves any single-span beam (cantilever, simply supported, propped, fixed, overhanging) under arbitrary loads by the direct stiffness method, then performs the BS 5950-1:2000 member checks for PFC channels, SHS (hot-finished or cold-formed), RHS (hot-finished), UB universal beams, or UC universal columns. Blue Book section data is built in; every value is editable.</p>
+    <p class="sub">Solves one single-span beam with any end condition (six degrees of freedom plus warping at each end: simply supported, fixed, propped, cantilever, guided / sliding end, laterally clamped, or any custom combination) and internal hinges under arbitrary loads by the direct stiffness method, then performs the EN 1993-1-1 (UK NA) or BS 5950-1:2000 member checks for PFC channels, SHS (hot-finished or cold-formed), RHS (hot-finished), UB universal beams, or UC universal columns. Blue Book section data is built in; every value is editable.</p>
 
     <div class="buttons">
       <button type="button" id="printBtn">Print / PDF</button>
@@ -37,6 +37,11 @@
       <div id="shsTypeRow" style="display:none">
         <label>SHS type
           <select id="shsType"><option value="HF">Hot-finished (EN 10210)</option><option value="CF">Cold-formed (EN 10219)</option></select>
+        </label>
+      </div>
+      <div id="rhsTypeRow" style="display:none">
+        <label>RHS type
+          <select id="rhsType"><option value="HF">Hot-finished (EN 10210)</option><option value="CF">Cold-formed (EN 10219, S355 series)</option></select>
         </label>
       </div>
       <div id="pfcRow">
@@ -83,22 +88,32 @@
     </details>
 
     <details open>
-      <summary>Geometry &amp; supports</summary>
+      <summary>Geometry &amp; end conditions</summary>
       <label>Member length L, m <input id="length" type="number" step="0.01"></label>
+      <label>End conditions
+        <select id="endPreset">
+          <option value="ss">Simply supported</option>
+          <option value="fixed-fixed">Fixed-fixed</option>
+          <option value="fixed-pinned">Fixed-pinned (propped cantilever)</option>
+          <option value="cantilever">Cantilever (root at End 1, tip at End 2)</option>
+          <option value="guided-fixed">Guided-fixed</option>
+          <option value="pinned-guided">Pinned-guided</option>
+          <option value="custom">Custom</option>
+        </select>
+      </label>
       <div class="preset-row">
-        <button type="button" data-preset="cant">Cantilever</button>
+        <button type="button" data-preset="cantilever">Cantilever</button>
         <button type="button" data-preset="ss">Simply supported</button>
-        <button type="button" data-preset="propped">Propped cantilever</button>
-        <button type="button" data-preset="fixed">Fixed fixed</button>
+        <button type="button" data-preset="fixed-pinned">Propped cantilever</button>
+        <button type="button" data-preset="fixed-fixed">Fixed fixed</button>
       </div>
-      <div class="list" id="supportList"></div>
-      <div class="addbar"><button type="button" id="addSupport">+ Add support</button></div>
-      <div class="hint">Pinned = vertical restraint only. Fixed = vertical + rotational. Position measured from the left end (0&nbsp;m).</div>
+      <div class="ends-grid" id="endsPanel"></div>
+      <div class="hint">One span from End 1 (x = 0) to End 2 (x = L). Each end has six degrees of freedom plus warping, each <b>restrained (ticked)</b> or free: U<sub>x</sub> axial, U<sub>y</sub> lateral, U<sub>z</sub> vertical, R<sub>x</sub> twist, R<sub>y</sub> rotation about the major axis (in-plane fixity), R<sub>z</sub> rotation about the minor axis (lateral bending), warping &phi;&prime; = 0. U<sub>z</sub> + R<sub>y</sub> = fixed, U<sub>z</sub> alone = pinned, R<sub>y</sub> alone = guided (sliding end: rotation held, vertical free, no vertical reaction), neither = free end. U<sub>y</sub>, R<sub>z</sub>, R<sub>x</sub> and warping are the LTB eigen and torsion boundary conditions (U<sub>y</sub> + R<sub>x</sub> = fork end, + R<sub>z</sub> = laterally clamped); U<sub>x</sub> is the axial load path (N<sub>Ed</sub> needs it at one end at least). A cantilever is End 1 fully restrained and End 2 free &mdash; the root must be End 1 (x = 0): a cantilever rooted at End 2 (End 2 U<sub>z</sub> + R<sub>y</sub>, End 1 free) is refused with &ldquo;mirror the member&rdquo;, so enter the loads from the root; the guided-fixed preset holds End 1 fixed and End 2 sliding. The strut effective lengths default from these fixities (P360 Table 6.2 / BS 5950 Table 22 style, printed [verify]). Changing a box switches the drop-list to Custom; a mechanism is refused with a message naming the missing restraint. An end that lifts in any combination (negative reaction) blocks PASS with a &ldquo;Hold-down required&rdquo; message unless <b>hold-down provided</b> is ticked for it, in which case the design hold-down force is printed as an advisory; uplift is also tested with the &gamma;<sub>G,inf</sub> companions (G at 1.0, STR set B, and 0.9, EQU set A) of every ULS combination. <b>Web transverse forces (EC3, EN 1993-1-5 clause 6):</b> each end reaction is checked as a patch load on the bottom flange with the entered <b>stiff bearing length s<sub>s</sub></b> along the member (blank = the lower bound 0: a station that passes at s<sub>s</sub> = 0 is verified for any seating, one that fails at 0 is <b>NOT VERIFIED</b> until the seating length is entered; capped at h<sub>w</sub>); an end reaction is load type (c). Tick <b>bearing stiffener provided</b> to declare a stiffener at that end instead &mdash; the stiffener itself must then be designed to EN 1993-1-5 9.4.</div>
 
       <div style="margin-top:10px;font-size:11px;font-weight:700;color:#374151">Internal hinges (moment releases)</div>
       <div class="list" id="hingeList"></div>
       <div class="addbar"><button type="button" id="addHinge">+ Add internal hinge</button></div>
-      <div class="hint">An internal hinge releases the in-plane bending moment (M&nbsp;=&nbsp;0) at that point &mdash; the moment diagram, deflection and elastic critical moment M<sub>cr</sub> all redistribute. The layout must stay stable (e.g. propped / Gerber suspended-span). Lateral and torsional continuity are kept across the hinge; if the physical connection also releases warping or is braced, add that separately in the LTB restraint options.</div>
+      <div class="hint">An internal hinge releases the in-plane bending moment (M&nbsp;=&nbsp;0) at that point inside the span &mdash; the moment diagram, deflection and elastic critical moment M<sub>cr</sub> all redistribute. The ends must keep the member stable with the hinge (e.g. a fixed-pinned span with one hinge); a mechanism is refused. Lateral and torsional continuity are kept across the hinge; if the physical connection also releases warping or is braced, add that separately in the LTB restraint options.</div>
     </details>
 
     <details open>
@@ -111,9 +126,9 @@
         <button type="button" data-add="moment">+ Moment</button>
         <button type="button" id="addSelfWeight">Self-weight auto</button>
       </div>
-      <div class="hint">Forces positive <b>downward</b> (kN, kN/m). Moment positive anticlockwise (kN m). Enter <b>characteristic</b> (unfactored) values and tag each load's <b>case</b>   the partial factors come from the Load Combinations below, not from the load itself. Section self-weight is added automatically as Dead (G) from the selected section mass/m.</div>
+      <div class="hint">Forces positive <b>downward</b> (kN, kN/m). Moment positive anticlockwise (kN m). Enter <b>characteristic</b> (unfactored) values and tag each load's <b>case</b>   the partial factors come from the Load Combinations below, not from the load itself. Section self-weight is added automatically as Dead (G) from the selected section mass/m. <b>Point loads (EC3):</b> each is also checked as a transverse force on the web (EN 1993-1-5 clause 6, with the 7.2 interaction) using its own <b>stiff bearing length s<sub>s</sub></b> (blank = 0 mm); tick <b>bearing stiffener provided</b> where a stiffener will be designed (EN 1993-1-5 9.4). A load directly over an end holding U<sub>z</sub> is treated as transferred through the web (type b).</div>
       <label class="checkline"><input type="checkbox" id="eccOn"> <span>Load eccentricity</span></label>
-      <div class="hint">When activated, each load row gains its own shear-centre offset <b>e (mm)</b>. In EC3 unrestrained mode each transverse load also gets its own <b>z<sub>g</sub></b> load height above the shear centre. Applied moments act through the shear centre. Automatic self-weight acts through the centroid: e = 0 for doubly symmetric sections, but e = e<sub>sc</sub> for PFC channels.</div>
+      <div class="hint">When activated, each load row gains its own shear-centre offset <b>e (mm)</b>. In EC3 unrestrained mode each transverse load also gets its own <b>z<sub>g</sub></b> load height above the shear centre. Applied moments act through the shear centre. Automatic self-weight acts through the centroid: e = 0 for doubly symmetric sections, but e = e<sub>sc</sub> for PFC channels. <b>Open-section torsion (EC3):</b> twist is prevented at every end whose R<sub>x</sub> box is ticked (at least one end must hold it); with U<sub>y</sub> + R<sub>x</sub> at both ends and warping free at both, full-span or point torques use the SCI P385 Appendix C closed forms, any other layout (torsion cantilever with R<sub>x</sub> at one end only, partial-span eccentric load, warping-fixed end) the warping-torsion finite-element model, which reports its mesh error. Tick <b>warping</b> under End conditions only where the connection really prevents warping of the flanges; the default is a fork end with free warping.</div>
     </details>
 
     <details open>
@@ -122,7 +137,7 @@
       <div class="addbar">
         <button type="button" id="addCombo">+ Add combination</button>
       </div>
-      <div class="hint">Switch on every combination you want <b>considered in the design</b>. For each ULS combination switched on, the solver finds Shear/Moment everywhere along the member; the worst case from any switched-on combination governs each check (envelope), and the report states which combination governs which check. At least one ULS and one SLS (deflection) combination must be on.</div>
+      <div class="hint">Switch on every combination you want <b>considered in the design</b>. For each ULS combination switched on, the solver finds Shear/Moment everywhere along the member; the worst case from any switched-on combination governs each check (envelope), and the report states which combination governs which check. At least one ULS and one SLS (deflection) combination must be on. Every ULS combination with &gamma;<sub>G</sub> &gt; 1.0 is supplemented automatically by its &gamma;<sub>G,inf</sub> companions (G at 1.0, STR set B, and 0.9, EQU set A, variable factors as entered) solved for the end reactions only (uplift / hold-down and web bearing); the moment and shear envelopes keep the entered factors.</div>
     </details>
 
     <details class="compact-details axial-ltb" open>
@@ -132,17 +147,23 @@
           <select id="restraint"><option value="full">Fully restrained</option><option value="ltb">Not fully restrained (LTB)</option></select>
         </label>
         <div class="hint">Fully restrained: the compression flange is held in position along its length (e.g. by a slab or decking), so lateral&ndash;torsional buckling cannot occur and the design follows the SCI restrained-beam procedure to EN 1993-1-1 (classification &rarr; shear &rarr; shear buckling &rarr; moment &rarr; deflection). Applies to the EC3 code path.</div>
+        <div id="mcrMethodRow" style="display:none">
+          <label><span>M<sub>cr</sub> method</span>
+            <select id="mcrMethod"><option value="eigen">FE eigenvalue (actual diagram, load heights, restraints, hinges)</option><option value="standard">Standard closed form (C<sub>1</sub> tables, SN003a / SN006a)</option></select>
+          </label>
+          <div class="hint"><b>Standard</b> = closed-form M<sub>cr</sub> = C<sub>1</sub>(&pi;&sup2;EI<sub>z</sub>/L<sub>E</sub>&sup2;)&radic;[I<sub>w</sub>/I<sub>z</sub> + L<sub>E</sub>&sup2;GI<sub>t</sub>/(&pi;&sup2;EI<sub>z</sub>)] with C<sub>1</sub> from the NCCI SN003a tables (simply supported or fixed-ended full-span UDL / central point load, recognised from the load list) or the end-moment formula (&psi; = M<sub>1</sub>/M<sub>2</sub>), the Serna quarter-point expression for a general diagram, C<sub>2</sub>&middot;z<sub>g</sub> where published (a destabilising z<sub>g</sub> on any other diagram blocks PASS unless the destabilising L<sub>E</sub> switch carries it), NCCI SN006a for cantilevers and the P385/P362 channel chain &mdash; as MasterSeries-type software does; L<sub>E</sub> = L<sub>E</sub>-factor &times; L over the whole member; M<sub>b,Rd</sub> from the M<sub>cr</sub> chain (the P362 simplified slenderness is printed for comparison only). <b>Eigen</b> = finite-element eigenvalue of the actual moment diagram with each load&rsquo;s height, the end degree-of-freedom flags (U<sub>y</sub>, R<sub>z</sub>, R<sub>x</sub>, warping), the intermediate lateral restraints (bay by bay between them) and internal hinges. The report prints both values and their ratio.</div>
+        </div>
       </div>
       <label><span>Axial F, kN</span> <input id="axial" type="number" step="0.001"></label>
       <div class="hint">Positive = compression, negative = tension. Entered directly as the governing ULS design value   it is <b>not</b> run through the Load Combinations below. Leave 0 for a pure beam.</div>
       <label><span>Minor-axis moment M<sub>z,Ed</sub>, kN&middot;m</span> <input id="Mz" type="number" step="0.001"></label>
       <div class="hint">Coincident ULS design moment about the <b>minor (z&ndash;z)</b> axis, entered directly (this solver bends in one plane). Forms the full EC3 biaxial interaction (M<sub>y</sub>/M<sub>N,y</sub>)<sup>&alpha;</sup> + (M<sub>z</sub>/M<sub>N,z</sub>)<sup>&beta;</sup> &le; 1 (cl 6.2.9.1). Leave 0 for uniaxial bending.</div>
-      <label id="leRow"><span>L<sub>E</sub> / L factor</span> <input id="leFactor" type="number" step="0.01"></label>
+      <label id="leRow"><span>L<sub>E</sub> / L factor</span> <input id="leFactor" type="number" step="0.01" placeholder="auto: from the end fixities"></label>
+      <div class="hint">Blank = the strut buckling lengths L<sub>cr,y</sub> and L<sub>cr,z</sub> come from the end fixities under End conditions (y-y from U<sub>z</sub> / R<sub>y</sub>, z-z from U<sub>y</sub> / R<sub>z</sub>: 0.7 L held in position and direction at both ends, 0.85 L direction at one end, 1.0 L direction at neither, 2.0 L cantilever, 1.2 L fixed with a guided far end; P360 Table 6.2 / BS 5950 Table 22 style, printed [verify]); the minor axis is shortened to the lateral-restraint spacing where restraints are modelled. A number here overrides both axes (an entered 1.0 is an override). <b>LTB effective length:</b> on the EC3 standard (closed-form) route L<sub>E</sub> = factor &times; L (blank = 1.0) with fork ends (U<sub>y</sub> + R<sub>x</sub>) required at both ends &mdash; an end that releases U<sub>y</sub> or R<sub>x</sub> is NOT VERIFIED on that route (use the FE eigenvalue method, which models the end flags), a laterally clamped or warping-fixed end is taken as a fork (conservative). On the BS 5950 path a blank factor takes L<sub>E</sub> from the end flags: Table 13 for fork ends at both ends (1.0 L, or 0.7 L with R<sub>z</sub> held at both ends; 1.2 L / 0.85 L destabilising), Table 14 (d) for a cantilever whose root holds U<sub>y</sub>, R<sub>z</sub> and R<sub>x</sub> (tip free 0.8 L / 1.4 L destabilising, tip R<sub>x</sub> 0.6 L, tip U<sub>y</sub> + R<sub>x</sub> 0.5 L), printed [verify]; any other end flag set has no tabulated row and is NOT VERIFIED until a factor is entered here.</div>
+      <label id="LTRow" style="display:none"><span>Torsional buckling length L<sub>T</sub>, m</span> <input id="LT" type="number" step="0.01" placeholder="blank = twist-restraint spacing"></label>
+      <div class="hint">PFC under axial compression: torsional and torsional-flexural buckling (EN 1993-1-1 cl 6.3.1.4) are checked with N<sub>cr,T</sub> = (GI<sub>T</sub> + &pi;&sup2;EI<sub>w</sub>/L<sub>T</sub>&sup2;)/i<sub>0</sub>&sup2; and the torsional-flexural coupling with the major-axis flexural mode through the shear-centre offset e<sub>sc</sub> (SCI P385 Table A.3). L<sub>T</sub> is the length between points where twist is prevented; blank takes the largest spacing of the twist restraints (the ends with R<sub>x</sub> ticked and the intermediate restraints with &phi; held, capped at L<sub>cr,y</sub>) &mdash; a lateral-only restraint shortens L<sub>cr,z</sub> but not L<sub>T</sub>.</div>
       <label id="zaRow"><span>Default z<sub>g</sub>, mm</span> <input id="za" type="number" step="1" placeholder="0"></label>
       <div class="hint live-hint" id="zaHint"></div>
-      <label id="warpRow"><span>Root warping</span>
-        <select id="rootWarp"><option value="free">Free</option><option value="restrained">Restrained</option></select>
-      </label>
       <label class="checkline" id="destabRow"><input type="checkbox" id="destab"> <span>Destabilising load &times;1.2 L<sub>E</sub></span></label>
       <div class="hint">For PFC, this sets both the LTB effective length (Table 13/14) and the strut effective length. For SHS, LTB does not apply (cl 4.3.6.1), so this sets only the strut effective length (Table 22).</div>
       <div id="bsFactorsRow">
@@ -158,6 +179,9 @@
     <details>
       <summary>Deflection &amp; advanced</summary>
       <label>Deflection limit span/ <input id="divisor" type="number" step="1"></label>
+      <label>Cantilever deflection limit L/ <input id="divisorCant" type="number" step="1"></label>
+      <label>Absolute deflection limit, mm <input id="deflAbs" type="number" step="1" placeholder="blank = none"></label>
+      <div class="hint">Span/divisor when both ends hold U<sub>z</sub>; L / the cantilever divisor (default 180 &mdash; UK NA to EN 1993-1-1 Table NA.2, cantilevers: length/180 <b>[verify]</b>) when an end is vertically free (cantilever tip, guided tip: the tip deflection relative to the held end); both capped by the absolute limit when one is entered.</div>
       <label>E, N/mm  <input id="E" type="number" step="1000"></label>
       <label>K<sub>e</sub> (effective area) <input id="Ke" type="number" step="0.05" placeholder="auto"></label>
       <div id="robRow">
@@ -184,10 +208,12 @@
   <script src="js/04-checks.js"></script>
   <script src="js/checks/bs5950-checks.js"></script>
   <script src="js/checks/eurocode-checks.js"></script>
+  <script src="js/checks/torsion-fe.js"></script>
   <script src="js/05-diagrams.js"></script>
   <script src="js/05-section-view.js"></script>
   <script src="js/05-view3d.js"></script>
   <script src="js/06-render.js"></script>
+  <script src="js/06-brief-masterseries.js"></script>
   <script src="js/07-wiring.js"></script>
   <script src="js/08-mcr-eigen-patch.js"></script>
   <script src="js/09-startup.js"></script>

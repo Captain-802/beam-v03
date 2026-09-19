@@ -1,11 +1,16 @@
 /* ===========================================================================
    7. WIRING
    =========================================================================== */
+/* render() is synchronous and an eccentric eigen case with several ULS
+   combinations can take seconds (every combination is an eigen + FE torsion
+   solve), so the recompute is debounced: rapid input events collapse into one
+   render after RECOMPUTE_DEBOUNCE_MS of quiet (19 Sep 2026 review). */
+const RECOMPUTE_DEBOUNCE_MS=250;
 let raf=null;
-function recompute(){ if(raf) cancelAnimationFrame(raf); raf=requestAnimationFrame(render); }
+function recompute(){ if(raf) clearTimeout(raf); raf=setTimeout(()=>{ raf=null; render(); },RECOMPUTE_DEBOUNCE_MS); }
 function printReport(){
   try{
-    if(raf) cancelAnimationFrame(raf);
+    if(raf) clearTimeout(raf);
     raf=null;
     render();
     window.focus();
@@ -18,15 +23,16 @@ function printReport(){
 function readScalarInputs(){
   setDesignCode($("code").value);
   S.restraint=$("restraint").value;
+  if($("mcrMethod")) S.mcrMethod=$("mcrMethod").value;
   S.eccOn=$("eccOn").checked;
   S.za=parseFloat($("za").value);
-  S.rootWarp=$("rootWarp").value;
   S.family=$("family").value;
   S.sectionKey=$("pfcSelect").value;
   S.shsType=$("shsType").value;
   S.shsKey=$("shsSelect").value;
   S.ubKey=$("ubSelect").value;
   S.ucKey=$("ucSelect").value;
+  if($("rhsType")) S.rhsType=$("rhsType").value;
   S.rhsKey=$("rhsSelect").value;
   S.grade=$("grade").value;
   const sec=activeSection();
@@ -37,12 +43,15 @@ function readScalarInputs(){
   S.L=parseFloat($("length").value);
   S.axial=parseFloat($("axial").value);
   S.Mz=parseFloat($("Mz").value);
-  S.leFactor=parseFloat($("leFactor").value);
+  { const le=parseFloat($("leFactor").value); S.leFactor=isFinite(le)? le : null; }   // blank = strut lengths from the end fixities
   S.destab=$("destab").checked;
   const mlt=parseFloat($("mLTo").value); S.mLTo=isFinite(mlt)?mlt:null;
   const mxo=parseFloat($("mxo").value); S.mxo=isFinite(mxo)?mxo:null;
   const c1o=parseFloat($("C1o").value); S.C1o=isFinite(c1o)?c1o:null;
+  if($("LT")){ const lt=parseFloat($("LT").value); S.LT=isFinite(lt)?lt:null; }
   S.divisor=parseFloat($("divisor").value);
+  if($("divisorCant")){ const dc=parseFloat($("divisorCant").value); S.divisorCant=isFinite(dc)?dc:180; }
+  if($("deflAbs")){ const da=parseFloat($("deflAbs").value); S.deflAbs=isFinite(da)?da:null; }
   S.E=parseFloat($("E").value);
   const ke=parseFloat($("Ke").value); S.Ke=isFinite(ke)?ke:null;
   const autoRob=defaultRobertson(S.family,sec.boxType,sec.tf);
@@ -65,12 +74,11 @@ function wirePlate(){
 }
 
 function wire(){
-  ["grade","py","anet","length","axial","Mz","leFactor","mLTo","mxo","C1o","divisor","E","Ke","robertsonX","robertsonY"]
-    .forEach(id=>$(id).addEventListener("input",()=>{ readScalarInputs(); recompute(); }));
+  ["grade","py","anet","length","axial","Mz","leFactor","LT","mLTo","mxo","C1o","divisor","divisorCant","deflAbs","E","Ke","robertsonX","robertsonY"]
+    .forEach(id=>{ if($(id)) $(id).addEventListener("input",()=>{ readScalarInputs(); recompute(); }); });
   $("za").addEventListener("input",()=>{ readScalarInputs(); renderLoadList(); recompute(); });
   $("destab").addEventListener("change",()=>{ readScalarInputs(); recompute(); });
   $("eccOn").addEventListener("change",()=>{ readScalarInputs(); renderLoadList(); recompute(); });
-  $("rootWarp").addEventListener("change",()=>{ readScalarInputs(); recompute(); });
   function refreshAutoFields(){
     const sec=activeSection();
     $("py").value=pyFromGrade(S.grade,sec.tf); S.py=null;
@@ -97,21 +105,24 @@ function wire(){
     syncInputs(); recompute(); });
   $("restraint").addEventListener("change",()=>{
     S.restraint=$("restraint").value; syncInputs(); recompute(); });
+  if($("mcrMethod")) $("mcrMethod").addEventListener("change",()=>{
+    S.mcrMethod=$("mcrMethod").value; syncInputs(); recompute(); });
   $("shsType").addEventListener("change",()=>{
     S.shsType=$("shsType").value; syncInputs(); refreshAutoFields(); recompute(); });
-  $("length").addEventListener("change",()=>{ // stretch full-span loads/supports that sat at old end
-    readScalarInputs(); syncSelfWeightLoads(); renderSupportList(); renderHingeList(); renderLoadList(); recompute(); });
-  document.querySelectorAll("[data-preset]").forEach(b=>b.addEventListener("click",()=>{
-    const L=S.L, p=b.dataset.preset;
-    S.supports = p==='cant'? [{pos:0,type:'fixed'}]
-      : p==='ss'? [{pos:0,type:'pinned'},{pos:L,type:'pinned'}]
-      : p==='propped'? [{pos:0,type:'fixed'},{pos:L,type:'pinned'}]
-      : [{pos:0,type:'fixed'},{pos:L,type:'fixed'}];
-    S.hinges=[];   // a preset can leave an existing hinge as a mechanism
-    if(p==='cant'){ S.leFactor=1.0; } $("leFactor").value=S.leFactor;
-    renderSupportList(); renderHingeList(); recompute();
-  }));
-  $("addSupport").addEventListener("click",()=>{ S.supports.push({pos:+(S.L).toFixed(2),type:'pinned'}); renderSupportList(); recompute(); });
+  if($("rhsType")) $("rhsType").addEventListener("change",()=>{
+    S.rhsType=$("rhsType").value; syncInputs(); refreshAutoFields(); recompute(); });
+  $("length").addEventListener("change",()=>{ // the End 2 label (x = L) and full-span loads follow the new length
+    readScalarInputs(); syncSelfWeightLoads(); renderEndsPanel(); renderHingeList(); renderLoadList(); recompute(); });
+  // End conditions: the preset drop-list and the quick buttons (data-preset = an
+  // END_PRESETS key) apply a preset through applyEndPreset() (the seating /
+  // hold-down / stiffener entries of the ends are kept, the hinges cleared);
+  // 'custom' on the drop-list only names the current flags
+  function choosePreset(p){
+    if(p==='custom'){ S.endPreset='custom'; renderEndsPanel(); return; }
+    applyEndPreset(S,p); renderEndsPanel(); renderHingeList(); recompute();
+  }
+  if($("endPreset")) $("endPreset").addEventListener("change",()=>choosePreset($("endPreset").value));
+  document.querySelectorAll("[data-preset]").forEach(b=>b.addEventListener("click",()=>choosePreset(b.dataset.preset)));
   $("addHinge").addEventListener("click",()=>{ if(!S.hinges) S.hinges=[]; S.hinges.push({pos:+(S.L/2).toFixed(2)}); renderHingeList(); recompute(); });
   document.querySelectorAll("[data-add]").forEach(b=>b.addEventListener("click",()=>{
     const L=S.L, t=b.dataset.add;
