@@ -428,8 +428,20 @@ function render(){
     : sec.kind==='channel' ? 'V<sub>pl,Rd</sub>=A<sub>v</sub>f<sub>y</sub>/(v3?<sub>M0</sub>), A<sub>v</sub>=A-2bt<sub>f</sub>+(t<sub>w</sub>+r)t<sub>f</sub>'
     : 'V<sub>pl,Rd</sub>=A<sub>v</sub>f<sub>y</sub>/(v3?<sub>M0</sub>), A<sub>v</sub>=A-2bt<sub>f</sub>+(t<sub>w</sub>+2r)t<sub>f</sub>=?h<sub>w</sub>t<sub>w</sub>';
 
+  // EC3: the MasterSeries-format design brief (js/06-brief-masterseries.js) is
+  // the main design output; the detailed derivation follows under a
+  // collapsible heading. BS 5950 keeps the detailed report only.
+  let briefBlock='', briefClose='';
+  if(S.code==='EC3' && typeof renderMasterSeriesBrief==='function'){
+    let brief;
+    try{ brief=renderMasterSeriesBrief(a,c,sec); }
+    catch(err){ brief=`<div class="err">Design brief could not be rendered: ${err}</div>`; }
+    briefBlock=`<div class="brief-title">Design Brief</div>${brief}<details class="ms-detail" open><summary>Detailed derivation</summary>`;
+    briefClose='</details>';
+  }
   rep.innerHTML = `
   ${banner}
+  ${briefBlock}
   <div class="report-head">
     <div>
       <h2>Member Loading and Member Forces</h2>
@@ -570,5 +582,5 @@ function render(){
   </div>`:''}
   <div class="note">${notes.map(n=>'  '+n).join('<br>')}</div>
   <div class="note" style="margin-top:8px;color:#9a8f78">Analysis: 2-node Euler Bernoulli beam elements (direct stiffness); reactions exact, shear/moment by statics, deflection at nodes exact. Section data: SCI P363 Blue Book. This is a design aid   results to be verified by a competent engineer.</div>
-  `;
+  ${briefClose}`;
 }
