@@ -20,6 +20,7 @@ $jsFiles = @(
   'js\04-checks.js',
   'js\checks\bs5950-checks.js',
   'js\checks\eurocode-checks.js',
+  'js\checks\torsion-fe.js',
   'js\05-diagrams.js',
   'js\05-section-view.js',
   'js\05-view3d.js',

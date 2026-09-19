@@ -350,9 +350,11 @@ function analyse(){
     [...ulsCombos,...slsCombos].some(cb=>Math.abs(cb.factors.G??0)>1e-12);
   const anyEcc = anyUserEcc || anySelfWeightEcc;
   const torsErr = (anyEcc && !(sec.J>0))? "the section torsional constant I_T is zero or undefined in the section data" : null;
-  if(anyEcc && !torsErr){
-    const GIt=81000*sec.J*1e4; // N.mm2 (G = 81000 N/mm2 per SN003a / P385)
-    const mkT=(combo)=>{ const out=[]; comboLoadPieces(combo).forEach(p=>{
+  // Torque list of ONE combination (pattern-aware through comboLoadPieces):
+  // point torques P*e [N.mm] and distributed torques w*e [N.mm/mm]; applied
+  // moments carry no torque; the per-load z_g is a load height, not a torque.
+  // Shared by the St Venant FE (torque diagram) and the warping-torsion FE.
+  const mkT=(combo)=>{ const out=[]; comboLoadPieces(combo).forEach(p=>{
       const f=p.factor;
       const le=p.e; // this load's own shear-centre offset, mm
       if(p.type==='point') out.push({type:'point',pos:p.pos,P:p.P*f*1000*le}); // kN -> N, x e mm -> N.mm
@@ -363,6 +365,8 @@ function analyse(){
         out.push({type:'udl',x1:0,x2:S.L*1000,w1:sw*gF*swE,w2:sw*gF*swE,isAutoSelfWeight:true});
       }
       return out; };
+  if(anyEcc && !torsErr){
+    const GIt=81000*sec.J*1e4; // N.mm2 (G = 81000 N/mm2 per SN003a / P385)
     const solveT=(tq)=>{
       const nodes=buildNodes(L,supportsMM,tq,120);
       const n=nodes.length;
@@ -401,7 +405,10 @@ function analyse(){
       TmaxSLS:Math.abs(gW.r.Tmax)/1e6, phiMax:Math.abs(gW.r.phiMax), phiPos:gW.r.phiPos/1000, governTw:gW.combo.label};
   }
 
-  // ---- P385 open-section torsion (Method B closed forms) ----
+  // ---- P385 open-section torsion: Method B closed forms where they apply
+  //      (single fork-fork span, full-span distributed and/or point torques,
+  //      warping free at both ends), otherwise the general warping-torsion FE
+  //      of js/checks/torsion-fe.js (19 Sep 2026 gap closure, group G4) ----
   let torsO=null;
   if(anyEcc && torsErr && !sec.isBox){ torsO={ok:false,reason:torsErr}; }
   if(anyEcc && !torsErr && !sec.isBox){
@@ -422,7 +429,7 @@ function analyse(){
         if(p.type==='point'){ list.push({kind:'point',alpha:p.pos/L,T:p.P*f*1000*le}); }
         else {
           const x1=p.x1, x2=p.x2;
-          if(x1>1e-6 || Math.abs(x2-L)>1e-6) return {ok:false,reason:'partial-span eccentric distributed load on an open section: the P385 fork-fork closed forms (Cases 3/4/10) cover full-span distributed torque only'};
+          if(x1>1e-6 || Math.abs(x2-L)>1e-6) return {ok:false,reason:'partial-span eccentric distributed load (the P385 closed forms Cases 3/4/10 cover full-span distributed torque only)'};
           const w1=p.w1, w2=p.w2;
           const wu=Math.min(w1,w2), dv=w2-w1;
           if(Math.abs(wu)>1e-12) list.push({kind:'ud',T:wu*f*le*L});
@@ -435,28 +442,49 @@ function analyse(){
       }
       return {ok:true,list};
     };
+    // Why the closed forms cannot be used (empty = they can): layout, a
+    // warping-fixed support, or a partial-span distributed torque in any
+    // analysed combination (patterns included).
+    const feReasons=[];
+    if(!endsOK) feReasons.push(S.supports.length===1? 'cantilever' : (S.supports.length+' supports (multi-span / overhang layout)'));
+    if(S.supports.some(s=>!!s.warpFix)) feReasons.push('warping-fixed support');
+    if(!feReasons.length){
+      for(const cb of [...ulsCombos,...slsCombos]){ const m=mk385(cb); if(!m.ok){ feReasons.push(m.reason); break; } }
+    }
     if(!(IT>0)) torsO={ok:false,reason:'the torsional constant I_T is zero or undefined'};
     else if(!(IwO>0)||!(aa>0)||!isFinite(aa)) torsO={ok:false,reason:'no warping constant available for this section'};
-    else if(!endsOK) torsO={ok:false,reason:'open-section torsion per P385 requires a single span with fork supports at both ends (Cases 3/4/10); cantilevers and multi-span layouts are not covered'};
-    else {
-      let bad=null;
-      const sols=[];
-      for(const res of ulsResults){
-        const m=mk385(res.combo);
-        if(!m.ok){ bad=m.reason; break; }
-        sols.push({combo:res.combo, fb:res.fb, sol:p385Solve(L,aa,GItO,m.list)});
-      }
+    else if(!feReasons.length){
+      // SCI P385 Appendix C closed forms, superposed per combination
+      const sols=ulsResults.map(res=>({combo:res.combo, fb:res.fb, sol:p385Solve(L,aa,GItO,mk385(res.combo).list)}));
       let slsSol=null;
-      if(!bad){
-        for(const cb of slsCombos){
-          const m=mk385(cb);
-          if(!m.ok){ bad=m.reason; break; }
-          const s2=p385Solve(L,aa,GItO,m.list);
-          let pm=0,pp=0; s2.phi.forEach((v,i)=>{ if(Math.abs(v)>Math.abs(pm)){pm=v;pp=s2.xs[i];} });
-          if(!slsSol||Math.abs(pm)>Math.abs(slsSol.phiMax)) slsSol={combo:cb,phiMax:pm,phiPos:pp};
-        }
+      for(const cb of slsCombos){
+        const s2=p385Solve(L,aa,GItO,mk385(cb).list);
+        let pm=0,pp=0; s2.phi.forEach((v,i)=>{ if(Math.abs(v)>Math.abs(pm)){pm=v;pp=s2.xs[i];} });
+        if(!slsSol||Math.abs(pm)>Math.abs(slsSol.phiMax)) slsSol={combo:cb,phiMax:pm,phiPos:pp};
       }
-      torsO= bad? {ok:false,reason:bad} : {ok:true,aa,X:L/aa,IT,Iw:IwO,GIt:GItO,sols,sls:slsSol};
+      torsO={ok:true,method:'closed',methodLabel:'SCI P385 App C closed forms (Cases 3/4/10)',
+        bcText:'fork supports at x = 0 and x = L (&phi; = 0, warping free)',feReasons:[],
+        aa,X:L/aa,IT,Iw:IwO,GIt:GItO,sols,sls:slsSol};
+    } else {
+      // General warping-torsion FE: E I_w phi'''' - G I_T phi'' = m_t(x), every
+      // support phi = 0, warping fixed (phi' = 0) per support option or at a
+      // cantilever root, free ends natural; mesh doubled once for the error.
+      const feSup=S.supports.map(s=>({pos:(+s.pos)*1000,type:s.type,warpFix:!!s.warpFix}));
+      const EIwO=E*IwO;
+      const feSolve=(cb)=>warpingTorsionFE({L,EIw:EIwO,GIt:GItO,supports:feSup,torques:mkT(cb)});
+      const sols=ulsResults.map(res=>({combo:res.combo, fb:res.fb, sol:feSolve(res.combo)}));
+      let slsSol=null, meshError=0, nElem=0, nElemCoarse=0;
+      sols.forEach(se=>{ meshError=Math.max(meshError,se.sol.meshError); nElem=Math.max(nElem,se.sol.nElem); nElemCoarse=Math.max(nElemCoarse,se.sol.nElemCoarse); });
+      for(const cb of slsCombos){
+        const s2=feSolve(cb);
+        meshError=Math.max(meshError,s2.meshError); nElem=Math.max(nElem,s2.nElem); nElemCoarse=Math.max(nElemCoarse,s2.nElemCoarse);
+        let pm=0,pp=0; s2.phi.forEach((v,i)=>{ if(Math.abs(v)>Math.abs(pm)){pm=v;pp=s2.xs[i];} });
+        if(!slsSol||Math.abs(pm)>Math.abs(slsSol.phiMax)) slsSol={combo:cb,phiMax:pm,phiPos:pp};
+      }
+      torsO={ok:true,method:'fe',methodLabel:'warping-torsion FE ('+nElem+' elements)',nElem,nElemCoarse,meshError,
+        converged:meshError<=TORSION_FE_MESH_BLOCK,meshBlock:TORSION_FE_MESH_BLOCK,
+        bcText:torsionFeBcText(feSup,L),feReasons,
+        aa,X:L/aa,IT,Iw:IwO,GIt:GItO,sols,sls:slsSol};
     }
   }
   return {sec,py,E,L,Ix,tors,torsO,torsErr,swPerM:sec.mass*9.81/1000,ulsResults,

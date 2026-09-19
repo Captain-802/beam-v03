@@ -1,22 +1,22 @@
 {
  "summary": {
-  "generated": "2026-09-19T07:53:39.678Z",
+  "generated": "2026-09-19T08:18:02.173Z",
   "node": "v24.14.1",
-  "cases": 118,
-  "runs": 214,
+  "cases": 122,
+  "runs": 222,
   "verdicts": {
-   "PASS": 155,
-   "FAIL": 44,
-   "NOT VERIFIED": 15
+   "PASS": 161,
+   "FAIL": 47,
+   "NOT VERIFIED": 14
   },
   "byFamily": {
    "ub": {
-    "PASS": 66,
-    "FAIL": 24,
+    "PASS": 70,
+    "FAIL": 26,
     "NOT VERIFIED": 8,
     "ERROR": 0,
-    "runs": 98,
-    "cases": 54
+    "runs": 104,
+    "cases": 57
    },
    "uc": {
     "PASS": 24,
@@ -27,12 +27,12 @@
     "cases": 15
    },
    "pfc": {
-    "PASS": 25,
-    "FAIL": 10,
-    "NOT VERIFIED": 1,
+    "PASS": 27,
+    "FAIL": 11,
+    "NOT VERIFIED": 0,
     "ERROR": 0,
-    "runs": 36,
-    "cases": 20
+    "runs": 38,
+    "cases": 21
    },
    "shs": {
     "PASS": 14,
@@ -53,18 +53,18 @@
   },
   "byMethod": {
    "eigen": {
-    "PASS": 78,
-    "FAIL": 11,
-    "NOT VERIFIED": 7,
+    "PASS": 82,
+    "FAIL": 12,
+    "NOT VERIFIED": 6,
     "ERROR": 0,
-    "runs": 96
+    "runs": 100
    },
    "standard": {
-    "PASS": 59,
-    "FAIL": 29,
+    "PASS": 61,
+    "FAIL": 31,
     "NOT VERIFIED": 8,
     "ERROR": 0,
-    "runs": 96
+    "runs": 100
    },
    "n/a (restrained)": {
     "PASS": 18,
@@ -76,58 +76,58 @@
   },
   "checkTotals": {
    "i-Mmax": {
-    "run": 120,
-    "ok": 120,
+    "run": 124,
+    "ok": 124,
     "fail": 0
    },
    "i-dmax": {
-    "run": 120,
-    "ok": 120,
+    "run": 124,
+    "ok": 124,
     "fail": 0
    },
    "ii-equilibrium": {
-    "run": 214,
-    "ok": 214,
+    "run": 222,
+    "ok": 222,
     "fail": 0
    },
    "vii-uplift": {
-    "run": 214,
-    "ok": 214,
+    "run": 222,
+    "ok": 222,
     "fail": 0
    },
    "viii-FRd": {
-    "run": 126,
-    "ok": 126,
+    "run": 132,
+    "ok": 132,
     "fail": 0
    },
    "vi-governing": {
-    "run": 214,
-    "ok": 214,
+    "run": 222,
+    "ok": 222,
     "fail": 0
    },
    "iii-McrStd": {
-    "run": 160,
-    "ok": 160,
+    "run": 166,
+    "ok": 166,
     "fail": 0
    },
    "xi-kcFloor": {
-    "run": 75,
-    "ok": 75,
+    "run": 77,
+    "ok": 77,
     "fail": 0
    },
    "iv-McrRatio": {
-    "run": 96,
-    "ok": 88,
+    "run": 100,
+    "ok": 92,
     "fail": 8
    },
    "v-MbRd<=McRd": {
-    "run": 192,
-    "ok": 192,
+    "run": 200,
+    "ok": 200,
     "fail": 0
    },
    "iii-zgBlock": {
-    "run": 77,
-    "ok": 77,
+    "run": 79,
+    "ok": 79,
     "fail": 0
    },
    "ix-Aeff": {
@@ -138,6 +138,11 @@
    "xii-MVN": {
     "run": 1,
     "ok": 1,
+    "fail": 0
+   },
+   "xiii-torsionFE": {
+    "run": 4,
+    "ok": 4,
     "fail": 0
    },
    "x-NbT": {
@@ -337,28 +342,15 @@
    {
     "id": "MIX-10",
     "ratio": 3.4111819625309416
+   },
+   {
+    "id": "PFC-21",
+    "ratio": 11.113596892556403
    }
   ],
   "errors": [],
-  "triggerMismatches": [
-   {
-    "id": "PFC-17",
-    "method": "eigen",
-    "missing": [
-     "3.8"
-    ],
-    "extra": []
-   },
-   {
-    "id": "PFC-17",
-    "method": "standard",
-    "missing": [
-     "3.8"
-    ],
-    "extra": []
-   }
-  ],
-  "totalMs": 159122
+  "triggerMismatches": [],
+  "totalMs": 47664
  },
  "runs": [
   {
@@ -380,7 +372,7 @@
    "tags": [
     "demo"
    ],
-   "ms": 146.4658,
+   "ms": 32.4865,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -429,6 +421,8 @@
    ],
    "warn": [],
    "mcrMethodReported": null,
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": null,
    "McrStd": null,
    "McrRatio": null,
@@ -517,7 +511,7 @@
     "demo",
     "heavy"
    ],
-   "ms": 1378.2985,
+   "ms": 284.7098,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -570,6 +564,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 257.9741062880164,
    "McrStd": 257.0619060555597,
    "McrRatio": 1.0035485624706275,
@@ -697,7 +693,7 @@
     "demo",
     "heavy"
    ],
-   "ms": 126.3521,
+   "ms": 33.3267,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -750,6 +746,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 257.0619060555597,
    "McrStd": 257.0619060555597,
    "McrRatio": null,
@@ -868,7 +866,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1263.8936,
+   "ms": 289.4943,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -921,6 +919,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 109.62298441606096,
    "McrStd": 109.21111362322375,
    "McrRatio": 1.0037713267374797,
@@ -1045,7 +1045,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 111.9804,
+   "ms": 24.0484,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -1098,6 +1098,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 109.21111362322375,
    "McrStd": 109.21111362322375,
    "McrRatio": null,
@@ -1219,7 +1221,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 1504.1506,
+   "ms": 255.5078,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -1272,6 +1274,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 81.12744252629787,
    "McrStd": 80.2349298097223,
    "McrRatio": 1.0111237427226791,
@@ -1399,7 +1403,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 133.1193,
+   "ms": 19.0825,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -1452,6 +1456,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 80.2349298097223,
    "McrStd": 80.2349298097223,
    "McrRatio": null,
@@ -1573,7 +1579,7 @@
    "tags": [
     "zg-bottom"
    ],
-   "ms": 1399.8986,
+   "ms": 248.2191,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -1626,6 +1632,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 148.3177647671278,
    "McrStd": 148.6518074747471,
    "McrRatio": 0.9977528513558368,
@@ -1753,7 +1761,7 @@
    "tags": [
     "zg-bottom"
    ],
-   "ms": 103.5147,
+   "ms": 22.1163,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -1806,6 +1814,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 148.6518074747471,
    "McrStd": 148.6518074747471,
    "McrRatio": null,
@@ -1926,7 +1936,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 2878.4522,
+   "ms": 550.8008,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -1979,6 +1989,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 703.6026241722732,
    "McrStd": 677.6306503624129,
    "McrRatio": 1.0383276255227976,
@@ -2094,7 +2106,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 146.0221,
+   "ms": 39.0836,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -2148,6 +2160,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 166.33712695335888,
    "McrStd": 166.33712695335888,
    "McrRatio": null,
@@ -2256,7 +2270,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1549.5628,
+   "ms": 298.5041,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -2309,6 +2323,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 166.88131256668984,
    "McrStd": 166.33712695335888,
    "McrRatio": 1.003271582377899,
@@ -2422,7 +2438,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 94.5417,
+   "ms": 16.8508,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -2475,6 +2491,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 166.33712695335888,
    "McrStd": 166.33712695335888,
    "McrRatio": null,
@@ -2583,7 +2601,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 3029.9069,
+   "ms": 581.5531,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -2636,6 +2654,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 1271.418616153501,
    "McrStd": 1270.9202772567576,
    "McrRatio": 1.0003921086992327,
@@ -2751,7 +2771,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 122.0798,
+   "ms": 16.4671,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -2805,6 +2825,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 238.10005972035154,
    "McrStd": 238.10005972035154,
    "McrRatio": null,
@@ -2912,7 +2934,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1501.7816,
+   "ms": 272.6882,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -2965,6 +2987,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 77.95847244262447,
    "McrStd": 78.46481149773571,
    "McrRatio": 0.9935469282924888,
@@ -3077,7 +3101,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 78.4105,
+   "ms": 20.881,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -3130,6 +3154,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 78.46481149773571,
    "McrStd": 78.46481149773571,
    "McrRatio": null,
@@ -3236,7 +3262,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1334.3112,
+   "ms": 261.1714,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -3289,6 +3315,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 100.9519947459274,
    "McrStd": 101.37016844759044,
    "McrRatio": 0.9958747853725897,
@@ -3401,7 +3429,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 87.683,
+   "ms": 16.7998,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -3454,6 +3482,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 101.37016844759044,
    "McrStd": 101.37016844759044,
    "McrRatio": null,
@@ -3556,7 +3586,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 77.0905,
+   "ms": 18.6822,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -3605,6 +3635,8 @@
    ],
    "warn": [],
    "mcrMethodReported": null,
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": null,
    "McrStd": null,
    "McrRatio": null,
@@ -3678,7 +3710,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1277.956,
+   "ms": 231.3982,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -3731,6 +3763,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 129.7290624927285,
    "McrStd": 130.24831978952218,
    "McrRatio": 0.9960133282515061,
@@ -3843,7 +3877,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 102.6594,
+   "ms": 23.3758,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -3896,6 +3930,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 130.24831978952218,
    "McrStd": 130.24831978952218,
    "McrRatio": null,
@@ -4003,7 +4039,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 3021.6697,
+   "ms": 581.6282,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -4056,6 +4092,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 1730.7845149576945,
    "McrStd": 1730.4786032844077,
    "McrRatio": 1.0001767786511235,
@@ -4182,7 +4220,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 93.732,
+   "ms": 28.6109,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -4236,6 +4274,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 353.97067318993254,
    "McrStd": 353.97067318993254,
    "McrRatio": null,
@@ -4356,7 +4396,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 5376.8035,
+   "ms": 1077.3851,
    "nCombos": 3,
    "patterns": {
     "active": true,
@@ -4423,6 +4463,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 2665.7910752669054,
    "McrStd": 2590.758934396633,
    "McrRatio": 1.0289614521343904,
@@ -4536,7 +4578,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 361.117,
+   "ms": 80.2103,
    "nCombos": 3,
    "patterns": {
     "active": true,
@@ -4604,6 +4646,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 515.8185933162655,
    "McrStd": 515.8185933162655,
    "McrRatio": null,
@@ -4714,7 +4758,7 @@
    "tags": [
     "1.2"
    ],
-   "ms": 6504.1906,
+   "ms": 1351.0629,
    "nCombos": 3,
    "patterns": {
     "active": true,
@@ -4781,6 +4825,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 2181.6805931507874,
    "McrStd": 2201.9980435665775,
    "McrRatio": 0.990773175082898,
@@ -4897,7 +4943,7 @@
    "tags": [
     "1.2"
    ],
-   "ms": 313.5225,
+   "ms": 63.1256,
    "nCombos": 3,
    "patterns": {
     "active": true,
@@ -4965,6 +5011,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 761.9277728495643,
    "McrStd": 761.9277728495643,
    "McrRatio": null,
@@ -5067,7 +5115,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 82.2139,
+   "ms": 21.4125,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -5116,6 +5164,8 @@
    ],
    "warn": [],
    "mcrMethodReported": null,
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": null,
    "McrStd": null,
    "McrRatio": null,
@@ -5203,7 +5253,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 11943.1795,
+   "ms": 2446.3543,
    "nCombos": 3,
    "patterns": {
     "active": true,
@@ -5271,6 +5321,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 42466.1349175542,
    "McrStd": 40394.97962888381,
    "McrRatio": 1.0512725914878154,
@@ -5386,7 +5438,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 265.5041,
+   "ms": 51.5027,
    "nCombos": 3,
    "patterns": {
     "active": true,
@@ -5455,6 +5507,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 1134.1798147800241,
    "McrStd": 1134.1798147800241,
    "McrRatio": null,
@@ -5564,7 +5618,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1375.0728,
+   "ms": 285.5141,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -5619,6 +5673,8 @@
     "C1 = 4.023 exceeds 2.76: kc = 1/sqrtC1 = 0.499 is floored at 1/sqrt2.76 = 0.602, the Table 6.6 lower bound (psi = -1 end-moment case), so the f-factor is not extrapolated beyond its calibrated range."
    ],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 92.29730886120385,
    "McrStd": 90.4468657298356,
    "McrRatio": 1.0204588972369204,
@@ -5739,7 +5795,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 75.8654,
+   "ms": 16.1107,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -5792,6 +5848,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 90.4468657298356,
    "McrStd": 90.4468657298356,
    "McrRatio": null,
@@ -5906,7 +5964,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1290.4772,
+   "ms": 277.2827,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -5961,6 +6019,8 @@
     "C1 = 3.475 exceeds 2.76: kc = 1/sqrtC1 = 0.536 is floored at 1/sqrt2.76 = 0.602, the Table 6.6 lower bound (psi = -1 end-moment case), so the f-factor is not extrapolated beyond its calibrated range."
    ],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 79.2025473442936,
    "McrStd": 78.65265821349061,
    "McrRatio": 1.0069913610460617,
@@ -6081,7 +6141,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 82.8368,
+   "ms": 15.7383,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -6134,6 +6194,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 78.65265821349061,
    "McrStd": 78.65265821349061,
    "McrRatio": null,
@@ -6247,7 +6309,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1438.7601,
+   "ms": 327.9644,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -6300,6 +6362,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 136.46017022714477,
    "McrStd": 122.85440977187118,
    "McrRatio": 1.1107470255283323,
@@ -6413,7 +6477,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 80.5633,
+   "ms": 18.9696,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -6466,6 +6530,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 122.85440977187118,
    "McrStd": 122.85440977187118,
    "McrRatio": null,
@@ -6573,7 +6639,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1368.326,
+   "ms": 260.95,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -6626,6 +6692,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 129.09124408533563,
    "McrStd": 109.89867722260752,
    "McrRatio": 1.174638743138393,
@@ -6739,7 +6807,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 85.8804,
+   "ms": 15.6792,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -6792,6 +6860,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 109.89867722260752,
    "McrStd": 109.89867722260752,
    "McrRatio": null,
@@ -6900,7 +6970,7 @@
    "tags": [
     "heavy"
    ],
-   "ms": 1289.9832,
+   "ms": 318.3817,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -6953,6 +7023,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 161.86841388005425,
    "McrStd": 161.27374251989045,
    "McrRatio": 1.0036873414783591,
@@ -7079,7 +7151,7 @@
    "tags": [
     "heavy"
    ],
-   "ms": 80.0172,
+   "ms": 20.4516,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -7132,6 +7204,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 161.27374251989045,
    "McrStd": 161.27374251989045,
    "McrRatio": null,
@@ -7252,7 +7326,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 3172.8792,
+   "ms": 693.6098,
    "nCombos": 3,
    "patterns": {
     "active": true,
@@ -7313,6 +7387,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 236.2672855647322,
    "McrStd": 173.4317935929441,
    "McrRatio": 1.3623066490292266,
@@ -7427,7 +7503,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 333.3465,
+   "ms": 57.7391,
    "nCombos": 3,
    "patterns": {
     "active": true,
@@ -7488,6 +7564,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 173.4317935929441,
    "McrStd": 173.4317935929441,
    "McrRatio": null,
@@ -7597,7 +7675,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 12860.772,
+   "ms": 2892.4547,
    "nCombos": 7,
    "patterns": {
     "active": true,
@@ -7676,6 +7754,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 388.0290503685608,
    "McrStd": 389.65006961467094,
    "McrRatio": 0.9958398076312082,
@@ -7791,7 +7871,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 586.9386,
+   "ms": 137.3327,
    "nCombos": 7,
    "patterns": {
     "active": true,
@@ -7871,6 +7951,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 286.849170875759,
    "McrStd": 286.849170875759,
    "McrRatio": null,
@@ -7977,7 +8059,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1337.0855,
+   "ms": 300.7155,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -8030,6 +8112,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 45.76112333839656,
    "McrStd": 43.58334246285617,
    "McrRatio": 1.0499681931783087,
@@ -8142,7 +8226,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 98.8211,
+   "ms": 17.6331,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -8195,6 +8279,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 43.58334246285617,
    "McrStd": 43.58334246285617,
    "McrRatio": null,
@@ -8301,7 +8387,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1362.943,
+   "ms": 290.2685,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -8362,6 +8448,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 83.93483213033784,
    "McrStd": 77.09457435978143,
    "McrRatio": 1.0887255403815397,
@@ -8474,7 +8562,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 93.7651,
+   "ms": 20.4959,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -8535,6 +8623,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 77.09457435978143,
    "McrStd": 77.09457435978143,
    "McrRatio": null,
@@ -8642,7 +8732,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1353.6057,
+   "ms": 273.1851,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -8695,6 +8785,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 317.49804429268613,
    "McrStd": 382.34960182742293,
    "McrRatio": 0.8303867527917339,
@@ -8808,7 +8900,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 69.7816,
+   "ms": 14.7399,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -8861,6 +8953,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 382.34960182742293,
    "McrStd": 382.34960182742293,
    "McrRatio": null,
@@ -8970,7 +9064,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1406.3757,
+   "ms": 289.4766,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -9039,6 +9133,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 313.1323167832989,
    "McrStd": 311.97825299394333,
    "McrRatio": 1.0036991802418291,
@@ -9169,7 +9265,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 89.8974,
+   "ms": 20.0906,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -9238,6 +9334,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 311.97825299394333,
    "McrStd": 311.97825299394333,
    "McrRatio": null,
@@ -9357,7 +9455,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 72.2731,
+   "ms": 14.4936,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -9414,6 +9512,8 @@
    ],
    "warn": [],
    "mcrMethodReported": null,
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": null,
    "McrStd": null,
    "McrRatio": null,
@@ -9499,7 +9599,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 77.3934,
+   "ms": 16.4369,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -9556,6 +9656,8 @@
    ],
    "warn": [],
    "mcrMethodReported": null,
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": null,
    "McrStd": null,
    "McrRatio": null,
@@ -9646,7 +9748,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 1325.0286,
+   "ms": 273.1146,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -9715,6 +9817,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 76.76237761727035,
    "McrStd": 76.47410352066285,
    "McrRatio": 1.003769564902838,
@@ -9845,7 +9949,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 76.7844,
+   "ms": 22.3142,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -9914,6 +10018,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 76.47410352066285,
    "McrStd": 76.47410352066285,
    "McrRatio": null,
@@ -10043,7 +10149,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 1327.0492,
+   "ms": 301.4573,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -10109,6 +10215,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": "closed",
+   "torsionMesh": null,
    "Mcr": 257.9741062881931,
    "McrStd": 257.0619060555597,
    "McrRatio": 1.003548562471315,
@@ -10247,7 +10355,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 135.4883,
+   "ms": 31.0037,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -10313,6 +10421,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": "closed",
+   "torsionMesh": null,
    "Mcr": 257.0619060555597,
    "McrStd": 257.0619060555597,
    "McrRatio": null,
@@ -10440,7 +10550,7 @@
    "tags": [
     "ecc-small"
    ],
-   "ms": 151.714,
+   "ms": 26.2595,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -10498,6 +10608,8 @@
    ],
    "warn": [],
    "mcrMethodReported": null,
+   "torsionMethod": "closed",
+   "torsionMesh": null,
    "Mcr": null,
    "McrStd": null,
    "McrRatio": null,
@@ -10589,7 +10701,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1297.1996,
+   "ms": 254.3657,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -10642,6 +10754,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 40.54854133524164,
    "McrStd": 40.50369073280832,
    "McrRatio": 1.0011073213729875,
@@ -10755,7 +10869,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 68.7655,
+   "ms": 12.6311,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -10808,6 +10922,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 40.50369073280832,
    "McrStd": 40.50369073280832,
    "McrRatio": null,
@@ -10913,7 +11029,7 @@
    "tags": [
     "2.10"
    ],
-   "ms": 92.9084,
+   "ms": 16.6584,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -10963,6 +11079,8 @@
    ],
    "warn": [],
    "mcrMethodReported": null,
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": null,
    "McrStd": null,
    "McrRatio": null,
@@ -11051,7 +11169,7 @@
    "tags": [
     "uplift"
    ],
-   "ms": 3131.1193,
+   "ms": 602.2905,
    "nCombos": 3,
    "patterns": {
     "active": false,
@@ -11118,6 +11236,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 33.187254039777066,
    "McrStd": 33.079382967088506,
    "McrRatio": 1.0032609759618516,
@@ -11244,7 +11364,7 @@
    "tags": [
     "uplift"
    ],
-   "ms": 277.715,
+   "ms": 61.5894,
    "nCombos": 3,
    "patterns": {
     "active": false,
@@ -11311,6 +11431,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 33.079382967088506,
    "McrStd": 33.079382967088506,
    "McrRatio": null,
@@ -11431,7 +11553,7 @@
    "tags": [
     "uplift"
    ],
-   "ms": 2410.7605,
+   "ms": 425.2894,
    "nCombos": 2,
    "patterns": {
     "active": false,
@@ -11498,6 +11620,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 26.72521083485663,
    "McrStd": 26.644472624572803,
    "McrRatio": 1.0030302048541717,
@@ -11624,7 +11748,7 @@
    "tags": [
     "uplift"
    ],
-   "ms": 196.6952,
+   "ms": 29.4992,
    "nCombos": 2,
    "patterns": {
     "active": false,
@@ -11691,6 +11815,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 26.644472624572803,
    "McrStd": 26.644472624572803,
    "McrRatio": null,
@@ -11806,7 +11932,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 97.8095,
+   "ms": 15.7383,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -11855,6 +11981,8 @@
    ],
    "warn": [],
    "mcrMethodReported": null,
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": null,
    "McrStd": null,
    "McrRatio": null,
@@ -11944,7 +12072,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 4013.0278,
+   "ms": 789.9134,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -11997,6 +12125,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 5866.079713916377,
    "McrStd": 6008.614984956576,
    "McrRatio": 0.97627818201082,
@@ -12126,7 +12256,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 71.0087,
+   "ms": 31.5799,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -12180,6 +12310,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 426.113813868519,
    "McrStd": 426.113813868519,
    "McrRatio": null,
@@ -12299,7 +12431,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1286.0603,
+   "ms": 243.4365,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -12354,6 +12486,8 @@
     "The LE factor no longer affects EC3 LTB; buckling length is set by the restraint positions. It still sets the major-axis strut length (and the minor-axis one where no intermediate lateral restraints are modelled)."
    ],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 335.1188085116534,
    "McrStd": 202.2778167951621,
    "McrRatio": 1.6567254572013381,
@@ -12478,7 +12612,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 88.8725,
+   "ms": 15.8046,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -12531,6 +12665,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 202.2778167951621,
    "McrStd": 202.2778167951621,
    "McrRatio": null,
@@ -12653,7 +12789,7 @@
    "tags": [
     "1.2"
    ],
-   "ms": 2410.3561,
+   "ms": 543.0375,
    "nCombos": 1,
    "patterns": {
     "active": true,
@@ -12714,6 +12850,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 1399.88706181851,
    "McrStd": 1416.9652794481212,
    "McrRatio": 0.9879473280839577,
@@ -12830,7 +12968,7 @@
    "tags": [
     "1.2"
    ],
-   "ms": 94.9928,
+   "ms": 15.226,
    "nCombos": 1,
    "patterns": {
     "active": true,
@@ -12892,6 +13030,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 487.5237585674614,
    "McrStd": 487.5237585674614,
    "McrRatio": null,
@@ -12998,7 +13138,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1294.5356,
+   "ms": 268.7164,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -13051,6 +13191,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 82.94043945142953,
    "McrStd": 82.64114232355479,
    "McrRatio": 1.0036216480007372,
@@ -13175,7 +13317,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 67.2835,
+   "ms": 31.7975,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -13228,6 +13370,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 82.64114232355479,
    "McrStd": 82.64114232355479,
    "McrRatio": null,
@@ -13350,7 +13494,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 1385.382,
+   "ms": 323.4139,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -13403,6 +13547,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 50.27088885065831,
    "McrStd": 46.08875230177981,
    "McrRatio": 1.0907409365628888,
@@ -13519,7 +13665,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 91.8856,
+   "ms": 17.5463,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -13572,6 +13718,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 46.08875230177981,
    "McrStd": 46.08875230177981,
    "McrRatio": null,
@@ -13682,7 +13830,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 1306.3342,
+   "ms": 274.5516,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -13735,6 +13883,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 120.4757442567124,
    "McrStd": 177.36450257000774,
    "McrRatio": 0.679255107482171,
@@ -13851,7 +14001,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 87.4873,
+   "ms": 18.063,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -13906,6 +14056,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 177.36450257000774,
    "McrStd": 177.36450257000774,
    "McrRatio": null,
@@ -14016,7 +14168,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 1439.5244,
+   "ms": 321.1279,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -14069,6 +14221,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 220.5516480999588,
    "McrStd": 189.46107190490207,
    "McrRatio": 1.1641000754532957,
@@ -14185,7 +14339,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 66.9968,
+   "ms": 20.1464,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -14238,6 +14392,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 189.46107190490207,
    "McrStd": 189.46107190490207,
    "McrRatio": null,
@@ -14345,7 +14501,7 @@
    "tags": [
     "aeff"
    ],
-   "ms": 84.2454,
+   "ms": 15.1847,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -14410,6 +14566,8 @@
    ],
    "warn": [],
    "mcrMethodReported": null,
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": null,
    "McrStd": null,
    "McrRatio": null,
@@ -14509,7 +14667,7 @@
    "tags": [
     "aeff"
    ],
-   "ms": 1238.781,
+   "ms": 224.9732,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -14578,6 +14736,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 387.7952073978113,
    "McrStd": 386.30743794086396,
    "McrRatio": 1.0038512576016594,
@@ -14716,7 +14876,7 @@
    "tags": [
     "aeff"
    ],
-   "ms": 82.4536,
+   "ms": 13.6491,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -14785,6 +14945,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 386.30743794086396,
    "McrStd": 386.30743794086396,
    "McrRatio": null,
@@ -14914,7 +15076,7 @@
    "tags": [
     "mvn"
    ],
-   "ms": 90.4929,
+   "ms": 17.7569,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -14988,6 +15150,8 @@
    ],
    "warn": [],
    "mcrMethodReported": null,
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": null,
    "McrStd": null,
    "McrRatio": null,
@@ -15057,6 +15221,1222 @@
    }
   },
   {
+   "id": "UB-49",
+   "title": "UB 457x191x82, 4 m cantilever, tip point load at e = 80 mm, unrestrained (cantilever torsion: warping FE with the root warping fixed, G4 item 11)",
+   "section": "UB 457x191x82",
+   "family": "ub",
+   "restraint": "ltb",
+   "method": "eigen",
+   "expect": [
+    "1.1",
+    "1.2",
+    "1.3",
+    "1.9",
+    "2.1",
+    "2.3",
+    "2.6",
+    "2.7",
+    "2.8",
+    "2.10",
+    "2.16",
+    "3.1",
+    "3.2",
+    "3.3",
+    "3.5",
+    "3.6",
+    "3.8",
+    "3.19",
+    "3.21"
+   ],
+   "tags": [
+    "torsion-fe",
+    "ecc-small"
+   ],
+   "ms": 281.0562,
+   "nCombos": 1,
+   "patterns": {
+    "active": false,
+    "nUls": 0,
+    "nSls": 0
+   },
+   "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
+   "uplift": [],
+   "verdict": "PASS",
+   "gov": {
+    "name": "LTB+torsion (EN 1993-6 Annex A)",
+    "val": 0.5671099110441085
+   },
+   "utils": [
+    {
+     "name": "Shear  V_Ed/V_c,Rd",
+     "val": 0.045412660608693874
+    },
+    {
+     "name": "Bending  M_Ed/M_c,Rd",
+     "val": 0.2557129008222547
+    },
+    {
+     "name": "LTB  M_Ed/M_b,Rd",
+     "val": 0.37192418190907645
+    },
+    {
+     "name": "Deflection",
+     "val": 0.2464381931778213
+    },
+    {
+     "name": "LTB+torsion (EN 1993-6 Annex A)",
+     "val": 0.5671099110441085
+    },
+    {
+     "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
+     "val": 0.22156874293935194
+    },
+    {
+     "name": "Web transverse force + bending (EN 1993-1-5 7.2)",
+     "val": 0.18551011167590223
+    },
+    {
+     "name": "Bending+torsion cross-section (P385 3.1.2)",
+     "val": 0.29932496084733673
+    },
+    {
+     "name": "Shear+torsion  V_Ed/V_pl,T,Rd",
+     "val": 0.045621594353129076
+    }
+   ],
+   "cls": "Class 1",
+   "Mmax": -128.68751733879967,
+   "Vmax": 34.3437592120117,
+   "dmax": -5.476404292840473,
+   "McRd": 503.25,
+   "VplRd": 756.259570606107,
+   "deflRatio": 0.2464381931778213,
+   "unsupported": [],
+   "advisory": [
+    "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4.",
+    "Serviceability twist max = 3.6deg exceeds the ~2deg guideline (SCI P385): check that the rotation is acceptable for whatever the member supports."
+   ],
+   "warn": [
+    "C1 = 3.007 exceeds 2.76: kc = 1/sqrtC1 = 0.577 is floored at 1/sqrt2.76 = 0.602, the Table 6.6 lower bound (psi = -1 end-moment case), so the f-factor is not extrapolated beyond its calibrated range."
+   ],
+   "mcrMethodReported": "eigen",
+   "torsionMethod": "fe",
+   "torsionMesh": 6.65951299244148e-8,
+   "Mcr": 592.7429606630742,
+   "McrStd": 586.8126117971316,
+   "McrRatio": 1.0101060351238544,
+   "C1": 3.007386242653842,
+   "lamLT": 0.9214222374889465,
+   "chiLT": 0.6875404000613445,
+   "MbRd": 346.0047063308716,
+   "c1route": "sn006a",
+   "ltbBasis": "elastic critical moment from the finite-element eigenvalue solution (4 DOF/node: v, v', , '; zg and zj included; 64 elements, Richardson-extrapolated)",
+   "c1in": {
+    "M1": 0,
+    "M2": -128.68751390442372,
+    "Mo": 2.171879782811992,
+    "psi": 0,
+    "mu": -0.016877160160425883
+   },
+   "McrWhole": 592.7429606630742,
+   "spanGoverns": false,
+   "zg": 0,
+   "checks": [
+    {
+     "id": "i-Mmax",
+     "ok": true,
+     "kind": "check",
+     "detail": "cant: closed form 128.69 vs engine 128.69 kN.m"
+    },
+    {
+     "id": "i-dmax",
+     "ok": true,
+     "kind": "check",
+     "detail": "cant: closed form 5.476 vs engine 5.476 mm"
+    },
+    {
+     "id": "ii-equilibrium",
+     "ok": true,
+     "kind": "check",
+     "detail": "sum R = 34.344 kN, sum loads = -34.344 kN, residual 0.0000 kN"
+    },
+    {
+     "id": "iii-McrStd",
+     "ok": true,
+     "kind": "check",
+     "detail": "SN006a (comparison): C 1.593 x Mcr0 368.48 = 586.81 vs engine 586.81 kN.m"
+    },
+    {
+     "id": "vii-uplift",
+     "ok": true,
+     "kind": "check",
+     "detail": "no uplift in the governing combination; engine reports none (0 hold-down message(s))"
+    },
+    {
+     "id": "viii-FRd",
+     "ok": true,
+     "kind": "check",
+     "detail": "station x = 4.00 m (point load 1, type (c), s_s 0.0 mm): independent F_Rd 135.4 vs engine 135.4 kN; F_Ed 30.0 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.222 = max station ratio 0.222"
+    },
+    {
+     "id": "xiii-torsionFE",
+     "ok": true,
+     "kind": "check",
+     "detail": "cantilever tip torque T = 2.400 kN.m: phi_tip = (T/GI_T)[L - a tanh(L/a)] = 0.09381 rad vs engine phi_max 0.09381 rad (warping-torsion FE (240 elements), mesh error 6.66e-6 %); St Venant torque zero at the warping-fixed end(s): true"
+    },
+    {
+     "id": "iv-McrRatio",
+     "ok": true,
+     "kind": "flag",
+     "detail": "Mcr eigen / standard = 1.010 (592.7 / 586.8 kN.m, route sn006a)"
+    },
+    {
+     "id": "v-MbRd<=McRd",
+     "ok": true,
+     "kind": "check",
+     "detail": "Mb,Rd 346.00 <= Mc,Rd 503.25 kN.m"
+    },
+    {
+     "id": "vi-governing",
+     "ok": true,
+     "kind": "check",
+     "detail": "gov LTB+torsion (EN 1993-6 Annex A) = 0.5671, max(utils) = 0.5671"
+    }
+   ],
+   "checkFailures": [],
+   "outlier": false,
+   "observed": [
+    "1.3",
+    "1.9",
+    "2.1",
+    "2.3",
+    "2.16",
+    "3.19",
+    "1.1",
+    "2.6",
+    "2.7",
+    "2.8",
+    "3.21",
+    "3.8",
+    "3.1",
+    "3.2",
+    "3.3",
+    "3.6",
+    "3.5",
+    "2.18"
+   ],
+   "triggerMismatch": {
+    "missing": [],
+    "extra": []
+   },
+   "McrRatioRuns": 1.0101060351238544
+  },
+  {
+   "id": "UB-49",
+   "title": "UB 457x191x82, 4 m cantilever, tip point load at e = 80 mm, unrestrained (cantilever torsion: warping FE with the root warping fixed, G4 item 11)",
+   "section": "UB 457x191x82",
+   "family": "ub",
+   "restraint": "ltb",
+   "method": "standard",
+   "expect": [
+    "1.1",
+    "1.2",
+    "1.3",
+    "1.9",
+    "2.1",
+    "2.3",
+    "2.6",
+    "2.7",
+    "2.8",
+    "2.10",
+    "2.16",
+    "3.1",
+    "3.2",
+    "3.3",
+    "3.5",
+    "3.6",
+    "3.8",
+    "3.19",
+    "3.21"
+   ],
+   "tags": [
+    "torsion-fe",
+    "ecc-small"
+   ],
+   "ms": 34.1094,
+   "nCombos": 1,
+   "patterns": {
+    "active": false,
+    "nUls": 0,
+    "nSls": 0
+   },
+   "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
+   "uplift": [],
+   "verdict": "PASS",
+   "gov": {
+    "name": "LTB+torsion (EN 1993-6 Annex A)",
+    "val": 0.5692305203540942
+   },
+   "utils": [
+    {
+     "name": "Shear  V_Ed/V_c,Rd",
+     "val": 0.045412660608693874
+    },
+    {
+     "name": "Bending  M_Ed/M_c,Rd",
+     "val": 0.2557129008222547
+    },
+    {
+     "name": "LTB  M_Ed/M_b,Rd",
+     "val": 0.3734962437195688
+    },
+    {
+     "name": "Deflection",
+     "val": 0.2464381931778213
+    },
+    {
+     "name": "LTB+torsion (EN 1993-6 Annex A)",
+     "val": 0.5692305203540942
+    },
+    {
+     "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
+     "val": 0.22156874293935194
+    },
+    {
+     "name": "Web transverse force + bending (EN 1993-1-5 7.2)",
+     "val": 0.18551011167590223
+    },
+    {
+     "name": "Bending+torsion cross-section (P385 3.1.2)",
+     "val": 0.29932496084733673
+    },
+    {
+     "name": "Shear+torsion  V_Ed/V_pl,T,Rd",
+     "val": 0.045621594353129076
+    }
+   ],
+   "cls": "Class 1",
+   "Mmax": -128.68751733879967,
+   "Vmax": 34.3437592120117,
+   "dmax": -5.476404292840473,
+   "McRd": 503.25,
+   "VplRd": 756.259570606107,
+   "deflRatio": 0.2464381931778213,
+   "unsupported": [],
+   "advisory": [
+    "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4.",
+    "Serviceability twist max = 3.6deg exceeds the ~2deg guideline (SCI P385): check that the rotation is acceptable for whatever the member supports."
+   ],
+   "warn": [],
+   "mcrMethodReported": "standard",
+   "torsionMethod": "fe",
+   "torsionMesh": 6.65951299244148e-8,
+   "Mcr": 586.8126117971316,
+   "McrStd": 586.8126117971316,
+   "McrRatio": null,
+   "C1": 1.5925150689401102,
+   "lamLT": 0.9260664959736736,
+   "chiLT": 0.6846465128421771,
+   "MbRd": 344.54835758782565,
+   "c1route": "sn006a",
+   "ltbBasis": "Mcr method (NCCI SN006a cantilever): Mcr = C.Mcr,0, lambdaLT = sqrt(Wyfy/Mcr), chiLT from cl 6.3.2.3 curve c with f = 1; Mb,Rd = chiLTWyfy/M1 <= Mc,Rd",
+   "c1in": {
+    "M1": 0,
+    "M2": -128.68751390442372,
+    "Mo": 2.171879782811992,
+    "psi": 0,
+    "mu": -0.016877160160425883
+   },
+   "stdBasis": "Mcr route",
+   "zg": 0,
+   "zgUsed": false,
+   "zgBlocked": false,
+   "checks": [
+    {
+     "id": "i-Mmax",
+     "ok": true,
+     "kind": "check",
+     "detail": "cant: closed form 128.69 vs engine 128.69 kN.m"
+    },
+    {
+     "id": "i-dmax",
+     "ok": true,
+     "kind": "check",
+     "detail": "cant: closed form 5.476 vs engine 5.476 mm"
+    },
+    {
+     "id": "ii-equilibrium",
+     "ok": true,
+     "kind": "check",
+     "detail": "sum R = 34.344 kN, sum loads = -34.344 kN, residual 0.0000 kN"
+    },
+    {
+     "id": "iii-McrStd",
+     "ok": true,
+     "kind": "check",
+     "detail": "SN006a: C*Mcr0 = 1.593 x 368.48 = 586.81 vs engine 586.81 kN.m"
+    },
+    {
+     "id": "vii-uplift",
+     "ok": true,
+     "kind": "check",
+     "detail": "no uplift in the governing combination; engine reports none (0 hold-down message(s))"
+    },
+    {
+     "id": "viii-FRd",
+     "ok": true,
+     "kind": "check",
+     "detail": "station x = 4.00 m (point load 1, type (c), s_s 0.0 mm): independent F_Rd 135.4 vs engine 135.4 kN; F_Ed 30.0 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.222 = max station ratio 0.222"
+    },
+    {
+     "id": "xiii-torsionFE",
+     "ok": true,
+     "kind": "check",
+     "detail": "cantilever tip torque T = 2.400 kN.m: phi_tip = (T/GI_T)[L - a tanh(L/a)] = 0.09381 rad vs engine phi_max 0.09381 rad (warping-torsion FE (240 elements), mesh error 6.66e-6 %); St Venant torque zero at the warping-fixed end(s): true"
+    },
+    {
+     "id": "v-MbRd<=McRd",
+     "ok": true,
+     "kind": "check",
+     "detail": "Mb,Rd 344.55 <= Mc,Rd 503.25 kN.m"
+    },
+    {
+     "id": "vi-governing",
+     "ok": true,
+     "kind": "check",
+     "detail": "gov LTB+torsion (EN 1993-6 Annex A) = 0.5692, max(utils) = 0.5692"
+    }
+   ],
+   "checkFailures": [],
+   "outlier": false,
+   "observed": [
+    "1.3",
+    "1.9",
+    "2.1",
+    "2.3",
+    "2.16",
+    "3.19",
+    "1.1",
+    "2.6",
+    "2.7",
+    "2.8",
+    "3.21",
+    "3.8",
+    "3.1",
+    "3.2",
+    "3.3",
+    "3.6",
+    "3.5",
+    "2.18"
+   ],
+   "triggerMismatch": {
+    "missing": [],
+    "extra": []
+   }
+  },
+  {
+   "id": "UB-50",
+   "title": "UB 457x191x82, 8 m SS, partial UDL 2-6 m at e = 100 mm, unrestrained (partial-span torque: warping FE, G4 item 11; coverage-matrix probe)",
+   "section": "UB 457x191x82",
+   "family": "ub",
+   "restraint": "ltb",
+   "method": "eigen",
+   "expect": [
+    "1.1",
+    "1.3",
+    "1.9",
+    "2.1",
+    "2.3",
+    "2.6",
+    "2.7",
+    "2.8",
+    "2.16",
+    "3.1",
+    "3.2",
+    "3.3",
+    "3.5",
+    "3.6",
+    "3.8",
+    "3.19",
+    "3.21"
+   ],
+   "tags": [
+    "torsion-fe",
+    "ecc-large"
+   ],
+   "ms": 310.8954,
+   "nCombos": 1,
+   "patterns": {
+    "active": false,
+    "nUls": 0,
+    "nSls": 0
+   },
+   "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
+   "uplift": [],
+   "verdict": "PASS",
+   "gov": {
+    "name": "LTB+torsion (EN 1993-6 Annex A)",
+    "val": 0.7290423682687797
+   },
+   "utils": [
+    {
+     "name": "Shear  V_Ed/V_c,Rd",
+     "val": 0.04541266166370398
+    },
+    {
+     "name": "Bending  M_Ed/M_c,Rd",
+     "val": 0.19610038755984652
+    },
+    {
+     "name": "LTB  M_Ed/M_b,Rd",
+     "val": 0.4400892560023337
+    },
+    {
+     "name": "Deflection",
+     "val": 0.21948402037097592
+    },
+    {
+     "name": "LTB+torsion (EN 1993-6 Annex A)",
+     "val": 0.7290423682687797
+    },
+    {
+     "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
+     "val": 0.055143837111947765
+    },
+    {
+     "name": "Web transverse force + bending (EN 1993-1-5 7.2)",
+     "val": 0.03938845516964888
+    },
+    {
+     "name": "Bending+torsion cross-section (P385 3.1.2)",
+     "val": 0.3342055254169236
+    },
+    {
+     "name": "Shear+torsion  V_Ed/V_pl,T,Rd",
+     "val": 0.04944674969218804
+    }
+   ],
+   "cls": "Class 1",
+   "Mmax": 98.68752003949275,
+   "Vmax": 34.343760009873186,
+   "dmax": -4.877422674910576,
+   "McRd": 503.25,
+   "VplRd": 756.259570606107,
+   "deflRatio": 0.21948402037097592,
+   "unsupported": [],
+   "advisory": [
+    "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4.",
+    "Serviceability twist max = 3.9deg exceeds the ~2deg guideline (SCI P385): check that the rotation is acceptable for whatever the member supports."
+   ],
+   "warn": [],
+   "mcrMethodReported": "eigen",
+   "torsionMethod": "fe",
+   "torsionMesh": 2.3949037005819312e-8,
+   "Mcr": 265.9913224001439,
+   "McrStd": 268.9339199872786,
+   "McrRatio": 0.9890582876742586,
+   "C1": 1.1661479717851118,
+   "lamLT": 1.3754922807577468,
+   "chiLT": 0.4455923085720744,
+   "MbRd": 224.24432928889644,
+   "c1route": "serna",
+   "ltbBasis": "elastic critical moment from the finite-element eigenvalue solution (4 DOF/node: v, v', , '; zg and zj included; 64 elements, Richardson-extrapolated)",
+   "c1in": {
+    "M1": 0,
+    "M2": 0,
+    "Mo": 98.68751656562402,
+    "psi": 1,
+    "mu": 300
+   },
+   "McrWhole": 265.9913224001439,
+   "spanGoverns": false,
+   "zg": 0,
+   "checks": [
+    {
+     "id": "ii-equilibrium",
+     "ok": true,
+     "kind": "check",
+     "detail": "sum R = 68.688 kN, sum loads = -68.688 kN, residual 0.0000 kN"
+    },
+    {
+     "id": "iii-McrStd",
+     "ok": true,
+     "kind": "check",
+     "detail": "SN003a (comparison, independent serna, segment 0.00-8.00 m, ULS: 1.35G + 1.5Q (Eq 6.10)): C1 1.179, C2 -, zg 0 mm, LE 8.00 m -> 268.93 vs engine 268.93 kN.m"
+    },
+    {
+     "id": "vii-uplift",
+     "ok": true,
+     "kind": "check",
+     "detail": "no uplift in the governing combination; engine reports none (0 hold-down message(s))"
+    },
+    {
+     "id": "viii-FRd",
+     "ok": true,
+     "kind": "check",
+     "detail": "station x = 8.00 m (support 2, type (c), s_s 191.3 mm): independent F_Rd 622.8 vs engine 622.8 kN; F_Ed 34.3 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.055 = max station ratio 0.055"
+    },
+    {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.166: k_c 0.9260 vs engine 0.9260"
+    },
+    {
+     "id": "iv-McrRatio",
+     "ok": true,
+     "kind": "flag",
+     "detail": "Mcr eigen / standard = 0.989 (266.0 / 268.9 kN.m, route serna)"
+    },
+    {
+     "id": "v-MbRd<=McRd",
+     "ok": true,
+     "kind": "check",
+     "detail": "Mb,Rd 224.24 <= Mc,Rd 503.25 kN.m"
+    },
+    {
+     "id": "vi-governing",
+     "ok": true,
+     "kind": "check",
+     "detail": "gov LTB+torsion (EN 1993-6 Annex A) = 0.7290, max(utils) = 0.7290"
+    }
+   ],
+   "checkFailures": [],
+   "outlier": false,
+   "observed": [
+    "1.3",
+    "1.9",
+    "2.1",
+    "2.3",
+    "2.16",
+    "3.19",
+    "1.1",
+    "2.6",
+    "2.7",
+    "2.8",
+    "3.21",
+    "3.8",
+    "3.1",
+    "3.2",
+    "3.3",
+    "3.6",
+    "3.5",
+    "2.18"
+   ],
+   "triggerMismatch": {
+    "missing": [],
+    "extra": []
+   },
+   "McrRatioRuns": 0.9890582876742586
+  },
+  {
+   "id": "UB-50",
+   "title": "UB 457x191x82, 8 m SS, partial UDL 2-6 m at e = 100 mm, unrestrained (partial-span torque: warping FE, G4 item 11; coverage-matrix probe)",
+   "section": "UB 457x191x82",
+   "family": "ub",
+   "restraint": "ltb",
+   "method": "standard",
+   "expect": [
+    "1.1",
+    "1.3",
+    "1.9",
+    "2.1",
+    "2.3",
+    "2.6",
+    "2.7",
+    "2.8",
+    "2.16",
+    "3.1",
+    "3.2",
+    "3.3",
+    "3.5",
+    "3.6",
+    "3.8",
+    "3.19",
+    "3.21"
+   ],
+   "tags": [
+    "torsion-fe",
+    "ecc-large"
+   ],
+   "ms": 42.4969,
+   "nCombos": 1,
+   "patterns": {
+    "active": false,
+    "nUls": 0,
+    "nSls": 0
+   },
+   "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
+   "uplift": [],
+   "verdict": "PASS",
+   "gov": {
+    "name": "LTB+torsion (EN 1993-6 Annex A)",
+    "val": 0.7246573347678363
+   },
+   "utils": [
+    {
+     "name": "Shear  V_Ed/V_c,Rd",
+     "val": 0.04541266166370398
+    },
+    {
+     "name": "Bending  M_Ed/M_c,Rd",
+     "val": 0.19610038755984652
+    },
+    {
+     "name": "LTB  M_Ed/M_b,Rd",
+     "val": 0.43610384580659195
+    },
+    {
+     "name": "Deflection",
+     "val": 0.21948402037097592
+    },
+    {
+     "name": "LTB+torsion (EN 1993-6 Annex A)",
+     "val": 0.7246573347678363
+    },
+    {
+     "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
+     "val": 0.055143837111947765
+    },
+    {
+     "name": "Web transverse force + bending (EN 1993-1-5 7.2)",
+     "val": 0.03938845516964888
+    },
+    {
+     "name": "Bending+torsion cross-section (P385 3.1.2)",
+     "val": 0.3342055254169236
+    },
+    {
+     "name": "Shear+torsion  V_Ed/V_pl,T,Rd",
+     "val": 0.04944674969218804
+    }
+   ],
+   "cls": "Class 1",
+   "Mmax": 98.68752003949275,
+   "Vmax": 34.343760009873186,
+   "dmax": -4.877422674910576,
+   "McRd": 503.25,
+   "VplRd": 756.259570606107,
+   "deflRatio": 0.21948402037097592,
+   "unsupported": [],
+   "advisory": [
+    "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4.",
+    "Serviceability twist max = 3.9deg exceeds the ~2deg guideline (SCI P385): check that the rotation is acceptable for whatever the member supports."
+   ],
+   "warn": [],
+   "mcrMethodReported": "standard",
+   "torsionMethod": "fe",
+   "torsionMesh": 2.3949037005819312e-8,
+   "Mcr": 268.9339199872786,
+   "McrStd": 268.9339199872786,
+   "McrRatio": null,
+   "C1": 1.1790487843039468,
+   "lamLT": 1.3679464625203646,
+   "chiLT": 0.44966443072096923,
+   "MbRd": 226.29362476032776,
+   "c1route": "serna",
+   "ltbBasis": "Mcr method (SN003a closed form, k = kw = 1, G = 81000 N/mm&sup2;): lambdaLT = sqrt(Wyfy/Mcr) = 1.368, chiLT,mod from cl 6.3.2.3 curve c with kc = 1/sqrtC1 (NA 2.18); Mb,Rd = chiLT,modWyfy/M1 <= Mc,Rd. The P362 Expn 6.55 simplified slenderness (lambdaLT = 1.806, Mb,Rd = 147.2 kN.m) is printed for comparison only",
+   "c1in": {
+    "M1": 0,
+    "M2": 0,
+    "Mo": 98.68751656562402,
+    "psi": 1,
+    "mu": 300
+   },
+   "stdBasis": "Mcr route",
+   "zg": 0,
+   "zgUsed": false,
+   "zgBlocked": false,
+   "checks": [
+    {
+     "id": "ii-equilibrium",
+     "ok": true,
+     "kind": "check",
+     "detail": "sum R = 68.688 kN, sum loads = -68.688 kN, residual 0.0000 kN"
+    },
+    {
+     "id": "iii-McrStd",
+     "ok": true,
+     "kind": "check",
+     "detail": "SN003a (independent serna): C1 1.179, C2 -, zg 0 mm, LE 8.00 m -> 268.93 vs engine 268.93 kN.m (engine route serna)"
+    },
+    {
+     "id": "iii-zgBlock",
+     "ok": true,
+     "kind": "check",
+     "detail": "destabilising zg on a non-tabulated diagram: block expected false, engine blocked false"
+    },
+    {
+     "id": "vii-uplift",
+     "ok": true,
+     "kind": "check",
+     "detail": "no uplift in the governing combination; engine reports none (0 hold-down message(s))"
+    },
+    {
+     "id": "viii-FRd",
+     "ok": true,
+     "kind": "check",
+     "detail": "station x = 8.00 m (support 2, type (c), s_s 191.3 mm): independent F_Rd 622.8 vs engine 622.8 kN; F_Ed 34.3 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.055 = max station ratio 0.055"
+    },
+    {
+     "id": "v-MbRd<=McRd",
+     "ok": true,
+     "kind": "check",
+     "detail": "Mb,Rd 226.29 <= Mc,Rd 503.25 kN.m"
+    },
+    {
+     "id": "vi-governing",
+     "ok": true,
+     "kind": "check",
+     "detail": "gov LTB+torsion (EN 1993-6 Annex A) = 0.7247, max(utils) = 0.7247"
+    }
+   ],
+   "checkFailures": [],
+   "outlier": false,
+   "observed": [
+    "1.3",
+    "1.9",
+    "2.1",
+    "2.3",
+    "2.16",
+    "3.19",
+    "1.1",
+    "2.6",
+    "2.7",
+    "2.8",
+    "3.21",
+    "3.8",
+    "3.1",
+    "3.2",
+    "3.3",
+    "3.6",
+    "3.5",
+    "2.18"
+   ],
+   "triggerMismatch": {
+    "missing": [],
+    "extra": []
+   }
+  },
+  {
+   "id": "UB-51",
+   "title": "UB 457x191x82, 8 m SS, full UDL at e = 100 mm with both supports warping-restrained, unrestrained (warping-fixed ends: warping FE, G4 item 11)",
+   "section": "UB 457x191x82",
+   "family": "ub",
+   "restraint": "ltb",
+   "method": "eigen",
+   "expect": [
+    "1.1",
+    "1.3",
+    "1.9",
+    "2.1",
+    "2.3",
+    "2.6",
+    "2.7",
+    "2.8",
+    "2.16",
+    "3.1",
+    "3.2",
+    "3.3",
+    "3.5",
+    "3.6",
+    "3.8",
+    "3.19",
+    "3.21"
+   ],
+   "tags": [
+    "torsion-fe",
+    "ecc-large"
+   ],
+   "ms": 254.7746,
+   "nCombos": 1,
+   "patterns": {
+    "active": false,
+    "nUls": 0,
+    "nSls": 0
+   },
+   "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
+   "uplift": [],
+   "verdict": "FAIL",
+   "gov": {
+    "name": "LTB+torsion (EN 1993-6 Annex A)",
+    "val": 1.1236663881336215
+   },
+   "utils": [
+    {
+     "name": "Shear  V_Ed/V_c,Rd",
+     "val": 0.1049160408671177
+    },
+    {
+     "name": "Bending  M_Ed/M_c,Rd",
+     "val": 0.3153254248652496
+    },
+    {
+     "name": "LTB  M_Ed/M_b,Rd",
+     "val": 0.7256241718314028
+    },
+    {
+     "name": "Deflection",
+     "val": 0.24643819831324199
+    },
+    {
+     "name": "LTB+torsion (EN 1993-6 Annex A)",
+     "val": 1.1236663881336215
+    },
+    {
+     "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
+     "val": 0.12739779727055153
+    },
+    {
+     "name": "Web transverse force + bending (EN 1993-1-5 7.2)",
+     "val": 0.09099842676588467
+    },
+    {
+     "name": "Bending+torsion cross-section (P385 3.1.2)",
+     "val": 0.42266229506448866
+    },
+    {
+     "name": "Shear+torsion  V_Ed/V_pl,T,Rd",
+     "val": 0.1049160408671177
+    }
+   ],
+   "cls": "Class 1",
+   "Mmax": 158.68752006343686,
+   "Vmax": 79.3437600158592,
+   "dmax": -5.476404406960933,
+   "McRd": 503.25,
+   "VplRd": 756.259570606107,
+   "deflRatio": 0.24643819831324199,
+   "unsupported": [],
+   "advisory": [
+    "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4."
+   ],
+   "warn": [],
+   "mcrMethodReported": "eigen",
+   "torsionMethod": "fe",
+   "torsionMesh": 0.000008255324712396084,
+   "Mcr": 257.97410628800594,
+   "McrStd": 257.0619060555597,
+   "McrRatio": 1.0035485624705867,
+   "C1": 1.1309992299984601,
+   "lamLT": 1.3967022523206656,
+   "chiLT": 0.4345574983664061,
+   "MbRd": 218.69106105289387,
+   "c1route": "uniform",
+   "ltbBasis": "elastic critical moment from the finite-element eigenvalue solution (4 DOF/node: v, v', , '; zg and zj included; 64 elements, Richardson-extrapolated)",
+   "c1in": {
+    "M1": 0,
+    "M2": 0,
+    "Mo": 158.68751206562413,
+    "psi": 1,
+    "mu": 300
+   },
+   "McrWhole": 257.97410628800594,
+   "spanGoverns": false,
+   "zg": 0,
+   "checks": [
+    {
+     "id": "i-Mmax",
+     "ok": true,
+     "kind": "check",
+     "detail": "ss: closed form 158.69 vs engine 158.69 kN.m"
+    },
+    {
+     "id": "i-dmax",
+     "ok": true,
+     "kind": "check",
+     "detail": "ss: closed form 5.476 vs engine 5.476 mm"
+    },
+    {
+     "id": "ii-equilibrium",
+     "ok": true,
+     "kind": "check",
+     "detail": "sum R = 158.688 kN, sum loads = -158.688 kN, residual 0.0000 kN"
+    },
+    {
+     "id": "iii-McrStd",
+     "ok": true,
+     "kind": "check",
+     "detail": "SN003a (comparison, independent uniform, segment 0.00-8.00 m, ULS: 1.35G + 1.5Q (Eq 6.10)): C1 1.127, C2 0.454, zg 0 mm, LE 8.00 m -> 257.06 vs engine 257.06 kN.m"
+    },
+    {
+     "id": "vii-uplift",
+     "ok": true,
+     "kind": "check",
+     "detail": "no uplift in the governing combination; engine reports none (0 hold-down message(s))"
+    },
+    {
+     "id": "viii-FRd",
+     "ok": true,
+     "kind": "check",
+     "detail": "station x = 8.00 m (support 2, type (c), s_s 191.3 mm): independent F_Rd 622.8 vs engine 622.8 kN; F_Ed 79.3 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.127 = max station ratio 0.127"
+    },
+    {
+     "id": "xiii-torsionFE",
+     "ok": true,
+     "kind": "check",
+     "detail": "warping-fixed ends, uniform torque t = 1875.0 N.mm/mm: phi_mid = (t/GI_T)[L^2/8 - (La/2) tanh(L/4a)] = 0.07071 rad vs engine phi_max 0.07071 rad (warping-torsion FE (240 elements), mesh error 8.26e-4 %); St Venant torque zero at the warping-fixed end(s): true"
+    },
+    {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.131: k_c 0.9403 vs engine 0.9403"
+    },
+    {
+     "id": "iv-McrRatio",
+     "ok": true,
+     "kind": "flag",
+     "detail": "Mcr eigen / standard = 1.004 (258.0 / 257.1 kN.m, route uniform)"
+    },
+    {
+     "id": "v-MbRd<=McRd",
+     "ok": true,
+     "kind": "check",
+     "detail": "Mb,Rd 218.69 <= Mc,Rd 503.25 kN.m"
+    },
+    {
+     "id": "vi-governing",
+     "ok": true,
+     "kind": "check",
+     "detail": "gov LTB+torsion (EN 1993-6 Annex A) = 1.1237, max(utils) = 1.1237"
+    }
+   ],
+   "checkFailures": [],
+   "outlier": false,
+   "observed": [
+    "1.3",
+    "1.9",
+    "2.1",
+    "2.3",
+    "2.16",
+    "3.19",
+    "1.1",
+    "2.6",
+    "2.7",
+    "2.8",
+    "3.21",
+    "3.8",
+    "3.1",
+    "3.2",
+    "3.3",
+    "3.6",
+    "3.5",
+    "2.18"
+   ],
+   "triggerMismatch": {
+    "missing": [],
+    "extra": []
+   },
+   "McrRatioRuns": 1.0035485624705867
+  },
+  {
+   "id": "UB-51",
+   "title": "UB 457x191x82, 8 m SS, full UDL at e = 100 mm with both supports warping-restrained, unrestrained (warping-fixed ends: warping FE, G4 item 11)",
+   "section": "UB 457x191x82",
+   "family": "ub",
+   "restraint": "ltb",
+   "method": "standard",
+   "expect": [
+    "1.1",
+    "1.3",
+    "1.9",
+    "2.1",
+    "2.3",
+    "2.6",
+    "2.7",
+    "2.8",
+    "2.16",
+    "3.1",
+    "3.2",
+    "3.3",
+    "3.5",
+    "3.6",
+    "3.8",
+    "3.19",
+    "3.21"
+   ],
+   "tags": [
+    "torsion-fe",
+    "ecc-large"
+   ],
+   "ms": 30.7909,
+   "nCombos": 1,
+   "patterns": {
+    "active": false,
+    "nUls": 0,
+    "nSls": 0
+   },
+   "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
+   "uplift": [],
+   "verdict": "FAIL",
+   "gov": {
+    "name": "LTB+torsion (EN 1993-6 Annex A)",
+    "val": 1.1202290929902512
+   },
+   "utils": [
+    {
+     "name": "Shear  V_Ed/V_c,Rd",
+     "val": 0.1049160408671177
+    },
+    {
+     "name": "Bending  M_Ed/M_c,Rd",
+     "val": 0.3153254248652496
+    },
+    {
+     "name": "LTB  M_Ed/M_b,Rd",
+     "val": 0.7277158650854147
+    },
+    {
+     "name": "Deflection",
+     "val": 0.24643819831324199
+    },
+    {
+     "name": "LTB+torsion (EN 1993-6 Annex A)",
+     "val": 1.1202290929902512
+    },
+    {
+     "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
+     "val": 0.12739779727055153
+    },
+    {
+     "name": "Web transverse force + bending (EN 1993-1-5 7.2)",
+     "val": 0.09099842676588467
+    },
+    {
+     "name": "Bending+torsion cross-section (P385 3.1.2)",
+     "val": 0.42266229506448866
+    },
+    {
+     "name": "Shear+torsion  V_Ed/V_pl,T,Rd",
+     "val": 0.1049160408671177
+    }
+   ],
+   "cls": "Class 1",
+   "Mmax": 158.68752006343686,
+   "Vmax": 79.3437600158592,
+   "dmax": -5.476404406960933,
+   "McRd": 503.25,
+   "VplRd": 756.259570606107,
+   "deflRatio": 0.24643819831324199,
+   "unsupported": [],
+   "advisory": [
+    "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4."
+   ],
+   "warn": [],
+   "mcrMethodReported": "standard",
+   "torsionMethod": "fe",
+   "torsionMesh": 0.000008255324712396084,
+   "Mcr": 257.0619060555597,
+   "McrStd": 257.0619060555597,
+   "McrRatio": null,
+   "C1": 1.127,
+   "lamLT": 1.3991782003493536,
+   "chiLT": 0.43330843807869807,
+   "MbRd": 218.06247146310477,
+   "c1route": "uniform",
+   "ltbBasis": "Mcr method (SN003a closed form, k = kw = 1, G = 81000 N/mm&sup2;): lambdaLT = sqrt(Wyfy/Mcr) = 1.399, chiLT,mod from cl 6.3.2.3 curve c with kc = 1/sqrtC1 (NA 2.18); Mb,Rd = chiLT,modWyfy/M1 <= Mc,Rd. The P362 Expn 6.55 simplified slenderness (lambdaLT = 1.847, Mb,Rd = 141.9 kN.m) is printed for comparison only",
+   "c1in": {
+    "M1": 0,
+    "M2": 0,
+    "Mo": 158.68751206562413,
+    "psi": 1,
+    "mu": 300
+   },
+   "stdBasis": "Mcr route",
+   "zg": 0,
+   "zgUsed": false,
+   "zgBlocked": false,
+   "checks": [
+    {
+     "id": "i-Mmax",
+     "ok": true,
+     "kind": "check",
+     "detail": "ss: closed form 158.69 vs engine 158.69 kN.m"
+    },
+    {
+     "id": "i-dmax",
+     "ok": true,
+     "kind": "check",
+     "detail": "ss: closed form 5.476 vs engine 5.476 mm"
+    },
+    {
+     "id": "ii-equilibrium",
+     "ok": true,
+     "kind": "check",
+     "detail": "sum R = 158.688 kN, sum loads = -158.688 kN, residual 0.0000 kN"
+    },
+    {
+     "id": "iii-McrStd",
+     "ok": true,
+     "kind": "check",
+     "detail": "SN003a (independent uniform): C1 1.127, C2 0.454, zg 0 mm, LE 8.00 m -> 257.06 vs engine 257.06 kN.m (engine route uniform)"
+    },
+    {
+     "id": "iii-zgBlock",
+     "ok": true,
+     "kind": "check",
+     "detail": "destabilising zg on a non-tabulated diagram: block expected false, engine blocked false"
+    },
+    {
+     "id": "vii-uplift",
+     "ok": true,
+     "kind": "check",
+     "detail": "no uplift in the governing combination; engine reports none (0 hold-down message(s))"
+    },
+    {
+     "id": "viii-FRd",
+     "ok": true,
+     "kind": "check",
+     "detail": "station x = 8.00 m (support 2, type (c), s_s 191.3 mm): independent F_Rd 622.8 vs engine 622.8 kN; F_Ed 79.3 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.127 = max station ratio 0.127"
+    },
+    {
+     "id": "xiii-torsionFE",
+     "ok": true,
+     "kind": "check",
+     "detail": "warping-fixed ends, uniform torque t = 1875.0 N.mm/mm: phi_mid = (t/GI_T)[L^2/8 - (La/2) tanh(L/4a)] = 0.07071 rad vs engine phi_max 0.07071 rad (warping-torsion FE (240 elements), mesh error 8.26e-4 %); St Venant torque zero at the warping-fixed end(s): true"
+    },
+    {
+     "id": "v-MbRd<=McRd",
+     "ok": true,
+     "kind": "check",
+     "detail": "Mb,Rd 218.06 <= Mc,Rd 503.25 kN.m"
+    },
+    {
+     "id": "vi-governing",
+     "ok": true,
+     "kind": "check",
+     "detail": "gov LTB+torsion (EN 1993-6 Annex A) = 1.1202, max(utils) = 1.1202"
+    }
+   ],
+   "checkFailures": [],
+   "outlier": false,
+   "observed": [
+    "1.3",
+    "1.9",
+    "2.1",
+    "2.3",
+    "2.16",
+    "3.19",
+    "1.1",
+    "2.6",
+    "2.7",
+    "2.8",
+    "3.21",
+    "3.8",
+    "3.1",
+    "3.2",
+    "3.3",
+    "3.6",
+    "3.5",
+    "2.18"
+   ],
+   "triggerMismatch": {
+    "missing": [],
+    "extra": []
+   }
+  },
+  {
    "id": "UC-01",
    "title": "UC 203x203x46, 5 m SS, full UDL, fully restrained",
    "section": "UC 203x203x46",
@@ -15073,7 +16453,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 65.4444,
+   "ms": 13.4633,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -15122,6 +16502,8 @@
    ],
    "warn": [],
    "mcrMethodReported": null,
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": null,
    "McrStd": null,
    "McrRatio": null,
@@ -15207,7 +16589,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1294.5087,
+   "ms": 227.8467,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -15260,6 +16642,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 221.48943720048484,
    "McrStd": 220.67825547687139,
    "McrRatio": 1.0036758570610438,
@@ -15384,7 +16768,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 75.1755,
+   "ms": 15.3093,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -15437,6 +16821,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 220.67825547687139,
    "McrStd": 220.67825547687139,
    "McrRatio": null,
@@ -15559,7 +16945,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 1251.0196,
+   "ms": 230.9522,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -15612,6 +16998,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 54.41891448395457,
    "McrStd": 51.47337030561747,
    "McrRatio": 1.0572246223794606,
@@ -15740,7 +17128,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 65.596,
+   "ms": 12.0784,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -15793,6 +17181,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 51.47337030561747,
    "McrStd": 51.47337030561747,
    "McrRatio": null,
@@ -15913,7 +17303,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1293.5033,
+   "ms": 252.8632,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -15968,6 +17358,8 @@
     "C1 = 4.770 exceeds 2.76: kc = 1/sqrtC1 = 0.458 is floored at 1/sqrt2.76 = 0.602, the Table 6.6 lower bound (psi = -1 end-moment case), so the f-factor is not extrapolated beyond its calibrated range."
    ],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 261.5345021706017,
    "McrStd": 260.2461248132898,
    "McrRatio": 1.004950611111832,
@@ -16088,7 +17480,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 128.4457,
+   "ms": 35.3541,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -16141,6 +17533,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 260.2461248132898,
    "McrStd": 260.2461248132898,
    "McrRatio": null,
@@ -16256,7 +17650,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1335.6549,
+   "ms": 252.6146,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -16325,6 +17719,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 478.20819169090043,
    "McrStd": 475.2987675998181,
    "McrRatio": 1.0061212531767638,
@@ -16455,7 +17851,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 100.7062,
+   "ms": 15.4242,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -16524,6 +17920,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 475.2987675998181,
    "McrStd": 475.2987675998181,
    "McrRatio": null,
@@ -16648,7 +18046,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 1300.5567,
+   "ms": 212.2387,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -16717,6 +18115,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 544.8341320324279,
    "McrStd": 543.0534549044619,
    "McrRatio": 1.003279008929755,
@@ -16847,7 +18247,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 89.0796,
+   "ms": 14.5354,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -16916,6 +18316,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 543.0534549044619,
    "McrStd": 543.0534549044619,
    "McrRatio": null,
@@ -17038,7 +18440,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 5217.3448,
+   "ms": 976.4616,
    "nCombos": 3,
    "patterns": {
     "active": true,
@@ -17105,6 +18507,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 3654.157846059165,
    "McrStd": 3551.7315023248743,
    "McrRatio": 1.0288384253334593,
@@ -17219,7 +18623,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 281.7863,
+   "ms": 70.5425,
    "nCombos": 3,
    "patterns": {
     "active": true,
@@ -17287,6 +18691,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 692.3716942253159,
    "McrStd": 692.3716942253159,
    "McrRatio": null,
@@ -17395,7 +18801,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 2936.8862,
+   "ms": 488.5643,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -17448,6 +18854,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 3548.762077592278,
    "McrStd": 3548.1349923144157,
    "McrRatio": 1.0001767365895662,
@@ -17574,7 +18982,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 87.2793,
+   "ms": 17.7771,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -17628,6 +19036,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 730.1852173188357,
    "McrStd": 730.1852173188357,
    "McrRatio": null,
@@ -17747,7 +19157,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1295.1527,
+   "ms": 279.4218,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -17800,6 +19210,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 909.2281002281301,
    "McrStd": 913.5160190317191,
    "McrRatio": 0.9953061372605879,
@@ -17912,7 +19324,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 79.7135,
+   "ms": 12.6809,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -17965,6 +19377,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 913.5160190317191,
    "McrStd": 913.5160190317191,
    "McrRatio": null,
@@ -18068,7 +19482,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 69.5452,
+   "ms": 12.9743,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -18117,6 +19531,8 @@
    ],
    "warn": [],
    "mcrMethodReported": null,
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": null,
    "McrStd": null,
    "McrRatio": null,
@@ -18193,7 +19609,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1301.6124,
+   "ms": 210.5592,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -18254,6 +19670,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 591.9572592226459,
    "McrStd": 532.761819211205,
    "McrRatio": 1.111110514824588,
@@ -18371,7 +19789,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 86.5139,
+   "ms": 12.8684,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -18432,6 +19850,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 532.761819211205,
    "McrStd": 532.761819211205,
    "McrRatio": null,
@@ -18544,7 +19964,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1257.8932,
+   "ms": 239.9158,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -18613,6 +20033,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 933.8978666856566,
    "McrStd": 812.3198425890417,
    "McrRatio": 1.149667677338915,
@@ -18732,7 +20154,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 170.4494,
+   "ms": 27.4082,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -18801,6 +20223,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 812.3198425890417,
    "McrStd": 812.3198425890417,
    "McrRatio": null,
@@ -18910,7 +20334,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1467.7873,
+   "ms": 246.9407,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -18971,6 +20395,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 281.021212446611,
    "McrStd": 289.58304369736794,
    "McrRatio": 0.9704339344547239,
@@ -19083,7 +20509,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 90.9431,
+   "ms": 12.7389,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -19144,6 +20570,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 289.58304369736794,
    "McrStd": 289.58304369736794,
    "McrRatio": null,
@@ -19246,7 +20674,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 83.1412,
+   "ms": 14.5423,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -19295,6 +20723,8 @@
    ],
    "warn": [],
    "mcrMethodReported": null,
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": null,
    "McrStd": null,
    "McrRatio": null,
@@ -19374,7 +20804,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1207.0207,
+   "ms": 266.8369,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -19427,6 +20857,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 41.49484691001311,
    "McrStd": 40.77739305111439,
    "McrRatio": 1.0175944023199177,
@@ -19533,7 +20965,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 96.806,
+   "ms": 20.0009,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -19586,6 +21018,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 40.77739305111439,
    "McrStd": 40.77739305111439,
    "McrRatio": null,
@@ -19694,7 +21128,7 @@
    "tags": [
     "ecc-zero"
    ],
-   "ms": 1358.7875,
+   "ms": 225.516,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -19759,6 +21193,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": "closed",
+   "torsionMesh": null,
    "Mcr": 96.73555560659304,
    "McrStd": 94.74352643466968,
    "McrRatio": 1.021025491100935,
@@ -19879,7 +21315,7 @@
    "tags": [
     "ecc-zero"
    ],
-   "ms": 127.2221,
+   "ms": 28.589,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -19944,6 +21380,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": "closed",
+   "torsionMesh": null,
    "Mcr": 38.232539135999986,
    "McrStd": 38.232539135999986,
    "McrRatio": null,
@@ -20058,7 +21496,7 @@
    "tags": [
     "ecc-small"
    ],
-   "ms": 1407.6187,
+   "ms": 258.9996,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -20123,6 +21561,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": "closed",
+   "torsionMesh": null,
    "Mcr": 96.73555560659304,
    "McrStd": 94.74352643466968,
    "McrRatio": 1.021025491100935,
@@ -20243,7 +21683,7 @@
    "tags": [
     "ecc-small"
    ],
-   "ms": 154.5268,
+   "ms": 27.7655,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -20308,6 +21748,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": "closed",
+   "torsionMesh": null,
    "Mcr": 38.232539135999986,
    "McrStd": 38.232539135999986,
    "McrRatio": null,
@@ -20422,7 +21864,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 1340.9416,
+   "ms": 235.0821,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -20487,6 +21929,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": "closed",
+   "torsionMesh": null,
    "Mcr": 96.73555560659304,
    "McrStd": 94.74352643466968,
    "McrRatio": 1.021025491100935,
@@ -20607,7 +22051,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 149.3134,
+   "ms": 26.5704,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -20672,6 +22116,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": "closed",
+   "torsionMesh": null,
    "Mcr": 38.232539135999986,
    "McrStd": 38.232539135999986,
    "McrRatio": null,
@@ -20782,7 +22228,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 152.9553,
+   "ms": 25.6885,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -20840,6 +22286,8 @@
    ],
    "warn": [],
    "mcrMethodReported": null,
+   "torsionMethod": "closed",
+   "torsionMesh": null,
    "Mcr": null,
    "McrStd": null,
    "McrRatio": null,
@@ -20932,7 +22380,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 1444.3595,
+   "ms": 269.0664,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -20997,6 +22445,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": "closed",
+   "torsionMesh": null,
    "Mcr": 88.35738071154833,
    "McrStd": 85.63452274865239,
    "McrRatio": 1.0317962648181955,
@@ -21117,7 +22567,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 150.7752,
+   "ms": 24.8575,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -21182,6 +22632,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": "closed",
+   "torsionMesh": null,
    "Mcr": 53.535556799999995,
    "McrStd": 53.535556799999995,
    "McrRatio": null,
@@ -21296,7 +22748,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 1451.4137,
+   "ms": 227.7119,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -21361,6 +22813,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": "closed",
+   "torsionMesh": null,
    "Mcr": 152.02685663316458,
    "McrStd": 150.2111827335507,
    "McrRatio": 1.0120874748908315,
@@ -21469,7 +22923,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 143.5996,
+   "ms": 23.7282,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -21534,6 +22988,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": "closed",
+   "torsionMesh": null,
    "Mcr": 61.347241027583976,
    "McrStd": 61.347241027583976,
    "McrRatio": null,
@@ -21630,7 +23086,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1287.376,
+   "ms": 220.7623,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -21685,6 +23141,8 @@
     "C1 = 4.528 exceeds 2.76: kc = 1/sqrtC1 = 0.470 is floored at 1/sqrt2.76 = 0.602, the Table 6.6 lower bound (psi = -1 end-moment case), so the f-factor is not extrapolated beyond its calibrated range."
    ],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 300.5636170872469,
    "McrStd": 150.54874756794348,
    "McrRatio": 1.9964537861837799,
@@ -21793,7 +23251,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 82.7932,
+   "ms": 11.7512,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -21846,6 +23304,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 90.1668598177959,
    "McrStd": 90.1668598177959,
    "McrRatio": null,
@@ -21947,7 +23407,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 5330.3051,
+   "ms": 920.6779,
    "nCombos": 3,
    "patterns": {
     "active": true,
@@ -22014,6 +23474,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 494.83202267676126,
    "McrStd": 476.423835475161,
    "McrRatio": 1.0386382582711062,
@@ -22109,7 +23571,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 275.3495,
+   "ms": 41.5682,
    "nCombos": 3,
    "patterns": {
     "active": true,
@@ -22177,6 +23639,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 33.3374872608,
    "McrStd": 33.3374872608,
    "McrRatio": null,
@@ -22266,7 +23730,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 85.8496,
+   "ms": 18.276,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -22335,6 +23799,8 @@
    ],
    "warn": [],
    "mcrMethodReported": null,
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": null,
    "McrStd": null,
    "McrRatio": null,
@@ -22433,7 +23899,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 1394.5709,
+   "ms": 225.5449,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -22499,6 +23965,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": "closed",
+   "torsionMesh": null,
    "Mcr": 58.47741936888424,
    "McrStd": 57.429395661247355,
    "McrRatio": 1.018248907124476,
@@ -22620,7 +24088,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 236.697,
+   "ms": 25.3575,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -22686,6 +24154,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": "closed",
+   "torsionMesh": null,
    "Mcr": 21.4106112,
    "McrStd": 21.4106112,
    "McrRatio": null,
@@ -22795,7 +24265,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 480.8653,
+   "ms": 234.7153,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -22865,6 +24335,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 32.18168424238888,
    "McrStd": 31.609620830742585,
    "McrRatio": 1.018097762535953,
@@ -22977,7 +24449,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 39.2486,
+   "ms": 12.6547,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -23047,6 +24519,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 31.609620830742585,
    "McrStd": 31.609620830742585,
    "McrRatio": null,
@@ -23159,7 +24633,7 @@
    "tags": [
     "ecc-small"
    ],
-   "ms": 323.2151,
+   "ms": 269.3988,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -23224,6 +24698,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": "closed",
+   "torsionMesh": null,
    "Mcr": 65.13179770078072,
    "McrStd": 65.26831765027487,
    "McrRatio": 0.997908327433447,
@@ -23333,7 +24809,7 @@
    "tags": [
     "ecc-small"
    ],
-   "ms": 50.6026,
+   "ms": 29.8427,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -23398,6 +24874,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": "closed",
+   "torsionMesh": null,
    "Mcr": 27.4843008,
    "McrStd": 27.4843008,
    "McrRatio": null,
@@ -23488,7 +24966,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 18.3033,
+   "ms": 12.9893,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -23537,6 +25015,8 @@
    ],
    "warn": [],
    "mcrMethodReported": null,
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": null,
    "McrStd": null,
    "McrRatio": null,
@@ -23625,7 +25105,7 @@
    "tags": [
     "ecc-small"
    ],
-   "ms": 343.3037,
+   "ms": 296.0032,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -23691,6 +25171,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": "closed",
+   "torsionMesh": null,
    "Mcr": 99.86551829947648,
    "McrStd": 88.55981291989083,
    "McrRatio": 1.1276618028745446,
@@ -23800,7 +25282,7 @@
    "tags": [
     "ecc-small"
    ],
-   "ms": 46.5862,
+   "ms": 22.8357,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -23868,6 +25350,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": "closed",
+   "torsionMesh": null,
    "Mcr": 15.563801087999998,
    "McrStd": 15.563801087999998,
    "McrRatio": null,
@@ -23970,7 +25454,7 @@
    "tags": [
     "ecc-small"
    ],
-   "ms": 384.4292,
+   "ms": 219.6892,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -23979,7 +25463,7 @@
    },
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
-   "verdict": "NOT VERIFIED",
+   "verdict": "PASS",
    "gov": {
     "name": "Deflection",
     "val": 0.8774630564480624
@@ -24002,12 +25486,24 @@
      "val": 0.8774630564480624
     },
     {
+     "name": "LTB+torsion (EN 1993-6 Annex A)",
+     "val": 0.8630566542740579
+    },
+    {
      "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
      "val": 0.04301821316063008
     },
     {
      "name": "Web transverse force + bending (EN 1993-1-5 7.2)",
      "val": 0.030727296925173387
+    },
+    {
+     "name": "Bending+torsion cross-section (P385 3.1.2)",
+     "val": 0.3785413733906786
+    },
+    {
+     "name": "Shear+torsion  V_Ed/V_pl,T,Rd",
+     "val": 0.09564714324437412
     }
    ],
    "cls": "Class 1",
@@ -24017,15 +25513,15 @@
    "McRd": 49.225,
    "VplRd": 174.96599907791608,
    "deflRatio": 0.8774630564480624,
-   "unsupported": [
-    "Torsion on this open section is NOT COVERED: partial-span eccentric distributed load on an open section: the P385 fork-fork closed forms (Cases 3/4/10) cover full-span distributed torque only.",
-    "Channel with eccentric load: the LTB check is valid (zj = 0, Iw about the shear centre), but the primary torque from e0 must be combined with it through the EN 1993-6 Annex A interaction, which is not available for this support/load arrangement (it needs a fork-fork single span with full-span or point torques). PASS is blocked."
-   ],
+   "unsupported": [],
    "advisory": [
-    "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4."
+    "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4.",
+    "Serviceability twist max = 2.3deg exceeds the ~2deg guideline (SCI P385): check that the rotation is acceptable for whatever the member supports."
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": "fe",
+   "torsionMesh": 5.464985177424085e-9,
    "Mcr": 70.11659168698222,
    "McrStd": 70.0262542893855,
    "McrRatio": 1.0012900504034299,
@@ -24091,6 +25587,7 @@
     "2.7",
     "2.8",
     "3.21",
+    "3.8",
     "3.1",
     "3.2",
     "3.3",
@@ -24099,9 +25596,7 @@
     "2.18"
    ],
    "triggerMismatch": {
-    "missing": [
-     "3.8"
-    ],
+    "missing": [],
     "extra": []
    },
    "McrRatioRuns": 2.9608533908953025
@@ -24135,7 +25630,7 @@
    "tags": [
     "ecc-small"
    ],
-   "ms": 29.289,
+   "ms": 28.0213,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -24146,8 +25641,8 @@
    "uplift": [],
    "verdict": "FAIL",
    "gov": {
-    "name": "LTB  M_Ed/M_b,Rd",
-    "val": 1.3122948147276705
+    "name": "LTB+torsion (EN 1993-6 Annex A)",
+    "val": 3.7729943907826913
    },
    "utils": [
     {
@@ -24167,12 +25662,24 @@
      "val": 0.8774630564480624
     },
     {
+     "name": "LTB+torsion (EN 1993-6 Annex A)",
+     "val": 3.7729943907826913
+    },
+    {
      "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
      "val": 0.04301821316063008
     },
     {
      "name": "Web transverse force + bending (EN 1993-1-5 7.2)",
      "val": 0.030727296925173387
+    },
+    {
+     "name": "Bending+torsion cross-section (P385 3.1.2)",
+     "val": 0.3785413733906786
+    },
+    {
+     "name": "Shear+torsion  V_Ed/V_pl,T,Rd",
+     "val": 0.09564714324437412
     }
    ],
    "cls": "Class 1",
@@ -24182,14 +25689,15 @@
    "McRd": 49.225,
    "VplRd": 174.96599907791608,
    "deflRatio": 0.8774630564480624,
-   "unsupported": [
-    "Torsion on this open section is NOT COVERED: partial-span eccentric distributed load on an open section: the P385 fork-fork closed forms (Cases 3/4/10) cover full-span distributed torque only."
-   ],
+   "unsupported": [],
    "advisory": [
-    "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4."
+    "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4.",
+    "Serviceability twist max = 2.3deg exceeds the ~2deg guideline (SCI P385): check that the rotation is acceptable for whatever the member supports."
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": "fe",
+   "torsionMesh": 5.464985177424085e-9,
    "Mcr": 23.681210256,
    "McrStd": 23.681210256,
    "McrRatio": null,
@@ -24233,7 +25741,7 @@
      "id": "vi-governing",
      "ok": true,
      "kind": "check",
-     "detail": "gov LTB  M_Ed/M_b,Rd = 1.3123, max(utils) = 1.3123"
+     "detail": "gov LTB+torsion (EN 1993-6 Annex A) = 3.7730, max(utils) = 3.7730"
     }
    ],
    "checkFailures": [],
@@ -24250,6 +25758,7 @@
     "2.7",
     "2.8",
     "3.21",
+    "3.8",
     "3.1",
     "3.2",
     "3.3",
@@ -24258,9 +25767,7 @@
     "2.18"
    ],
    "triggerMismatch": {
-    "missing": [
-     "3.8"
-    ],
+    "missing": [],
     "extra": []
    }
   },
@@ -24286,7 +25793,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 725.5612,
+   "ms": 525.4091,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -24339,6 +25846,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 214.8561112210341,
    "McrStd": 212.8048724581317,
    "McrRatio": 1.0096390591963817,
@@ -24447,7 +25956,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 28.3353,
+   "ms": 21.307,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -24501,6 +26010,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 59.01889155262074,
    "McrStd": 59.01889155262074,
    "McrRatio": null,
@@ -24598,7 +26109,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 20.3075,
+   "ms": 14.9136,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -24647,6 +26158,8 @@
    ],
    "warn": [],
    "mcrMethodReported": null,
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": null,
    "McrStd": null,
    "McrRatio": null,
@@ -24726,7 +26239,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 315.4948,
+   "ms": 247.4576,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -24779,6 +26292,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 538.5071886461326,
    "McrStd": 538.690172428013,
    "McrRatio": 0.9996603172078382,
@@ -24897,7 +26412,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 17.4473,
+   "ms": 24.5299,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -24950,6 +26465,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 538.690172428013,
    "McrStd": 538.690172428013,
    "McrRatio": null,
@@ -25063,7 +26580,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 305.1618,
+   "ms": 252.7219,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -25116,6 +26633,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 1670.0686451613717,
    "McrStd": 1686.2366187728833,
    "McrRatio": 0.99041180019962,
@@ -25235,7 +26754,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 19.6481,
+   "ms": 12.0186,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -25288,6 +26807,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 1686.2366187728833,
    "McrStd": 1686.2366187728833,
    "McrRatio": null,
@@ -25403,7 +26924,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 322.1369,
+   "ms": 220.1319,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -25472,6 +26993,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 3562.6898934307374,
    "McrStd": 3563.900488910567,
    "McrRatio": 0.9996603172609345,
@@ -25596,7 +27119,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 16.0488,
+   "ms": 12.2519,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -25665,6 +27188,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 3563.900488910567,
    "McrStd": 3563.900488910567,
    "McrRatio": null,
@@ -25781,7 +27306,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1021.1631,
+   "ms": 961.7048,
    "nCombos": 3,
    "patterns": {
     "active": true,
@@ -25850,6 +27375,8 @@
     "Mesh convergence error 0.22 % (below the blocking limit, but worth noting)."
    ],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 25669.956566689678,
    "McrStd": 25437.868178967143,
    "McrRatio": 1.009123735766287,
@@ -25957,7 +27484,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 46.5366,
+   "ms": 47.7982,
    "nCombos": 3,
    "patterns": {
     "active": true,
@@ -26025,6 +27552,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 7385.8501147441975,
    "McrStd": 7385.8501147441975,
    "McrRatio": null,
@@ -26127,7 +27656,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 214.737,
+   "ms": 212.1539,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -26182,6 +27711,8 @@
     "C1 = 2.795 exceeds 2.76: kc = 1/sqrtC1 = 0.598 is floored at 1/sqrt2.76 = 0.602, the Table 6.6 lower bound (psi = -1 end-moment case), so the f-factor is not extrapolated beyond its calibrated range."
    ],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 28510.76231151943,
    "McrStd": 20404.58986941601,
    "McrRatio": 1.3972720105613876,
@@ -26296,7 +27827,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 15.5125,
+   "ms": 12.7118,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -26349,6 +27880,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 20404.58986941601,
    "McrStd": 20404.58986941601,
    "McrRatio": null,
@@ -26469,7 +28002,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 246.0569,
+   "ms": 286.6701,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -26532,6 +28065,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": "box",
+   "torsionMesh": null,
    "Mcr": 440.11447082004065,
    "McrStd": 440.2640209171836,
    "McrRatio": 0.9996603172413876,
@@ -26663,7 +28198,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 23.5803,
+   "ms": 23.6471,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -26726,6 +28261,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": "box",
+   "torsionMesh": null,
    "Mcr": 440.2640209171836,
    "McrStd": 440.2640209171836,
    "McrRatio": null,
@@ -26840,7 +28377,7 @@
     "3.27"
    ],
    "tags": [],
-   "ms": 13.8617,
+   "ms": 12.3345,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -26889,6 +28426,8 @@
    ],
    "warn": [],
    "mcrMethodReported": null,
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": null,
    "McrStd": null,
    "McrRatio": null,
@@ -26968,7 +28507,7 @@
     "3.27"
    ],
    "tags": [],
-   "ms": 12.1056,
+   "ms": 11.4131,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -27026,6 +28565,8 @@
    ],
    "warn": [],
    "mcrMethodReported": null,
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": null,
    "McrStd": null,
    "McrRatio": null,
@@ -27097,7 +28638,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 202.3379,
+   "ms": 235.6934,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -27158,6 +28699,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 717.8663355005411,
    "McrStd": 718.1102653659319,
    "McrRatio": 0.9996603169775515,
@@ -27280,7 +28823,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 15.3092,
+   "ms": 14.7304,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -27341,6 +28884,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 718.1102653659319,
    "McrStd": 718.1102653659319,
    "McrRatio": null,
@@ -27458,7 +29003,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 24.0465,
+   "ms": 19.8457,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -27515,6 +29060,8 @@
    ],
    "warn": [],
    "mcrMethodReported": null,
+   "torsionMethod": "box",
+   "torsionMesh": null,
    "Mcr": null,
    "McrStd": null,
    "McrRatio": null,
@@ -27595,7 +29142,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 14.8416,
+   "ms": 12.5243,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -27644,6 +29191,8 @@
    ],
    "warn": [],
    "mcrMethodReported": null,
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": null,
    "McrStd": null,
    "McrRatio": null,
@@ -27723,7 +29272,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 238.415,
+   "ms": 238.067,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -27776,6 +29325,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 1064.7971152891762,
    "McrStd": 1065.1589305743894,
    "McrRatio": 0.9996603180287676,
@@ -27894,7 +29445,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 21.2505,
+   "ms": 18.1979,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -27947,6 +29498,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 1065.1589305743894,
    "McrStd": 1065.1589305743894,
    "McrRatio": null,
@@ -28059,7 +29612,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 287.9299,
+   "ms": 237.5562,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -28112,6 +29665,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 1252.3257347576252,
    "McrStd": 1252.7512729607006,
    "McrRatio": 0.9996603170858732,
@@ -28230,7 +29785,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 19.7317,
+   "ms": 12.9296,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -28283,6 +29838,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 1252.7512729607006,
    "McrStd": 1252.7512729607006,
    "McrRatio": null,
@@ -28395,7 +29952,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 239.681,
+   "ms": 234.0232,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -28448,6 +30005,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 7447.764053609153,
    "McrStd": 7450.2947904789735,
    "McrRatio": 0.9996603172168362,
@@ -28566,7 +30125,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 27.0313,
+   "ms": 17.2186,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -28619,6 +30178,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 7450.2947904789735,
    "McrStd": 7450.2947904789735,
    "McrRatio": null,
@@ -28732,7 +30293,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 298.1045,
+   "ms": 247.0229,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -28785,6 +30346,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 1107.7487929366087,
    "McrStd": 1073.110805817652,
    "McrRatio": 1.0322781085896946,
@@ -28904,7 +30467,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 16.8483,
+   "ms": 15.107,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -28957,6 +30520,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 1073.110805817652,
    "McrStd": 1073.110805817652,
    "McrRatio": null,
@@ -29072,7 +30637,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 326.4533,
+   "ms": 217.6969,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -29141,6 +30706,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 788.9437412931547,
    "McrStd": 789.2118226947406,
    "McrRatio": 0.999660317554962,
@@ -29265,7 +30832,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 22.6445,
+   "ms": 13.2836,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -29334,6 +30901,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 789.2118226947406,
    "McrStd": 789.2118226947406,
    "McrRatio": null,
@@ -29451,7 +31020,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 322.2409,
+   "ms": 226.1563,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -29506,6 +31075,8 @@
     "C1 = 3.380 exceeds 2.76: kc = 1/sqrtC1 = 0.544 is floored at 1/sqrt2.76 = 0.602, the Table 6.6 lower bound (psi = -1 end-moment case), so the f-factor is not extrapolated beyond its calibrated range."
    ],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 892.1421250803802,
    "McrStd": 527.9053623821221,
    "McrRatio": 1.6899660216647066,
@@ -29620,7 +31191,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 16.1204,
+   "ms": 12.8874,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -29673,6 +31244,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 527.9053623821221,
    "McrStd": 527.9053623821221,
    "McrRatio": null,
@@ -29786,7 +31359,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1026.7435,
+   "ms": 933.5968,
    "nCombos": 3,
    "patterns": {
     "active": true,
@@ -29855,6 +31428,8 @@
     "Mesh convergence error 0.22 % (below the blocking limit, but worth noting)."
    ],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 18907.95474984359,
    "McrStd": 18737.003284310034,
    "McrRatio": 1.0091237356870566,
@@ -29962,7 +31537,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 48.7575,
+   "ms": 39.9038,
    "nCombos": 3,
    "patterns": {
     "active": true,
@@ -30030,6 +31605,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 5440.263189816712,
    "McrStd": 5440.263189816712,
    "McrRatio": null,
@@ -30134,7 +31711,7 @@
    "tags": [
     "1.2"
    ],
-   "ms": 1158.4218,
+   "ms": 1161.2788,
    "nCombos": 3,
    "patterns": {
     "active": true,
@@ -30203,6 +31780,8 @@
     "Mesh convergence error 0.31 % (below the blocking limit, but worth noting)."
    ],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 10360.49937321194,
    "McrStd": 9854.520259928266,
    "McrRatio": 0.9798387889758173,
@@ -30313,7 +31892,7 @@
    "tags": [
     "1.2"
    ],
-   "ms": 43.5056,
+   "ms": 42.7905,
    "nCombos": 3,
    "patterns": {
     "active": true,
@@ -30381,6 +31960,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 6699.2626400201725,
    "McrStd": 6699.2626400201725,
    "McrRatio": null,
@@ -30484,7 +32065,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 207.2206,
+   "ms": 239.8395,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -30554,6 +32135,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 4927.015721407524,
    "McrStd": 4972.41220399878,
    "McrRatio": 0.9908703299869733,
@@ -30666,7 +32249,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 13.3601,
+   "ms": 13.8734,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -30736,6 +32319,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 4972.41220399878,
    "McrStd": 4972.41220399878,
    "McrRatio": null,
@@ -30842,7 +32427,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 26.9783,
+   "ms": 23.4038,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -30899,6 +32484,8 @@
    ],
    "warn": [],
    "mcrMethodReported": null,
+   "torsionMethod": "box",
+   "torsionMesh": null,
    "Mcr": null,
    "McrStd": null,
    "McrRatio": null,
@@ -30991,7 +32578,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 222.7843,
+   "ms": 247.4915,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -31052,6 +32639,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": "box",
+   "torsionMesh": null,
    "Mcr": 283.4977067944515,
    "McrStd": 284.67991157910376,
    "McrRatio": 0.9958472490099683,
@@ -31183,7 +32772,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 20.3475,
+   "ms": 22.7833,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -31244,6 +32833,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": "box",
+   "torsionMesh": null,
    "Mcr": 284.67991157910376,
    "McrStd": 284.67991157910376,
    "McrRatio": null,
@@ -31362,7 +32953,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 244.6133,
+   "ms": 244.6085,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -31415,6 +33006,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 33051.61820251125,
    "McrStd": 28590.279409072322,
    "McrRatio": 1.1560439032303842,
@@ -31522,7 +33115,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 14.7121,
+   "ms": 11.9505,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -31575,6 +33168,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 28590.279409072322,
    "McrStd": 28590.279409072322,
    "McrRatio": null,
@@ -31676,7 +33271,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 517.5756,
+   "ms": 520.4547,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -31729,6 +33324,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 48420.858069446615,
    "McrStd": 48415.34905101526,
    "McrRatio": 1.0001137866098115,
@@ -31849,7 +33446,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 13.1557,
+   "ms": 13.7729,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -31903,6 +33500,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 17929.971194499198,
    "McrStd": 17929.971194499198,
    "McrRatio": null,
@@ -32017,7 +33616,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 212.3127,
+   "ms": 248.5009,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -32070,6 +33669,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 2255.1938579616776,
    "McrStd": 2060.495516810859,
    "McrRatio": 1.0944910287658203,
@@ -32177,7 +33778,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 13.5729,
+   "ms": 21.4648,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -32230,6 +33831,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 2060.495516810859,
    "McrStd": 2060.495516810859,
    "McrRatio": null,
@@ -32332,7 +33935,7 @@
    "tags": [
     "uplift"
    ],
-   "ms": 553.9032,
+   "ms": 533.9192,
    "nCombos": 3,
    "patterns": {
     "active": false,
@@ -32399,6 +34002,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 1960.6685733138936,
    "McrStd": 1961.334804691545,
    "McrRatio": 0.9996603173634314,
@@ -32519,7 +34124,7 @@
    "tags": [
     "uplift"
    ],
-   "ms": 41.2803,
+   "ms": 32.9889,
    "nCombos": 3,
    "patterns": {
     "active": false,
@@ -32586,6 +34191,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 1961.334804691545,
    "McrStd": 1961.334804691545,
    "McrRatio": null,
@@ -32700,7 +34307,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 619.0771,
+   "ms": 591.9359,
    "nCombos": 3,
    "patterns": {
     "active": true,
@@ -32763,6 +34370,8 @@
     "Mesh convergence error 0.35 % (below the blocking limit, but worth noting)."
    ],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 11107.54600925676,
    "McrStd": 9864.081035279507,
    "McrRatio": 1.1260598903770074,
@@ -32871,7 +34480,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 40.4871,
+   "ms": 37.7292,
    "nCombos": 3,
    "patterns": {
     "active": true,
@@ -32932,6 +34541,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 9864.081035279507,
    "McrStd": 9864.081035279507,
    "McrRatio": null,
@@ -33035,7 +34646,7 @@
    "tags": [
     "uplift"
    ],
-   "ms": 542.1859,
+   "ms": 568.2943,
    "nCombos": 3,
    "patterns": {
     "active": false,
@@ -33101,6 +34712,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 258.63426573609115,
    "McrStd": 273.29036256094935,
    "McrRatio": 0.9463717026553047,
@@ -33216,7 +34829,7 @@
    "tags": [
     "uplift"
    ],
-   "ms": 34.3555,
+   "ms": 44.1193,
    "nCombos": 3,
    "patterns": {
     "active": false,
@@ -33282,6 +34895,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 273.29036256094935,
    "McrStd": 273.29036256094935,
    "McrRatio": null,
@@ -33391,7 +35006,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1840.2584,
+   "ms": 2335.58,
    "nCombos": 7,
    "patterns": {
     "active": true,
@@ -33458,6 +35073,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 1168.5689556416341,
    "McrStd": 1157.4816460046125,
    "McrRatio": 1.009578821120225,
@@ -33573,7 +35190,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 93.8338,
+   "ms": 122.4884,
    "nCombos": 7,
    "patterns": {
     "active": true,
@@ -33641,6 +35258,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 783.8898866297352,
    "McrStd": 783.8898866297352,
    "McrRatio": null,
@@ -33752,7 +35371,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 246.826,
+   "ms": 288.0193,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -33821,6 +35440,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 478.2081916907304,
    "McrStd": 475.2987675998181,
    "McrRatio": 1.006121253176406,
@@ -33955,7 +35576,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 12.7977,
+   "ms": 27.3327,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -34024,6 +35645,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 475.2987675998181,
    "McrStd": 475.2987675998181,
    "McrRatio": null,
@@ -34152,7 +35775,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 554.134,
+   "ms": 739.5234,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -34205,6 +35828,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 1232.9879658735565,
    "McrStd": 1268.7996964202728,
    "McrRatio": 0.971775111037815,
@@ -34323,7 +35948,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 19.5542,
+   "ms": 23.2226,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -34379,6 +36004,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 115.69738702156423,
    "McrStd": 115.69738702156423,
    "McrRatio": null,
@@ -34489,7 +36116,7 @@
    "tags": [
     "2.10"
    ],
-   "ms": 196.0775,
+   "ms": 312.9599,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -34542,6 +36169,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 109.94696119779604,
    "McrStd": 110.24981987223335,
    "McrRatio": 0.9972529780566691,
@@ -34657,7 +36286,7 @@
    "tags": [
     "2.10"
    ],
-   "ms": 11.752,
+   "ms": 20.4119,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -34710,6 +36339,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 110.24981987223335,
    "McrStd": 110.24981987223335,
    "McrRatio": null,
@@ -34819,7 +36450,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 256.3254,
+   "ms": 270.2579,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -34874,6 +36505,8 @@
     "C1 = 4.309 exceeds 2.76: kc = 1/sqrtC1 = 0.482 is floored at 1/sqrt2.76 = 0.602, the Table 6.6 lower bound (psi = -1 end-moment case), so the f-factor is not extrapolated beyond its calibrated range."
    ],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 345.7600822315794,
    "McrStd": 200.5929213775837,
    "McrRatio": 1.7236903468828895,
@@ -34989,7 +36622,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 18.4401,
+   "ms": 14.0235,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -35042,6 +36675,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 200.5929213775837,
    "McrStd": 200.5929213775837,
    "McrRatio": null,
@@ -35152,7 +36787,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 283.2003,
+   "ms": 289.0547,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -35221,6 +36856,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 2063.737348805755,
    "McrStd": 2027.5655793868389,
    "McrRatio": 1.0178399997448442,
@@ -35334,7 +36971,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 12.7599,
+   "ms": 16.867,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -35403,6 +37040,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 2027.5655793868389,
    "McrStd": 2027.5655793868389,
    "McrRatio": null,
@@ -35510,7 +37149,7 @@
    "tags": [
     "zg-mixed"
    ],
-   "ms": 200.4099,
+   "ms": 299.1427,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -35563,6 +37202,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 121.96681887480148,
    "McrStd": 107.3210141368988,
    "McrRatio": 1.1364672599834034,
@@ -35691,7 +37332,7 @@
    "tags": [
     "zg-mixed"
    ],
-   "ms": 12.8508,
+   "ms": 29.1766,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -35746,6 +37387,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 107.3210141368988,
    "McrStd": 107.3210141368988,
    "McrRatio": null,
@@ -35864,7 +37507,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 238.0022,
+   "ms": 308.3685,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -35919,6 +37562,8 @@
     "C1 = 4.562 exceeds 2.76: kc = 1/sqrtC1 = 0.468 is floored at 1/sqrt2.76 = 0.602, the Table 6.6 lower bound (psi = -1 end-moment case), so the f-factor is not extrapolated beyond its calibrated range."
    ],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 2389.0458483832954,
    "McrStd": 2059.3864614499416,
    "McrRatio": 1.1600765048738118,
@@ -36031,7 +37676,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 12.6235,
+   "ms": 15.8454,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -36084,6 +37729,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 2059.3864614499416,
    "McrStd": 2059.3864614499416,
    "McrRatio": null,
@@ -36199,7 +37846,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 211.0693,
+   "ms": 286.6433,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -36265,6 +37912,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": "closed",
+   "torsionMesh": null,
    "Mcr": 145.3240291974532,
    "McrStd": 143.15630801996178,
    "McrRatio": 1.0151423378227185,
@@ -36386,7 +38035,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 21.7037,
+   "ms": 23.7037,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -36454,6 +38103,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": "closed",
+   "torsionMesh": null,
    "Mcr": 42.602250713599986,
    "McrStd": 42.602250713599986,
    "McrRatio": null,
@@ -36567,7 +38218,7 @@
    "tags": [
     "tfb"
    ],
-   "ms": 228.1366,
+   "ms": 258.9543,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -36640,6 +38291,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 41.49484690997905,
    "McrStd": 40.77739305111439,
    "McrRatio": 1.0175944023190826,
@@ -36763,7 +38416,7 @@
    "tags": [
     "tfb"
    ],
-   "ms": 20.7793,
+   "ms": 13.6051,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -36836,6 +38489,8 @@
    ],
    "warn": [],
    "mcrMethodReported": "standard",
+   "torsionMethod": null,
+   "torsionMesh": null,
    "Mcr": 40.77739305111439,
    "McrStd": 40.77739305111439,
    "McrRatio": null,
@@ -36913,6 +38568,385 @@
     "3.9",
     "3.12",
     "3.10",
+    "3.1",
+    "3.2",
+    "3.3",
+    "3.6",
+    "3.4",
+    "2.18"
+   ],
+   "triggerMismatch": {
+    "missing": [],
+    "extra": []
+   }
+  },
+  {
+   "id": "PFC-21",
+   "title": "PFC 180x75x20, 2 x 4 m continuous, full UDL at e = 20 mm, hold-downs at the end supports, unrestrained (multi-span torsion: warping FE per pattern combination, G4 item 11)",
+   "section": "PFC 180x75x20",
+   "family": "pfc",
+   "restraint": "ltb",
+   "method": "eigen",
+   "expect": [
+    "1.1",
+    "1.3",
+    "1.9",
+    "2.1",
+    "2.3",
+    "2.6",
+    "2.7",
+    "2.8",
+    "2.10",
+    "2.16",
+    "3.1",
+    "3.2",
+    "3.3",
+    "3.4",
+    "3.6",
+    "3.8",
+    "3.19",
+    "3.21"
+   ],
+   "tags": [
+    "torsion-fe",
+    "ecc-small"
+   ],
+   "ms": 1271.4493,
+   "nCombos": 3,
+   "patterns": {
+    "active": true,
+    "nUls": 2,
+    "nSls": 2
+   },
+   "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
+   "uplift": [
+    {
+     "n": 1,
+     "R": -0.9999999991767109,
+     "combo": "SLS: Variable actions only (NA 2.23) (Q on span 2 only)"
+    },
+    {
+     "n": 3,
+     "R": -0.9999999991632067,
+     "combo": "SLS: Variable actions only (NA 2.23) (Q on span 1 only)"
+    }
+   ],
+   "verdict": "PASS",
+   "gov": {
+    "name": "LTB+torsion (EN 1993-6 Annex A)",
+    "val": 0.7375714218719469
+   },
+   "utils": [
+    {
+     "name": "Shear  V_Ed/V_c,Rd",
+     "val": 0.0996384982493968
+    },
+    {
+     "name": "Bending  M_Ed/M_c,Rd",
+     "val": 0.3148258265606719
+    },
+    {
+     "name": "LTB  M_Ed/M_b,Rd",
+     "val": 0.4265008231665324
+    },
+    {
+     "name": "Deflection",
+     "val": 0.2930723618158578
+    },
+    {
+     "name": "LTB+torsion (EN 1993-6 Annex A)",
+     "val": 0.7375714218719469
+    },
+    {
+     "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
+     "val": 0.13561081327855523
+    },
+    {
+     "name": "Web transverse force + bending (EN 1993-1-5 7.2)",
+     "val": 0.2767653389479234
+    },
+    {
+     "name": "Bending+torsion cross-section (P385 3.1.2)",
+     "val": 0.30114549613394526
+    },
+    {
+     "name": "Shear+torsion  V_Ed/V_pl,T,Rd",
+     "val": 0.1022077216560305
+    }
+   ],
+   "cls": "Class 1",
+   "Mmax": -15.237570005536519,
+   "Vmax": 19.0469624945245,
+   "dmax": -3.256359575731753,
+   "McRd": 48.4,
+   "VplRd": 191.1606741286851,
+   "deflRatio": 0.2930723618158578,
+   "unsupported": [],
+   "advisory": [
+    "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4.",
+    "Hold-down check (SLS only) at support 1 (x = 0 m): the variable-action-only combination SLS: Variable actions only (NA 2.23) (Q on span 2 only) lifts this support by R = -1.00 kN; no ULS combination lifts it (G holds it down at ULS); hold-down provided. A deflection combination without G is not an equilibrium state, so this does not block PASS, but the EQU set-A combination with G,inf = 0.9 (EN 1990 Table A1.2(A)) is NOT generated: verify it by hand where the permanent action is small relative to the variable action.",
+    "Hold-down check (SLS only) at support 3 (x = 8 m): the variable-action-only combination SLS: Variable actions only (NA 2.23) (Q on span 1 only) lifts this support by R = -1.00 kN; no ULS combination lifts it (G holds it down at ULS); hold-down provided. A deflection combination without G is not an equilibrium state, so this does not block PASS, but the EQU set-A combination with G,inf = 0.9 (EN 1990 Table A1.2(A)) is NOT generated: verify it by hand where the permanent action is small relative to the variable action.",
+    "Automatic pattern loading: 2 ULS and 2 SLS combinations generated from the support layout (span 1: 0-4 m; span 2: 4-8 m): Q on each span, on each pair of adjacent spans and on alternate spans, with G, W and E at their entered factors on every span (EN 1990 6.10 as entered). G,inf = 1.0 on relieving spans (EN 1990 Table A1.2(B)) is NOT generated: G acts at its entered factor on every span; add a reduced-G combination by hand where a relieving permanent action could govern (uplift, cantilever back spans)."
+   ],
+   "warn": [],
+   "mcrMethodReported": "eigen",
+   "torsionMethod": "fe",
+   "torsionMesh": 0.0003066884392273014,
+   "Mcr": 43.87492711769342,
+   "McrStd": 43.94199876579225,
+   "McrRatio": 0.99847363228841,
+   "C1": 1.194573406473349,
+   "lamLT": 1.0503026876055759,
+   "chiLT": 0.5313611321549082,
+   "MbRd": 25.71787879629756,
+   "c1route": "channel",
+   "ltbBasis": "multi-span beam: lateral-torsional buckling checked SPAN BY SPAN (support to support). Each unrestrained bay between lateral restraints is solved in isolation with fork ends, its own Mcr and its own peak moment; the worst span governs. Governing span 4-8 m: MEd = 11.0, Mcr = 43.9, Mb,Rd = 25.7 kN.m, utilisation 0.43. (Whole-member eigen Mcr = 51.0 kN.m retained for reference.)",
+   "c1in": {
+    "M1": 0,
+    "M2": -9.237568241546603,
+    "Mo": 15.237568476243041,
+    "psi": 0,
+    "mu": -1.649521614109547
+   },
+   "McrWhole": 50.98323372852763,
+   "spanGoverns": true,
+   "zg": 0,
+   "checks": [
+    {
+     "id": "ii-equilibrium",
+     "ok": true,
+     "kind": "check",
+     "detail": "sum R = 60.950 kN, sum loads = -60.950 kN, residual 0.0000 kN"
+    },
+    {
+     "id": "vii-uplift",
+     "ok": true,
+     "kind": "check",
+     "detail": "no uplift in the governing combination; engine reports 1, 3 (2 hold-down message(s))"
+    },
+    {
+     "id": "iv-McrRatio",
+     "ok": true,
+     "kind": "flag",
+     "detail": "Mcr eigen / standard = 0.998 (43.9 / 43.9 kN.m, route channel)"
+    },
+    {
+     "id": "v-MbRd<=McRd",
+     "ok": true,
+     "kind": "check",
+     "detail": "Mb,Rd 25.72 <= Mc,Rd 48.40 kN.m"
+    },
+    {
+     "id": "vi-governing",
+     "ok": true,
+     "kind": "check",
+     "detail": "gov LTB+torsion (EN 1993-6 Annex A) = 0.7376, max(utils) = 0.7376"
+    }
+   ],
+   "checkFailures": [],
+   "outlier": false,
+   "observed": [
+    "1.3",
+    "1.9",
+    "2.1",
+    "2.3",
+    "2.16",
+    "3.19",
+    "1.1",
+    "2.6",
+    "2.7",
+    "2.8",
+    "3.21",
+    "3.8",
+    "3.1",
+    "3.2",
+    "3.3",
+    "3.6",
+    "3.4",
+    "2.18"
+   ],
+   "triggerMismatch": {
+    "missing": [],
+    "extra": []
+   },
+   "McrRatioRuns": 11.113596892556403
+  },
+  {
+   "id": "PFC-21",
+   "title": "PFC 180x75x20, 2 x 4 m continuous, full UDL at e = 20 mm, hold-downs at the end supports, unrestrained (multi-span torsion: warping FE per pattern combination, G4 item 11)",
+   "section": "PFC 180x75x20",
+   "family": "pfc",
+   "restraint": "ltb",
+   "method": "standard",
+   "expect": [
+    "1.1",
+    "1.3",
+    "1.9",
+    "2.1",
+    "2.3",
+    "2.6",
+    "2.7",
+    "2.8",
+    "2.10",
+    "2.16",
+    "3.1",
+    "3.2",
+    "3.3",
+    "3.4",
+    "3.6",
+    "3.8",
+    "3.19",
+    "3.21"
+   ],
+   "tags": [
+    "torsion-fe",
+    "ecc-small"
+   ],
+   "ms": 124.105,
+   "nCombos": 3,
+   "patterns": {
+    "active": true,
+    "nUls": 2,
+    "nSls": 2
+   },
+   "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
+   "uplift": [
+    {
+     "n": 1,
+     "R": -0.9999999991767109,
+     "combo": "SLS: Variable actions only (NA 2.23) (Q on span 2 only)"
+    },
+    {
+     "n": 3,
+     "R": -0.9999999991632067,
+     "combo": "SLS: Variable actions only (NA 2.23) (Q on span 1 only)"
+    }
+   ],
+   "verdict": "FAIL",
+   "gov": {
+    "name": "LTB+torsion (EN 1993-6 Annex A)",
+    "val": 99
+   },
+   "utils": [
+    {
+     "name": "Shear  V_Ed/V_c,Rd",
+     "val": 0.0996384982493968
+    },
+    {
+     "name": "Bending  M_Ed/M_c,Rd",
+     "val": 0.3148258265606719
+    },
+    {
+     "name": "LTB  M_Ed/M_b,Rd",
+     "val": 3.859703520632174
+    },
+    {
+     "name": "Deflection",
+     "val": 0.2930723618158578
+    },
+    {
+     "name": "LTB+torsion (EN 1993-6 Annex A)",
+     "val": 99
+    },
+    {
+     "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
+     "val": 0.13561081327855523
+    },
+    {
+     "name": "Web transverse force + bending (EN 1993-1-5 7.2)",
+     "val": 0.2767653389479234
+    },
+    {
+     "name": "Bending+torsion cross-section (P385 3.1.2)",
+     "val": 0.30114549613394526
+    },
+    {
+     "name": "Shear+torsion  V_Ed/V_pl,T,Rd",
+     "val": 0.1022077216560305
+    }
+   ],
+   "cls": "Class 1",
+   "Mmax": -15.237570005536519,
+   "Vmax": 19.0469624945245,
+   "dmax": -3.256359575731753,
+   "McRd": 48.4,
+   "VplRd": 191.1606741286851,
+   "deflRatio": 0.2930723618158578,
+   "unsupported": [
+    "M_y,Ed reaches the elastic critical moment M_cr: the Annex A amplifier k_alpha is unbounded; the member is inadequate as arranged."
+   ],
+   "advisory": [
+    "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4.",
+    "Hold-down check (SLS only) at support 1 (x = 0 m): the variable-action-only combination SLS: Variable actions only (NA 2.23) (Q on span 2 only) lifts this support by R = -1.00 kN; no ULS combination lifts it (G holds it down at ULS); hold-down provided. A deflection combination without G is not an equilibrium state, so this does not block PASS, but the EQU set-A combination with G,inf = 0.9 (EN 1990 Table A1.2(A)) is NOT generated: verify it by hand where the permanent action is small relative to the variable action.",
+    "Hold-down check (SLS only) at support 3 (x = 8 m): the variable-action-only combination SLS: Variable actions only (NA 2.23) (Q on span 1 only) lifts this support by R = -1.00 kN; no ULS combination lifts it (G holds it down at ULS); hold-down provided. A deflection combination without G is not an equilibrium state, so this does not block PASS, but the EQU set-A combination with G,inf = 0.9 (EN 1990 Table A1.2(A)) is NOT generated: verify it by hand where the permanent action is small relative to the variable action.",
+    "Automatic pattern loading: 2 ULS and 2 SLS combinations generated from the support layout (span 1: 0-4 m; span 2: 4-8 m): Q on each span, on each pair of adjacent spans and on alternate spans, with G, W and E at their entered factors on every span (EN 1990 6.10 as entered). G,inf = 1.0 on relieving spans (EN 1990 Table A1.2(B)) is NOT generated: G acts at its entered factor on every span; add a reduced-G combination by hand where a relieving permanent action could govern (uplift, cantilever back spans).",
+    "Standard (closed-form) Mcr: the member is treated as ONE segment of length LE = 1.00xL with C1 from the whole-member moment diagram; intermediate lateral restraints and the span-by-span check of a continuous beam are not applied on this route (conservative on LE). Use the FE eigenvalue method for span-by-span Mcr, or verify each span separately."
+   ],
+   "warn": [],
+   "mcrMethodReported": "standard",
+   "torsionMethod": "fe",
+   "torsionMesh": 0.0003066884392273014,
+   "Mcr": 3.947860223999999,
+   "McrStd": 3.947860223999999,
+   "McrRatio": null,
+   "C1": 1.2758945794433563,
+   "lamLT": 3.50140056022409,
+   "chiLT": 0.08156735999999998,
+   "MbRd": 3.947860223999999,
+   "c1route": "channel",
+   "ltbBasis": "P385/P362 channel  chain, lambdaLT = (LE/iz)/, curve d, no f-factor; Mb,Rd = chiLTWyfy/M1 <= Mc,Rd",
+   "c1in": {
+    "M1": 0,
+    "M2": 0,
+    "Mo": -15.237571134634972,
+    "psi": 1,
+    "mu": -300
+   },
+   "stdBasis": "channel kappa chain",
+   "zg": 0,
+   "zgUsed": false,
+   "zgBlocked": false,
+   "checks": [
+    {
+     "id": "ii-equilibrium",
+     "ok": true,
+     "kind": "check",
+     "detail": "sum R = 60.950 kN, sum loads = -60.950 kN, residual 0.0000 kN"
+    },
+    {
+     "id": "vii-uplift",
+     "ok": true,
+     "kind": "check",
+     "detail": "no uplift in the governing combination; engine reports 1, 3 (2 hold-down message(s))"
+    },
+    {
+     "id": "v-MbRd<=McRd",
+     "ok": true,
+     "kind": "check",
+     "detail": "Mb,Rd 3.95 <= Mc,Rd 48.40 kN.m"
+    },
+    {
+     "id": "vi-governing",
+     "ok": true,
+     "kind": "check",
+     "detail": "gov LTB+torsion (EN 1993-6 Annex A) = 99.0000, max(utils) = 99.0000"
+    }
+   ],
+   "checkFailures": [],
+   "outlier": false,
+   "observed": [
+    "1.3",
+    "1.9",
+    "2.1",
+    "2.3",
+    "2.16",
+    "3.19",
+    "1.1",
+    "2.6",
+    "2.7",
+    "2.8",
+    "3.21",
+    "3.8",
     "3.1",
     "3.2",
     "3.3",

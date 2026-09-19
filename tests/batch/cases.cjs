@@ -201,6 +201,13 @@ mk('UB-47', 'UB 457x191x82, 6 m SS, full UDL + axial compression 600 kN, unrestr
   { L: 6, supports: SS(6), axial: 600, loads: [UDL(0, 6, 5, 'G'), UDL(0, 6, 6, 'Q')] }, ['aeff']);
 mk('UB-48', 'UB 457x191x82, 2 m SS, 400 kN point load 0.3 m from the support + axial compression 600 kN, fully restrained (high shear with N: cl 6.2.10, G3 item 7)', UB('457 x 191 x 82'),
   { L: 2, supports: SS(2), restraint: 'full', axial: 600, loads: [P(0.3, 400, 'Q')] }, ['mvn']);
+// G4 (item 11): warping-torsion FE for the layouts outside the P385 closed forms
+mk('UB-49', 'UB 457x191x82, 4 m cantilever, tip point load at e = 80 mm, unrestrained (cantilever torsion: warping FE with the root warping fixed, G4 item 11)', UB('457 x 191 x 82'),
+  { L: 4, supports: CANT(), eccOn: true, loads: [P(4, 20, 'Q', { e: 80 })] }, ['torsion-fe', 'ecc-small']);
+mk('UB-50', 'UB 457x191x82, 8 m SS, partial UDL 2-6 m at e = 100 mm, unrestrained (partial-span torque: warping FE, G4 item 11; coverage-matrix probe)', UB('457 x 191 x 82'),
+  { L: 8, supports: SS(8), eccOn: true, loads: [UDL(2, 6, 10, 'Q', { e: 100 })] }, ['torsion-fe', 'ecc-large']);
+mk('UB-51', 'UB 457x191x82, 8 m SS, full UDL at e = 100 mm with both supports warping-restrained, unrestrained (warping-fixed ends: warping FE, G4 item 11)', UB('457 x 191 x 82'),
+  { L: 8, supports: [{ pos: 0, type: 'pinned', warpFix: true }, { pos: 8, type: 'pinned', warpFix: true }], eccOn: true, loads: [UDL(0, 8, 5, 'G', { e: 100 }), UDL(0, 8, 8, 'Q', { e: 100 })] }, ['torsion-fe', 'ecc-large']);
 
 /* =========================================================================
    UC - universal columns used as beams
@@ -361,6 +368,8 @@ mk('MIX-10', 'PFC 300x100x46, 6 m SS, central point load at e = -50 mm (load on 
   { L: 6, supports: SS(6), eccOn: true, loads: [P(3, 21, 'Q', { e: -50 })] }, ['ecc-large']);
 mk('PFC-20', 'PFC 180x75x20, 4 m SS, full UDL + axial compression 50 kN, unrestrained (torsional-flexural buckling cl 6.3.1.4, G3 item 10)', PFC('180x75x20'),
   { L: 4, supports: SS(4), axial: 50, loads: [UDL(0, 4, 1, 'G'), UDL(0, 4, 2, 'Q')] }, ['tfb']);
+mk('PFC-21', 'PFC 180x75x20, 2 x 4 m continuous, full UDL at e = 20 mm, hold-downs at the end supports, unrestrained (multi-span torsion: warping FE per pattern combination, G4 item 11)', PFC('180x75x20'),
+  { L: 8, supports: [{ pos: 0, type: 'pinned', holdDown: true }, { pos: 4, type: 'pinned' }, { pos: 8, type: 'pinned', holdDown: true }], eccOn: true, loads: [UDL(0, 8, 1, 'G', { e: 20 }), UDL(0, 8, 4, 'Q', { e: 20 })] }, ['torsion-fe', 'ecc-small']);
 
 // ---- sanity: unique ids ----
 {

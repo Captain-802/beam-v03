@@ -249,6 +249,9 @@ function runOne(cs, method) {
   rec.advisory = (c.advisory || []).map(stripHtml);
   rec.warn = (c.ltb && c.ltb.warn) ? c.ltb.warn.map(stripHtml) : [];
   rec.mcrMethodReported = c.mcrMethod || null;
+  // G4: open-section torsion route ('closed' = P385 App C forms, 'fe' = warping-torsion FE) and its mesh error
+  rec.torsionMethod = (c.tor && c.tor.p385) ? c.tor.method : (c.tor && c.tor.box ? 'box' : null);
+  rec.torsionMesh = (c.tor && c.tor.fe) ? num(c.tor.meshError) : null;
 
   // ---- LTB quantities (design values, i.e. those behind the printed utilisation) ----
   const L = c.ltb || null;
@@ -442,6 +445,28 @@ function runOne(cs, method) {
     const uE = utils.find(x => /6\.2\.10/.test(x.name));
     add('xii-MVN', rel(u, m.u) <= 1e-9 && !!uE && Math.abs(uE.val - m.u) <= 1e-12 && m.V > 0.5 * Vpl,
       `x = ${fmt(m.x / 1000, 2)} m: V ${fmt(m.V, 1)} kN, rho ${fmt(rho, 4)}, N_V,Rd ${fmt(NV, 1)}, M_v,Rd ${fmt(MvY, 1)}, a_V ${fmt(aV, 3)}${waiver ? ', 6.2.9.1(4) waiver' : ''}, M_N,V,Rd ${fmt(MNVy, 1)} kN.m: M/M_N,V,Rd ${fmt(u, 4)} vs engine ${fmt(m.u, 4)}`);
+  }
+  // (xiii) G4 item 11: warping-torsion FE against the classical closed forms of the Vlasov equation, from the raw P385 constants
+  //   cantilever with a single tip point torque and no other torque: phi_tip = (T/GI_T)[L - a tanh(L/a)], root T_t = 0, tip total torque = T
+  //   fork-fork, both ends warping fixed, full-span uniform torque only: phi_mid = (t/GI_T)[L^2/8 - (La/2) tanh(L/4a)], T_t = 0 at both ends
+  if (c.tor && c.tor.p385 && c.tor.fe && sec.kind === 'I') {
+    const tp = sec.tp, G = 81000, Lmm = o.L * 1000;
+    const IT = (tp && tp.IT ? tp.IT : sec.J) * 1e4, Iw = ((tp && tp.Iw != null ? tp.Iw : sec.Iw) || 0) * 1e12;
+    const GIt = G * IT, aa = Math.sqrt(E * Iw / GIt);
+    const sup = o.supports, loads = o.loads.filter(l => l.type !== 'moment' && Math.abs(+l.e || 0) > 0);
+    const isCant = sup.length === 1 && sup[0].type === 'fixed';
+    const tipOnly = isCant && loads.length && loads.every(l => l.type === 'point' && Math.abs(l.pos - o.L) < 1e-9) && o.loads.every(l => l.type !== 'udl' && l.type !== 'trap' || Math.abs(+l.e || 0) === 0);
+    const bothFix = sup.length === 2 && sup.every(s => s.warpFix) && sup[0].pos === 0 && sup[1].pos === o.L && loads.length && loads.every(l => l.type === 'udl' && l.x1 === 0 && l.x2 === o.L) && o.loads.every(l => l.type === 'udl' || Math.abs(+l.e || 0) === 0);
+    if (tipOnly || bothFix) {
+      const fac = gM;   // governing-moment combination = the only ULS combination of these single-segment layouts
+      let T = 0, t = 0;
+      loads.forEach(l => { const f = fac[l.case] || 0; if (l.type === 'point') T += f * l.P * 1000 * l.e; else t += f * l.w * l.e; });
+      let phiExp, label, ttZero;
+      if (tipOnly) { phiExp = (T / GIt) * (Lmm - aa * Math.tanh(Lmm / aa)); label = `cantilever tip torque T = ${fmt(T / 1e6, 3)} kN.m: phi_tip = (T/GI_T)[L - a tanh(L/a)] = ${fmt(phiExp, 5)} rad`; ttZero = Math.abs(c.tor.TtEnds[0]) <= 1e-9 && Math.abs(Math.abs(c.tor.TEnds[1]) - T / 1e6) <= 1e-6; }
+      else { phiExp = (t / GIt) * (Lmm * Lmm / 8 - Lmm * aa / 2 * Math.tanh(Lmm / (4 * aa))); label = `warping-fixed ends, uniform torque t = ${fmt(t, 1)} N.mm/mm: phi_mid = (t/GI_T)[L^2/8 - (La/2) tanh(L/4a)] = ${fmt(phiExp, 5)} rad`; ttZero = Math.abs(c.tor.TtEnds[0]) <= 1e-9 && Math.abs(c.tor.TtEnds[1]) <= 1e-9; }
+      add('xiii-torsionFE', rel(phiExp, c.tor.phiUmax) <= 1e-4 && ttZero && c.tor.meshConverged && c.tor.meshError <= 1e-3,
+        `${label} vs engine phi_max ${fmt(c.tor.phiUmax, 5)} rad (${c.tor.methodLabel}, mesh error ${(c.tor.meshError * 100).toExponential(2)} %); St Venant torque zero at the warping-fixed end(s): ${ttZero}`);
+    }
   }
   // (xi) G3 item 8: k_c floor - printed k_c = max(1/sqrt(C1), 1/sqrt(2.76)) on both routes
   if (L && !L.failed && L.kc != null && L.C1 != null && !L.cant && !L.channel && (method === 'standard' ? true : L.c1Trusted !== false) && cs.overrides.C1o == null) {

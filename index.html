@@ -113,7 +113,7 @@
       </div>
       <div class="hint">Forces positive <b>downward</b> (kN, kN/m). Moment positive anticlockwise (kN m). Enter <b>characteristic</b> (unfactored) values and tag each load's <b>case</b>   the partial factors come from the Load Combinations below, not from the load itself. Section self-weight is added automatically as Dead (G) from the selected section mass/m. <b>Point loads (EC3):</b> each is also checked as a transverse force on the web (EN 1993-1-5 clause 6, with the 7.2 interaction) using its own <b>stiff bearing length s<sub>s</sub></b> (blank = 0 mm); tick <b>bearing stiffener provided</b> where a stiffener will be designed (EN 1993-1-5 9.4). A load directly over a support is treated as transferred through the web (type b).</div>
       <label class="checkline"><input type="checkbox" id="eccOn"> <span>Load eccentricity</span></label>
-      <div class="hint">When activated, each load row gains its own shear-centre offset <b>e (mm)</b>. In EC3 unrestrained mode each transverse load also gets its own <b>z<sub>g</sub></b> load height above the shear centre. Applied moments act through the shear centre. Automatic self-weight acts through the centroid: e = 0 for doubly symmetric sections, but e = e<sub>sc</sub> for PFC channels.</div>
+      <div class="hint">When activated, each load row gains its own shear-centre offset <b>e (mm)</b>. In EC3 unrestrained mode each transverse load also gets its own <b>z<sub>g</sub></b> load height above the shear centre. Applied moments act through the shear centre. Automatic self-weight acts through the centroid: e = 0 for doubly symmetric sections, but e = e<sub>sc</sub> for PFC channels. <b>Open-section torsion (EC3):</b> every support prevents twist; a fork-fork single span with full-span or point torques uses the SCI P385 Appendix C closed forms, any other layout (cantilever, multi-span, overhang, partial-span eccentric load, warping-restrained support) the warping-torsion finite-element model, which reports its mesh error. Tick <b>warping restrained for torsion</b> on a support (shown once eccentricity is on) only where the connection really prevents warping of the flanges; the default is a fork end with free warping.</div>
     </details>
 
     <details open>
@@ -198,6 +198,7 @@
   <script src="js/04-checks.js"></script>
   <script src="js/checks/bs5950-checks.js"></script>
   <script src="js/checks/eurocode-checks.js"></script>
+  <script src="js/checks/torsion-fe.js"></script>
   <script src="js/05-diagrams.js"></script>
   <script src="js/05-section-view.js"></script>
   <script src="js/05-view3d.js"></script>

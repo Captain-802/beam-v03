@@ -15,7 +15,7 @@ const Q15 = () => [{id:'c1', label:'ULS: 1.5Q', factors:{G:0,Q:1.5,W:0,E:0}, sls
 const analyseAll = () => run(`(()=>{ const a=analyse(); const ch=checks(a); return {a:{n:a.ulsResults.length, nS:a.slsResults.length,
   labels:a.ulsResults.map(r=>r.combo.label), M:a.ulsResults.map(r=>r.Mmax/1e6), Mpos:a.ulsResults.map(r=>r.Mpos), xs:a.ulsResults.map(r=>r.fb.xs.length),
   Mmax:a.Mmax, Vmax:a.Vmax, dmax:a.dmax, R:a.reactions.map(r=>r.V), gov:a.governM.combo.label, uplift:a.uplift, patterns:a.patterns, deflection:a.deflection, segs:a.deflSegments,
-  torsN:a.tors? a.tors.uls.length : null},
+  torsN:a.tors? a.tors.uls.length : null, torsOMethod:a.torsO? a.torsO.method : null, torsON:a.torsO&&a.torsO.sols? a.torsO.sols.length : null},
   c:{utils:ch.utils.map(u=>u.val), names:ch.utils.map(u=>u.name), unsupported:ch.unsupported, advisory:ch.advisory||[], pass:ch.pass, dlimit:ch.dlimit, divisor:ch.divisor, deflCant:ch.deflCant,
      deflAbsGoverns:ch.deflAbsGoverns, holdDown:ch.holdDown, buck:ch.buck? {Ky:ch.buck.Ky, Kz:ch.buck.Kz, LcrY:ch.buck.LcrY, LcrZ:ch.buck.LcrZ, lamY:ch.buck.lamY, lamZ:ch.buck.lamZ, basis:ch.buck.lcrBasis, cantStrut:ch.buck.cantStrut, leOverride:ch.buck.leOverride, aeffOn:ch.buck.aeffOn, Aeff:ch.buck.Aeff} : null,
      ltb:ch.ltb? {Mcr:ch.ltb.Mcr, MbRd:ch.ltb.MbRd, nCombos:ch.ltb.nCombos, governCombo:ch.ltb.governCombo} : null}}; })()`);
@@ -117,7 +117,9 @@ test('pattern loading: every downstream consumer sees the generated combinations
     loads:[{type:'udl',x1:0,x2:8,w:20,case:'Q',e:20,zg:0},{type:'udl',x1:0,x2:8,w:6,case:'G',e:0,zg:0}]});
   const {a, c: ch} = analyseAll();
   assert.equal(a.n, 3); assert.equal(a.torsN, 3); assert.equal(ch.ltb.nCombos, 3);
-  assert.ok(ch.unsupported.some(m => /partial-span eccentric distributed load|multi-span layouts/.test(m)), 'P385 closed forms still not applicable to the two-span member');
+  // G4 (19 Sep 2026): the two-span member is no longer blocked - the warping-torsion FE runs once per generated combination
+  assert.ok(!ch.unsupported.some(m => /partial-span eccentric distributed load|multi-span layouts|multi-span \/ overhang/.test(m)), 'two-span member evaluated by the warping-torsion FE (G4)');
+  assert.equal(a.torsOMethod, 'fe'); assert.equal(a.torsON, 3);
   // standard route: the closed-form load height / shape of a pattern combination reads that pattern's loads only
   c.reset({L:8, restraint:'ltb', mcrMethod:'standard', eccOn:true, za:0, supports:[{pos:0,type:'pinned'},{pos:4,type:'pinned'},{pos:8,type:'pinned'}],
     loads:[{type:'udl',x1:0,x2:4,w:20,case:'Q',e:0,zg:200},{type:'udl',x1:4,x2:8,w:20,case:'Q',e:0,zg:-200}], combos:Q15()});

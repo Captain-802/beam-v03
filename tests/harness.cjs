@@ -8,7 +8,7 @@ function app(root = path.resolve(__dirname, '..')) {
   const files = [
     '01-computation-engine.js', ...['pfc','shs','rhs','ub','uc'].map(s => `sections/${s}-section-data.js`),
     '02-section-data.js', '03-state-ui.js', '04-checks.js',
-    'checks/bs5950-checks.js', 'checks/eurocode-checks.js', '05-diagrams.js', '06-render.js', '06-brief-masterseries.js', '08-mcr-eigen-patch.js'
+    'checks/bs5950-checks.js', 'checks/eurocode-checks.js', 'checks/torsion-fe.js', '05-diagrams.js', '06-render.js', '06-brief-masterseries.js', '08-mcr-eigen-patch.js'
   ];
   files.forEach(f => vm.runInContext(fs.readFileSync(path.join(root, 'js', f), 'utf8'), ctx, { filename: f }));
   ctx.run = code => vm.runInContext(code, ctx);

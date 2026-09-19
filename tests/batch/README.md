@@ -1,10 +1,10 @@
 # 100-beam verification campaign - headless batch runner
 
-Runs the EC3 beam checker over a library of 118 distinct beams without a
+Runs the EC3 beam checker over a library of 122 distinct beams without a
 browser, records every printed design quantity, and cross-checks the engine
 against independent closed forms computed in the runner. LTB cases are run
 with BOTH Mcr methods (`eigen` FE eigensolver and `standard` closed form), so
-the 118 cases give 214 runs.
+the 122 cases give 222 runs.
 
 ## Files
 
@@ -61,6 +61,7 @@ engine's intermediate results. Tolerance 0.5 % relative unless stated.
 | x-NbT | Channel torsional-flexural buckling (cl 6.3.1.4, G3): i_0^2, N_cr,T (P385 I_T, I_w, y0 = e_sc, L_T = L_cr,z or the case L_T), N_cr,TF coupled with the y-y mode, lambda_T, chi_T on curve c, N_b,T,Rd recomputed from the raw PFC table; the verdict entry must equal N_Ed/N_b,T,Rd and the 6.61/6.62 axial terms must not be below N_Ed/N_b,y,Rd, N_Ed/N_b,z,Rd | PFC runs with N > 0 (PFC-20, both routes) |
 | xi-kcFloor | k_c floor (G3): the printed k_c must equal max(1/sqrt(C1), 1/sqrt(2.76)) on both routes and be flagged floored exactly when C1 > 2.76 | I/H LTB runs with a trusted C1 and no user override (74 runs) |
 | xii-MVN | cl 6.2.10 (G3): at the engine's worst high-shear station of a rolled I/H Class 1/2 uniaxial case, rho, N_V,Rd, M_v,Rd, a_V, the 6.2.9.1(4) waiver and M_N,V,Rd recomputed from the station V, M, N and the raw table; M/M_N,V,Rd must equal the engine's value and the verdict entry | UB-48 |
+| xiii-torsionFE | Warping-torsion FE (G4): the engine's peak twist on the FE route recomputed from the classical closed forms of E I_w phi'''' - G I_T phi'' = m_t with the raw P385 constants (I_T, I_w, a = sqrt(E I_w/G I_T)): a cantilever with a single tip point torque, phi_tip = (T/GI_T)[L - a tanh(L/a)] with T_t = 0 at the root and total torque T at the tip (UB-49); a fork-fork span with both ends warping-fixed under a full-span uniform torque, phi_mid = (t/GI_T)[L^2/8 - (La/2) tanh(L/4a)] with T_t = 0 at both ends (UB-51); tolerance 1e-4, the printed mesh error must be <= 1e-3 and converged | rolled I/H runs on the FE route with those layouts (4 runs) |
 
 Since the 19 Sep 2026 gap closure the analysed combination list of a multi-span,
 overhang or Gerber case includes the automatic Q patterns (`a.patterns`, column
@@ -75,27 +76,30 @@ observe from the check output (axial / biaxial / tension / torsion / Annex A /
 flexural buckling / interaction / torsional-flexural gap / restraints / shear
 buckling) and lists the differences.
 
-## Case coverage (118 cases, 214 runs)
+## Case coverage (122 cases, 222 runs)
 
 | Family | Cases | LTB (x2 runs) | Fully restrained | Notes |
 |---|---|---|---|---|
-| UB | 54 | 44 | 10 | 127x76x13 to 1016x305x272, incl. curve-c / curve-d shapes, deep 914 and 1016 sections, S355; G3: 1016x305x249 + 3000 kN (A_eff), 457x191x82 + 600 kN unrestrained (A_eff, Class 2 combined), 457x191x82 2 m point load 0.3 m + 600 kN (6.2.10) |
+| UB | 57 | 47 | 10 | 127x76x13 to 1016x305x272, incl. curve-c / curve-d shapes, deep 914 and 1016 sections, S355; G3: 1016x305x249 + 3000 kN (A_eff), 457x191x82 + 600 kN unrestrained (A_eff, Class 2 combined), 457x191x82 2 m point load 0.3 m + 600 kN (6.2.10); G4: 457x191x82 cantilever with an eccentric tip load, partial-span eccentric UDL, full UDL with both supports warping-restrained (warping-torsion FE) |
 | UC | 15 | 13 | 2 | 152x152x23 to 356x406x235 |
-| PFC | 20 | 16 | 4 | 100x50x10 to 430x100x64, e = 0 / small / flange half-width, web-side e < 0; G3: 180x75x20 + 50 kN (torsional-flexural buckling) |
+| PFC | 21 | 17 | 4 | 100x50x10 to 430x100x64, e = 0 / small / flange half-width, web-side e < 0; G3: 180x75x20 + 50 kN (torsional-flexural buckling); G4: 180x75x20 two-span at e = 20 mm (warping-torsion FE per pattern combination) |
 | SHS | 11 | 7 | 4 | hot-finished and cold-formed |
 | RHS | 18 | 16 | 2 | h/b up to 3 (300x100), 500x300, 450x250 |
 
-Supports: 84 simply supported, 7 two-span, 2 three-span, 6 cantilevers, 4
-propped cantilevers (+1 with an internal hinge), 6 fixed-fixed, 2 overhang
-beams, 2 Gerber beams (one and two hinges).
-Loads: full UDL (92), partial UDL (5), trapezoidal / triangular rising and
+Supports: 86 simply supported (2 with both supports warping-restrained for
+torsion, `warpFix`), 8 two-span, 2 three-span, 7 cantilevers, 4 propped
+cantilevers (+1 with an internal hinge), 6 fixed-fixed, 2 overhang beams, 2
+Gerber beams (one and two hinges).
+Loads: full UDL (94), partial UDL (6), trapezoidal / triangular rising and
 falling (7), single and multiple point loads incl. loads at 0.25-0.3 m from a
 support (29 / 8), applied end and in-span couples incl. psi = +1, 0 and -1 (6),
 mixed UDL + UVL + point + couple, uplift through an upward W load (GQW combos)
 and through a negative W factor (GQWneg), unbalanced Q patterns over 2 and 3
 spans.
-Eccentricity / load height: eccOn in 26 cases (16 with e > 0 up to the flange
-half-width, on PFC, UB, SHS and RHS), zg = +D/2 and -D/2 through `za` and
+Eccentricity / load height: eccOn in 30 cases (20 with e > 0 up to the flange
+half-width, on PFC, UB, SHS and RHS; the G4 cases UB-49/50/51 and PFC-21 plus
+PFC-17 take the warping-torsion FE route, every other open-section torsion case
+the P385 closed forms), zg = +D/2 and -D/2 through `za` and
 per-load `zg` (10, incl. the fixed-ended UDL and central-point rows of SN003a
 Table 3.2 with C2 = 1.554 / 1.645 in UB-43 / UB-45 and an off-centre point
 load with no published C2 in UB-44, which the standard route must block), a
@@ -109,12 +113,33 @@ Loads are sized so the governing eigen utilisation mostly lies in 0.6-0.95.
 Deliberately heavy cases (tag `heavy`: UB-02 demo unrestrained, UB-22 curve d)
 exercise the FAIL path.
 
-## Results of the current run (2026-09-19, Node v24.14.1, after the G3 gap closure)
+## Results of the current run (2026-09-19, Node v24.14.1, after the G4 gap closure)
 
-Verdicts: PASS 155 | FAIL 44 | NOT VERIFIED 15 | ERROR 0 (118 cases, 214 runs).
-Cross-check mismatches: 0 runs (viii-FRd 126/126, ix-Aeff 4/4, x-NbT 3/3,
-xi-kcFloor 75/75, xii-MVN 1/1). Trigger mismatches: 1 case (PFC-17, see
-below). Changes against the post-G2 run (PASS 149 | FAIL 43 | NOT VERIFIED
+Verdicts: PASS 161 | FAIL 47 | NOT VERIFIED 14 | ERROR 0 (122 cases, 222 runs).
+Cross-check mismatches: 0 runs (viii-FRd 132/132, ix-Aeff 4/4, x-NbT 3/3,
+xi-kcFloor 77/77, xii-MVN 1/1, xiii-torsionFE 4/4). Trigger mismatches: 0.
+Changes against the post-G3 run (PASS 155 | FAIL 44 | NOT VERIFIED 15, 118
+cases / 214 runs): PFC-17 (150x90x24, partial-span eccentric UDL 1-3 m at
+e = 30 mm) is evaluated by the warping-torsion FE instead of NOT COVERED: the
+P385 3.1.2 cross-section check (0.38), V_pl,T,Rd (0.10) and the EN 1993-6
+Annex A interaction now run - eigen PASS with Annex A 0.86 (deflection 0.88
+governs), standard FAIL with Annex A 3.77 on the conservative whole-member
+channel kappa chain (M_b,Rd is exceeded, 1.31). Its trigger 3.8 is observed,
+so the trigger-mismatch table is empty. New cases (all on the FE route, mesh
+error <= 3e-4): UB-49 (4 m cantilever, 20 kN tip load at e = 80 mm: root
+warping fixed, phi_tip = 0.0938 rad = the closed form, Annex A 0.57 PASS both
+routes), UB-50 (8 m SS, partial UDL 2-6 m at e = 100 mm, the coverage-matrix
+probe: Annex A 0.73 PASS both routes), UB-51 (8 m SS full UDL G + Q at e =
+100 mm with both supports warping-restrained: phi_mid = 0.0707 rad = the
+fixed-fixed closed form against 0.179 rad with fork ends; Annex A 1.12 FAIL
+both routes against 1.37 with fork ends: the restrained warping raises M_w
+from 11.2 to 17.7 kN.m but halves the twist and with it M_z = phi M_y), PFC-21 (180x75x20, 2 x 4 m at e = 20 mm,
+hold-downs declared: FE per pattern combination, eigen PASS Annex A 0.74,
+standard FAIL with the unbounded amplifier of the whole-member channel chain).
+Every other run is unchanged to the printed digit, including every fork-fork
+full-span torsion case, which keeps the P385 closed forms.
+
+Changes of the post-G3 run against the post-G2 run (PASS 149 | FAIL 43 | NOT VERIFIED
 16): UB-31 (254x146x31 with Mz = 8 kN.m, unrestrained) is Class 1 instead of
 Class 3 under the former uniform-compression web bound and PASSes Eq 6.62 at
 0.88 (was FAIL 1.08); UB-30 (same, restrained) keeps PASS with the plastic
@@ -158,9 +183,9 @@ not blocking (see AUDIT.md).
 
 | Family | Cases | Runs | PASS | FAIL | NOT VERIFIED | ERROR |
 |---|---|---|---|---|---|---|
-| UB | 54 | 98 | 66 | 24 | 8 | 0 |
+| UB | 57 | 104 | 70 | 26 | 8 | 0 |
 | UC | 15 | 28 | 24 | 2 | 2 | 0 |
-| PFC | 20 | 36 | 25 | 10 | 1 | 0 |
+| PFC | 21 | 38 | 27 | 11 | 0 | 0 |
 | SHS | 11 | 18 | 14 | 2 | 2 | 0 |
 | RHS | 18 | 34 | 26 | 6 | 2 | 0 |
 
@@ -168,32 +193,33 @@ not blocking (see AUDIT.md).
 
 | Method | Runs | PASS | FAIL | NOT VERIFIED | ERROR |
 |---|---|---|---|---|---|
-| eigen | 96 | 78 | 11 | 7 | 0 |
-| standard | 96 | 59 | 29 | 8 | 0 |
+| eigen | 100 | 82 | 12 | 6 | 0 |
+| standard | 100 | 61 | 31 | 8 | 0 |
 | n/a (restrained) | 22 | 18 | 4 | 0 | 0 |
 
 ### Cross-check totals
 
 | Check | Runs | OK | Mismatch |
 |---|---|---|---|
-| i-Mmax | 120 | 120 | 0 |
-| i-dmax | 120 | 120 | 0 |
-| ii-equilibrium | 214 | 214 | 0 |
-| iii-McrStd | 160 | 160 | 0 |
-| iii-zgBlock | 77 | 77 | 0 |
-| iv-McrRatio | 96 | 88 | 8 flagged |
-| v-MbRd<=McRd | 192 | 192 | 0 |
-| vi-governing | 214 | 214 | 0 |
-| vii-uplift | 214 | 214 | 0 |
+| i-Mmax | 124 | 124 | 0 |
+| i-dmax | 124 | 124 | 0 |
+| ii-equilibrium | 222 | 222 | 0 |
+| iii-McrStd | 166 | 166 | 0 |
+| iii-zgBlock | 79 | 79 | 0 |
+| iv-McrRatio | 100 | 92 | 8 flagged |
+| v-MbRd<=McRd | 200 | 200 | 0 |
+| vi-governing | 222 | 222 | 0 |
+| vii-uplift | 222 | 222 | 0 |
 | ix-Aeff | 4 | 4 | 0 |
 | x-NbT | 3 | 3 | 0 |
-| xi-kcFloor | 75 | 75 | 0 |
+| xi-kcFloor | 77 | 77 | 0 |
 | xii-MVN | 1 | 1 | 0 |
-| viii-FRd | 126 | 126 | 0 |
+| xiii-torsionFE | 4 | 4 | 0 |
+| viii-FRd | 132 | 132 | 0 |
 
 ### Eigen / standard Mcr outliers
 
-Same segment (the engine's own comparison inside the eigen run, 8 of 94):
+Same segment (the engine's own comparison inside the eigen run, 8 of 100):
 
 | Case | Ratio | Standard route | Layout |
 |---|---|---|---|
@@ -207,7 +233,7 @@ Same segment (the engine's own comparison inside the eigen run, 8 of 94):
 | MIX-06 | 1.724 | Serna | fixed - hinge - pinned, UDL |
 
 Across the two runs (design Mcr of the eigen run / design Mcr of the standard
-run): 37 of 94. The standard run always treats the member as one segment with
+run): 38 of 100. The standard run always treats the member as one segment with
 LE = k x L, so every multi-span beam and every beam with intermediate
 restraints lands here (UB-06/08/13/14/15/17/24/39/41, UC-07/08, PFC-10/18,
 SHS-05, RHS-08/09/14, MIX-02/04 ...) together with the channel cases, where
@@ -232,11 +258,12 @@ Expn 6.55 simplified slenderness is printed for comparison only.)
   VERIFIED with the hold-down force printed (item 1.2 now implemented; add
   `holdDown: true` to the support to turn it into an advisory).
 
-- PFC-17 (partial-span eccentric UDL on a channel): trigger 3.8 (LTB with
-  torsion interaction) is expected but the engine reports the partial-span
-  torque as NOT COVERED, so the run is NOT VERIFIED (eigen) / FAIL (standard,
-  whole-member LTB) without an Annex A check. This is a real engine gap, not
-  a case error.
+- Open-section torsion outside the P385 closed forms (G4): PFC-17, UB-49/50/51
+  and PFC-21 now run the warping-torsion FE (`c.tor.fe`, column
+  `torsionMethod` = `fe` in results.json with the mesh error `torsionMesh`);
+  every support is a fork unless the case sets `warpFix: true` on it, a
+  cantilever root is warping-fixed automatically. The 0.5 % mesh block never
+  triggers in the library (largest mesh error 3.1e-4, PFC-21).
 - PFC-11 (channel + axial compression): torsional / torsional-flexural
   buckling (cl 6.3.1.4) not covered -> NOT VERIFIED.
 - SHS-07 (cold-formed SHS with eccentric load): torsion constants use

@@ -804,7 +804,7 @@ function checksEC3Restrained(a){
       const cls12=cl.cls<=2;
       // evaluate effects on each ULS combo's own coincident (My, phi, Mw) fields
       const SwChan=(chan&&sec.tp)? Math.max(sec.tp.Sw2||0,sec.tp.Sw3||0)*1e4 : 0;
-      let cross={u:-1}, grids=[], tauT=0, tauW=0, TtEnds=[0,0], MwMaxAbs=0, MzMax=0, phiUmax=0, MyAtCross=0;
+      let cross={u:-1}, grids=[], tauT=0, tauW=0, TtEnds=[0,0], TEnds=[0,0], BMaxAbs=0, BMaxPos=0, MwMaxAbs=0, MzMax=0, phiUmax=0, MyAtCross=0;
       let vt={u:-1,x:0,V:0,T:0,tauT:0,tauW:0,VplTRd:VcRd,combo:'',zeroCapacity:false};
       O.sols.forEach(se=>{
         const g=se.sol, fb=se.fb;
@@ -830,11 +830,16 @@ function checksEC3Restrained(a){
         });
         rows.forEach(r2=>{ if(r2.u>cross.u) cross={...r2,combo:se.combo.label}; 
           MwMaxAbs=Math.max(MwMaxAbs,r2.Mw); MzMax=Math.max(MzMax,r2.Mz); phiUmax=Math.max(phiUmax,Math.abs(r2.phi)); });
+        g.p2.forEach((v,i)=>{ const Bi=Math.abs(EIw*v)/1e9; if(Bi>BMaxAbs){ BMaxAbs=Bi; BMaxPos=g.xs[i]; } });   // bimoment B = EI_w phi'', kN.m2
         grids.push({combo:se.combo,rows});
         const n=g.xs.length;
-        const Tt0=O.GIt*g.p1[0]/1e6, TtL=O.GIt*g.p1[n-1]/1e6;    // kNm
+        const Tt0=O.GIt*g.p1[0]/1e6, TtL=O.GIt*g.p1[n-1]/1e6;    // kNm, St Venant part at the ends
         if(Math.abs(Tt0)>Math.abs(TtEnds[0])) TtEnds[0]=Tt0;
         if(Math.abs(TtL)>Math.abs(TtEnds[1])) TtEnds[1]=TtL;
+        // total torque T = G I_T phi' - E I_w phi''' at the ends (St Venant + warping parts)
+        const T0=(O.GIt*g.p1[0]-EIw*g.p3[0])/1e6, TL=(O.GIt*g.p1[n-1]-EIw*g.p3[n-1])/1e6;
+        if(Math.abs(T0)>Math.abs(TEnds[0])) TEnds[0]=T0;
+        if(Math.abs(TL)>Math.abs(TEnds[1])) TEnds[1]=TL;
       });
       const VplTRd=vt.VplTRd;                                                          // coincident V-T sweep, Eq 6.26/6.27
       // Method A comparison (simplified flange couple - conservative)
@@ -844,7 +849,18 @@ function checksEC3Restrained(a){
       }
       // simplified Mw: point torques -> flange SS BM; ud/lin -> F L/8
       const gm=O.sols.find(se=>se.combo===a.governM.combo)||O.sols[0];
+      // Method of the elastic warping analysis (19 Sep 2026 gap closure, G4):
+      // 'closed' = P385 App C Cases 3/4/10, 'fe' = the warping-torsion FE of
+      // js/checks/torsion-fe.js (cantilevers, multi-span, partial-span torque,
+      // warping-fixed ends). The FE mesh is doubled once; PASS is refused when
+      // the change exceeds the tool threshold TORSION_FE_MESH_BLOCK.
+      const feMethod=O.method==='fe';
+      if(feMethod && !O.converged) unsupported.push('Warping-torsion FE mesh has not converged: doubling the mesh ('+O.nElemCoarse+' to '+O.nElem+' elements) changed the peak twist / St Venant torque / bimoment by '+(O.meshError*100).toFixed(2)+' % (limit '+(O.meshBlock*100).toFixed(1)+' %). The torsion effects are printed but PASS is blocked; refine the load layout or report the case.');
       tor={box:false,p385:true,TEd:a.tors.Tmax,governT:a.tors.governT,tp:sec.tp||null,
+        method:O.method||'closed',methodLabel:O.methodLabel||'SCI P385 App C closed forms (Cases 3/4/10)',fe:feMethod,
+        nElem:O.nElem||null,nElemCoarse:O.nElemCoarse||null,meshError:feMethod? O.meshError:null,meshBlock:O.meshBlock||null,meshConverged:feMethod? !!O.converged:true,
+        bcText:O.bcText||'',feReasons:O.feReasons||[],
+        BMax:BMaxAbs,BMaxPos,TEnds,
         e0:(sec.tp&&sec.tp.e0!=null)? sec.tp.e0 : (sec.e0!=null? sec.e0*10 : null),
         esc:(sec.tp&&sec.tp.esc!=null)? sec.tp.esc : null,
         aa:O.aa,X:O.X,IT:O.IT,Iw:O.Iw,chan,cls12,

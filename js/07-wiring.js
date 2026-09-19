@@ -75,7 +75,7 @@ function wire(){
   $("za").addEventListener("input",()=>{ readScalarInputs(); renderLoadList(); recompute(); });
   $("destab").addEventListener("change",()=>{ readScalarInputs(); recompute(); });
   if($("autoPattern")) $("autoPattern").addEventListener("change",()=>{ readScalarInputs(); recompute(); });
-  $("eccOn").addEventListener("change",()=>{ readScalarInputs(); renderLoadList(); recompute(); });
+  $("eccOn").addEventListener("change",()=>{ readScalarInputs(); renderSupportList(); renderLoadList(); recompute(); });   // support list: the torsion warping switch follows eccOn
   $("rootWarp").addEventListener("change",()=>{ readScalarInputs(); recompute(); });
   function refreshAutoFields(){
     const sec=activeSection();

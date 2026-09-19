@@ -105,6 +105,10 @@ function renderSupportList(){
   // without touching the vertical bending model (unlike a Fixed support).
   const ltbBCOn = S.code==='EC3' && (S.restraint||'full')!=='full';
   const webBearingOn = webBearingInputsOn(), secWB = activeSection();
+  // Torsion boundary condition (19 Sep 2026 G4): every support prevents twist;
+  // this option adds phi' = 0 (warping fixed) at the support in the
+  // warping-torsion FE. Default unticked = fork end, warping free (P385).
+  const torsionBCOn = torsionWarpInputsOn();
   S.supports.forEach((sp,i)=>{
     const row=document.createElement("div"); row.className="row";
     row.innerHTML=`<div class="rowhead"><b style="font-size:12px">Support ${i+1}</b>
@@ -120,7 +124,8 @@ function renderSupportList(){
         <label class="checkline" style="align-self:end"><input type="checkbox" data-spc="stiff" data-i="${i}"${sp.stiff?' checked':''}> <span>bearing stiffener provided (EN 1993-1-5 9.4)</span></label>
       </div>` : ''}
       <div class="ltb-checks" style="margin-top:4px">
-        <label class="checkline"><input type="checkbox" data-spc="holdDown" data-i="${i}"${sp.holdDown?' checked':''}> <span>hold-down provided (uplift resisted)</span></label>${ltbBCOn? `
+        <label class="checkline"><input type="checkbox" data-spc="holdDown" data-i="${i}"${sp.holdDown?' checked':''}> <span>hold-down provided (uplift resisted)</span></label>${torsionBCOn? `
+        <label class="checkline"><input type="checkbox" data-spc="warpFix" data-i="${i}"${sp.warpFix?' checked':''}> <span>warping restrained for torsion (&phi;&prime; = 0; unticked = fork end, warping free)</span></label>`:''}${ltbBCOn? `
         <label class="checkline"><input type="checkbox" data-spc="vp" data-i="${i}"${sp.vp?' checked':''}> <span>lat. bending v&prime; fixed (LTB)</span></label>
         <label class="checkline"><input type="checkbox" data-spc="phip" data-i="${i}"${sp.phip?' checked':''}> <span>warping &phi;&prime; fixed (LTB)</span></label>`:''}
       </div>`;
@@ -168,6 +173,9 @@ function loadFields(ld,i){
 /* EN 1993-1-5 clause 6 inputs (EC3 path): per point load and per support a
    stiff bearing length s_s and a "bearing stiffener provided" switch. */
 function webBearingInputsOn(){ return S.code==='EC3'; }
+/* Per-support "warping restrained for torsion" switch (warping-torsion FE,
+   19 Sep 2026 G4): EC3 path, torsion active, open section. */
+function torsionWarpInputsOn(){ return S.code==='EC3' && !!S.eccOn && !activeSection().isBox; }
 function loadBearingFields(ld,i){
   if(!webBearingInputsOn() || ld.type!=='point' || ld.isSelfWeight) return '';
   const ssVal = (ld.ss!=null && ld.ss!=='' && isFinite(+ld.ss))? ld.ss : '';

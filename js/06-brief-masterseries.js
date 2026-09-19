@@ -634,7 +634,16 @@ function renderMasterSeriesBrief(a,c,sec){
     h+=msbSub('Torsion Bending Design @ '+msbM(xT)+' m');
     h+=msbRow('T<sub>Ed</sub> (max)', 'combination '+msbEsc(T.governT), msbKNm(T.TEd)+' kN.m', '');
     if(T.p385){
-      h+=msbRow('&phi;<sub>max</sub> (ULS)', 'L/a = '+f1(T.X,2)+'; fork ends, warping free (P385 Cases 3/4/10)', f1(T.phiUmax,4)+' rad = '+f1(T.phiUmax*180/Math.PI,2)+'&deg;', '');
+      // [beam-v03 addition, 19 Sep 2026 G4] method line: P385 closed forms where
+      // they apply, the warping-torsion FE elsewhere (with its mesh error)
+      if(T.fe){
+        h+=msbRow('Torsion analysis', 'EI<sub>w</sub>&phi;&#8279; &minus; GI<sub>T</sub>&phi;&Prime; = m<sub>t</sub>(x): '+msbEsc(T.methodLabel)+'; '+T.bcText+'; closed forms not applicable: '+msbEsc((T.feReasons||[]).join('; ')),
+          'mesh error '+(T.meshError*100).toFixed(3)+' %', T.meshConverged? 'FE (&le; '+(T.meshBlock*100).toFixed(1)+' %)' : '<span class="ms-warn">BLOCKED</span>');
+      } else {
+        h+=msbRow('Torsion analysis', msbEsc(T.methodLabel)+'; '+T.bcText, 'L/a = '+f1(T.X,2), 'P385 App C');
+      }
+      h+=msbRow('&phi;<sub>max</sub> (ULS)', T.fe? 'warping-torsion FE, '+T.bcText : 'L/a = '+f1(T.X,2)+'; fork ends, warping free (P385 Cases 3/4/10)', f1(T.phiUmax,4)+' rad = '+f1(T.phiUmax*180/Math.PI,2)+'&deg;', '');
+      h+=msbRow('B<sub>Ed</sub> = EI<sub>w</sub>&phi;&Prime; (max)', '@ x = '+msbM((T.BMaxPos||0)/1000)+' m', f1(T.BMax,3)+' kN.m&sup2;', '');
       h+=msbRow('M<sub>w.Ed</sub> = EI<sub>w</sub>&phi;&Prime;/(h&minus;t<sub>f</sub>)', 'max over span', msbKNm(T.MwMax)+' kN.m', '');
       h+=msbRow('M<sub>z.Ed</sub> = &phi;.M<sub>y.Ed</sub>', 'max coincident', msbKNm(T.MzMax)+' kN.m', '');
       const cr=T.cross;
@@ -651,7 +660,7 @@ function renderMasterSeriesBrief(a,c,sec){
           unb? 'k<sub>&alpha;</sub> unbounded: M<sub>y.Ed</sub> reaches M<sub>cr</sub> = '+msbKNm(AN.McrA)+' kN.m' : '@ x = '+msbM((AN.x||0)/1000)+' m: '+msbKNm(AN.My)+'/'+msbKNm(AN.MbA)+' + '+msbR(AN.Cmz)+'x'+msbKNm(AN.Mz)+'/'+msbKNm(AN.MzR)+' + '+msbR(AN.kw)+'x'+msbR(AN.kzw)+'x'+msbR(AN.kAlpha)+'x'+msbKNm(AN.Mw)+'/'+msbKNm(AN.MfR),
           unb? '&mdash;' : msbR(AN.u), unb? '<span class="ms-warn">BLOCKED</span>' : msbWarn(AN.u<=1.0001)+' EN 1993-6 A');
       }
-      h+=msbRow('End torques T<sub>t</sub>', 'x = 0 / x = L', msbKNm(Math.abs(T.TtEnds[0]))+' / '+msbKNm(Math.abs(T.TtEnds[1]))+' kN.m', '');
+      h+=msbRow('End torques T<sub>t</sub>', 'St Venant part GI<sub>T</sub>&phi;&prime; at x = 0 / x = L'+(T.TEnds? '; total T = GI<sub>T</sub>&phi;&prime; &minus; EI<sub>w</sub>&phi;&#8244; = '+msbKNm(Math.abs(T.TEnds[0]))+' / '+msbKNm(Math.abs(T.TEnds[1]))+' kN.m' : ''), msbKNm(Math.abs(T.TtEnds[0]))+' / '+msbKNm(Math.abs(T.TtEnds[1]))+' kN.m', '');
       h+=msbRow('&theta;<sub>ser</sub> &le; &theta;<sub>limit</sub>', '@ x = '+msbM(T.phiSerPos)+' m, '+msbEsc(T.governTw)+'; limit 2&deg; (P385 guidance, advisory)', f1(T.phiSerDeg,2)+'&deg;', T.phiSerDeg<=2? 'OK' : 'review');
     } else if(T.box){
       h+=msbRow('W<sub>t</sub>', msbEsc(T.WtSrc)+'; I<sub>t</sub> = '+g(T.ItShow/1e4,1)+' cm&#8308;', g(T.Wt/1e3,1)+' cm&sup3;', '');
