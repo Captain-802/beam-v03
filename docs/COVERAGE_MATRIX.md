@@ -129,6 +129,8 @@ Reference: section 4 of the trigger list and sections 5.2-5.10 of `docs/MASTERSE
 
 ## 5. Ranked list of feasible P1 and P2 items (rolled sections, tabulated properties)
 
+**Status update, 19 Sep 2026 gap closure (group G1):** items 2 (1.3 automatic pattern loading), 3 (3.9(b) cantilever strut length), 4 (1.2 uplift / hold-down) and 16 (3.19 per-segment deflection divisor and absolute limit) are IMPLEMENTED on branch `ms-brief-standard-mcr`; see AUDIT.md "19 Sep 2026 gap closure" and `tests/gap-closure.test.cjs`. Not covered by G1: gamma_G,inf / EQU set-A combinations (advisory only), W/E patterns, precamber.
+
 P1: a beam with in-scope loads could PASS while a required check fails.
 
 1. **2.16 + 2.18 Web transverse-force resistance** at every point load and every support reaction (EN 1993-1-5 clause 6 with the 7.2 interaction), blocking PASS until a stiffener is declared. Today an unconditional advisory is the only trace (`eurocode-checks.js:291`). Effort M.

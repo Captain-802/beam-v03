@@ -1,16 +1,138 @@
 /* ===========================================================================
    4. ORCHESTRATION   run analysis + shared checks dispatcher
    =========================================================================== */
+/* ---------------------------------------------------------------------------
+   Span segments and automatic pattern loading (19 Sep 2026 gap closure, item 1.3)
+   ---------------------------------------------------------------------------
+   spanSegments(): the member split at its supports, in mm - one segment per
+   interval between consecutive supports plus an end overhang (cantilever)
+   beyond the outer supports; a single fixed support gives one cantilever
+   segment 0..L. Internal hinges do NOT split segments. Used by the pattern
+   generator and by the per-segment deflection check.
+   --------------------------------------------------------------------------- */
+const PATTERN_CASE='Q';   // the variable action that is patterned (EN 1990 6.10 as entered)
+function spanSegments(){
+  const L=(+S.L)*1000;
+  if(!(L>0)) return [];
+  const pts=[...new Set(S.supports.map(s=>(+s.pos)*1000).filter(x=>Number.isFinite(x)&&x>=-1e-6&&x<=L+1e-6))].sort((p,q)=>p-q);
+  if(!pts.length) return [];
+  const segs=[];
+  if(pts[0]>1e-6) segs.push({a:0,b:pts[0],cant:true});
+  for(let i=0;i<pts.length-1;i++) if(pts[i+1]-pts[i]>1e-6) segs.push({a:pts[i],b:pts[i+1],cant:false});
+  if(L-pts[pts.length-1]>1e-6) segs.push({a:pts[pts.length-1],b:L,cant:true});
+  return segs.map((s,i)=>Object.assign(s,{no:i+1}));
+}
+function segIndexOf(segs,x){
+  for(let i=0;i<segs.length;i++) if(x>=segs[i].a-1e-6 && x<=segs[i].b+1e-6) return i;
+  return -1;
+}
+function patternLoadingActive(){
+  const on = S.autoPattern==null ? true : !!S.autoPattern;
+  return on && spanSegments().length>1;
+}
+/* Effective user loads of ONE combination (pure; reads S.loads, S.L, S.supports).
+   Returns one "piece" per load or per load part: {i, ld, type, case, e, zg,
+   factor, masked, pos (mm) | x1,x2 (mm) with w1,w2 (kN/m, unfactored), P (kN),
+   M (kN.m)}. Every load is present (factor 0 when its case is not in the
+   combination) so that the solver's x-grid is identical across combinations.
+   Pattern combinations carry combo.mask = {case, segIdx, segs}: a Q load (or
+   part of one) outside the masked segments gets factor 0 (masked = true).
+   When automatic pattern loading is active, distributed Q loads are split at
+   the interior segment boundaries for EVERY combination of the analysis (the
+   boundaries are support positions, so the grid stays identical); with
+   pattern loading off nothing is split and the list equals the previous one. */
+function comboLoadPieces(combo){
+  const active=patternLoadingActive();
+  const segs=active? spanSegments() : null;
+  const mask=(combo&&combo.mask)||null;
+  const fac=(combo&&combo.factors)||{};
+  const out=[];
+  S.loads.forEach((ld,i)=>{
+    if(ld.isSelfWeight) return;
+    const f=fac[ld.case] ?? 0;
+    const base={i,ld,type:ld.type,case:ld.case,e:+(ld.e||0),zg:ld.zg};
+    if(ld.type==='point'||ld.type==='moment'){
+      const pos=(+ld.pos)*1000;
+      let factor=f, masked=false;
+      if(mask && ld.case===mask.case && segs){ if(!mask.segIdx.includes(segIndexOf(segs,pos))){ factor=0; masked=true; } }
+      out.push(Object.assign(base,{pos,P:+(ld.P||0),M:+(ld.M||0),factor,masked}));
+      return;
+    }
+    const x1=(+ld.x1)*1000, x2=(+ld.x2)*1000;
+    const w1= ld.type==='udl'? +(ld.w||0) : +(ld.w1||0), w2= ld.type==='udl'? +(ld.w||0) : +(ld.w2||0);
+    if(!(active && ld.case===PATTERN_CASE)){ out.push(Object.assign(base,{x1,x2,w1,w2,factor:f,masked:false})); return; }
+    const cuts=[x1].concat(segs.slice(1).map(s=>s.a).filter(b=>b>x1+1e-6 && b<x2-1e-6)).concat([x2]);
+    const wAt=x=>(x2-x1<1e-9)? w1 : w1+(w2-w1)*(x-x1)/(x2-x1);
+    for(let k=0;k<cuts.length-1;k++){
+      const p=cuts[k], q=cuts[k+1];
+      const inMask=!mask || ld.case!==mask.case || mask.segIdx.includes(segIndexOf(segs,(p+q)/2));
+      out.push(Object.assign({},base,{x1:p,x2:q,w1:wAt(p),w2:wAt(q),factor:inMask? f : 0,masked:!inMask}));
+    }
+  });
+  return out;
+}
+/* Canonical key of the Q loads a mask keeps (for de-duplicating patterns). */
+function patternKey(mask){
+  return comboLoadPieces({factors:{[PATTERN_CASE]:1},mask}).filter(p=>p.case===PATTERN_CASE && p.factor!==0)
+    .map(p=> p.type==='point'||p.type==='moment' ? p.i+'@'+p.pos.toFixed(3) : p.i+':'+p.x1.toFixed(3)+'-'+p.x2.toFixed(3)).join('|');
+}
+/* Expand the enabled user combinations with the automatic span-wise patterns.
+   For every combination with a non-zero Q factor: Q on each single segment,
+   on each pair of adjacent segments and on the alternate (odd / even) segments,
+   G (and W, E) at their entered factors on every span. Patterns whose Q load
+   set is empty, equals the parent's or repeats an earlier pattern are dropped.
+   Each generated combination is a shallow copy of its parent with a new id,
+   the label suffixed "(Q on span 2 only)" etc., mask and parent fields. The
+   limitation gamma_G,inf = 1.0 on relieving spans (EN 1990 Table A1.2(B)) is
+   NOT generated; it is stated in the printed note (patternInfo). */
+function expandPatternCombos(userCombos){
+  if(!patternLoadingActive()) return userCombos.slice();
+  const segs=spanSegments(), n=segs.length;
+  const sets=[];
+  for(let i=0;i<n;i++) sets.push({idx:[i],label:'Q on span '+(i+1)+' only',kind:'single'});
+  for(let i=0;i<n-1;i++) sets.push({idx:[i,i+1],label:'Q on spans '+(i+1)+'+'+(i+2)+' only',kind:'pair'});
+  if(n>=3){
+    sets.push({idx:segs.map((s,i)=>i).filter(i=>i%2===0),label:'Q on odd spans only',kind:'odd'});
+    sets.push({idx:segs.map((s,i)=>i).filter(i=>i%2===1),label:'Q on even spans only',kind:'even'});
+  }
+  const fullKey=patternKey({case:PATTERN_CASE,segIdx:segs.map((s,i)=>i),segs});
+  const out=[];
+  userCombos.forEach(cb=>{
+    out.push(cb);
+    if(!(Math.abs(cb.factors[PATTERN_CASE]??0)>1e-12)) return;
+    const seen=new Set();
+    sets.forEach((st,k)=>{
+      const mask={case:PATTERN_CASE,segIdx:st.idx,segs:st.idx.map(i=>segs[i]),kind:st.kind,label:st.label};
+      const key=patternKey(mask);
+      if(!key || key===fullKey || seen.has(key)) return;
+      seen.add(key);
+      out.push(Object.assign({},cb,{id:(cb.id||'combo')+'#p'+(k+1),label:cb.label+' ('+st.label+')',mask,parent:cb,pattern:true}));
+    });
+  });
+  return out;
+}
+/* Printed description of the pattern set (pure). */
+function patternInfo(ulsCombos,slsCombos){
+  const segs=spanSegments();
+  const on = S.autoPattern==null ? true : !!S.autoPattern;
+  const nU=ulsCombos.filter(c=>c.pattern).length, nS=slsCombos.filter(c=>c.pattern).length;
+  const segText=segs.map(s=>'span '+s.no+': '+(s.a/1000).toFixed(2).replace(/\.?0+$/,'')+'&ndash;'+(s.b/1000).toFixed(2).replace(/\.?0+$/,'')+' m'+(s.cant? ' (cantilever)':'')).join('; ');
+  const limitation='&gamma;<sub>G,inf</sub> = 1.0 on relieving spans (EN 1990 Table A1.2(B)) is NOT generated: G acts at its entered factor on every span; add a reduced-G combination by hand where a relieving permanent action could govern (uplift, cantilever back spans).';
+  let note=null;
+  if(segs.length>1 && on) note='Automatic pattern loading: '+nU+' ULS and '+nS+' SLS combinations generated from the support layout ('+segText+'): Q on each span, on each pair of adjacent spans and on alternate spans, with G, W and E at their entered factors on every span (EN 1990 6.10 as entered). '+limitation;
+  else if(segs.length>1) note='Automatic pattern loading is OFF: only the entered combinations are analysed ('+segText+'). Adverse / relieving span patterns of the variable action must be entered by hand, and '+limitation;
+  return {on, active:on&&segs.length>1, segs, nUls:nU, nSls:nS, note, limitation, segText};
+}
+
 function comboLoads(combo){
   // Always include every load (factor 0 if its case isn't in this combo) so that
   // load/support positions   and therefore the solver's x-grid   are identical
   // across every combination. That's what makes the envelope comparison below valid.
-  const loads = S.loads.filter(ld=>!ld.isSelfWeight).map(ld=>{
-    const factor = combo.factors[ld.case] ?? 0;
-    if(ld.type==='point') return {type:'point',pos:(+ld.pos)*1000,P:-(ld.P||0)*factor*1000};
-    if(ld.type==='moment') return {type:'moment',pos:(+ld.pos)*1000,M:(ld.M||0)*factor*1e6};
-    if(ld.type==='udl') return {type:'udl',x1:(+ld.x1)*1000,x2:(+ld.x2)*1000,w1:-(ld.w||0)*factor,w2:-(ld.w||0)*factor};
-    if(ld.type==='trap') return {type:'udl',x1:(+ld.x1)*1000,x2:(+ld.x2)*1000,w1:-(ld.w1||0)*factor,w2:-(ld.w2||0)*factor};
+  // Pattern combinations (combo.mask) get their Q loads through comboLoadPieces().
+  const loads = comboLoadPieces(combo).map(p=>{
+    if(p.type==='point') return {type:'point',pos:p.pos,P:-p.P*p.factor*1000};
+    if(p.type==='moment') return {type:'moment',pos:p.pos,M:p.M*p.factor*1e6};
+    return {type:'udl',x1:p.x1,x2:p.x2,w1:-p.w1*p.factor,w2:-p.w2*p.factor};
   });
   const sw=selfWeightValue(activeSection()), gFactor=combo.factors.G ?? 0;
   if(gFactor!==0){
@@ -38,6 +160,8 @@ function validateInputs(py,E,ulsCombos,slsCombos){
   if(!(finite(py) && py>0)) errs.push("Design strength must be greater than 0.");
   if(!(finite(E) && E>0)) errs.push("E must be greater than 0.");
   if(!(finite(S.divisor) && S.divisor>0)) errs.push("Deflection divisor must be greater than 0.");
+  if(S.divisorCant!=null && !(finite(S.divisorCant) && S.divisorCant>0)) errs.push("Cantilever deflection divisor must be greater than 0.");
+  if(S.deflAbs!=null && S.deflAbs!=='' && !(finite(S.deflAbs) && S.deflAbs>0)) errs.push("Absolute deflection limit must be blank or greater than 0 mm.");
   if(!(finite(S.leFactor) && S.leFactor>0)) errs.push("Effective length factor must be greater than 0.");
   ['axial','Mz','za'].forEach(k=>{ if(!finite(S[k])) errs.push(`${k} must be a finite number.`); });
   const area=activeSection().A;
@@ -113,11 +237,17 @@ function analyse(){
   const supportsMM=S.supports.map(s=>({pos:(+s.pos)*1000,type:s.type}));
   const hingesMM=(S.hinges||[]).map(h=>(+h.pos)*1000).filter(x=>x>1e-6 && x<L-1e-6);
 
-  const ulsCombos=S.combos.filter(c=>c.on && !c.sls);
-  const slsCombos=S.combos.filter(c=>c.on && c.sls);
-  if(ulsCombos.length===0) throw 'Enable at least one ULS load combination (see "Load Combinations").';
-  if(slsCombos.length===0) throw 'Enable at least one SLS (deflection) load combination (see "Load Combinations").';
-  validateInputs(py,E,ulsCombos,slsCombos);
+  const ulsUser=S.combos.filter(c=>c.on && !c.sls);
+  const slsUser=S.combos.filter(c=>c.on && c.sls);
+  if(ulsUser.length===0) throw 'Enable at least one ULS load combination (see "Load Combinations").';
+  if(slsUser.length===0) throw 'Enable at least one SLS (deflection) load combination (see "Load Combinations").';
+  validateInputs(py,E,ulsUser,slsUser);
+  // Automatic pattern loading: each enabled user combination is followed by its
+  // generated span-wise patterns (comboLoadPieces applies the mask); every
+  // consumer below sees them exactly like user combinations.
+  const ulsCombos=expandPatternCombos(ulsUser);
+  const slsCombos=expandPatternCombos(slsUser);
+  const patterns=patternInfo(ulsCombos,slsCombos);
 
   // Run every enabled ULS combination; the same load/support geometry means every
   // combo's result lands on an identical x-grid, so elementwise envelopes are valid.
@@ -147,25 +277,63 @@ function analyse(){
   const M0end=interpAt(gfb.xs,gfb.M,1e-4), MLend=interpAt(gfb.xs,gfb.M,L-1e-4);
   const reactions=governM.r.reactions;
 
-  // SLS deflection: worst of every enabled SLS combination
+  // SLS deflection: worst of every enabled SLS combination, checked segment by
+  // segment (support to support, and each cantilever / end overhang) against
+  // its own length: span/S.divisor between supports, L/S.divisorCant for a
+  // cantilever segment (UK NA to EN 1993-1-1 Table NA.2 cantilever row, default
+  // 180 [verify]), each capped by the optional absolute limit S.deflAbs (mm).
+  // A cantilever segment's value is the tip deflection relative to its support
+  // (support nodes have w = 0; the root rotation is inside the solver).
+  const deflSegs=spanSegments();
+  const divisorCant=(S.divisorCant!=null && Number.isFinite(+S.divisorCant) && +S.divisorCant>0)? +S.divisorCant : 180;
+  const deflAbs=(S.deflAbs!=null && S.deflAbs!=='' && Number.isFinite(+S.deflAbs) && +S.deflAbs>0)? +S.deflAbs : null;
   const slsResults=slsCombos.map(combo=>{
     const loads=comboLoads(combo);
     const r=solveBeam(L,EI,supportsMM,loads,120,hingesMM);
     if(!r.w.every(Number.isFinite)) throw hingesMM.length? "Under-restrained layout (mechanism): an internal hinge has left part of the beam unrestrained. Add another support (e.g. a propped/Gerber layout) or remove the hinge." : "Under-restrained layout (mechanism). Add a support, or make a support Fixed to prevent rigid-body motion.";
     let dmax=0,dpos=0; r.nodes.forEach((x,i)=>{ if(Math.abs(r.w[i])>Math.abs(dmax)){dmax=r.w[i];dpos=x;} });
-    const points=[...new Set([0,L,...supportsMM.map(s=>s.pos)])].sort((p,q)=>p-q);
     let deflection=null;
-    for(let j=0;j<points.length-1;j++){
-      const start=points[j],end=points[j+1],span=end-start;
+    const segs=deflSegs.map(sg=>{
+      const start=sg.a,end=sg.b,span=end-start;
       let dm=0,dp=start;
       r.nodes.forEach((x,i)=>{ if(x>=start&&x<=end&&Math.abs(r.w[i])>Math.abs(dm)){dm=r.w[i];dp=x;} });
-      const limit=span/S.divisor, util=Math.abs(dm)/limit;
-      if(!deflection||util>deflection.util) deflection={start,end,span,dmax:dm,dpos:dp,limit,util};
-    }
-    return {combo,r,dmax,dpos,deflection};
+      const divisor= sg.cant? divisorCant : S.divisor;
+      const limSpan=span/divisor;
+      const absGoverns= deflAbs!=null && deflAbs<limSpan;
+      const limit= absGoverns? deflAbs : limSpan;
+      const util=Math.abs(dm)/limit;
+      const rec={no:sg.no,start,end,span,cant:!!sg.cant,dmax:dm,dpos:dp,limit,util,divisor,limSpan,abs:deflAbs,absGoverns,combo:combo.label};
+      if(!deflection||util>deflection.util) deflection=rec;
+      return rec;
+    });
+    return {combo,r,dmax,dpos,deflection,segs};
   });
   let governD=slsResults[0]; slsResults.forEach(r=>{ if(r.deflection.util>governD.deflection.util) governD=r; });
   const dmax=governD.dmax, dpos=governD.dpos;
+  // per-segment deflection table: the worst SLS combination of every segment
+  const deflSegments=deflSegs.map((sg,j)=>{
+    let worst=null; slsResults.forEach(res=>{ const s=res.segs[j]; if(!worst||s.util>worst.util) worst=s; });
+    return worst;
+  });
+
+  // ---- uplift / hold-down (EN 1990 2.4.4 EQU): every combination's reactions ----
+  // A negative vertical reaction (up = positive) means the support must hold
+  // the beam down. Recorded per combination; the worst per support is kept
+  // (design force = the worst ULS value, SLS uplift listed separately).
+  const uplift=[];
+  ulsResults.forEach(res=>res.r.reactions.forEach((re,i)=>{ if(re.V< -1) uplift.push({n:i+1,pos:re.pos,R:re.V/1000,combo:res.combo.label,sls:false}); }));
+  slsResults.forEach(res=>res.r.reactions.forEach((re,i)=>{ if(re.V< -1) uplift.push({n:i+1,pos:re.pos,R:re.V/1000,combo:res.combo.label,sls:true}); }));
+  const upliftSupports=S.supports.map((sp,i)=>{
+    const rows=uplift.filter(u=>u.n===i+1);
+    if(!rows.length) return null;
+    const worst=rows.reduce((p,u)=>u.R<p.R?u:p);
+    const ulsRows=rows.filter(u=>!u.sls), slsRows=rows.filter(u=>u.sls);
+    const worstUls=ulsRows.length? ulsRows.reduce((p,u)=>u.R<p.R?u:p) : null;
+    const worstSls=slsRows.length? slsRows.reduce((p,u)=>u.R<p.R?u:p) : null;
+    return {n:i+1,pos:worst.pos,type:sp.type,holdDown:!!sp.holdDown,R:worst.R,combo:worst.combo,sls:worst.sls,
+      RUls:worstUls? worstUls.R : null, comboUls:worstUls? worstUls.combo : null,
+      RSls:worstSls? worstSls.R : null, comboSls:worstSls? worstSls.combo : null, nCombos:rows.length};
+  }).filter(Boolean);
 
   // ---- torsion from load eccentricity (loads at e from the shear centre) ----
   // Torque loads mirror the transverse loads: q_T(x) = w(x)*e, point torques P*e.
@@ -181,12 +349,11 @@ function analyse(){
   const torsErr = (anyEcc && !(sec.J>0))? "the section torsional constant I_T is zero or undefined in the section data" : null;
   if(anyEcc && !torsErr){
     const GIt=81000*sec.J*1e4; // N.mm2 (G = 81000 N/mm2 per SN003a / P385)
-    const mkT=(combo)=>{ const out=[]; S.loads.filter(ld=>!ld.isSelfWeight).forEach(ld=>{
-      const f=combo.factors[ld.case]??0;
-      const le=+(ld.e||0); // this load's own shear-centre offset, mm
-      if(ld.type==='point') out.push({type:'point',pos:(+ld.pos)*1000,P:(ld.P||0)*f*1000*le}); // kN -> N, x e mm -> N.mm
-      else if(ld.type==='udl') out.push({type:'udl',x1:(+ld.x1)*1000,x2:(+ld.x2)*1000,w1:(ld.w||0)*f*le,w2:(ld.w||0)*f*le});
-      else if(ld.type==='trap') out.push({type:'udl',x1:(+ld.x1)*1000,x2:(+ld.x2)*1000,w1:(ld.w1||0)*f*le,w2:(ld.w2||0)*f*le});
+    const mkT=(combo)=>{ const out=[]; comboLoadPieces(combo).forEach(p=>{
+      const f=p.factor;
+      const le=p.e; // this load's own shear-centre offset, mm
+      if(p.type==='point') out.push({type:'point',pos:p.pos,P:p.P*f*1000*le}); // kN -> N, x e mm -> N.mm
+      else if(p.type==='udl'||p.type==='trap') out.push({type:'udl',x1:p.x1,x2:p.x2,w1:p.w1*f*le,w2:p.w2*f*le});
     });
       const gF=combo.factors.G??0, sw=selfWeightValue(sec);
       if(Math.abs(gF)>1e-12 && Math.abs(swE)>1e-9 && sw>0){
@@ -245,15 +412,15 @@ function analyse(){
       Math.abs(Math.max(...S.supports.map(s=>+s.pos))-S.L)<=1e-6;
     const mk385=(combo)=>{
       const list=[];
-      for(const ld of S.loads){
-        if(ld.isSelfWeight||ld.type==='moment') continue;
-        const f=combo.factors[ld.case]??0, le=+(ld.e||0);
+      for(const p of comboLoadPieces(combo)){
+        if(p.type==='moment') continue;
+        const f=p.factor, le=p.e;
         if(!f||Math.abs(le)<1e-9) continue;
-        if(ld.type==='point'){ list.push({kind:'point',alpha:(+ld.pos)*1000/L,T:(ld.P||0)*f*1000*le}); }
+        if(p.type==='point'){ list.push({kind:'point',alpha:p.pos/L,T:p.P*f*1000*le}); }
         else {
-          const x1=(+ld.x1)*1000, x2=(+ld.x2)*1000;
+          const x1=p.x1, x2=p.x2;
           if(x1>1e-6 || Math.abs(x2-L)>1e-6) return {ok:false,reason:'partial-span eccentric distributed load on an open section: the P385 fork-fork closed forms (Cases 3/4/10) cover full-span distributed torque only'};
-          const w1=ld.type==='udl'? (ld.w||0):(ld.w1||0), w2=ld.type==='udl'? (ld.w||0):(ld.w2||0);
+          const w1=p.w1, w2=p.w2;
           const wu=Math.min(w1,w2), dv=w2-w1;
           if(Math.abs(wu)>1e-12) list.push({kind:'ud',T:wu*f*le*L});
           if(Math.abs(dv)>1e-12) list.push({kind:'lin',T:Math.abs(dv)/2*f*le*L*Math.sign(dv*1), mirror:dv<0});
@@ -292,10 +459,46 @@ function analyse(){
   return {sec,py,E,L,Ix,tors,torsO,torsErr,swPerM:sec.mass*9.81/1000,ulsResults,
     Vmax:Vmax/1000, Mmax:Mmax/1e6, Mpos:Mpos/1000,
     Mq:Mq/1e6, Mh:Mh/1e6, Mq3:Mq3/1e6, M24:M24/1e6, M0end:M0end/1e6, MLend:MLend/1e6,
-    dmax, dpos:dpos/1000, deflection:governD.deflection,
+    dmax, dpos:dpos/1000, deflection:governD.deflection, deflSegments, divisorCant, deflAbs,
     diag:{xs:xs.map(x=>x/1000), V:Venv.map(v=>v/1000), M:Menv.map(m=>m/1e6),
           dx:governD.r.nodes.map(x=>x/1000), dw:governD.r.w},
-    reactions, ulsResults, slsResults, governV, governM, governD};
+    reactions, ulsResults, slsResults, governV, governM, governD,
+    patterns, ulsCombos, slsCombos, uplift:{list:uplift, supports:upliftSupports, any:upliftSupports.length>0}};
+}
+
+/* ---- Hold-down check (19 Sep 2026 gap closure, item 1.2), pure ----
+   One row per support that lifts in any combination. A support lifting in a
+   ULS combination is blocking (unsupported) unless its "hold-down provided"
+   box is ticked, in which case it is an advisory carrying the design force.
+   A support that lifts ONLY in SLS combinations (the default NA 2.23
+   "variable actions only" deflection case has no G, so its reaction is not an
+   equilibrium state) is reported as an advisory naming the combination and
+   the force, with the reminder that the EQU set-A combination (gamma_G,inf =
+   0.9, Table A1.2(A)) is not generated and must be verified by hand.
+   Returns {rows, unsupported, advisory}; rows = [{n, pos (mm), R (kN,
+   negative), combo, sls, RUls, comboUls, RSls, comboSls, holdDown, level:
+   'uls'|'sls', blocking, msg}]. */
+function holdDownCheck(a){
+  const out={rows:[],unsupported:[],advisory:[]};
+  const up=a.uplift&&a.uplift.supports||[];
+  up.forEach(u=>{
+    const kN=v=>(Math.abs(v)).toFixed(2);
+    const where='at support '+u.n+' (x = '+(u.pos/1000).toFixed(2).replace(/\.?0+$/,'')+' m)';
+    let msg, blocking=false, level;
+    if(u.RUls!=null){
+      level='uls';
+      const force=(withWhere)=>'R = &minus;'+kN(u.RUls)+' kN'+(withWhere? ' '+where : '')+' (combination '+u.comboUls+')'+(u.RSls!=null? '; SLS uplift &minus;'+kN(u.RSls)+' kN ('+u.comboSls+')' : '');
+      if(u.holdDown) msg='Hold-down provided '+where+': design the hold-down for '+force(false)+'. Reaction taken as tension at the support; the connection and the supporting structure are not designed here.';
+      else { blocking=true; msg='Hold-down required: '+force(true)+'. The support cannot resist uplift as modelled; tick "hold-down provided" for this support once a holding-down connection is designed for this force, or revise the layout / loading (EN 1990 2.4.4 EQU; the '+PATTERN_CASE+' patterns and any relieving-G combination must be included).'; }
+    } else {
+      level='sls';
+      msg='Hold-down check (SLS only) '+where+': the variable-action-only combination '+u.comboSls+' lifts this support by R = &minus;'+kN(u.RSls)+' kN; no ULS combination lifts it (G holds it down at ULS)'+(u.holdDown? '; hold-down provided' : '')+'. A deflection combination without G is not an equilibrium state, so this does not block PASS, but the EQU set-A combination with &gamma;<sub>G,inf</sub> = 0.9 (EN 1990 Table A1.2(A)) is NOT generated: verify it by hand where the permanent action is small relative to the variable action.';
+    }
+    const row=Object.assign({},u,{msg,level,blocking});
+    out.rows.push(row);
+    if(blocking) out.unsupported.push(msg); else out.advisory.push(msg);
+  });
+  return out;
 }
 
 /* Standard-specific check engines live in js/checks/. */
@@ -320,6 +523,12 @@ function checks(a){
     return worst;
   });
   c.unsupported=[...new Set(c.unsupported.concat(...results.map(r=>r.c.unsupported)))];
+  // shared analysis-level checks (uplift / hold-down, pattern-loading note)
+  const hd=holdDownCheck(a);
+  c.holdDown=hd;
+  c.unsupported=c.unsupported.concat(hd.unsupported);
+  c.advisory=(c.advisory||[]).concat(hd.advisory);
+  if(a.patterns&&a.patterns.note) c.advisory.push(a.patterns.note);
   c.gov=c.utils.reduce((p,u)=>u.val>p.val?u:p);
   c.pass=c.unsupported.length===0&&c.utils.every(u=>Number.isFinite(u.val)&&u.val>=0&&u.val<=1.0001);
   c.combinationChecks=results.map(r=>({combo:r.res.combo.label,utils:r.c.utils}));

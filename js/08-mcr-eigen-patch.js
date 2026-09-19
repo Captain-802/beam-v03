@@ -399,14 +399,16 @@
   function unitLoadsFor(a, combo) {
     var fac = combo.factors;
     var dl = [], pl = [];
-    S.loads.forEach(function (ld) {
-      if (ld.isSelfWeight || ld.type === 'moment') return;
-      var f = fac[ld.case] != null ? fac[ld.case] : 0;
+    /* comboLoadPieces() (04-checks.js) applies a pattern combination's mask
+       and splits distributed Q loads at the span boundaries, so the eigen
+       model of a pattern combination carries exactly that pattern's loads. */
+    comboLoadPieces(combo).forEach(function (p) {
+      if (p.type === 'moment') return;
+      var f = p.factor;
       if (!f) return;
-      var zg = typeof loadZgValue === 'function' ? loadZgValue(ld) : (+S.za || 0);
-      if (ld.type === 'point') pl.push({ x: (+ld.pos) * 1000, P: (ld.P || 0) * f * 1000, zg: zg });
-      else if (ld.type === 'udl') dl.push({ x1: (+ld.x1) * 1000, x2: (+ld.x2) * 1000, w1: (ld.w || 0) * f, w2: (ld.w || 0) * f, zg: zg });
-      else if (ld.type === 'trap') dl.push({ x1: (+ld.x1) * 1000, x2: (+ld.x2) * 1000, w1: (ld.w1 || 0) * f, w2: (ld.w2 || 0) * f, zg: zg });
+      var zg = typeof loadZgValue === 'function' ? loadZgValue(p.ld) : (+S.za || 0);
+      if (p.type === 'point') pl.push({ x: p.pos, P: p.P * f * 1000, zg: zg });
+      else dl.push({ x1: p.x1, x2: p.x2, w1: p.w1 * f, w2: p.w2 * f, zg: zg });
     });
     var gF = fac.G != null ? fac.G : 0;
     var sw = selfWeightValue(a.sec);
@@ -754,7 +756,7 @@
     var segC1 = spanGov ? { xa: spanGov.a, xb: spanGov.b, whole: false }
                         : (typeof c1Segment === 'function' ? c1Segment(a) : { xa: 0, xb: a.L, whole: true });
     var stdCmp = null;
-    try { stdCmp = mcrStandardFor(a, sec, segC1, { fb: govEv.res.fb, factors: govEv.res.combo.factors }); }
+    try { stdCmp = mcrStandardFor(a, sec, segC1, { fb: govEv.res.fb, factors: govEv.res.combo.factors, combo: govEv.res.combo }); }
     catch (eStd) { stdCmp = { route: 'n/a', Mcr: null, C1: null, label: 'closed form not available: ' + eStd.message, c1in: null, seg: segC1 }; }
     if (stdCmp && !stdCmp.c1in && typeof c1Inputs === 'function') stdCmp.c1in = c1Inputs(govEv.res.fb, segC1.xa, segC1.xb);
     ltb.mcrMethod = 'eigen';

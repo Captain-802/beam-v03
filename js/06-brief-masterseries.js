@@ -102,15 +102,17 @@ function msbRhoShear(V,Vpl){ return Math.min(Math.pow(2*V/Math.max(Vpl,1e-9)-1,2
 function msbWplN(MN_kNm,fy){ return MN_kNm*1e3/fy; }
 // Phi_LT of cl 6.3.2.3 (the expression the check engine evaluates)
 function msbPhiLT(lam,alphaLT){ return 0.5*(1+alphaLT*(lam-0.4)+0.75*lam*lam); }
-// 1-based index of a combination among the enabled ULS (or SLS) combinations
-function msbCaseIndex(combo,sls){
-  const list=(S.combos||[]).filter(cb=>cb.on && (sls? cb.sls : !cb.sls));
+// 1-based index of a combination among the analysed ULS (or SLS) combinations:
+// the expanded list of analyse() (user combinations each followed by their
+// automatic patterns) when `a` is given, else the enabled entries of S.combos
+function msbCaseIndex(combo,sls,a){
+  const list= a? (sls? a.slsResults : a.ulsResults).map(r=>r.combo) : (S.combos||[]).filter(cb=>cb.on && (sls? cb.sls : !cb.sls));
   let i=list.indexOf(combo);
   if(i<0 && combo) i=list.findIndex(cb=>cb.label===combo.label);
   return i<0? null : i+1;
 }
-function msbCaseLabel(combo,sls){
-  const n=msbCaseIndex(combo,sls);
+function msbCaseLabel(combo,sls,a){
+  const n=msbCaseIndex(combo,sls,a);
   return (n!=null? String(n) : '?')+(combo&&combo.label? ' ('+combo.label+')' : '');
 }
 // [1,2,4,5,6] -> "1-2, 4-6"
@@ -137,6 +139,7 @@ function msbPortion(a,LT){
 // which brief block a blocking message belongs to
 function msbBlockFor(msg){
   const s=msbEsc(msg);
+  if(/^Hold-down/.test(s)) return 'forces';
   if(/torsion|Torsion|Eccentric loads|Annex A|k_alpha|Torsional constants|eccentric load/i.test(s)) return 'torsion';
   if(/Class 4|effective-section|Effective-area|slender/i.test(s)) return 'class';
   if(/shear/i.test(s)) return 'local';
@@ -178,9 +181,9 @@ function renderMasterSeriesBrief(a,c,sec){
   const [xa,xb]=msbPortion(a,LT);
   const wholePortion = xa<=1e-6 && Math.abs(xb-a.L)<=1e-6;
   const nULS=a.ulsResults.length;
-  const caseM=msbCaseLabel(a.governM.combo,false), caseD=msbCaseLabel(a.governD.combo,true);
+  const caseM=msbCaseLabel(a.governM.combo,false,a), caseD=msbCaseLabel(a.governD.combo,true,a);
   // blocking messages sorted into their blocks
-  const nv={class:[],local:[],compression:[],ltb:[],torsion:[],general:[]};
+  const nv={forces:[],class:[],local:[],compression:[],ltb:[],torsion:[],general:[]};
   unsupported.forEach(m=>{ let k=msbBlockFor(m); if(k==='compression' && !(B && B.Fc>1e-9)) k='local'; if(k==='torsion' && !T) k= /Annex A|k_alpha/.test(m)? 'ltb' : 'general'; nv[k].push(m); });
 
   let h='';
@@ -203,6 +206,16 @@ function renderMasterSeriesBrief(a,c,sec){
   });
   const swE=selfWeightEccentricity(sec);
   loadLines.push('G SW '+g(selfWeightValue(sec),4)+' kN/m 0&ndash;'+g(S.L)+' m'+(S.eccOn&&Math.abs(swE)>1e-9? ' e = '+g(swE,1)+' mm' : '')+' ( automatic )');
+  // automatic pattern loading (item 1.3): the generated combinations are listed
+  // with the loads, in MasterSeries' "pattern" position; the gamma_G,inf limitation is stated
+  const PT=a.patterns||null;
+  if(PT && PT.segs && PT.segs.length>1){
+    if(PT.active){
+      loadLines.push('<b>Pattern loading</b> ('+PT.segText+'): '+PT.nUls+' ULS + '+PT.nSls+' SLS combinations generated &mdash; Q on each span, adjacent pairs, alternate spans; G/W/E at their entered factors on every span');
+      a.ulsResults.concat(a.slsResults).filter(r=>r.combo.pattern).forEach(r=>loadLines.push('&nbsp;&nbsp;'+(r.combo.sls? 'SLS ':'ULS ')+msbCaseIndex(r.combo,!!r.combo.sls,a)+': '+msbEsc(r.combo.label)));
+      loadLines.push('<span class="ms-note">'+PT.limitation+'</span>');
+    } else loadLines.push('<span class="ms-note"><b>Pattern loading OFF</b> ('+PT.segText+'): only the entered combinations are analysed; '+PT.limitation+'</span>');
+  }
   const sketch=(typeof beamDiagram==='function'? beamDiagram(a) : '')+(typeof plot==='function'? plot(a.diag.xs,a.diag.M,{color:'#1a237e',fill:'#c9d3ea',unit:'kN.m',flip:true,fmt:v=>f1(v,2)}) : '');
   h+='<div class="ms-loading"><div class="ms-loadlist">'+loadLines.join('<br>')+'</div><div class="ms-sketch">'+sketch+'</div></div>';
 
@@ -222,6 +235,21 @@ function renderMasterSeriesBrief(a,c,sec){
      '</tbody></table>';
   const reactLine=a.reactions.map(r=>'R @ '+msbM(r.pos/1000)+' m = '+f1(r.V/1000,2)+' kN'+(r.type==='fixed'? ', M = '+f1(-r.M/1e6,2)+' kN.m' : '')).join(' &nbsp; ');
   h+='<div class="ms-note">Reactions ('+a.governM.combo.label+'): '+reactLine+'. V<sub>z</sub> = 0: no minor-axis shear in the single-plane model; M<sub>z</sub> is the entered constant design moment.</div>';
+  // uplift / hold-down (item 1.2): one row per lifting support, in the Member Forces block
+  const HD=c.holdDown||null;
+  if(HD && HD.rows && HD.rows.length){
+    HD.rows.forEach(u=>{
+      if(u.level==='sls'){
+        h+=msbRow('Uplift at SLS only, support '+u.n+' (x = '+msbM(u.pos/1000)+' m)', 'R = &minus;'+f1(Math.abs(u.RSls),2)+' kN (SLS combination '+msbEsc(u.comboSls)+'); no ULS combination lifts this support; EQU set A (&gamma;<sub>G,inf</sub> = 0.9) not generated &mdash; verify by hand (advisory)', 'R = &minus;'+f1(Math.abs(u.RSls),2)+' kN', 'advisory');
+        return;
+      }
+      const lbl='Hold-down '+(u.holdDown? 'provided' : 'required')+' at support '+u.n+' (x = '+msbM(u.pos/1000)+' m)';
+      const vals='R = &minus;'+f1(Math.abs(u.RUls),2)+' kN (combination '+msbEsc(u.comboUls)+')'+(u.RSls!=null? '; SLS uplift &minus;'+f1(Math.abs(u.RSls),2)+' kN ('+msbEsc(u.comboSls)+')' : '')+'; '+u.nCombos+' combination(s) lift this support';
+      if(u.holdDown) h+=msbRow(lbl, vals+' &mdash; design the hold-down connection for this force (advisory)', 'R = &minus;'+f1(Math.abs(u.RUls),2)+' kN', 'hold-down');
+    });
+    h+=msbNotVerifiedRows(nv.forces);
+  }
+  if(a.uplift && !a.uplift.any) h+=msbRow('Uplift', 'no support lifts in any of the '+(a.ulsResults.length+a.slsResults.length)+' combinations (all reactions &ge; 0)', 'R<sub>min</sub> &ge; 0', 'OK');
   if(nULS>1 || a.slsResults.length>1){
     h+='<table class="ms-combos"><thead><tr><th>Combination</th><th>V<sub>max</sub> (kN)</th><th>M<sub>max</sub> (kN.m @ m)</th><th>&delta; (mm)</th></tr></thead><tbody>'+
        a.ulsResults.map(r=>'<tr><td>'+r.combo.label+(r===a.governM? ' (governs M)':'')+'</td><td class="num">'+f1(r.Vmax/1000,3)+'</td><td class="num">'+f1(r.Mmax/1e6,3)+' @ '+g(r.Mpos/1000,3)+'</td><td class="num">&mdash;</td></tr>').join('')+
@@ -243,9 +271,8 @@ function renderMasterSeriesBrief(a,c,sec){
       : 'biaxial: uniform-compression web bound; limits '+g(wl[0],1)+'&epsilon; / '+g(wl[1],1)+'&epsilon; / '+g(wl[2],1)+'&epsilon;',
       'Class '+c.cl.wc, 'Table 5.2');
   }
-  const ulsIdx=[], slsIdx=[]; let iu=0, is=0;
-  (S.combos||[]).forEach(cb=>{ if(!cb.on) return; if(cb.sls){ is++; slsIdx.push(is);} else { iu++; ulsIdx.push(iu);} });
-  h+=msbRow('Auto Design Load Cases', msbCaseRanges(ulsIdx)+(slsIdx.length? '; SLS '+msbCaseRanges(slsIdx) : ''),'','');
+  const ulsIdx=a.ulsResults.map((r,i)=>i+1), slsIdx=a.slsResults.map((r,i)=>i+1);
+  h+=msbRow('Auto Design Load Cases', msbCaseRanges(ulsIdx)+(slsIdx.length? '; SLS '+msbCaseRanges(slsIdx) : '')+(a.patterns&&a.patterns.active? ' (incl. '+a.patterns.nUls+' + '+a.patterns.nSls+' automatic patterns)' : ''),'','');
   h+=msbNotVerifiedRows(nv.class);
 
   /* ---- 5.3 Local Capacity Check / Moment Capacity Check ---- */
@@ -306,10 +333,11 @@ function renderMasterSeriesBrief(a,c,sec){
   if(B && B.Fc>1e-9){
     h+=msbHead('Compression Resistance N.b.Rd');
     const NcrY=msbNcr(a.E,sec.Ix,B.LcrY), NcrZ=msbNcr(a.E,sec.Iy,B.LcrZ);
-    h+=msbRow('L<sub>ey</sub> = K<sub>y</sub>.L<sub>y</sub>', g(S.leFactor,2)+' x '+msbM(S.L)+' =', msbM(B.LcrY/1000)+' m', '');
+    const Ky=(B.Ky!=null? B.Ky : S.leFactor);
+    h+=msbRow('L<sub>ey</sub> = K<sub>y</sub>.L<sub>y</sub>', g(Ky,2)+' x '+msbM(S.L)+' ='+(B.cantStrut? ' ('+msbEsc(B.lcrBasis)+')' : ''), msbM(B.LcrY/1000)+' m', B.cantStrut? (B.leOverride? 'user L<sub>E</sub>' : 'cantilever 2.0L') : '');
     h+=msbRow('&lambda;&#772;<sub>y</sub> = &radic;A.f<sub>y</sub>/N<sub>cr</sub>', '&radic;'+f1(sec.A,2)+'x'+msbInt(c.fy)+'/'+f1(NcrY,2)+' (N<sub>cr,y</sub> = &pi;&sup2;EI<sub>y</sub>/L<sub>ey</sub>&sup2;)', msbR(B.lamY), '');
     h+=msbRow('N<sub>b.y.Rd</sub> = Area.&chi;.f<sub>y</sub>/&gamma;<sub>M1</sub>', f1(sec.A,2)+'x'+msbR(B.chiY)+'x'+msbInt(c.fy)+'/10/1 =', msbKN(B.NbY)+' kN', 'Curve '+B.cvY.curve);
-    h+=msbRow('L<sub>ez</sub> = K<sub>z</sub>.L<sub>z</sub>', B.lczFromRestraints? 'largest lateral-restraint spacing =' : g(S.leFactor,2)+' x '+msbM(S.L)+' =', msbM(B.LcrZ/1000)+' m', B.lczFromRestraints? 'P360 6.2' : '');
+    h+=msbRow('L<sub>ez</sub> = K<sub>z</sub>.L<sub>z</sub>', B.lczFromRestraints? 'largest lateral-restraint spacing =' : g(Ky,2)+' x '+msbM(S.L)+' =', msbM(B.LcrZ/1000)+' m', B.lczFromRestraints? 'P360 6.2' : (B.cantStrut? (B.leOverride? 'user L<sub>E</sub>' : 'cantilever 2.0L') : ''));
     h+=msbRow('&lambda;&#772;<sub>z</sub> = &radic;A.f<sub>y</sub>/N<sub>crz</sub>', '&radic;'+f1(sec.A,2)+'x'+msbInt(c.fy)+'/'+f1(NcrZ,2)+' (N<sub>cr,z</sub> = &pi;&sup2;EI<sub>z</sub>/L<sub>ez</sub>&sup2;)', msbR(B.lamZ), '');
     h+=msbRow('N<sub>b.z.Rd</sub> = Area.&chi;.f<sub>y</sub>/&gamma;<sub>M1</sub>', f1(sec.A,2)+'x'+msbR(B.chiZ)+'x'+msbInt(c.fy)+'/10/1 =', msbKN(B.NbZ)+' kN', 'Curve '+B.cvZ.curve);
     h+=msbNotVerifiedRows(nv.compression);
@@ -533,7 +561,20 @@ function renderMasterSeriesBrief(a,c,sec){
   /* ---- 5.9 Deflection Check ---- */
   h+=msbHead('Deflection Check - Load Case '+caseD);
   const defSeg = a.deflection && (a.deflection.start>1e-6 || a.deflection.end<a.L-1e-6);
-  h+=msbRow((isCant? 'Tip &delta; &le; L/' : 'In-span &delta; &le; Span/')+msbInt(c.divisor), msbMM(c.dmax)+' &le; '+g(c.span,0)+' / '+msbInt(c.divisor)+' = '+msbMM(c.dlimit)+' mm @ x = '+msbM(dfl.dpos/1000)+' m'+(defSeg? ' (segment '+msbM(a.deflection.start/1000)+'&ndash;'+msbM(a.deflection.end/1000)+' m)' : ''), msbMM(c.dmax)+' mm', msbWarn(c.defOk));
+  const dCant = a.deflection? !!a.deflection.cant : isCant;
+  const dAbs = a.deflection && a.deflection.abs!=null ? a.deflection.abs : null;
+  const dAbsGov = !!(a.deflection && a.deflection.absGoverns);
+  // limit label: Span/divisor (L/divisorCant for a cantilever segment), with the absolute cap when entered
+  const limLbl=(cant,div)=>(cant? 'Tip &delta; &le; L/' : 'In-span &delta; &le; Span/')+msbInt(div)+(dAbs!=null? ' (&le; '+msbMM(dAbs)+' mm)' : '');
+  const limVals=(sg)=>msbMM(Math.abs(sg.dmax))+' &le; '+(sg.absGoverns? msbMM(sg.abs)+' mm (absolute limit governs; '+g(sg.span,0)+' / '+msbInt(sg.divisor)+' = '+msbMM(sg.limSpan)+' mm)' : g(sg.span,0)+' / '+msbInt(sg.divisor)+' = '+msbMM(sg.limit)+' mm'+(sg.abs!=null? ' (absolute limit '+msbMM(sg.abs)+' mm not governing)' : ''))+' @ x = '+msbM(sg.dpos/1000)+' m';
+  const gseg = a.deflection || {dmax:c.dmax,dpos:dfl.dpos,span:c.span,divisor:c.divisor,limit:c.dlimit,limSpan:c.dlimit,abs:null,absGoverns:false};
+  h+=msbRow(limLbl(dCant,c.divisor), limVals(gseg)+(defSeg? ' (segment '+msbM(a.deflection.start/1000)+'&ndash;'+msbM(a.deflection.end/1000)+' m'+(dCant? ', cantilever' : '')+')' : '')+(dCant? '; cantilever L/'+msbInt(c.divisor)+' per UK NA to EN 1993-1-1 Table NA.2 [verify]' : ''), msbMM(c.dmax)+' mm', msbWarn(c.defOk)+(dAbsGov? ' abs' : ''));
+  // per-segment limits (multi-span / overhang members): every segment with its own limit and governing SLS case
+  if(a.deflSegments && a.deflSegments.length>1){
+    a.deflSegments.forEach(sg=>{
+      h+=msbRow((sg.cant? 'Cantilever ' : 'Span ')+sg.no+' ('+msbM(sg.start/1000)+'&ndash;'+msbM(sg.end/1000)+' m): '+(sg.cant? 'tip &delta; &le; L/' : '&delta; &le; Span/')+msbInt(sg.divisor), limVals(sg)+' ('+msbEsc(sg.combo)+')', msbMM(Math.abs(sg.dmax))+' mm', msbWarn(sg.util<=1.0001));
+    });
+  }
 
   /* ---- 5.10 Unity bar ---- */
   const findU=(re)=>{ const u=utils.find(u=>re.test(u.name)); return u? u.val : null; };

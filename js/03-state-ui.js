@@ -16,7 +16,9 @@ const DEMO={
   loads:[{type:'udl',x1:0,x2:8.0,w:19.7,case:'G'},{type:'udl',x1:0,x2:8.0,w:19.8,case:'Q'}],
   combos:JSON.parse(JSON.stringify(DEFAULT_COMBOS)),
   axial:0, Mz:0, leFactor:1.0, destab:false, mLTo:null, mxo:null, C1o:null,
-  divisor:360, E:210000, Ke:null, robX:null, robY:null,
+  divisor:360, divisorCant:180, deflAbs:null,   // span/360 between supports; L/180 for cantilever segments (UK NA Table NA.2 [verify]); absolute mm cap (null = none)
+  autoPattern:true,                             // automatic span-wise Q patterns for multi-span / cantilevered members (expandPatternCombos)
+  E:210000, Ke:null, robX:null, robY:null,
   restraint:'full',
   mcrMethod:'eigen',   // EC3 unrestrained Mcr: 'eigen' (FE eigensolver, default) | 'standard' (closed form, SN003a/SN006a)
   eccOn:false, za:0, rootWarp:'free',
@@ -110,11 +112,12 @@ function renderSupportList(){
         <div class="fld"><span>Type</span><select data-sp="type" data-i="${i}">
           <option value="pinned"${sp.type==='pinned'?' selected':''}>Pinned</option>
           <option value="fixed"${sp.type==='fixed'?' selected':''}>Fixed</option></select></div>
-      </div>${ltbBCOn? `
+      </div>
       <div class="ltb-checks" style="margin-top:4px">
+        <label class="checkline"><input type="checkbox" data-spc="holdDown" data-i="${i}"${sp.holdDown?' checked':''}> <span>hold-down provided (uplift resisted)</span></label>${ltbBCOn? `
         <label class="checkline"><input type="checkbox" data-spc="vp" data-i="${i}"${sp.vp?' checked':''}> <span>lat. bending v&prime; fixed (LTB)</span></label>
-        <label class="checkline"><input type="checkbox" data-spc="phip" data-i="${i}"${sp.phip?' checked':''}> <span>warping &phi;&prime; fixed (LTB)</span></label>
-      </div>`:''}`;
+        <label class="checkline"><input type="checkbox" data-spc="phip" data-i="${i}"${sp.phip?' checked':''}> <span>warping &phi;&prime; fixed (LTB)</span></label>`:''}
+      </div>`;
     c.appendChild(row);
   });
   c.querySelectorAll("[data-sp]").forEach(el=>el.addEventListener("input",e=>{
@@ -296,6 +299,9 @@ function syncInputs(){
   $("destab").checked=S.destab; $("mLTo").value=S.mLTo??""; $("mxo").value=S.mxo??"";
   $("C1o").value=S.C1o??"";
   $("divisor").value=S.divisor; $("E").value=S.E; $("Ke").value=S.Ke??"";
+  if($("divisorCant")) $("divisorCant").value=S.divisorCant??180;
+  if($("deflAbs")) $("deflAbs").value=S.deflAbs??"";
+  if($("autoPattern")) $("autoPattern").checked = S.autoPattern==null? true : !!S.autoPattern;
   const autoRob=defaultRobertson(S.family,sec.boxType,sec.tf);
   $("robertsonX").value = S.robX!=null? S.robX : autoRob.x;
   $("robertsonY").value = S.robY!=null? S.robY : autoRob.y;

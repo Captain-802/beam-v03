@@ -91,15 +91,39 @@ const interp = (xs, ys, xq) => {
               an upward load; za when no transverse load is active
      LE     - leFactor x (destab ? 1.2 : 1) x segment length
    Returns {C1, C2, zg, zgApplied, LE, route, blockExpected}. */
-function stdInputsIndependent(o, fac, fb, xa, xb) {
+/* Effective load list of a combination, applied independently of the engine:
+   a pattern combination (mask = {case, segs:[{a,b} mm]}) keeps only the parts
+   of its patterned-case loads that lie inside the masked segments (distributed
+   loads clipped with the trapezoid interpolated at the cut, point loads and
+   couples assigned to the first segment containing them). Other cases and
+   unmasked combinations return the case's own list. */
+function maskedLoads(o, mask) {
+  if (!mask) return o.loads;
+  const segs = mask.segs.map(s => [s.a / 1000, s.b / 1000]);
+  const segIdx = x => { for (let i = 0; i < segs.length; i++) if (x >= segs[i][0] - 1e-9 && x <= segs[i][1] + 1e-9) return i; return -1; };
+  const out = [];
+  for (const ld of o.loads) {
+    if (ld.case !== mask.case) { out.push(ld); continue; }
+    if (ld.type === 'point' || ld.type === 'moment') { if (segIdx(ld.pos) >= 0) out.push(ld); continue; }
+    for (const [a, b] of segs) {
+      const x1 = Math.max(ld.x1, a), x2 = Math.min(ld.x2, b);
+      if (x2 - x1 <= 1e-9) continue;
+      const wAt = x => ld.type === 'udl' ? ld.w : ld.w1 + (ld.w2 - ld.w1) * (x - ld.x1) / (ld.x2 - ld.x1);
+      out.push(ld.type === 'udl' ? Object.assign({}, ld, { x1, x2 }) : Object.assign({}, ld, { x1, x2, w1: wAt(x1), w2: wAt(x2) }));
+    }
+  }
+  return out;
+}
+function stdInputsIndependent(o, fac, fb, xa, xb, mask) {
   const L = o.L, Lmm = L * 1000, whole = xa <= 1e-6 && Math.abs(xb - Lmm) <= 1e-6;
+  const loads = maskedLoads(o, mask);
   const sup = o.supports;
   const supAt = x => sup.find(sp => Math.abs(sp.pos * 1000 - x) < 1e-6);
   const sA = supAt(xa), sB = supAt(xb);
   const endSupported = !!(sA && sB), endFixed = !!(sA && sB && sA.type === 'fixed' && sB.type === 'fixed');
   const interior = sup.some(sp => sp.pos * 1000 > xa + 1e-6 && sp.pos * 1000 < xb - 1e-6) || (o.hinges || []).some(h => h.pos * 1000 > xa + 1e-6 && h.pos * 1000 < xb - 1e-6);
   let nUdl = 0, nPoint = 0, nCentral = 0, nOther = 0, nMom = 0, zgBest = null;
-  for (const ld of o.loads) {
+  for (const ld of loads) {
     const f = fac[ld.case] || 0; if (!f) continue;
     if (ld.type === 'moment') { if (ld.M) nMom++; continue; }
     const mag = ld.type === 'point' ? ld.P : ld.type === 'trap' ? (ld.w1 + ld.w2) / 2 : ld.w;
@@ -198,7 +222,7 @@ function runOne(cs, method) {
       const a=analyse(); const c=checks(a);
       const gl=comboLoads(a.governM.combo);
       return {a,c,gl,sec:a.sec,sw:selfWeightValue(a.sec),E:a.E,py:a.py,za:(+S.za||0),
-        gM:a.governM.combo.factors, gD:a.governD.combo.factors};
+        gM:a.governM.combo.factors, gD:a.governD.combo.factors, gMask:a.governM.combo.mask||null, gLabel:a.governM.combo.label};
     })()`);
   } catch (e) {
     rec.verdict = 'ERROR';
@@ -207,7 +231,11 @@ function runOne(cs, method) {
     return rec;
   }
   rec.ms = Number(process.hrtime.bigint() - t0) / 1e6;
-  const { a, c, gl, sec, sw, E, py, za, gM, gD } = out;
+  const { a, c, gl, sec, sw, E, py, za, gM, gD, gMask, gLabel } = out;
+  rec.nCombos = a.ulsResults.length;
+  rec.patterns = a.patterns ? { active: !!a.patterns.active, nUls: a.patterns.nUls, nSls: a.patterns.nSls } : null;
+  rec.governCombo = gLabel;
+  rec.uplift = a.uplift ? a.uplift.supports.map(u => ({ n: u.n, R: num(u.R), combo: u.combo })) : [];
   const utils = c.utils || [];
   rec.verdict = c.pass ? 'PASS' : utils.some(u => !Number.isFinite(u.val) || u.val > 1.0001) ? 'FAIL' : 'NOT VERIFIED';
   rec.gov = { name: stripHtml(c.gov.name), val: num(c.gov.val) };
@@ -303,10 +331,10 @@ function runOne(cs, method) {
           add('iii-McrStd', rel(exp, L.Mcr) <= TOL, `SN006a: C*Mcr0 = ${fmt(L.C, 3)} x ${fmt(Mcr0, 2)} = ${fmt(exp, 2)} vs engine ${fmt(L.Mcr, 2)} kN.m`);
         } else add('iii-McrStd', true, 'SN006a not covered for this loading (blocked by the engine)', 'info');
       } else {
-        // whole member, governing-moment combination: every input from the case
-        const ind = stdInputsIndependent(cs.overrides, gM, a.governM.fb, 0, cs.overrides.L * 1000);
+        // whole member, governing-moment combination (a generated pattern where one governs): every input from the case
+        const ind = stdInputsIndependent(cs.overrides, gM, a.governM.fb, 0, cs.overrides.L * 1000, gMask);
         const exp = mcrClosedFormIndependent(sec, E, ind.LE, ind.C1, ind.C2, ind.zg, ind.zgApplied);
-        add('iii-McrStd', rel(exp, L.Mcr) <= TOL, `SN003a (independent ${ind.route}): C1 ${fmt(ind.C1, 3)}, C2 ${ind.C2 == null ? '-' : fmt(ind.C2, 3)}, zg ${fmt(ind.zg, 0)} mm${ind.zgApplied ? ' applied' : ''}, LE ${fmt(ind.LE / 1000, 2)} m -> ${fmt(exp, 2)} vs engine ${fmt(L.Mcr, 2)} kN.m (engine route ${L.c1route || '-'})`);
+        add('iii-McrStd', rel(exp, L.Mcr) <= TOL, `SN003a (independent ${ind.route}${gMask ? ', pattern ' + gLabel : ''}): C1 ${fmt(ind.C1, 3)}, C2 ${ind.C2 == null ? '-' : fmt(ind.C2, 3)}, zg ${fmt(ind.zg, 0)} mm${ind.zgApplied ? ' applied' : ''}, LE ${fmt(ind.LE / 1000, 2)} m -> ${fmt(exp, 2)} vs engine ${fmt(L.Mcr, 2)} kN.m (engine route ${L.c1route || '-'})`);
         const blocked = (c.unsupported || []).some(m => /C<sub>2<\/sub> only for the simply supported and fixed-ended/.test(m));
         add('iii-zgBlock', blocked === ind.blockExpected, `destabilising zg on a non-tabulated diagram: block expected ${ind.blockExpected}, engine blocked ${blocked}`);
       }
@@ -319,11 +347,12 @@ function runOne(cs, method) {
           add('iii-McrStd', rel(exp, s.Mcr) <= TOL && rel(Mcr0i, s.sn006.Mcr0 / 1e6) <= TOL, `SN006a (comparison): C ${fmt(s.sn006.C, 3)} x Mcr0 ${fmt(Mcr0i, 2)} = ${fmt(s.sn006.C * Mcr0i, 2)} vs engine ${fmt(s.Mcr, 2)} kN.m`);
         }
       } else {
-        // the comparison describes the LTB-governing combination (label printed by the engine) over its segment
-        const gov = L.governCombo ? cs.overrides.combos.find(cb => cb.label === L.governCombo) : null;
-        const govRes = gov ? a.ulsResults.find(r => r.combo.label === gov.label) : null;
+        // the comparison describes the LTB-governing combination (label printed by the engine, possibly a
+        // generated pattern) over its segment; its factors and mask come from the analysed list
+        const govRes = L.governCombo ? a.ulsResults.find(r => r.combo.label === L.governCombo) : null;
+        const gov = govRes ? govRes.combo : null;
         if (gov && govRes) {
-          const ind = stdInputsIndependent(cs.overrides, gov.factors, govRes.fb, s.seg.xa, s.seg.xb);
+          const ind = stdInputsIndependent(cs.overrides, gov.factors, govRes.fb, s.seg.xa, s.seg.xb, gov.mask || null);
           const exp = mcrClosedFormIndependent(sec, E, ind.LE, ind.C1, ind.C2, ind.zg, ind.zgApplied);
           add('iii-McrStd', rel(exp, s.Mcr) <= TOL, `SN003a (comparison, independent ${ind.route}, segment ${fmt(s.seg.xa / 1000, 2)}-${fmt(s.seg.xb / 1000, 2)} m, ${gov.label}): C1 ${fmt(ind.C1, 3)}, C2 ${ind.C2 == null ? '-' : fmt(ind.C2, 3)}, zg ${fmt(ind.zg, 0)} mm${ind.zgApplied ? ' applied' : ''}, LE ${fmt(ind.LE / 1000, 2)} m -> ${fmt(exp, 2)} vs engine ${fmt(s.Mcr, 2)} kN.m`);
         } else {
@@ -332,6 +361,19 @@ function runOne(cs, method) {
         }
       }
     }
+  }
+
+  // (vii) uplift: a negative reaction of the governing-moment combination must be reported by the
+  //       engine for that support, and every reported lifting support must carry a hold-down message
+  {
+    const negGov = a.reactions.map((r, i) => ({ i: i + 1, V: r.V })).filter(r => r.V < -1);
+    const reported = new Set((a.uplift ? a.uplift.supports : []).map(u => u.n));
+    const okA = negGov.every(r => reported.has(r.i));
+    const msgs = (c.unsupported || []).concat(c.advisory || []).filter(m => /^Hold-down/.test(m));
+    // a support lifting in the governing (ULS) combination must be BLOCKING unless its hold-down box is ticked
+    const okC = negGov.every(r => { const sp = cs.overrides.supports[r.i - 1]; return sp && sp.holdDown ? true : (c.unsupported || []).some(m => new RegExp('^Hold-down required: .*at support ' + r.i + ' ').test(m)); });
+    const okB = (a.uplift && a.uplift.supports.length) ? a.uplift.supports.every(u => msgs.some(m => new RegExp('at support ' + u.n + ' ').test(m))) : msgs.length === 0;
+    add('vii-uplift', okA && okB && okC, negGov.length ? `governing combination lifts support(s) ${negGov.map(r => r.i + ' (' + fmt(r.V / 1000, 2) + ' kN)').join(', ')}; engine reports ${[...reported].join(', ') || 'none'}` : `no uplift in the governing combination; engine reports ${[...reported].join(', ') || 'none'} (${msgs.length} hold-down message(s))`);
   }
 
   // (iv) eigen / standard ratio (same segment) - outlier flag, not an error
@@ -475,11 +517,11 @@ if (triggerMismatches.length) {
 }
 md.push('## Runs');
 md.push('');
-md.push('| Id | Title | Section | Method | Verdict | Governing check (util) | Mcr kN.m | C1 | lamLT | chiLT | Mb,Rd | Mc,Rd | Vpl,Rd | d/dlim | Unsupported / blocking | ms |');
-md.push('|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|');
+md.push('| Id | Title | Section | Method | Verdict | Governing check (util) | Combos | Mcr kN.m | C1 | lamLT | chiLT | Mb,Rd | Mc,Rd | Vpl,Rd | d/dlim | Unsupported / blocking | ms |');
+md.push('|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|');
 runs.forEach(r => {
   const msgs = r.verdict === 'ERROR' ? r.error : (r.unsupported || []).map(s => s.slice(0, 120)).join(' / ');
-  md.push(`| ${r.id} | ${mdEsc(r.title)} | ${r.section} | ${r.method} | ${r.verdict}${r.checkFailures && r.checkFailures.length ? ' (check: ' + r.checkFailures.join(',') + ')' : ''}${r.outlier ? ' (ratio outlier)' : ''} | ${r.gov ? mdEsc(r.gov.name) + ' (' + fmt(r.gov.val, 3) + ')' : '-'} | ${fmt(r.Mcr, 1)} | ${fmt(r.C1, 3)} | ${fmt(r.lamLT, 3)} | ${fmt(r.chiLT, 3)} | ${fmt(r.MbRd, 1)} | ${fmt(r.McRd, 1)} | ${fmt(r.VplRd, 1)} | ${fmt(r.deflRatio, 3)} | ${mdEsc(msgs || '-')} | ${fmt(r.ms, 0)} |`);
+  md.push(`| ${r.id} | ${mdEsc(r.title)} | ${r.section} | ${r.method} | ${r.verdict}${r.checkFailures && r.checkFailures.length ? ' (check: ' + r.checkFailures.join(',') + ')' : ''}${r.outlier ? ' (ratio outlier)' : ''} | ${r.gov ? mdEsc(r.gov.name) + ' (' + fmt(r.gov.val, 3) + ')' : '-'} | ${r.nCombos != null ? r.nCombos + (r.patterns && r.patterns.active ? ' (' + r.patterns.nUls + ' patt.)' : '') : '-'} | ${fmt(r.Mcr, 1)} | ${fmt(r.C1, 3)} | ${fmt(r.lamLT, 3)} | ${fmt(r.chiLT, 3)} | ${fmt(r.MbRd, 1)} | ${fmt(r.McRd, 1)} | ${fmt(r.VplRd, 1)} | ${fmt(r.deflRatio, 3)} | ${mdEsc(msgs || '-')} | ${fmt(r.ms, 0)} |`);
 });
 md.push('');
 fs.writeFileSync(path.join(outDir, 'results.md'), md.join('\n'));

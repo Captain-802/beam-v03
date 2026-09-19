@@ -133,9 +133,13 @@ function checksBS5950(a){
   const pyZx=py*Zx/1e6;
   const u1=Fc/Pc + mx*Mx/pyZx;
   const u2=Fc/Pcy + mLT*Mx/Mb;
-  // deflection
-  const span=a.deflection?a.deflection.span:a.L, divisor=S.divisor, dlimit=span/divisor;
+  // deflection - governing segment with its own limit (span/divisor, L/divisorCant
+  // for a cantilever segment, capped by the optional absolute limit), from analyse()
+  const span=a.deflection?a.deflection.span:a.L;
+  const divisor=(a.deflection&&a.deflection.divisor!=null)? a.deflection.divisor : S.divisor;
+  const dlimit=(a.deflection&&a.deflection.limit!=null)? a.deflection.limit : span/divisor;
   const dmax=Math.abs(a.deflection?a.deflection.dmax:a.dmax), defOk=dmax<=dlimit;
+  const deflCant=!!(a.deflection&&a.deflection.cant), deflAbsGoverns=!!(a.deflection&&a.deflection.absGoverns);
 
   if(S.eccOn && S.loads.some(ld=>Math.abs(ld.e||0)>1e-9)) unsupported.push("Load eccentricity / torsion design is implemented for the EC3 code path only; switch Design code to EC3.");
   const utils=[
@@ -153,6 +157,6 @@ function checksBS5950(a){
   return {eps,cl,clsName,unsupported,advisory,bTBS:bT_BS,Av,Pv,Fv,lowShear,shearBuckle,Mcx,hsNote,Zx,Sx,rhsFlag,
     Ag,Anet,Ke,Ae,Pz,F,n,Srx,Mrx,Mx,localUtil,isCant,mLT,mx,mf,
     LE,lam,v,betaW,phiB,gammaPrime,lamLT,pb,lamL0,Mb,ltbUtil,a_robX,a_robY,pcx,pcy,Pc,Pcy,Fc,pyZx,u1,u2,
-    span,divisor,dlimit,dmax,defOk,utils,gov,pass};
+    span,divisor,dlimit,dmax,defOk,deflCant,deflAbsGoverns,utils,gov,pass};
 }
 

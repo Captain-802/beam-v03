@@ -47,6 +47,18 @@ function render(){
   const loadLines=[autoSwLine,...userLoadLines].join("<br>");
   const sectionView = typeof sectionLoadLineView === 'function' ? sectionLoadLineView(sec) : '';
   const reactLine=a.reactions.map(r=>`R@${g(r.pos/1000)}m = ${f1(r.V/1000,2)} kN`+(r.type==='fixed'?`, M = ${f1(-r.M/1e6,2)} kN m`:'')).join("   ");
+  // uplift / hold-down rows (every combination's reactions; item 1.2)
+  const HD=c.holdDown||null;
+  const upliftLines=(HD&&HD.rows&&HD.rows.length)
+    ? HD.rows.map(u=>{
+        if(u.level==='sls') return `<div class="note" style="margin-left:0"><b>Uplift at SLS only, support ${u.n} (x = ${g(u.pos/1000,2)} m):</b> R = &minus;${f1(Math.abs(u.RSls),2)} kN (SLS combination ${u.comboSls}); no ULS combination lifts this support; the EQU set-A combination (&gamma;<sub>G,inf</sub> = 0.9) is not generated &mdash; verify by hand (advisory).</div>`;
+        return `<div class="note" style="margin-left:0;color:${u.holdDown?'#374151':'#b91c1c'}"><b>Hold-down ${u.holdDown?'provided':'required'} at support ${u.n} (x = ${g(u.pos/1000,2)} m):</b> R = &minus;${f1(Math.abs(u.RUls),2)} kN (combination ${u.comboUls})${u.RSls!=null? `; SLS uplift &minus;${f1(Math.abs(u.RSls),2)} kN (${u.comboSls})`:''}; ${u.nCombos} combination(s) lift this support${u.holdDown? ' &mdash; design the hold-down connection for this force (advisory)' : ' &mdash; NOT VERIFIED until "hold-down provided" is ticked for this support'}.</div>`; }).join('')
+    : (a.uplift? `<div class="note" style="margin-left:0">Uplift: no support lifts in any of the ${a.ulsResults.length+a.slsResults.length} combinations (all reactions &ge; 0).</div>` : '');
+  // automatic pattern loading (item 1.3)
+  const PT=a.patterns||null;
+  const patternBlock=(PT&&PT.segs&&PT.segs.length>1)
+    ? `<div class="note" style="margin-left:0"><b>${PT.active? 'Automatic pattern loading' : 'Automatic pattern loading OFF'}</b> (${PT.segText}): ${PT.active? PT.nUls+' ULS + '+PT.nSls+' SLS combinations generated &mdash; Q on each span, on each pair of adjacent spans and on alternate spans, with G, W and E at their entered factors on every span (EN 1990 6.10 as entered); they are listed in the tables below and enter every check.' : 'only the entered combinations are analysed; adverse / relieving span patterns must be entered by hand.'} ${PT.limitation}</div>`
+    : '';
 
   // load combination results table   one row per enabled combo, flagging which one governs
   const comboRows = a.ulsResults.map(res=>{
@@ -60,6 +72,7 @@ function render(){
   }).join('');
   const combosBlock = `
   <div class="section-title smallgap">Load Combinations Considered</div>
+  ${patternBlock}
   <table class="force-table" style="font-size:13px">
     <thead><tr><th>ULS combination</th><th>Max F<sub>v</sub> (kN)</th><th>Max M<sub>x</sub> (kN m @ m)</th><th>Governs</th></tr></thead>
     <tbody>${comboRows}</tbody>
@@ -110,7 +123,7 @@ function render(){
     if(c.hsNote) notes.push(c.hsNote+".");
     if(c.ax) notes.push(c.ax.tension
       ? "Tension + bending: cross-section by cl 6.2.9; member buckling per cl 6.3.3 is not required because N<sub>Ed</sub> is tensile."
-      : "Axial compression + bending: cross-section by cl 6.2.9; member buckling by cl 6.3.3 / Annex B Method 2, Table B.1 (fully restrained &mdash; not susceptible to torsional deformation, &chi;<sub>LT</sub> = 1, M<sub>b,Rd</sub> = M<sub>c,Rd</sub>); C<sub>m</sub> per Table B.3. Strut length L<sub>cr</sub> = L<sub>E</sub>-factor &times; L (edit under Axial &amp; LTB; note a cantilever strut classically takes L<sub>cr</sub> = 2L).");
+      : "Axial compression + bending: cross-section by cl 6.2.9; member buckling by cl 6.3.3 / Annex B Method 2, Table B.1 (fully restrained &mdash; not susceptible to torsional deformation, &chi;<sub>LT</sub> = 1, M<sub>b,Rd</sub> = M<sub>c,Rd</sub>); C<sub>m</sub> per Table B.3. Strut length "+(c.buck&&c.buck.cantStrut? "L<sub>cr</sub> = "+g(c.buck.Ky,2)+"L about both axes ("+c.buck.lcrBasis+")" : "L<sub>cr</sub> = L<sub>E</sub>-factor &times; L (edit under Axial &amp; LTB; a cantilever strut with N<sub>Ed</sub> &gt; 0 defaults to 2.0L)")+".");
     notes.push("Fully restrained beam: design follows the SCI worked-example procedure to BS EN 1993-1-1 (UK NA) &mdash; classification (Table 5.2), shear resistance (cl 6.2.6), shear-buckling screen (cl 6.2.6(6)), moment resistance (cl 6.2.5, with the cl 6.2.8 shear check made at the point of maximum bending moment), and vertical deflection. &gamma;<sub>M0</sub> = 1.0 (UK NA); &eta; = 1.0 taken conservatively.");
     notes.push("Vertical deflection is checked against span/"+g(c.divisor,0)+" under the enabled SLS combination(s). NA 2.23 applies the limit to deflection due to <b>variable actions only</b>, so the default SLS combination carries Q only (edit under Load Combinations if a different criterion is required).");
   } else if(sciU){
@@ -130,7 +143,7 @@ function render(){
     }
     if(c.ax) notes.push("Axial + bending per EN 1993-1-1: cross-section by cl 6.2.9 ("+(c.ax.cls3?'elastic, Class 3':'plastic M<sub>N,Rd</sub>, Class 1/2')+"); "+(c.ax.tension
       ? "member buckling per cl 6.3.3 is not required because N<sub>Ed</sub> is tensile. Tension: N<sub>t,Rd</sub> = min(N<sub>pl,Rd</sub>, 0.9A<sub>net</sub>f<sub>u</sub>/&gamma;<sub>M2</sub>); the beneficial effect of tension on LTB is conservatively ignored"
-      : "member buckling by cl 6.3.3 with Annex B Method 2 interaction factors (Table "+(c.buck&&c.buck.useB1?'B.1 &mdash; not susceptible to torsional deformation':'B.2 &mdash; susceptible')+", C<sub>m</sub> per Table B.3 from the governing moment diagram). Strut lengths: L<sub>cr,y</sub> = L<sub>E</sub>-factor &times; L"+(c.buck&&c.buck.lczFromRestraints?"; L<sub>cr,z</sub> = largest lateral-restraint spacing (SCI P360 6.2)":"; L<sub>cr,z</sub> = L<sub>E</sub>-factor &times; L")+". The destabilising &times;1.2 switch is an LTB concept and is NOT applied to strut buckling")+". N<sub>Ed</sub> is the direct design value (not run through the combinations). Validated against an independent commercial-software SHS beam-column worked example (C<sub>m</sub> 0.4, k<sub>zy</sub> 0.24, Eq 6.61 0.184, Eq 6.62 0.110).");
+      : "member buckling by cl 6.3.3 with Annex B Method 2 interaction factors (Table "+(c.buck&&c.buck.useB1?'B.1 &mdash; not susceptible to torsional deformation':'B.2 &mdash; susceptible')+", C<sub>m</sub> per Table B.3 from the governing moment diagram). Strut lengths: "+(c.buck&&c.buck.cantStrut? "L<sub>cr,y</sub> = L<sub>cr,z</sub> = "+g(c.buck.Ky,2)+"L ("+c.buck.lcrBasis+")" : "L<sub>cr,y</sub> = L<sub>E</sub>-factor &times; L"+(c.buck&&c.buck.lczFromRestraints?"; L<sub>cr,z</sub> = largest lateral-restraint spacing (SCI P360 6.2)":"; L<sub>cr,z</sub> = L<sub>E</sub>-factor &times; L"))+". The destabilising &times;1.2 switch is an LTB concept and is NOT applied to strut buckling")+". N<sub>Ed</sub> is the direct design value (not run through the combinations). Validated against an independent commercial-software SHS beam-column worked example (C<sub>m</sub> 0.4, k<sub>zy</sub> 0.24, Eq 6.61 0.184, Eq 6.62 0.110).");
     if(c.coex&&!c.coex.pureShearFail) notes.push("Coexistent bending and shear are verified at every section along the span per cl 6.2.8(3) (rolled I/H, Class 1/2): where V<sub>Ed</sub> &gt; 0.5V<sub>pl"+((c.tor&&c.tor.VplTRd!=null)?",T":"")+",Rd</sub>, the moment is checked against the reduced M<sub>v,Rd</sub> = (W<sub>pl,y</sub> &minus; &rho;A<sub>v</sub>&sup2;/4t<sub>w</sub>)f<sub>y</sub>.");
     if(!(c.ltb&&c.ltb.na)) notes.push("&chi;<sub>LT</sub> uses &lambda;&#772;<sub>LT,0</sub>=0.4, &beta;=0.75 and buckling curve per NA 2.17 (Table 6.3: h/b&le;2 &rarr; b; 2&lt;h/b&le;3.1 &rarr; c; h/b&gt;3.1 &rarr; d); &chi;<sub>LT,mod</sub>=&chi;<sub>LT</sub>/f with k<sub>c</sub>=1/&radic;C<sub>1</sub> (NA 2.18), where C<sub>1</sub> is "+(mcrStd? "the tabulated/derived value used for M<sub>cr</sub>" : "back-calculated from the shape-only eigen result for k<sub>c</sub> only")+". The design strength f<sub>y</sub> from the flange thickness is used consistently in every expression, including Eq 6.56.");
   } else if(S.code==='BS5950'){
@@ -452,6 +465,7 @@ function render(){
     <div class="dt">Loading</div>
     ${beamDiagram(a)}
     <div class="note" style="margin-left:0">Reactions (governing-moment combo, ${a.governM.combo.label}): ${reactLine}</div>
+    ${upliftLines}
   </div>
 
   ${combosBlock}
@@ -533,7 +547,7 @@ function render(){
   ${(sci||sciU)&&c.buck? `
   <div class="section-title smallgap">Member Buckling Resistance (Cl. 6.3.3, Annex B Method 2 &mdash; Table ${c.buck.useB1?'B.1':'B.2'})</div>
   <div class="calc-block">
-    <div>L<sub>cr,y</sub> = ${g(S.leFactor,2)}&middot;L${c.buck.lczFromRestraints? '; L<sub>cr,z</sub> = restraint spacing (P360 6.2)':''}</div><div class="formula">&lambda;&#772;<sub>y</sub> = ${g(c.buck.lamY,3)} (curve ${c.buck.cvY.curve}); &lambda;&#772;<sub>z</sub> = ${g(c.buck.lamZ,3)} (curve ${c.buck.cvZ.curve})</div><div class="value">${g((c.buck.LcrY!=null?c.buck.LcrY:c.buck.Lcr)/1000,2)}${c.buck.LcrZ!=null&&Math.abs(c.buck.LcrZ-(c.buck.LcrY!=null?c.buck.LcrY:c.buck.Lcr))>1e-6? ' / '+g(c.buck.LcrZ/1000,2):''} m</div><div></div>
+    <div>L<sub>cr,y</sub> = ${g(c.buck.Ky!=null?c.buck.Ky:S.leFactor,2)}&middot;L${c.buck.lczFromRestraints? '; L<sub>cr,z</sub> = restraint spacing (P360 6.2)':''}</div><div class="formula">${c.buck.lcrBasis? c.buck.lcrBasis+'; ' : ''}&lambda;&#772;<sub>y</sub> = ${g(c.buck.lamY,3)} (curve ${c.buck.cvY.curve}); &lambda;&#772;<sub>z</sub> = ${g(c.buck.lamZ,3)} (curve ${c.buck.cvZ.curve})</div><div class="value">${g((c.buck.LcrY!=null?c.buck.LcrY:c.buck.Lcr)/1000,2)}${c.buck.LcrZ!=null&&Math.abs(c.buck.LcrZ-(c.buck.LcrY!=null?c.buck.LcrY:c.buck.Lcr))>1e-6? ' / '+g(c.buck.LcrZ/1000,2):''} m</div><div class="status">${c.buck.cantStrut? (c.buck.leOverride? 'user L<sub>E</sub>' : 'cantilever 2.0L') : ''}</div>
     <div>N<sub>b,y,Rd</sub>; N<sub>b,z,Rd</sub> = &chi;Af<sub>y</sub>/&gamma;<sub>M1</sub></div><div class="formula">&chi;<sub>y</sub> = ${g(c.buck.chiY,3)}; &chi;<sub>z</sub> = ${g(c.buck.chiZ,3)}</div><div class="value">${f1(c.buck.NbY,1)} / ${f1(c.buck.NbZ,1)} kN</div><div></div>
     <div>C<sub>my</sub> = C<sub>mLT</sub> (Table B.3)</div><div class="formula" style="font-size:12.5px">${c.buck.cmLabel}${c.buck.swayNote? ' &mdash; sway buckling mode (cantilever): C<sub>m</sub> = 0.9 floor applied (Table B.3 note)':''}</div><div class="value">${g(c.buck.Cmy,3)}; C<sub>mz</sub> = ${g(c.buck.Cmz,2)}</div><div></div>
     <div>k<sub>yy</sub>; k<sub>zz</sub>; k<sub>yz</sub>; k<sub>zy</sub></div><div class="formula">${c.buck.kzyLbl}</div><div class="value">${g(c.buck.kyy,3)}; ${g(c.buck.kzz,3)}; ${g(c.buck.kyz,3)}; ${g(c.buck.kzy,3)}</div><div></div>
@@ -561,8 +575,9 @@ function render(){
 
   <div class="section-title smallgap">${(sci||sciU)? 'Vertical Deflection of Beam (BS EN 1993-1-1 NA 2.23 &mdash; ' : 'Deflection Check (SLS &mdash; '}${a.governD.combo.label})</div>
   <div class="calc-block">
-    <div>w (governing span utilisation)</div><div class="formula">@ x = ${g(a.deflection?a.deflection.dpos/1000:a.dpos,2)} m</div><div class="value">${f1(c.dmax,1)} mm</div><div></div>
-    <div>Limit = span/${g(c.divisor,0)}</div><div class="formula">${g(c.span,0)}/${g(c.divisor,0)} = ${f1(c.dlimit,1)} mm</div><div class="value">${f1(c.dmax,1)} ${c.defOk?'&lt;':'&gt;'} ${f1(c.dlimit,1)} mm</div>${st(c.defOk,'OK')}
+    <div>${c.deflCant? 'Tip deflection (cantilever segment, relative to its support)' : 'w (governing span utilisation)'}</div><div class="formula">@ x = ${g(a.deflection?a.deflection.dpos/1000:a.dpos,2)} m${a.deflection&&(a.deflection.start>1e-6||a.deflection.end<a.L-1e-6)? '; segment '+g(a.deflection.start/1000,2)+'&ndash;'+g(a.deflection.end/1000,2)+' m':''}</div><div class="value">${f1(c.dmax,1)} mm</div><div></div>
+    <div>Limit = ${c.deflCant? 'L/' : 'span/'}${g(c.divisor,0)}${a.deflection&&a.deflection.abs!=null? ', capped at '+f1(a.deflection.abs,1)+' mm (absolute)' : ''}</div><div class="formula">${g(c.span,0)}/${g(c.divisor,0)} = ${f1(a.deflection?a.deflection.limSpan:c.dlimit,1)} mm${c.deflAbsGoverns? ' &gt; absolute limit '+f1(a.deflection.abs,1)+' mm, which governs' : ''}${c.deflCant? ' (cantilever: L/'+g(c.divisor,0)+' per UK NA to EN 1993-1-1 Table NA.2 [verify])' : ''}</div><div class="value">${f1(c.dmax,1)} ${c.defOk?'&lt;':'&gt;'} ${f1(c.dlimit,1)} mm</div>${st(c.defOk,'OK')}
+    ${a.deflSegments&&a.deflSegments.length>1? a.deflSegments.map(sg=>`<div>${sg.cant? 'Cantilever':'Span'} ${sg.no}: ${g(sg.start/1000,2)}&ndash;${g(sg.end/1000,2)} m</div><div class="formula">&delta; = ${f1(Math.abs(sg.dmax),2)} mm @ x = ${g(sg.dpos/1000,2)} m (${sg.combo}); limit ${sg.absGoverns? f1(sg.abs,1)+' mm (absolute governs; '+g(sg.span,0)+'/'+g(sg.divisor,0)+' = '+f1(sg.limSpan,1)+' mm)' : g(sg.span,0)+'/'+g(sg.divisor,0)+' = '+f1(sg.limit,1)+' mm'}</div><div class="value">${g(sg.util,3)}</div>${st(sg.util<=1.0001,'OK')}`).join('') : ''}
   </div>
 
   ${(sci||sciU)&&c.tor&&c.tor.p385? `

@@ -188,7 +188,9 @@ test('cantilever: Cantilever title line, SN006a chain in standard mode, f = 1 in
     const r = render(CASES.cant, m);
     const {html} = checkCommon(r, 'cant/' + m);
     assert.ok(html.includes('Cantilever 0 to 3 m, in Load Case 1'), m + ': title');
-    assert.ok(row(html, /^Tip &delta; &le; L\/360$/), m + ': tip deflection label');
+    // cantilever segment: L/S.divisorCant (default 180, UK NA Table NA.2 [verify]) instead of the span divisor
+    const tip = row(html, /^Tip &delta; &le; L\/180$/);
+    assert.ok(tip, m + ': tip deflection label'); assert.ok(/Table NA\.2 \[verify\]/.test(tip.vals), m + ': cantilever limit basis printed');
     if (m === 'standard') {
       assert.equal(row(html, /^M<sub>cr0<\/sub> = /).tag, 'SN006a');
       const C = row(html, /^C = Fn\(&kappa;<sub>wt<\/sub>, &eta;, warping\)$/);

@@ -164,6 +164,8 @@ Heading `Member Loading and Member Forces`.
 | Maximum Moment z-z | `S.Mz @ —` | | position NOT AVAILABLE (uniform) |
 | Maximum Deflection (mm @ m) | `a.deflection.dmax @ a.deflection.dpos/1000` | | governing span segment of the governing SLS case (`a.governD`); beam-v03 stores nodal deflection, which equals the in-span value between supports because support nodes have w = 0; for a cantilever it is the tip deflection |
 
+**[beam-v03 addition, 19 Sep 2026]** the load list ends with the automatic pattern-loading lines (`a.patterns`: segments, generated ULS/SLS cases numbered by the expanded lists, the gamma_G,inf limitation), and the reactions line is followed by the uplift rows (`c.holdDown.rows`: "Hold-down required" as a NOT VERIFIED row, "Hold-down provided" as an advisory row with the design force, or "Uplift ... OK"). Case numbers (`msbCaseIndex(combo, sls, a)`) index the analysed lists `a.ulsResults` / `a.slsResults`, so a generated pattern is "Load Case 3 (ULS: 1.35G + 1.5Q (Q on span 2 only))".
+
 **[beam-v03 addition]** a reactions line under the table: `R @ x m = V kN (, M kN.m)` from `a.reactions[]` (`V/1000`, `−M/1e6`), and a one-row-per-combination summary (`a.ulsResults[i].combo.label`, `Vmax/1000`, `Mmax/1e6 @ Mpos/1000`; `a.slsResults[i].combo.label`, `dmax`) when more than one combination is enabled, because MasterSeries' "Auto Design Load Cases" list has no beam-v03 equivalent other than this.
 
 ### 5.2 Classification and Effective Area (EN 1993: 2006)
@@ -368,7 +370,7 @@ Heading `Deflection Check - Load Case <m>` with `m` = index/label of `a.governD.
 |---|---|---|---|---|
 | `In-span δ ≤ Span/<divisor>` | `<dmax> ≤ <span mm> / <divisor>` (+ `@ x = <dpos> m` and, for multi-span, `segment <start>–<end> m`) | `c.dmax` mm | OK / Warning | `c.dmax`, `c.span`, `c.divisor`, `c.dlimit`, `c.defOk`, `a.deflection.{start, end, dpos}`. Cantilever: label `Tip δ ≤ L/<divisor>` |
 
-Beam-v03 checks every support-to-support span and each overhang with its own length (`analyse()` keeps the worst in `a.deflection`); MasterSeries' pattern rows (Def Limit 1-30) are NOT AVAILABLE; the single divisor `S.divisor` is used.
+Beam-v03 checks every support-to-support span and each overhang with its own length (`analyse()` keeps the worst in `a.deflection`). Since the 19 Sep 2026 gap closure the limit is per segment: span/`S.divisor` between supports, L/`S.divisorCant` (default 180, UK NA Table NA.2 cantilever row [verify]) for a cantilever segment, capped by the optional absolute limit `S.deflAbs`; the governing row prints the limit used (label `Tip &delta; &le; L/180` for a cantilever segment, `(&le; x mm)` when an absolute limit is entered) and a multi-segment member adds one row per segment (`a.deflSegments`, worst SLS combination named). MasterSeries' Def Limit pattern rows are covered by the automatic pattern combinations of the SLS set.
 
 ### 5.10 Unity bar
 

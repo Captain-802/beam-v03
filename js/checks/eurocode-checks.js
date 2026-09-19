@@ -142,9 +142,10 @@ function cmTableB3(a){
   const M0=interpAt(fb.xs,fb.M,1e-4)/1e6, ML=interpAt(fb.xs,fb.M,L-1e-4)/1e6;
   const Ms=interpAt(fb.xs,fb.M,L/2)/1e6;
   const gfac=a.governM.combo.factors;
+  const pieces=comboLoadPieces(a.governM.combo);   // pattern-aware effective load list
   let hasDist=Math.abs(gfac.G??0)>0, hasConc=false;   // auto self-weight is distributed
-  S.loads.forEach(ld=>{ if(ld.isSelfWeight) return; const f=gfac[ld.case]??0; if(!f) return;
-    if(ld.type==='point') hasConc=true; else if(ld.type==='udl'||ld.type==='trap') hasDist=true; });
+  pieces.forEach(p=>{ if(!p.factor) return;
+    if(p.type==='point') hasConc=true; else if(p.type==='udl'||p.type==='trap') hasDist=true; });
   // 'linear end-moment diagram' means the BMD is actually a straight line
   // between the ends (no transverse-load curvature) - test every grid value
   // against the chord, not just the midpoint (a cantilever's Mmax sits
@@ -158,9 +159,9 @@ function cmTableB3(a){
   // Table B.3's transverse-load diagrams do not describe arbitrary partial,
   // multiple, reversing or multi-span loads. No beneficial Cm is inferred
   // from a single midpoint for those layouts.
-  const active=S.loads.filter(ld=>!ld.isSelfWeight&&Math.abs(gfac[ld.case]||0)>1e-12);
+  const active=pieces.filter(p=>Math.abs(p.factor)>1e-12);
   const simpleSpan=S.supports.length===2&&Math.min(...S.supports.map(s=>+s.pos))===0&&Math.max(...S.supports.map(s=>+s.pos))===S.L&&!(S.hinges||[]).length;
-  const canonical=active.every(ld=>ld.type==='udl'&&+ld.x1===0&&+ld.x2===S.L||(ld.type==='point'&&Math.abs(+ld.pos-S.L/2)<1e-9));
+  const canonical=active.every(p=>p.type==='udl'&&p.x1<=1e-9&&Math.abs(p.x2-a.L)<1e-6||(p.type==='point'&&Math.abs(p.pos-a.L/2)<1e-6));
   if(!simpleSpan||!canonical||(hasDist&&hasConc)) return {Cm:1,label:'C_m = 1: arbitrary or mixed moment diagram; no Table B.3 reduction assumed'};
   const Mh=Math.abs(M0)>=Math.abs(ML)? M0:ML;
   const Mo=Math.abs(M0)>=Math.abs(ML)? ML:M0;
@@ -225,9 +226,21 @@ function annexB2(a,sec,fy,cl,MbRdI,useB1,isCant){
   // P360 Table 6.2). Minor axis: reduced to the largest spacing between
   // adjacent lateral restraint points where intermediate restraints are
   // modelled (SCI P360 6.2 bracing-point assumption), never longer than LE x L.
-  const LcrY=S.leFactor*a.L;
+  // Cantilever strut (single fixed support, N_Ed > 0): the sway-mode buckling
+  // length is L_cr = 2.0 L about both axes (EN 1993-1-1 6.3.1.3(1) with the
+  // classical fixed-free effective length; SCI P360 Table 6.2 "fixed-free" =
+  // 2.0 L) unless the user has entered an L_E/L factor other than 1.0, which is
+  // kept as an explicit override.
+  const cantStrut = !!isCant && Fc>1e-9;
+  const leOverride = Math.abs((+S.leFactor)-1)>1e-9;
+  const Ky = (cantStrut && !leOverride)? 2.0 : +S.leFactor;
+  const lcrBasis = cantStrut
+    ? (leOverride ? 'cantilever strut: user L<sub>E</sub>/L factor '+g(Ky,2)+' kept as entered (default for a cantilever is 2.0)' : 'cantilever strut (fixed-free, sway mode): L<sub>cr</sub> = 2.0 L about both axes by default; enter an L<sub>E</sub>/L factor other than 1 to override')
+    : 'L<sub>E</sub>/L factor '+g(Ky,2)+' as entered';
+  const LcrY=Ky*a.L;
   const lz=lcrZFromRestraints(a);
   const LcrZ=lz!=null? Math.min(lz,LcrY) : LcrY;
+  const Kz=LcrZ/a.L;
   const lczFromRestraints=(lz!=null && LcrZ<LcrY-1e-6);
   const Lcr=LcrY;                                 // kept for report compatibility
   const lam1=Math.PI*Math.sqrt(E/fy);
@@ -264,7 +277,7 @@ function annexB2(a,sec,fy,cl,MbRdI,useB1,isCant){
   const mzTerm = MzEd>1e-9 ? MzEd/Mcz : 0;                            // Mz,Ed / Mc,z,Rd
   const u1=ny + kyy*Mx/Mrd + kyz*mzTerm;           // Eq 6.61
   const u2=nz + kzy*Mx/Mrd + kzz*mzTerm;           // Eq 6.62
-  return {Fc,Mx,Lcr,LcrY,LcrZ,lczFromRestraints,lam1,lamY,lamZ,cvY,cvZ,chiY,chiZ,NbY,NbZ,ny,nz,
+  return {Fc,Mx,Lcr,LcrY,LcrZ,Ky,Kz,cantStrut,leOverride,lcrBasis,lczFromRestraints,lam1,lamY,lamZ,cvY,cvZ,chiY,chiZ,NbY,NbZ,ny,nz,
     Cmy,Cmz,CmLT,cmLabel:cm.label,swayNote,useB1,c12,kyy,kzz,kyz,kzy,kzyLbl,MbRdI,Mcz,MzEd,mzTerm,biax:MzEd>1e-9,u1,u2};
 }
 function checksEC3Restrained(a){
@@ -557,9 +570,19 @@ function checksEC3Restrained(a){
         : "Coexistent shear and moment (cl 6.2.8): at x = "+(worst.x/1000).toFixed(2)+" m, V<sub>Ed</sub> = "+worst.V.toFixed(0)+" kN &gt; 0.5V<sub>pl,Rd</sub> and the reduced M<sub>v,Rd</sub> = "+worst.MvRd.toFixed(0)+" kN&middot;m governs";
     }
   }
-  // vertical deflection (NA 2.23) - governing enabled SLS combination
-  const span=a.deflection?a.deflection.span:a.L, divisor=S.divisor, dlimit=span/divisor;
+  // vertical deflection (NA 2.23) - governing enabled SLS combination and segment;
+  // the limit is the segment's own (span/divisor, L/divisorCant for a cantilever
+  // segment, capped by the optional absolute limit) as set by analyse()
+  const span=a.deflection?a.deflection.span:a.L;
+  const divisor=(a.deflection&&a.deflection.divisor!=null)? a.deflection.divisor : S.divisor;
+  const dlimit=(a.deflection&&a.deflection.limit!=null)? a.deflection.limit : span/divisor;
   const dmax=Math.abs(a.deflection?a.deflection.dmax:a.dmax), defOk=dmax<=dlimit;
+  const deflCant=!!(a.deflection&&a.deflection.cant), deflAbsGoverns=!!(a.deflection&&a.deflection.absGoverns);
+  // uplift / hold-down at every support, every combination (EN 1990 2.4.4)
+  const holdDown=holdDownCheck(a);
+  holdDown.unsupported.forEach(m=>unsupported.push(m));
+  holdDown.advisory.forEach(m=>advisory.push(m));
+  if(a.patterns&&a.patterns.note) advisory.push(a.patterns.note);
   const isCantR=(S.supports.length===1 && S.supports[0].type==='fixed');
   const buck=(ax && !ax.tension)? annexB2(a,sec,fy,cl,McRd,true,isCantR) : null; // fully restrained: not susceptible -> Table B.1; MbRd = Mc,Rd
   const utils=[
@@ -588,7 +611,7 @@ function checksEC3Restrained(a){
   const pass=unsupported.length===0 && utils.every(u=>u.val<=1.0001);
   return {sci:true,tor,coex,ax,buck,eps,cl,clsName,unsupported,advisory,fy,eta,hw,cOut,Av,AvRaw,avFloor,VcRd,Fv,shearUtil,
     sbRatio,sbLimit,sbOk,Zx,Sx,Wy,McRd,hsNote,VatM,halfVpl,lowShearAtM,Mx,momUtil,F,
-    span,divisor,dlimit,dmax,defOk,utils,gov,pass};
+    span,divisor,dlimit,dmax,defOk,deflCant,deflAbsGoverns,holdDown,utils,gov,pass};
 }
 
 /* ===========================================================================
@@ -685,16 +708,18 @@ function mcrClosedForm(sec,E,LE,C1,C2,zg){
 // stabilising, so its height enters with the sign reversed. Automatic
 // self-weight (centroid, z_g = 0) and moment loads carry no load height.
 // Falls back to S.za when no transverse load is active in the combination.
+// `combo` is a combination object ({factors, mask?}) or a bare factors object;
+// pattern combinations see only the loads their mask keeps (comboLoadPieces).
 // Returns {zg (mm), source: 'loads' | 'default'}.
-function stdZgFor(factors){
-  const fac=factors||{};
+function asCombo(combo){ return (combo && combo.factors)? combo : {factors:combo||{}}; }
+function stdZgFor(combo){
   let best=null;
-  S.loads.forEach(ld=>{
-    if(ld.isSelfWeight||ld.type==='moment') return;
-    const f=fac[ld.case]??0; if(!f) return;
-    const mag= ld.type==='point'? (+ld.P||0) : ld.type==='trap'? ((+ld.w1||0)+(+ld.w2||0))/2 : (+ld.w||0);
+  comboLoadPieces(asCombo(combo)).forEach(p=>{
+    if(p.type==='moment') return;
+    const f=p.factor; if(!f) return;
+    const mag= p.type==='point'? p.P : (p.w1+p.w2)/2;
     if(Math.abs(mag)<1e-12) return;
-    const z0=(typeof loadZgValue==='function')? loadZgValue(ld) : (+S.za||0);
+    const z0=(typeof loadZgValue==='function')? loadZgValue(p.ld) : (+S.za||0);
     const zg=(mag*f<0)? -z0 : z0;
     if(best==null||zg>best) best=zg;
   });
@@ -706,20 +731,19 @@ function stdZgFor(factors){
 // (and how many of them sit at mid-span, +/-1% of L), any other transverse
 // load, and applied moments. The SN003a Table 3.2 rows are recognised from
 // these counts, not from the quarter-point moment ratio alone.
-function stdLoadShape(factors){
-  const fac=factors||{}, L=+S.L;
+function stdLoadShape(combo){
+  const L=(+S.L)*1000;
   let nUdl=0,nPoint=0,nCentral=0,nOther=0,nMoment=0;
-  S.loads.forEach(ld=>{
-    if(ld.isSelfWeight) return;
-    const f=fac[ld.case]??0; if(!f) return;
-    if(ld.type==='moment'){ if(Math.abs(+ld.M||0)>1e-12) nMoment++; return; }
-    if(ld.type==='point'){
-      if(Math.abs(+ld.P||0)<1e-12) return;
-      nPoint++; if(Math.abs((+ld.pos)-L/2)<=0.01*L) nCentral++; return;
+  comboLoadPieces(asCombo(combo)).forEach(p=>{
+    const f=p.factor; if(!f) return;
+    if(p.type==='moment'){ if(Math.abs(p.M)>1e-12) nMoment++; return; }
+    if(p.type==='point'){
+      if(Math.abs(p.P)<1e-12) return;
+      nPoint++; if(Math.abs(p.pos-L/2)<=0.01*L) nCentral++; return;
     }
-    const w1= ld.type==='udl'? (+ld.w||0) : (+ld.w1||0), w2= ld.type==='udl'? (+ld.w||0) : (+ld.w2||0);
+    const w1=p.w1, w2=p.w2;
     if(Math.abs(w1)<1e-12&&Math.abs(w2)<1e-12) return;
-    const full=(+ld.x1)<=1e-6 && Math.abs((+ld.x2)-L)<=1e-6 && Math.abs(w1-w2)<=1e-9*Math.max(Math.abs(w1),1);
+    const full=p.x1<=1e-3 && Math.abs(p.x2-L)<=1e-3 && Math.abs(w1-w2)<=1e-9*Math.max(Math.abs(w1),1);
     if(full) nUdl++; else nOther++;
   });
   return {nUdl,nPoint,nCentral,nOther,nMoment,
@@ -763,7 +787,7 @@ function sn003aC1(a,isCant,seg,diag){
   // 'cantilever', 'negligible', 'end-moment', 'uniform', 'point',
   // 'fixed-uniform', 'fixed-point', 'serna'.
   const fbM=(diag&&diag.fb)||a.governM.fb;
-  const fac=(diag&&diag.factors)||a.governM.combo.factors;
+  const fac=(diag&&diag.combo)||((diag&&diag.factors)? {factors:diag.factors} : a.governM.combo);   // combination (pattern-aware)
   const xa=seg? seg.xa : 0, xb=seg? seg.xb : a.L, Ls=xb-xa;
   const c1in=c1Inputs(fbM,xa,xb);
   if(S.C1o!=null) return {C1:S.C1o, C2:null, label:'user override', route:'override', c1in};
@@ -835,18 +859,18 @@ function mcrSN006aFor(a,sec,factors,zg){
   const Mcr0=Math.PI/Lc*Math.sqrt(E*Iz*G*It);        // N.mm
   const kwt=Math.sqrt(E*Iw/(G*It))/Lc;
   const hs=sec.D-sec.tf;
-  const gfac=factors||a.governM.combo.factors;
-  const za=(zg!=null)? +zg : stdZgFor(gfac).zg;
+  const gcb=asCombo(factors||a.governM.combo), gfac=gcb.factors;
+  const za=(zg!=null)? +zg : stdZgFor(gcb).zg;
   const eta=za/(hs/2);
   const warp=(S.rootWarp==='restrained')?'restr':'free';
   // classify tip loading from the loads (2% de-minimis on the support moment)
   let Mq=0,MF=0,Mm2=0,nF2=0,nM2=0,other=false;
-  S.loads.forEach(ld=>{
-    if(ld.isSelfWeight) return;
-    const f=gfac[ld.case]??0; if(!f) return; // zero-factor loads do not shape this combination
-    if(ld.type==='udl'&&(+ld.x1)<=1e-6&&Math.abs((+ld.x2)-S.L)<=1e-6) Mq+=(ld.w||0)*f*S.L*S.L/2;
-    else if(ld.type==='point'&&Math.abs((+ld.pos)-S.L)<=0.02*S.L){ MF+=(ld.P||0)*f*S.L; nF2++; }
-    else if(ld.type==='moment'&&Math.abs((+ld.pos)-S.L)<=0.02*S.L){ Mm2+=Math.abs(ld.M||0)*f; nM2++; }
+  const Lmm=S.L*1000;
+  comboLoadPieces(gcb).forEach(p=>{
+    const f=p.factor; if(!f) return; // zero-factor loads do not shape this combination
+    if(p.type==='udl'&&p.x1<=1e-3&&Math.abs(p.x2-Lmm)<=1e-3) Mq+=p.w1*f*S.L*S.L/2;
+    else if(p.type==='point'&&Math.abs(p.pos-Lmm)<=0.02*Lmm){ MF+=p.P*f*S.L; nF2++; }
+    else if(p.type==='moment'&&Math.abs(p.pos-Lmm)<=0.02*Lmm){ Mm2+=Math.abs(p.M)*f; nM2++; }
     else other=true;
   });
   Mq+=(a.swPerM||0)*(gfac.G??0)*S.L*S.L/2;
@@ -885,7 +909,7 @@ function mcrStandardFor(a,sec,seg,diag){
   const isCant=(S.supports.length===1 && S.supports[0].type==='fixed');
   seg=seg||c1Segment(a);
   const fb=(diag&&diag.fb)||a.governM.fb;
-  const fac=(diag&&diag.factors)||a.governM.combo.factors;
+  const fac=(diag&&diag.combo)||((diag&&diag.factors)? {factors:diag.factors} : a.governM.combo);   // combination (pattern-aware)
   const zgi=stdZgFor(fac);
   if(isCant && sec.kind==='I'){
     const r=mcrSN006aFor(a,sec,fac,zgi.zg);
@@ -894,7 +918,7 @@ function mcrStandardFor(a,sec,seg,diag){
       label:'cantilever SN006a &mdash; '+r.caseLbl, c1in, seg, LE:a.L, sn006:r,
       zg:zgi.zg, zgSource:zgi.source, zgUsed:Math.abs(zgi.zg)>1e-9, zgNote:'z<sub>g</sub> = '+(zgi.zg>0?'+':'')+zgi.zg.toFixed(0)+' mm through &eta; = '+r.eta.toFixed(2)+' (SN006a)', zgBlocked:false};
   }
-  const c1r=sn003aC1(a,isCant,seg.whole? undefined : seg,{fb,factors:fac});
+  const c1r=sn003aC1(a,isCant,seg.whole? undefined : seg,{fb,combo:fac});
   const LE=S.leFactor*(S.destab?1.2:1)*(seg.xb-seg.xa);
   const cf=mcrClosedForm(sec,a.E,LE,c1r.C1,c1r.C2,zgi.zg);
   const zs=stdZgStatus(zgi.zg,c1r.C2,cf.zgUsed);
@@ -925,7 +949,7 @@ function checksEC3UnrestrainedSCI(a){
   const Wy=b.Wy;
   const isCant=(S.supports.length===1 && S.supports[0].type==='fixed');
   const LE=S.leFactor*(S.destab?1.2:1)*a.L;
-  const gfac=a.governM.combo.factors;
+  const gfac=a.governM.combo;     // governing-moment combination (pattern-aware load list)
   const c1r=sn003aC1(a,isCant);   // whole member: the closed form treats the member as one segment
   const C1=c1r.C1, invSqrtC1=1/Math.sqrt(C1), kc=invSqrtC1;
   const zgi=stdZgFor(gfac);       // load height of the governing combination (per-load z_g, most destabilising)

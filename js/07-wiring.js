@@ -44,6 +44,9 @@ function readScalarInputs(){
   const mxo=parseFloat($("mxo").value); S.mxo=isFinite(mxo)?mxo:null;
   const c1o=parseFloat($("C1o").value); S.C1o=isFinite(c1o)?c1o:null;
   S.divisor=parseFloat($("divisor").value);
+  if($("divisorCant")){ const dc=parseFloat($("divisorCant").value); S.divisorCant=isFinite(dc)?dc:180; }
+  if($("deflAbs")){ const da=parseFloat($("deflAbs").value); S.deflAbs=isFinite(da)?da:null; }
+  if($("autoPattern")) S.autoPattern=$("autoPattern").checked;
   S.E=parseFloat($("E").value);
   const ke=parseFloat($("Ke").value); S.Ke=isFinite(ke)?ke:null;
   const autoRob=defaultRobertson(S.family,sec.boxType,sec.tf);
@@ -66,10 +69,11 @@ function wirePlate(){
 }
 
 function wire(){
-  ["grade","py","anet","length","axial","Mz","leFactor","mLTo","mxo","C1o","divisor","E","Ke","robertsonX","robertsonY"]
-    .forEach(id=>$(id).addEventListener("input",()=>{ readScalarInputs(); recompute(); }));
+  ["grade","py","anet","length","axial","Mz","leFactor","mLTo","mxo","C1o","divisor","divisorCant","deflAbs","E","Ke","robertsonX","robertsonY"]
+    .forEach(id=>{ if($(id)) $(id).addEventListener("input",()=>{ readScalarInputs(); recompute(); }); });
   $("za").addEventListener("input",()=>{ readScalarInputs(); renderLoadList(); recompute(); });
   $("destab").addEventListener("change",()=>{ readScalarInputs(); recompute(); });
+  if($("autoPattern")) $("autoPattern").addEventListener("change",()=>{ readScalarInputs(); recompute(); });
   $("eccOn").addEventListener("change",()=>{ readScalarInputs(); renderLoadList(); recompute(); });
   $("rootWarp").addEventListener("change",()=>{ readScalarInputs(); recompute(); });
   function refreshAutoFields(){

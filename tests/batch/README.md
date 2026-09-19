@@ -55,6 +55,15 @@ engine's intermediate results. Tolerance 0.5 % relative unless stated.
 | iv-McrRatio | Mcr,eigen / Mcr,standard for the same segment, flagged when outside 0.85-1.25. An outlier is interesting output, not necessarily an error | eigen runs with a closed-form comparison (94 runs) |
 | v-MbRd<=McRd | Mb,Rd <= Mc,Rd | every LTB run that produced an Mb,Rd |
 | vi-governing | the reported governing utilisation equals the max of the printed utilisations | every run |
+| vii-uplift | every support whose reaction is negative in the governing-moment combination is reported by the engine's uplift record and, unless the case declares `holdDown` for it, carries a blocking "Hold-down required" message; every reported lifting support has a hold-down message | every run |
+
+Since the 19 Sep 2026 gap closure the analysed combination list of a multi-span,
+overhang or Gerber case includes the automatic Q patterns (`a.patterns`, column
+"Combos" in the runs table). Cross-check (iii) re-derives the closed-form inputs
+from the pattern's own load set: `maskedLoads()` clips the case's Q loads to the
+governing pattern's segments independently of the engine (`comboLoadPieces`),
+and the LTB-governing combination of an eigen run is looked up in the analysed
+list (it may be a generated pattern).
 
 The runner also compares the case's `expect` triggers with the triggers it can
 observe from the check output (axial / biaxial / tension / torsion / Annex A /
@@ -95,27 +104,37 @@ Loads are sized so the governing eigen utilisation mostly lies in 0.6-0.95.
 Deliberately heavy cases (tag `heavy`: UB-02 demo unrestrained, UB-22 curve d)
 exercise the FAIL path.
 
-## Results of the current run (2026-09-19, Node v24.14.1)
+## Results of the current run (2026-09-19, Node v24.14.1, after the G1 gap closure)
 
-Verdicts: PASS 168 | FAIL 34 | NOT VERIFIED 6 | ERROR 0. Cross-check
+Verdicts: PASS 154 | FAIL 38 | NOT VERIFIED 16 | ERROR 0. Cross-check
 mismatches: 0 runs. Trigger mismatches: 1 case (PFC-17, see below).
+Changes against the pre-G1 run (PASS 168 | FAIL 34 | NOT VERIFIED 6): the
+wind-uplift cases UB-36, UB-37, RHS-16 and the end-couple cases UB-26, UC-13
+lift a support at ULS and are now NOT VERIFIED ("Hold-down required", the
+trigger 1.2 they were written for); the overhang cases UB-23 (LTB 0.85 -> 1.16
+with Q on the back span only) and RHS-17 (tip deflection 0.6 -> 18.6 mm with Q
+on the overhang only, L/180) and the Gerber case UB-24 (standard route) FAIL
+under the generated patterns; MIX-02 moves within PASS. The Q-only SLS
+combination lifts a support of most continuous beams (UB-14/15/17/24/41, UC-07,
+PFC-10, SHS-05, RHS-08/09, MIX-01/02, RHS-16 W-only): reported as an advisory,
+not blocking (see AUDIT.md).
 
 ### Per section family
 
 | Family | Cases | Runs | PASS | FAIL | NOT VERIFIED | ERROR |
 |---|---|---|---|---|---|---|
-| UB | 51 | 94 | 75 | 17 | 2 | 0 |
-| UC | 15 | 28 | 26 | 2 | 0 | 0 |
+| UB | 51 | 94 | 67 | 19 | 8 | 0 |
+| UC | 15 | 28 | 24 | 2 | 2 | 0 |
 | PFC | 19 | 34 | 23 | 9 | 2 | 0 |
 | SHS | 11 | 18 | 14 | 2 | 2 | 0 |
-| RHS | 18 | 34 | 30 | 4 | 0 | 0 |
+| RHS | 18 | 34 | 26 | 6 | 2 | 0 |
 
 ### Per Mcr method
 
 | Method | Runs | PASS | FAIL | NOT VERIFIED | ERROR |
 |---|---|---|---|---|---|
-| eigen | 94 | 85 | 7 | 2 | 0 |
-| standard | 94 | 65 | 26 | 3 | 0 |
+| eigen | 94 | 78 | 9 | 7 | 0 |
+| standard | 94 | 58 | 28 | 8 | 0 |
 | n/a (restrained) | 20 | 18 | 1 | 1 | 0 |
 
 ### Cross-check totals
@@ -130,6 +149,7 @@ mismatches: 0 runs. Trigger mismatches: 1 case (PFC-17, see below).
 | iv-McrRatio | 94 | 86 | 8 flagged |
 | v-MbRd<=McRd | 188 | 188 | 0 |
 | vi-governing | 208 | 208 | 0 |
+| vii-uplift | 208 | 208 | 0 |
 
 ### Eigen / standard Mcr outliers
 
@@ -137,7 +157,7 @@ Same segment (the engine's own comparison inside the eigen run, 8 of 94):
 
 | Case | Ratio | Standard route | Layout |
 |---|---|---|---|
-| UB-23 | 1.446 | Serna | 7 m span + 2 m overhang, UDL + tip load |
+| UB-23 | 1.362 | Serna | 7 m span + 2 m overhang, UDL + tip load (governing pattern: Q on the back span only) |
 | UB-27 | 0.830 | Serna | SS, UDL + in-span couple + point load |
 | UB-40 | 1.657 | uniform | SS UDL with LE factor 1.2 + destabilising (closed form uses LE = 1.2 x 1.2 x 8 = 11.52 m, the eigensolver solves the 8 m member) |
 | UB-44 | 0.679 | Serna | SS, point load at 0.35L with top-flange z_g: the closed form has no C2 for this diagram (blocked on the standard route), the eigen value carries the load height |
@@ -159,6 +179,11 @@ of I/H sections uses the SN003a Mcr chain as its design basis; the P362
 Expn 6.55 simplified slenderness is printed for comparison only.)
 
 ### Known gaps surfaced
+
+- Wind-uplift and end-couple cases (UB-26, UB-36, UB-37, UC-13, RHS-16):
+  a support lifts at ULS and no hold-down is declared in the case -> NOT
+  VERIFIED with the hold-down force printed (item 1.2 now implemented; add
+  `holdDown: true` to the support to turn it into an advisory).
 
 - PFC-17 (partial-span eccentric UDL on a channel): trigger 3.8 (LTB with
   torsion interaction) is expected but the engine reports the partial-span

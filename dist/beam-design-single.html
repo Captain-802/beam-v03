@@ -298,7 +298,7 @@
       </div>
       <div class="list" id="supportList"></div>
       <div class="addbar"><button type="button" id="addSupport">+ Add support</button></div>
-      <div class="hint">Pinned = vertical restraint only. Fixed = vertical + rotational. Position measured from the left end (0&nbsp;m).</div>
+      <div class="hint">Pinned = vertical restraint only. Fixed = vertical + rotational. Position measured from the left end (0&nbsp;m). A support that lifts in any combination (negative reaction) blocks PASS with a &ldquo;Hold-down required&rdquo; message unless <b>hold-down provided</b> is ticked for it, in which case the design hold-down force is printed as an advisory.</div>
 
       <div style="margin-top:10px;font-size:11px;font-weight:700;color:#374151">Internal hinges (moment releases)</div>
       <div class="list" id="hingeList"></div>
@@ -328,6 +328,8 @@
         <button type="button" id="addCombo">+ Add combination</button>
       </div>
       <div class="hint">Switch on every combination you want <b>considered in the design</b>. For each ULS combination switched on, the solver finds Shear/Moment everywhere along the member; the worst case from any switched-on combination governs each check (envelope), and the report states which combination governs which check. At least one ULS and one SLS (deflection) combination must be on.</div>
+      <label class="checkline"><input type="checkbox" id="autoPattern" checked> <span>Automatic pattern loading (multi-span / cantilever)</span></label>
+      <div class="hint">When the member has more than one span segment (support to support, plus any cantilever or end overhang; internal hinges do not split segments), every enabled ULS and SLS combination with a non-zero <b>Q</b> factor is supplemented by the span-wise patterns: Q on each single segment, on each pair of adjacent segments and on alternate segments, with G (and W, E) at their entered factors on every span &mdash; EN 1990 Eq 6.10 as entered, e.g. &ldquo;ULS: 1.35G + 1.5Q (Q on span 2 only)&rdquo;. The generated combinations enter every check (envelopes, per-span deflection, torsion, LTB per combination, uplift). <b>Limitation:</b> &gamma;<sub>G,inf</sub> = 1.0 on relieving spans (Table A1.2(B)) is not generated &mdash; add a reduced-G combination by hand where a relieving permanent action could govern.</div>
     </details>
 
     <details class="compact-details axial-ltb" open>
@@ -349,6 +351,7 @@
       <label><span>Minor-axis moment M<sub>z,Ed</sub>, kN&middot;m</span> <input id="Mz" type="number" step="0.001"></label>
       <div class="hint">Coincident ULS design moment about the <b>minor (z&ndash;z)</b> axis, entered directly (this solver bends in one plane). Forms the full EC3 biaxial interaction (M<sub>y</sub>/M<sub>N,y</sub>)<sup>&alpha;</sup> + (M<sub>z</sub>/M<sub>N,z</sub>)<sup>&beta;</sup> &le; 1 (cl 6.2.9.1). Leave 0 for uniaxial bending.</div>
       <label id="leRow"><span>L<sub>E</sub> / L factor</span> <input id="leFactor" type="number" step="0.01"></label>
+      <div class="hint">Strut buckling length L<sub>cr</sub> = factor &times; L about both axes (minor axis shortened to the lateral-restraint spacing where restraints are modelled). <b>Cantilever with axial compression:</b> the fixed-free sway length L<sub>cr</sub> = 2.0 L is taken by default while this factor is left at 1.0; any other value is kept as an explicit override.</div>
       <label id="zaRow"><span>Default z<sub>g</sub>, mm</span> <input id="za" type="number" step="1" placeholder="0"></label>
       <div class="hint live-hint" id="zaHint"></div>
       <label id="warpRow"><span>Root warping</span>
@@ -369,6 +372,9 @@
     <details>
       <summary>Deflection &amp; advanced</summary>
       <label>Deflection limit span/ <input id="divisor" type="number" step="1"></label>
+      <label>Cantilever deflection limit L/ <input id="divisorCant" type="number" step="1"></label>
+      <label>Absolute deflection limit, mm <input id="deflAbs" type="number" step="1" placeholder="blank = none"></label>
+      <div class="hint">Deflection is checked segment by segment: each support-to-support span against span/divisor, each cantilever or end overhang against its own length / the cantilever divisor (default 180 &mdash; UK NA to EN 1993-1-1 Table NA.2, cantilevers: length/180 <b>[verify]</b>), every segment also capped by the absolute limit when one is entered. A cantilever value is the tip deflection relative to its support (the root rotation is inside the solver).</div>
       <label>E, N/mm  <input id="E" type="number" step="1000"></label>
       <label>K<sub>e</sub> (effective area) <input id="Ke" type="number" step="0.05" placeholder="auto"></label>
       <div id="robRow">
@@ -1595,7 +1601,9 @@ const DEMO={
   loads:[{type:'udl',x1:0,x2:8.0,w:19.7,case:'G'},{type:'udl',x1:0,x2:8.0,w:19.8,case:'Q'}],
   combos:JSON.parse(JSON.stringify(DEFAULT_COMBOS)),
   axial:0, Mz:0, leFactor:1.0, destab:false, mLTo:null, mxo:null, C1o:null,
-  divisor:360, E:210000, Ke:null, robX:null, robY:null,
+  divisor:360, divisorCant:180, deflAbs:null,   // span/360 between supports; L/180 for cantilever segments (UK NA Table NA.2 [verify]); absolute mm cap (null = none)
+  autoPattern:true,                             // automatic span-wise Q patterns for multi-span / cantilevered members (expandPatternCombos)
+  E:210000, Ke:null, robX:null, robY:null,
   restraint:'full',
   mcrMethod:'eigen',   // EC3 unrestrained Mcr: 'eigen' (FE eigensolver, default) | 'standard' (closed form, SN003a/SN006a)
   eccOn:false, za:0, rootWarp:'free',
@@ -1689,11 +1697,12 @@ function renderSupportList(){
         <div class="fld"><span>Type</span><select data-sp="type" data-i="${i}">
           <option value="pinned"${sp.type==='pinned'?' selected':''}>Pinned</option>
           <option value="fixed"${sp.type==='fixed'?' selected':''}>Fixed</option></select></div>
-      </div>${ltbBCOn? `
+      </div>
       <div class="ltb-checks" style="margin-top:4px">
+        <label class="checkline"><input type="checkbox" data-spc="holdDown" data-i="${i}"${sp.holdDown?' checked':''}> <span>hold-down provided (uplift resisted)</span></label>${ltbBCOn? `
         <label class="checkline"><input type="checkbox" data-spc="vp" data-i="${i}"${sp.vp?' checked':''}> <span>lat. bending v&prime; fixed (LTB)</span></label>
-        <label class="checkline"><input type="checkbox" data-spc="phip" data-i="${i}"${sp.phip?' checked':''}> <span>warping &phi;&prime; fixed (LTB)</span></label>
-      </div>`:''}`;
+        <label class="checkline"><input type="checkbox" data-spc="phip" data-i="${i}"${sp.phip?' checked':''}> <span>warping &phi;&prime; fixed (LTB)</span></label>`:''}
+      </div>`;
     c.appendChild(row);
   });
   c.querySelectorAll("[data-sp]").forEach(el=>el.addEventListener("input",e=>{
@@ -1875,6 +1884,9 @@ function syncInputs(){
   $("destab").checked=S.destab; $("mLTo").value=S.mLTo??""; $("mxo").value=S.mxo??"";
   $("C1o").value=S.C1o??"";
   $("divisor").value=S.divisor; $("E").value=S.E; $("Ke").value=S.Ke??"";
+  if($("divisorCant")) $("divisorCant").value=S.divisorCant??180;
+  if($("deflAbs")) $("deflAbs").value=S.deflAbs??"";
+  if($("autoPattern")) $("autoPattern").checked = S.autoPattern==null? true : !!S.autoPattern;
   const autoRob=defaultRobertson(S.family,sec.boxType,sec.tf);
   $("robertsonX").value = S.robX!=null? S.robX : autoRob.x;
   $("robertsonY").value = S.robY!=null? S.robY : autoRob.y;
@@ -1885,16 +1897,138 @@ function syncInputs(){
 /* ===========================================================================
    4. ORCHESTRATION   run analysis + shared checks dispatcher
    =========================================================================== */
+/* ---------------------------------------------------------------------------
+   Span segments and automatic pattern loading (19 Sep 2026 gap closure, item 1.3)
+   ---------------------------------------------------------------------------
+   spanSegments(): the member split at its supports, in mm - one segment per
+   interval between consecutive supports plus an end overhang (cantilever)
+   beyond the outer supports; a single fixed support gives one cantilever
+   segment 0..L. Internal hinges do NOT split segments. Used by the pattern
+   generator and by the per-segment deflection check.
+   --------------------------------------------------------------------------- */
+const PATTERN_CASE='Q';   // the variable action that is patterned (EN 1990 6.10 as entered)
+function spanSegments(){
+  const L=(+S.L)*1000;
+  if(!(L>0)) return [];
+  const pts=[...new Set(S.supports.map(s=>(+s.pos)*1000).filter(x=>Number.isFinite(x)&&x>=-1e-6&&x<=L+1e-6))].sort((p,q)=>p-q);
+  if(!pts.length) return [];
+  const segs=[];
+  if(pts[0]>1e-6) segs.push({a:0,b:pts[0],cant:true});
+  for(let i=0;i<pts.length-1;i++) if(pts[i+1]-pts[i]>1e-6) segs.push({a:pts[i],b:pts[i+1],cant:false});
+  if(L-pts[pts.length-1]>1e-6) segs.push({a:pts[pts.length-1],b:L,cant:true});
+  return segs.map((s,i)=>Object.assign(s,{no:i+1}));
+}
+function segIndexOf(segs,x){
+  for(let i=0;i<segs.length;i++) if(x>=segs[i].a-1e-6 && x<=segs[i].b+1e-6) return i;
+  return -1;
+}
+function patternLoadingActive(){
+  const on = S.autoPattern==null ? true : !!S.autoPattern;
+  return on && spanSegments().length>1;
+}
+/* Effective user loads of ONE combination (pure; reads S.loads, S.L, S.supports).
+   Returns one "piece" per load or per load part: {i, ld, type, case, e, zg,
+   factor, masked, pos (mm) | x1,x2 (mm) with w1,w2 (kN/m, unfactored), P (kN),
+   M (kN.m)}. Every load is present (factor 0 when its case is not in the
+   combination) so that the solver's x-grid is identical across combinations.
+   Pattern combinations carry combo.mask = {case, segIdx, segs}: a Q load (or
+   part of one) outside the masked segments gets factor 0 (masked = true).
+   When automatic pattern loading is active, distributed Q loads are split at
+   the interior segment boundaries for EVERY combination of the analysis (the
+   boundaries are support positions, so the grid stays identical); with
+   pattern loading off nothing is split and the list equals the previous one. */
+function comboLoadPieces(combo){
+  const active=patternLoadingActive();
+  const segs=active? spanSegments() : null;
+  const mask=(combo&&combo.mask)||null;
+  const fac=(combo&&combo.factors)||{};
+  const out=[];
+  S.loads.forEach((ld,i)=>{
+    if(ld.isSelfWeight) return;
+    const f=fac[ld.case] ?? 0;
+    const base={i,ld,type:ld.type,case:ld.case,e:+(ld.e||0),zg:ld.zg};
+    if(ld.type==='point'||ld.type==='moment'){
+      const pos=(+ld.pos)*1000;
+      let factor=f, masked=false;
+      if(mask && ld.case===mask.case && segs){ if(!mask.segIdx.includes(segIndexOf(segs,pos))){ factor=0; masked=true; } }
+      out.push(Object.assign(base,{pos,P:+(ld.P||0),M:+(ld.M||0),factor,masked}));
+      return;
+    }
+    const x1=(+ld.x1)*1000, x2=(+ld.x2)*1000;
+    const w1= ld.type==='udl'? +(ld.w||0) : +(ld.w1||0), w2= ld.type==='udl'? +(ld.w||0) : +(ld.w2||0);
+    if(!(active && ld.case===PATTERN_CASE)){ out.push(Object.assign(base,{x1,x2,w1,w2,factor:f,masked:false})); return; }
+    const cuts=[x1].concat(segs.slice(1).map(s=>s.a).filter(b=>b>x1+1e-6 && b<x2-1e-6)).concat([x2]);
+    const wAt=x=>(x2-x1<1e-9)? w1 : w1+(w2-w1)*(x-x1)/(x2-x1);
+    for(let k=0;k<cuts.length-1;k++){
+      const p=cuts[k], q=cuts[k+1];
+      const inMask=!mask || ld.case!==mask.case || mask.segIdx.includes(segIndexOf(segs,(p+q)/2));
+      out.push(Object.assign({},base,{x1:p,x2:q,w1:wAt(p),w2:wAt(q),factor:inMask? f : 0,masked:!inMask}));
+    }
+  });
+  return out;
+}
+/* Canonical key of the Q loads a mask keeps (for de-duplicating patterns). */
+function patternKey(mask){
+  return comboLoadPieces({factors:{[PATTERN_CASE]:1},mask}).filter(p=>p.case===PATTERN_CASE && p.factor!==0)
+    .map(p=> p.type==='point'||p.type==='moment' ? p.i+'@'+p.pos.toFixed(3) : p.i+':'+p.x1.toFixed(3)+'-'+p.x2.toFixed(3)).join('|');
+}
+/* Expand the enabled user combinations with the automatic span-wise patterns.
+   For every combination with a non-zero Q factor: Q on each single segment,
+   on each pair of adjacent segments and on the alternate (odd / even) segments,
+   G (and W, E) at their entered factors on every span. Patterns whose Q load
+   set is empty, equals the parent's or repeats an earlier pattern are dropped.
+   Each generated combination is a shallow copy of its parent with a new id,
+   the label suffixed "(Q on span 2 only)" etc., mask and parent fields. The
+   limitation gamma_G,inf = 1.0 on relieving spans (EN 1990 Table A1.2(B)) is
+   NOT generated; it is stated in the printed note (patternInfo). */
+function expandPatternCombos(userCombos){
+  if(!patternLoadingActive()) return userCombos.slice();
+  const segs=spanSegments(), n=segs.length;
+  const sets=[];
+  for(let i=0;i<n;i++) sets.push({idx:[i],label:'Q on span '+(i+1)+' only',kind:'single'});
+  for(let i=0;i<n-1;i++) sets.push({idx:[i,i+1],label:'Q on spans '+(i+1)+'+'+(i+2)+' only',kind:'pair'});
+  if(n>=3){
+    sets.push({idx:segs.map((s,i)=>i).filter(i=>i%2===0),label:'Q on odd spans only',kind:'odd'});
+    sets.push({idx:segs.map((s,i)=>i).filter(i=>i%2===1),label:'Q on even spans only',kind:'even'});
+  }
+  const fullKey=patternKey({case:PATTERN_CASE,segIdx:segs.map((s,i)=>i),segs});
+  const out=[];
+  userCombos.forEach(cb=>{
+    out.push(cb);
+    if(!(Math.abs(cb.factors[PATTERN_CASE]??0)>1e-12)) return;
+    const seen=new Set();
+    sets.forEach((st,k)=>{
+      const mask={case:PATTERN_CASE,segIdx:st.idx,segs:st.idx.map(i=>segs[i]),kind:st.kind,label:st.label};
+      const key=patternKey(mask);
+      if(!key || key===fullKey || seen.has(key)) return;
+      seen.add(key);
+      out.push(Object.assign({},cb,{id:(cb.id||'combo')+'#p'+(k+1),label:cb.label+' ('+st.label+')',mask,parent:cb,pattern:true}));
+    });
+  });
+  return out;
+}
+/* Printed description of the pattern set (pure). */
+function patternInfo(ulsCombos,slsCombos){
+  const segs=spanSegments();
+  const on = S.autoPattern==null ? true : !!S.autoPattern;
+  const nU=ulsCombos.filter(c=>c.pattern).length, nS=slsCombos.filter(c=>c.pattern).length;
+  const segText=segs.map(s=>'span '+s.no+': '+(s.a/1000).toFixed(2).replace(/\.?0+$/,'')+'&ndash;'+(s.b/1000).toFixed(2).replace(/\.?0+$/,'')+' m'+(s.cant? ' (cantilever)':'')).join('; ');
+  const limitation='&gamma;<sub>G,inf</sub> = 1.0 on relieving spans (EN 1990 Table A1.2(B)) is NOT generated: G acts at its entered factor on every span; add a reduced-G combination by hand where a relieving permanent action could govern (uplift, cantilever back spans).';
+  let note=null;
+  if(segs.length>1 && on) note='Automatic pattern loading: '+nU+' ULS and '+nS+' SLS combinations generated from the support layout ('+segText+'): Q on each span, on each pair of adjacent spans and on alternate spans, with G, W and E at their entered factors on every span (EN 1990 6.10 as entered). '+limitation;
+  else if(segs.length>1) note='Automatic pattern loading is OFF: only the entered combinations are analysed ('+segText+'). Adverse / relieving span patterns of the variable action must be entered by hand, and '+limitation;
+  return {on, active:on&&segs.length>1, segs, nUls:nU, nSls:nS, note, limitation, segText};
+}
+
 function comboLoads(combo){
   // Always include every load (factor 0 if its case isn't in this combo) so that
   // load/support positions   and therefore the solver's x-grid   are identical
   // across every combination. That's what makes the envelope comparison below valid.
-  const loads = S.loads.filter(ld=>!ld.isSelfWeight).map(ld=>{
-    const factor = combo.factors[ld.case] ?? 0;
-    if(ld.type==='point') return {type:'point',pos:(+ld.pos)*1000,P:-(ld.P||0)*factor*1000};
-    if(ld.type==='moment') return {type:'moment',pos:(+ld.pos)*1000,M:(ld.M||0)*factor*1e6};
-    if(ld.type==='udl') return {type:'udl',x1:(+ld.x1)*1000,x2:(+ld.x2)*1000,w1:-(ld.w||0)*factor,w2:-(ld.w||0)*factor};
-    if(ld.type==='trap') return {type:'udl',x1:(+ld.x1)*1000,x2:(+ld.x2)*1000,w1:-(ld.w1||0)*factor,w2:-(ld.w2||0)*factor};
+  // Pattern combinations (combo.mask) get their Q loads through comboLoadPieces().
+  const loads = comboLoadPieces(combo).map(p=>{
+    if(p.type==='point') return {type:'point',pos:p.pos,P:-p.P*p.factor*1000};
+    if(p.type==='moment') return {type:'moment',pos:p.pos,M:p.M*p.factor*1e6};
+    return {type:'udl',x1:p.x1,x2:p.x2,w1:-p.w1*p.factor,w2:-p.w2*p.factor};
   });
   const sw=selfWeightValue(activeSection()), gFactor=combo.factors.G ?? 0;
   if(gFactor!==0){
@@ -1922,6 +2056,8 @@ function validateInputs(py,E,ulsCombos,slsCombos){
   if(!(finite(py) && py>0)) errs.push("Design strength must be greater than 0.");
   if(!(finite(E) && E>0)) errs.push("E must be greater than 0.");
   if(!(finite(S.divisor) && S.divisor>0)) errs.push("Deflection divisor must be greater than 0.");
+  if(S.divisorCant!=null && !(finite(S.divisorCant) && S.divisorCant>0)) errs.push("Cantilever deflection divisor must be greater than 0.");
+  if(S.deflAbs!=null && S.deflAbs!=='' && !(finite(S.deflAbs) && S.deflAbs>0)) errs.push("Absolute deflection limit must be blank or greater than 0 mm.");
   if(!(finite(S.leFactor) && S.leFactor>0)) errs.push("Effective length factor must be greater than 0.");
   ['axial','Mz','za'].forEach(k=>{ if(!finite(S[k])) errs.push(`${k} must be a finite number.`); });
   const area=activeSection().A;
@@ -1997,11 +2133,17 @@ function analyse(){
   const supportsMM=S.supports.map(s=>({pos:(+s.pos)*1000,type:s.type}));
   const hingesMM=(S.hinges||[]).map(h=>(+h.pos)*1000).filter(x=>x>1e-6 && x<L-1e-6);
 
-  const ulsCombos=S.combos.filter(c=>c.on && !c.sls);
-  const slsCombos=S.combos.filter(c=>c.on && c.sls);
-  if(ulsCombos.length===0) throw 'Enable at least one ULS load combination (see "Load Combinations").';
-  if(slsCombos.length===0) throw 'Enable at least one SLS (deflection) load combination (see "Load Combinations").';
-  validateInputs(py,E,ulsCombos,slsCombos);
+  const ulsUser=S.combos.filter(c=>c.on && !c.sls);
+  const slsUser=S.combos.filter(c=>c.on && c.sls);
+  if(ulsUser.length===0) throw 'Enable at least one ULS load combination (see "Load Combinations").';
+  if(slsUser.length===0) throw 'Enable at least one SLS (deflection) load combination (see "Load Combinations").';
+  validateInputs(py,E,ulsUser,slsUser);
+  // Automatic pattern loading: each enabled user combination is followed by its
+  // generated span-wise patterns (comboLoadPieces applies the mask); every
+  // consumer below sees them exactly like user combinations.
+  const ulsCombos=expandPatternCombos(ulsUser);
+  const slsCombos=expandPatternCombos(slsUser);
+  const patterns=patternInfo(ulsCombos,slsCombos);
 
   // Run every enabled ULS combination; the same load/support geometry means every
   // combo's result lands on an identical x-grid, so elementwise envelopes are valid.
@@ -2031,25 +2173,63 @@ function analyse(){
   const M0end=interpAt(gfb.xs,gfb.M,1e-4), MLend=interpAt(gfb.xs,gfb.M,L-1e-4);
   const reactions=governM.r.reactions;
 
-  // SLS deflection: worst of every enabled SLS combination
+  // SLS deflection: worst of every enabled SLS combination, checked segment by
+  // segment (support to support, and each cantilever / end overhang) against
+  // its own length: span/S.divisor between supports, L/S.divisorCant for a
+  // cantilever segment (UK NA to EN 1993-1-1 Table NA.2 cantilever row, default
+  // 180 [verify]), each capped by the optional absolute limit S.deflAbs (mm).
+  // A cantilever segment's value is the tip deflection relative to its support
+  // (support nodes have w = 0; the root rotation is inside the solver).
+  const deflSegs=spanSegments();
+  const divisorCant=(S.divisorCant!=null && Number.isFinite(+S.divisorCant) && +S.divisorCant>0)? +S.divisorCant : 180;
+  const deflAbs=(S.deflAbs!=null && S.deflAbs!=='' && Number.isFinite(+S.deflAbs) && +S.deflAbs>0)? +S.deflAbs : null;
   const slsResults=slsCombos.map(combo=>{
     const loads=comboLoads(combo);
     const r=solveBeam(L,EI,supportsMM,loads,120,hingesMM);
     if(!r.w.every(Number.isFinite)) throw hingesMM.length? "Under-restrained layout (mechanism): an internal hinge has left part of the beam unrestrained. Add another support (e.g. a propped/Gerber layout) or remove the hinge." : "Under-restrained layout (mechanism). Add a support, or make a support Fixed to prevent rigid-body motion.";
     let dmax=0,dpos=0; r.nodes.forEach((x,i)=>{ if(Math.abs(r.w[i])>Math.abs(dmax)){dmax=r.w[i];dpos=x;} });
-    const points=[...new Set([0,L,...supportsMM.map(s=>s.pos)])].sort((p,q)=>p-q);
     let deflection=null;
-    for(let j=0;j<points.length-1;j++){
-      const start=points[j],end=points[j+1],span=end-start;
+    const segs=deflSegs.map(sg=>{
+      const start=sg.a,end=sg.b,span=end-start;
       let dm=0,dp=start;
       r.nodes.forEach((x,i)=>{ if(x>=start&&x<=end&&Math.abs(r.w[i])>Math.abs(dm)){dm=r.w[i];dp=x;} });
-      const limit=span/S.divisor, util=Math.abs(dm)/limit;
-      if(!deflection||util>deflection.util) deflection={start,end,span,dmax:dm,dpos:dp,limit,util};
-    }
-    return {combo,r,dmax,dpos,deflection};
+      const divisor= sg.cant? divisorCant : S.divisor;
+      const limSpan=span/divisor;
+      const absGoverns= deflAbs!=null && deflAbs<limSpan;
+      const limit= absGoverns? deflAbs : limSpan;
+      const util=Math.abs(dm)/limit;
+      const rec={no:sg.no,start,end,span,cant:!!sg.cant,dmax:dm,dpos:dp,limit,util,divisor,limSpan,abs:deflAbs,absGoverns,combo:combo.label};
+      if(!deflection||util>deflection.util) deflection=rec;
+      return rec;
+    });
+    return {combo,r,dmax,dpos,deflection,segs};
   });
   let governD=slsResults[0]; slsResults.forEach(r=>{ if(r.deflection.util>governD.deflection.util) governD=r; });
   const dmax=governD.dmax, dpos=governD.dpos;
+  // per-segment deflection table: the worst SLS combination of every segment
+  const deflSegments=deflSegs.map((sg,j)=>{
+    let worst=null; slsResults.forEach(res=>{ const s=res.segs[j]; if(!worst||s.util>worst.util) worst=s; });
+    return worst;
+  });
+
+  // ---- uplift / hold-down (EN 1990 2.4.4 EQU): every combination's reactions ----
+  // A negative vertical reaction (up = positive) means the support must hold
+  // the beam down. Recorded per combination; the worst per support is kept
+  // (design force = the worst ULS value, SLS uplift listed separately).
+  const uplift=[];
+  ulsResults.forEach(res=>res.r.reactions.forEach((re,i)=>{ if(re.V< -1) uplift.push({n:i+1,pos:re.pos,R:re.V/1000,combo:res.combo.label,sls:false}); }));
+  slsResults.forEach(res=>res.r.reactions.forEach((re,i)=>{ if(re.V< -1) uplift.push({n:i+1,pos:re.pos,R:re.V/1000,combo:res.combo.label,sls:true}); }));
+  const upliftSupports=S.supports.map((sp,i)=>{
+    const rows=uplift.filter(u=>u.n===i+1);
+    if(!rows.length) return null;
+    const worst=rows.reduce((p,u)=>u.R<p.R?u:p);
+    const ulsRows=rows.filter(u=>!u.sls), slsRows=rows.filter(u=>u.sls);
+    const worstUls=ulsRows.length? ulsRows.reduce((p,u)=>u.R<p.R?u:p) : null;
+    const worstSls=slsRows.length? slsRows.reduce((p,u)=>u.R<p.R?u:p) : null;
+    return {n:i+1,pos:worst.pos,type:sp.type,holdDown:!!sp.holdDown,R:worst.R,combo:worst.combo,sls:worst.sls,
+      RUls:worstUls? worstUls.R : null, comboUls:worstUls? worstUls.combo : null,
+      RSls:worstSls? worstSls.R : null, comboSls:worstSls? worstSls.combo : null, nCombos:rows.length};
+  }).filter(Boolean);
 
   // ---- torsion from load eccentricity (loads at e from the shear centre) ----
   // Torque loads mirror the transverse loads: q_T(x) = w(x)*e, point torques P*e.
@@ -2065,12 +2245,11 @@ function analyse(){
   const torsErr = (anyEcc && !(sec.J>0))? "the section torsional constant I_T is zero or undefined in the section data" : null;
   if(anyEcc && !torsErr){
     const GIt=81000*sec.J*1e4; // N.mm2 (G = 81000 N/mm2 per SN003a / P385)
-    const mkT=(combo)=>{ const out=[]; S.loads.filter(ld=>!ld.isSelfWeight).forEach(ld=>{
-      const f=combo.factors[ld.case]??0;
-      const le=+(ld.e||0); // this load's own shear-centre offset, mm
-      if(ld.type==='point') out.push({type:'point',pos:(+ld.pos)*1000,P:(ld.P||0)*f*1000*le}); // kN -> N, x e mm -> N.mm
-      else if(ld.type==='udl') out.push({type:'udl',x1:(+ld.x1)*1000,x2:(+ld.x2)*1000,w1:(ld.w||0)*f*le,w2:(ld.w||0)*f*le});
-      else if(ld.type==='trap') out.push({type:'udl',x1:(+ld.x1)*1000,x2:(+ld.x2)*1000,w1:(ld.w1||0)*f*le,w2:(ld.w2||0)*f*le});
+    const mkT=(combo)=>{ const out=[]; comboLoadPieces(combo).forEach(p=>{
+      const f=p.factor;
+      const le=p.e; // this load's own shear-centre offset, mm
+      if(p.type==='point') out.push({type:'point',pos:p.pos,P:p.P*f*1000*le}); // kN -> N, x e mm -> N.mm
+      else if(p.type==='udl'||p.type==='trap') out.push({type:'udl',x1:p.x1,x2:p.x2,w1:p.w1*f*le,w2:p.w2*f*le});
     });
       const gF=combo.factors.G??0, sw=selfWeightValue(sec);
       if(Math.abs(gF)>1e-12 && Math.abs(swE)>1e-9 && sw>0){
@@ -2129,15 +2308,15 @@ function analyse(){
       Math.abs(Math.max(...S.supports.map(s=>+s.pos))-S.L)<=1e-6;
     const mk385=(combo)=>{
       const list=[];
-      for(const ld of S.loads){
-        if(ld.isSelfWeight||ld.type==='moment') continue;
-        const f=combo.factors[ld.case]??0, le=+(ld.e||0);
+      for(const p of comboLoadPieces(combo)){
+        if(p.type==='moment') continue;
+        const f=p.factor, le=p.e;
         if(!f||Math.abs(le)<1e-9) continue;
-        if(ld.type==='point'){ list.push({kind:'point',alpha:(+ld.pos)*1000/L,T:(ld.P||0)*f*1000*le}); }
+        if(p.type==='point'){ list.push({kind:'point',alpha:p.pos/L,T:p.P*f*1000*le}); }
         else {
-          const x1=(+ld.x1)*1000, x2=(+ld.x2)*1000;
+          const x1=p.x1, x2=p.x2;
           if(x1>1e-6 || Math.abs(x2-L)>1e-6) return {ok:false,reason:'partial-span eccentric distributed load on an open section: the P385 fork-fork closed forms (Cases 3/4/10) cover full-span distributed torque only'};
-          const w1=ld.type==='udl'? (ld.w||0):(ld.w1||0), w2=ld.type==='udl'? (ld.w||0):(ld.w2||0);
+          const w1=p.w1, w2=p.w2;
           const wu=Math.min(w1,w2), dv=w2-w1;
           if(Math.abs(wu)>1e-12) list.push({kind:'ud',T:wu*f*le*L});
           if(Math.abs(dv)>1e-12) list.push({kind:'lin',T:Math.abs(dv)/2*f*le*L*Math.sign(dv*1), mirror:dv<0});
@@ -2176,10 +2355,46 @@ function analyse(){
   return {sec,py,E,L,Ix,tors,torsO,torsErr,swPerM:sec.mass*9.81/1000,ulsResults,
     Vmax:Vmax/1000, Mmax:Mmax/1e6, Mpos:Mpos/1000,
     Mq:Mq/1e6, Mh:Mh/1e6, Mq3:Mq3/1e6, M24:M24/1e6, M0end:M0end/1e6, MLend:MLend/1e6,
-    dmax, dpos:dpos/1000, deflection:governD.deflection,
+    dmax, dpos:dpos/1000, deflection:governD.deflection, deflSegments, divisorCant, deflAbs,
     diag:{xs:xs.map(x=>x/1000), V:Venv.map(v=>v/1000), M:Menv.map(m=>m/1e6),
           dx:governD.r.nodes.map(x=>x/1000), dw:governD.r.w},
-    reactions, ulsResults, slsResults, governV, governM, governD};
+    reactions, ulsResults, slsResults, governV, governM, governD,
+    patterns, ulsCombos, slsCombos, uplift:{list:uplift, supports:upliftSupports, any:upliftSupports.length>0}};
+}
+
+/* ---- Hold-down check (19 Sep 2026 gap closure, item 1.2), pure ----
+   One row per support that lifts in any combination. A support lifting in a
+   ULS combination is blocking (unsupported) unless its "hold-down provided"
+   box is ticked, in which case it is an advisory carrying the design force.
+   A support that lifts ONLY in SLS combinations (the default NA 2.23
+   "variable actions only" deflection case has no G, so its reaction is not an
+   equilibrium state) is reported as an advisory naming the combination and
+   the force, with the reminder that the EQU set-A combination (gamma_G,inf =
+   0.9, Table A1.2(A)) is not generated and must be verified by hand.
+   Returns {rows, unsupported, advisory}; rows = [{n, pos (mm), R (kN,
+   negative), combo, sls, RUls, comboUls, RSls, comboSls, holdDown, level:
+   'uls'|'sls', blocking, msg}]. */
+function holdDownCheck(a){
+  const out={rows:[],unsupported:[],advisory:[]};
+  const up=a.uplift&&a.uplift.supports||[];
+  up.forEach(u=>{
+    const kN=v=>(Math.abs(v)).toFixed(2);
+    const where='at support '+u.n+' (x = '+(u.pos/1000).toFixed(2).replace(/\.?0+$/,'')+' m)';
+    let msg, blocking=false, level;
+    if(u.RUls!=null){
+      level='uls';
+      const force=(withWhere)=>'R = &minus;'+kN(u.RUls)+' kN'+(withWhere? ' '+where : '')+' (combination '+u.comboUls+')'+(u.RSls!=null? '; SLS uplift &minus;'+kN(u.RSls)+' kN ('+u.comboSls+')' : '');
+      if(u.holdDown) msg='Hold-down provided '+where+': design the hold-down for '+force(false)+'. Reaction taken as tension at the support; the connection and the supporting structure are not designed here.';
+      else { blocking=true; msg='Hold-down required: '+force(true)+'. The support cannot resist uplift as modelled; tick "hold-down provided" for this support once a holding-down connection is designed for this force, or revise the layout / loading (EN 1990 2.4.4 EQU; the '+PATTERN_CASE+' patterns and any relieving-G combination must be included).'; }
+    } else {
+      level='sls';
+      msg='Hold-down check (SLS only) '+where+': the variable-action-only combination '+u.comboSls+' lifts this support by R = &minus;'+kN(u.RSls)+' kN; no ULS combination lifts it (G holds it down at ULS)'+(u.holdDown? '; hold-down provided' : '')+'. A deflection combination without G is not an equilibrium state, so this does not block PASS, but the EQU set-A combination with &gamma;<sub>G,inf</sub> = 0.9 (EN 1990 Table A1.2(A)) is NOT generated: verify it by hand where the permanent action is small relative to the variable action.';
+    }
+    const row=Object.assign({},u,{msg,level,blocking});
+    out.rows.push(row);
+    if(blocking) out.unsupported.push(msg); else out.advisory.push(msg);
+  });
+  return out;
 }
 
 /* Standard-specific check engines live in js/checks/. */
@@ -2204,6 +2419,12 @@ function checks(a){
     return worst;
   });
   c.unsupported=[...new Set(c.unsupported.concat(...results.map(r=>r.c.unsupported)))];
+  // shared analysis-level checks (uplift / hold-down, pattern-loading note)
+  const hd=holdDownCheck(a);
+  c.holdDown=hd;
+  c.unsupported=c.unsupported.concat(hd.unsupported);
+  c.advisory=(c.advisory||[]).concat(hd.advisory);
+  if(a.patterns&&a.patterns.note) c.advisory.push(a.patterns.note);
   c.gov=c.utils.reduce((p,u)=>u.val>p.val?u:p);
   c.pass=c.unsupported.length===0&&c.utils.every(u=>Number.isFinite(u.val)&&u.val>=0&&u.val<=1.0001);
   c.combinationChecks=results.map(r=>({combo:r.res.combo.label,utils:r.c.utils}));
@@ -2345,9 +2566,13 @@ function checksBS5950(a){
   const pyZx=py*Zx/1e6;
   const u1=Fc/Pc + mx*Mx/pyZx;
   const u2=Fc/Pcy + mLT*Mx/Mb;
-  // deflection
-  const span=a.deflection?a.deflection.span:a.L, divisor=S.divisor, dlimit=span/divisor;
+  // deflection - governing segment with its own limit (span/divisor, L/divisorCant
+  // for a cantilever segment, capped by the optional absolute limit), from analyse()
+  const span=a.deflection?a.deflection.span:a.L;
+  const divisor=(a.deflection&&a.deflection.divisor!=null)? a.deflection.divisor : S.divisor;
+  const dlimit=(a.deflection&&a.deflection.limit!=null)? a.deflection.limit : span/divisor;
   const dmax=Math.abs(a.deflection?a.deflection.dmax:a.dmax), defOk=dmax<=dlimit;
+  const deflCant=!!(a.deflection&&a.deflection.cant), deflAbsGoverns=!!(a.deflection&&a.deflection.absGoverns);
 
   if(S.eccOn && S.loads.some(ld=>Math.abs(ld.e||0)>1e-9)) unsupported.push("Load eccentricity / torsion design is implemented for the EC3 code path only; switch Design code to EC3.");
   const utils=[
@@ -2365,7 +2590,7 @@ function checksBS5950(a){
   return {eps,cl,clsName,unsupported,advisory,bTBS:bT_BS,Av,Pv,Fv,lowShear,shearBuckle,Mcx,hsNote,Zx,Sx,rhsFlag,
     Ag,Anet,Ke,Ae,Pz,F,n,Srx,Mrx,Mx,localUtil,isCant,mLT,mx,mf,
     LE,lam,v,betaW,phiB,gammaPrime,lamLT,pb,lamL0,Mb,ltbUtil,a_robX,a_robY,pcx,pcy,Pc,Pcy,Fc,pyZx,u1,u2,
-    span,divisor,dlimit,dmax,defOk,utils,gov,pass};
+    span,divisor,dlimit,dmax,defOk,deflCant,deflAbsGoverns,utils,gov,pass};
 }
 
 function checksEC3(a){
@@ -2512,9 +2737,10 @@ function cmTableB3(a){
   const M0=interpAt(fb.xs,fb.M,1e-4)/1e6, ML=interpAt(fb.xs,fb.M,L-1e-4)/1e6;
   const Ms=interpAt(fb.xs,fb.M,L/2)/1e6;
   const gfac=a.governM.combo.factors;
+  const pieces=comboLoadPieces(a.governM.combo);   // pattern-aware effective load list
   let hasDist=Math.abs(gfac.G??0)>0, hasConc=false;   // auto self-weight is distributed
-  S.loads.forEach(ld=>{ if(ld.isSelfWeight) return; const f=gfac[ld.case]??0; if(!f) return;
-    if(ld.type==='point') hasConc=true; else if(ld.type==='udl'||ld.type==='trap') hasDist=true; });
+  pieces.forEach(p=>{ if(!p.factor) return;
+    if(p.type==='point') hasConc=true; else if(p.type==='udl'||p.type==='trap') hasDist=true; });
   // 'linear end-moment diagram' means the BMD is actually a straight line
   // between the ends (no transverse-load curvature) - test every grid value
   // against the chord, not just the midpoint (a cantilever's Mmax sits
@@ -2528,9 +2754,9 @@ function cmTableB3(a){
   // Table B.3's transverse-load diagrams do not describe arbitrary partial,
   // multiple, reversing or multi-span loads. No beneficial Cm is inferred
   // from a single midpoint for those layouts.
-  const active=S.loads.filter(ld=>!ld.isSelfWeight&&Math.abs(gfac[ld.case]||0)>1e-12);
+  const active=pieces.filter(p=>Math.abs(p.factor)>1e-12);
   const simpleSpan=S.supports.length===2&&Math.min(...S.supports.map(s=>+s.pos))===0&&Math.max(...S.supports.map(s=>+s.pos))===S.L&&!(S.hinges||[]).length;
-  const canonical=active.every(ld=>ld.type==='udl'&&+ld.x1===0&&+ld.x2===S.L||(ld.type==='point'&&Math.abs(+ld.pos-S.L/2)<1e-9));
+  const canonical=active.every(p=>p.type==='udl'&&p.x1<=1e-9&&Math.abs(p.x2-a.L)<1e-6||(p.type==='point'&&Math.abs(p.pos-a.L/2)<1e-6));
   if(!simpleSpan||!canonical||(hasDist&&hasConc)) return {Cm:1,label:'C_m = 1: arbitrary or mixed moment diagram; no Table B.3 reduction assumed'};
   const Mh=Math.abs(M0)>=Math.abs(ML)? M0:ML;
   const Mo=Math.abs(M0)>=Math.abs(ML)? ML:M0;
@@ -2595,9 +2821,21 @@ function annexB2(a,sec,fy,cl,MbRdI,useB1,isCant){
   // P360 Table 6.2). Minor axis: reduced to the largest spacing between
   // adjacent lateral restraint points where intermediate restraints are
   // modelled (SCI P360 6.2 bracing-point assumption), never longer than LE x L.
-  const LcrY=S.leFactor*a.L;
+  // Cantilever strut (single fixed support, N_Ed > 0): the sway-mode buckling
+  // length is L_cr = 2.0 L about both axes (EN 1993-1-1 6.3.1.3(1) with the
+  // classical fixed-free effective length; SCI P360 Table 6.2 "fixed-free" =
+  // 2.0 L) unless the user has entered an L_E/L factor other than 1.0, which is
+  // kept as an explicit override.
+  const cantStrut = !!isCant && Fc>1e-9;
+  const leOverride = Math.abs((+S.leFactor)-1)>1e-9;
+  const Ky = (cantStrut && !leOverride)? 2.0 : +S.leFactor;
+  const lcrBasis = cantStrut
+    ? (leOverride ? 'cantilever strut: user L<sub>E</sub>/L factor '+g(Ky,2)+' kept as entered (default for a cantilever is 2.0)' : 'cantilever strut (fixed-free, sway mode): L<sub>cr</sub> = 2.0 L about both axes by default; enter an L<sub>E</sub>/L factor other than 1 to override')
+    : 'L<sub>E</sub>/L factor '+g(Ky,2)+' as entered';
+  const LcrY=Ky*a.L;
   const lz=lcrZFromRestraints(a);
   const LcrZ=lz!=null? Math.min(lz,LcrY) : LcrY;
+  const Kz=LcrZ/a.L;
   const lczFromRestraints=(lz!=null && LcrZ<LcrY-1e-6);
   const Lcr=LcrY;                                 // kept for report compatibility
   const lam1=Math.PI*Math.sqrt(E/fy);
@@ -2634,7 +2872,7 @@ function annexB2(a,sec,fy,cl,MbRdI,useB1,isCant){
   const mzTerm = MzEd>1e-9 ? MzEd/Mcz : 0;                            // Mz,Ed / Mc,z,Rd
   const u1=ny + kyy*Mx/Mrd + kyz*mzTerm;           // Eq 6.61
   const u2=nz + kzy*Mx/Mrd + kzz*mzTerm;           // Eq 6.62
-  return {Fc,Mx,Lcr,LcrY,LcrZ,lczFromRestraints,lam1,lamY,lamZ,cvY,cvZ,chiY,chiZ,NbY,NbZ,ny,nz,
+  return {Fc,Mx,Lcr,LcrY,LcrZ,Ky,Kz,cantStrut,leOverride,lcrBasis,lczFromRestraints,lam1,lamY,lamZ,cvY,cvZ,chiY,chiZ,NbY,NbZ,ny,nz,
     Cmy,Cmz,CmLT,cmLabel:cm.label,swayNote,useB1,c12,kyy,kzz,kyz,kzy,kzyLbl,MbRdI,Mcz,MzEd,mzTerm,biax:MzEd>1e-9,u1,u2};
 }
 function checksEC3Restrained(a){
@@ -2927,9 +3165,19 @@ function checksEC3Restrained(a){
         : "Coexistent shear and moment (cl 6.2.8): at x = "+(worst.x/1000).toFixed(2)+" m, V<sub>Ed</sub> = "+worst.V.toFixed(0)+" kN &gt; 0.5V<sub>pl,Rd</sub> and the reduced M<sub>v,Rd</sub> = "+worst.MvRd.toFixed(0)+" kN&middot;m governs";
     }
   }
-  // vertical deflection (NA 2.23) - governing enabled SLS combination
-  const span=a.deflection?a.deflection.span:a.L, divisor=S.divisor, dlimit=span/divisor;
+  // vertical deflection (NA 2.23) - governing enabled SLS combination and segment;
+  // the limit is the segment's own (span/divisor, L/divisorCant for a cantilever
+  // segment, capped by the optional absolute limit) as set by analyse()
+  const span=a.deflection?a.deflection.span:a.L;
+  const divisor=(a.deflection&&a.deflection.divisor!=null)? a.deflection.divisor : S.divisor;
+  const dlimit=(a.deflection&&a.deflection.limit!=null)? a.deflection.limit : span/divisor;
   const dmax=Math.abs(a.deflection?a.deflection.dmax:a.dmax), defOk=dmax<=dlimit;
+  const deflCant=!!(a.deflection&&a.deflection.cant), deflAbsGoverns=!!(a.deflection&&a.deflection.absGoverns);
+  // uplift / hold-down at every support, every combination (EN 1990 2.4.4)
+  const holdDown=holdDownCheck(a);
+  holdDown.unsupported.forEach(m=>unsupported.push(m));
+  holdDown.advisory.forEach(m=>advisory.push(m));
+  if(a.patterns&&a.patterns.note) advisory.push(a.patterns.note);
   const isCantR=(S.supports.length===1 && S.supports[0].type==='fixed');
   const buck=(ax && !ax.tension)? annexB2(a,sec,fy,cl,McRd,true,isCantR) : null; // fully restrained: not susceptible -> Table B.1; MbRd = Mc,Rd
   const utils=[
@@ -2958,7 +3206,7 @@ function checksEC3Restrained(a){
   const pass=unsupported.length===0 && utils.every(u=>u.val<=1.0001);
   return {sci:true,tor,coex,ax,buck,eps,cl,clsName,unsupported,advisory,fy,eta,hw,cOut,Av,AvRaw,avFloor,VcRd,Fv,shearUtil,
     sbRatio,sbLimit,sbOk,Zx,Sx,Wy,McRd,hsNote,VatM,halfVpl,lowShearAtM,Mx,momUtil,F,
-    span,divisor,dlimit,dmax,defOk,utils,gov,pass};
+    span,divisor,dlimit,dmax,defOk,deflCant,deflAbsGoverns,holdDown,utils,gov,pass};
 }
 
 /* ===========================================================================
@@ -3055,16 +3303,18 @@ function mcrClosedForm(sec,E,LE,C1,C2,zg){
 // stabilising, so its height enters with the sign reversed. Automatic
 // self-weight (centroid, z_g = 0) and moment loads carry no load height.
 // Falls back to S.za when no transverse load is active in the combination.
+// `combo` is a combination object ({factors, mask?}) or a bare factors object;
+// pattern combinations see only the loads their mask keeps (comboLoadPieces).
 // Returns {zg (mm), source: 'loads' | 'default'}.
-function stdZgFor(factors){
-  const fac=factors||{};
+function asCombo(combo){ return (combo && combo.factors)? combo : {factors:combo||{}}; }
+function stdZgFor(combo){
   let best=null;
-  S.loads.forEach(ld=>{
-    if(ld.isSelfWeight||ld.type==='moment') return;
-    const f=fac[ld.case]??0; if(!f) return;
-    const mag= ld.type==='point'? (+ld.P||0) : ld.type==='trap'? ((+ld.w1||0)+(+ld.w2||0))/2 : (+ld.w||0);
+  comboLoadPieces(asCombo(combo)).forEach(p=>{
+    if(p.type==='moment') return;
+    const f=p.factor; if(!f) return;
+    const mag= p.type==='point'? p.P : (p.w1+p.w2)/2;
     if(Math.abs(mag)<1e-12) return;
-    const z0=(typeof loadZgValue==='function')? loadZgValue(ld) : (+S.za||0);
+    const z0=(typeof loadZgValue==='function')? loadZgValue(p.ld) : (+S.za||0);
     const zg=(mag*f<0)? -z0 : z0;
     if(best==null||zg>best) best=zg;
   });
@@ -3076,20 +3326,19 @@ function stdZgFor(factors){
 // (and how many of them sit at mid-span, +/-1% of L), any other transverse
 // load, and applied moments. The SN003a Table 3.2 rows are recognised from
 // these counts, not from the quarter-point moment ratio alone.
-function stdLoadShape(factors){
-  const fac=factors||{}, L=+S.L;
+function stdLoadShape(combo){
+  const L=(+S.L)*1000;
   let nUdl=0,nPoint=0,nCentral=0,nOther=0,nMoment=0;
-  S.loads.forEach(ld=>{
-    if(ld.isSelfWeight) return;
-    const f=fac[ld.case]??0; if(!f) return;
-    if(ld.type==='moment'){ if(Math.abs(+ld.M||0)>1e-12) nMoment++; return; }
-    if(ld.type==='point'){
-      if(Math.abs(+ld.P||0)<1e-12) return;
-      nPoint++; if(Math.abs((+ld.pos)-L/2)<=0.01*L) nCentral++; return;
+  comboLoadPieces(asCombo(combo)).forEach(p=>{
+    const f=p.factor; if(!f) return;
+    if(p.type==='moment'){ if(Math.abs(p.M)>1e-12) nMoment++; return; }
+    if(p.type==='point'){
+      if(Math.abs(p.P)<1e-12) return;
+      nPoint++; if(Math.abs(p.pos-L/2)<=0.01*L) nCentral++; return;
     }
-    const w1= ld.type==='udl'? (+ld.w||0) : (+ld.w1||0), w2= ld.type==='udl'? (+ld.w||0) : (+ld.w2||0);
+    const w1=p.w1, w2=p.w2;
     if(Math.abs(w1)<1e-12&&Math.abs(w2)<1e-12) return;
-    const full=(+ld.x1)<=1e-6 && Math.abs((+ld.x2)-L)<=1e-6 && Math.abs(w1-w2)<=1e-9*Math.max(Math.abs(w1),1);
+    const full=p.x1<=1e-3 && Math.abs(p.x2-L)<=1e-3 && Math.abs(w1-w2)<=1e-9*Math.max(Math.abs(w1),1);
     if(full) nUdl++; else nOther++;
   });
   return {nUdl,nPoint,nCentral,nOther,nMoment,
@@ -3133,7 +3382,7 @@ function sn003aC1(a,isCant,seg,diag){
   // 'cantilever', 'negligible', 'end-moment', 'uniform', 'point',
   // 'fixed-uniform', 'fixed-point', 'serna'.
   const fbM=(diag&&diag.fb)||a.governM.fb;
-  const fac=(diag&&diag.factors)||a.governM.combo.factors;
+  const fac=(diag&&diag.combo)||((diag&&diag.factors)? {factors:diag.factors} : a.governM.combo);   // combination (pattern-aware)
   const xa=seg? seg.xa : 0, xb=seg? seg.xb : a.L, Ls=xb-xa;
   const c1in=c1Inputs(fbM,xa,xb);
   if(S.C1o!=null) return {C1:S.C1o, C2:null, label:'user override', route:'override', c1in};
@@ -3205,18 +3454,18 @@ function mcrSN006aFor(a,sec,factors,zg){
   const Mcr0=Math.PI/Lc*Math.sqrt(E*Iz*G*It);        // N.mm
   const kwt=Math.sqrt(E*Iw/(G*It))/Lc;
   const hs=sec.D-sec.tf;
-  const gfac=factors||a.governM.combo.factors;
-  const za=(zg!=null)? +zg : stdZgFor(gfac).zg;
+  const gcb=asCombo(factors||a.governM.combo), gfac=gcb.factors;
+  const za=(zg!=null)? +zg : stdZgFor(gcb).zg;
   const eta=za/(hs/2);
   const warp=(S.rootWarp==='restrained')?'restr':'free';
   // classify tip loading from the loads (2% de-minimis on the support moment)
   let Mq=0,MF=0,Mm2=0,nF2=0,nM2=0,other=false;
-  S.loads.forEach(ld=>{
-    if(ld.isSelfWeight) return;
-    const f=gfac[ld.case]??0; if(!f) return; // zero-factor loads do not shape this combination
-    if(ld.type==='udl'&&(+ld.x1)<=1e-6&&Math.abs((+ld.x2)-S.L)<=1e-6) Mq+=(ld.w||0)*f*S.L*S.L/2;
-    else if(ld.type==='point'&&Math.abs((+ld.pos)-S.L)<=0.02*S.L){ MF+=(ld.P||0)*f*S.L; nF2++; }
-    else if(ld.type==='moment'&&Math.abs((+ld.pos)-S.L)<=0.02*S.L){ Mm2+=Math.abs(ld.M||0)*f; nM2++; }
+  const Lmm=S.L*1000;
+  comboLoadPieces(gcb).forEach(p=>{
+    const f=p.factor; if(!f) return; // zero-factor loads do not shape this combination
+    if(p.type==='udl'&&p.x1<=1e-3&&Math.abs(p.x2-Lmm)<=1e-3) Mq+=p.w1*f*S.L*S.L/2;
+    else if(p.type==='point'&&Math.abs(p.pos-Lmm)<=0.02*Lmm){ MF+=p.P*f*S.L; nF2++; }
+    else if(p.type==='moment'&&Math.abs(p.pos-Lmm)<=0.02*Lmm){ Mm2+=Math.abs(p.M)*f; nM2++; }
     else other=true;
   });
   Mq+=(a.swPerM||0)*(gfac.G??0)*S.L*S.L/2;
@@ -3255,7 +3504,7 @@ function mcrStandardFor(a,sec,seg,diag){
   const isCant=(S.supports.length===1 && S.supports[0].type==='fixed');
   seg=seg||c1Segment(a);
   const fb=(diag&&diag.fb)||a.governM.fb;
-  const fac=(diag&&diag.factors)||a.governM.combo.factors;
+  const fac=(diag&&diag.combo)||((diag&&diag.factors)? {factors:diag.factors} : a.governM.combo);   // combination (pattern-aware)
   const zgi=stdZgFor(fac);
   if(isCant && sec.kind==='I'){
     const r=mcrSN006aFor(a,sec,fac,zgi.zg);
@@ -3264,7 +3513,7 @@ function mcrStandardFor(a,sec,seg,diag){
       label:'cantilever SN006a &mdash; '+r.caseLbl, c1in, seg, LE:a.L, sn006:r,
       zg:zgi.zg, zgSource:zgi.source, zgUsed:Math.abs(zgi.zg)>1e-9, zgNote:'z<sub>g</sub> = '+(zgi.zg>0?'+':'')+zgi.zg.toFixed(0)+' mm through &eta; = '+r.eta.toFixed(2)+' (SN006a)', zgBlocked:false};
   }
-  const c1r=sn003aC1(a,isCant,seg.whole? undefined : seg,{fb,factors:fac});
+  const c1r=sn003aC1(a,isCant,seg.whole? undefined : seg,{fb,combo:fac});
   const LE=S.leFactor*(S.destab?1.2:1)*(seg.xb-seg.xa);
   const cf=mcrClosedForm(sec,a.E,LE,c1r.C1,c1r.C2,zgi.zg);
   const zs=stdZgStatus(zgi.zg,c1r.C2,cf.zgUsed);
@@ -3295,7 +3544,7 @@ function checksEC3UnrestrainedSCI(a){
   const Wy=b.Wy;
   const isCant=(S.supports.length===1 && S.supports[0].type==='fixed');
   const LE=S.leFactor*(S.destab?1.2:1)*a.L;
-  const gfac=a.governM.combo.factors;
+  const gfac=a.governM.combo;     // governing-moment combination (pattern-aware load list)
   const c1r=sn003aC1(a,isCant);   // whole member: the closed form treats the member as one segment
   const C1=c1r.C1, invSqrtC1=1/Math.sqrt(C1), kc=invSqrtC1;
   const zgi=stdZgFor(gfac);       // load height of the governing combination (per-load z_g, most destabilising)
@@ -4350,6 +4599,18 @@ function render(){
   const loadLines=[autoSwLine,...userLoadLines].join("<br>");
   const sectionView = typeof sectionLoadLineView === 'function' ? sectionLoadLineView(sec) : '';
   const reactLine=a.reactions.map(r=>`R@${g(r.pos/1000)}m = ${f1(r.V/1000,2)} kN`+(r.type==='fixed'?`, M = ${f1(-r.M/1e6,2)} kN m`:'')).join("   ");
+  // uplift / hold-down rows (every combination's reactions; item 1.2)
+  const HD=c.holdDown||null;
+  const upliftLines=(HD&&HD.rows&&HD.rows.length)
+    ? HD.rows.map(u=>{
+        if(u.level==='sls') return `<div class="note" style="margin-left:0"><b>Uplift at SLS only, support ${u.n} (x = ${g(u.pos/1000,2)} m):</b> R = &minus;${f1(Math.abs(u.RSls),2)} kN (SLS combination ${u.comboSls}); no ULS combination lifts this support; the EQU set-A combination (&gamma;<sub>G,inf</sub> = 0.9) is not generated &mdash; verify by hand (advisory).</div>`;
+        return `<div class="note" style="margin-left:0;color:${u.holdDown?'#374151':'#b91c1c'}"><b>Hold-down ${u.holdDown?'provided':'required'} at support ${u.n} (x = ${g(u.pos/1000,2)} m):</b> R = &minus;${f1(Math.abs(u.RUls),2)} kN (combination ${u.comboUls})${u.RSls!=null? `; SLS uplift &minus;${f1(Math.abs(u.RSls),2)} kN (${u.comboSls})`:''}; ${u.nCombos} combination(s) lift this support${u.holdDown? ' &mdash; design the hold-down connection for this force (advisory)' : ' &mdash; NOT VERIFIED until "hold-down provided" is ticked for this support'}.</div>`; }).join('')
+    : (a.uplift? `<div class="note" style="margin-left:0">Uplift: no support lifts in any of the ${a.ulsResults.length+a.slsResults.length} combinations (all reactions &ge; 0).</div>` : '');
+  // automatic pattern loading (item 1.3)
+  const PT=a.patterns||null;
+  const patternBlock=(PT&&PT.segs&&PT.segs.length>1)
+    ? `<div class="note" style="margin-left:0"><b>${PT.active? 'Automatic pattern loading' : 'Automatic pattern loading OFF'}</b> (${PT.segText}): ${PT.active? PT.nUls+' ULS + '+PT.nSls+' SLS combinations generated &mdash; Q on each span, on each pair of adjacent spans and on alternate spans, with G, W and E at their entered factors on every span (EN 1990 6.10 as entered); they are listed in the tables below and enter every check.' : 'only the entered combinations are analysed; adverse / relieving span patterns must be entered by hand.'} ${PT.limitation}</div>`
+    : '';
 
   // load combination results table   one row per enabled combo, flagging which one governs
   const comboRows = a.ulsResults.map(res=>{
@@ -4363,6 +4624,7 @@ function render(){
   }).join('');
   const combosBlock = `
   <div class="section-title smallgap">Load Combinations Considered</div>
+  ${patternBlock}
   <table class="force-table" style="font-size:13px">
     <thead><tr><th>ULS combination</th><th>Max F<sub>v</sub> (kN)</th><th>Max M<sub>x</sub> (kN m @ m)</th><th>Governs</th></tr></thead>
     <tbody>${comboRows}</tbody>
@@ -4413,7 +4675,7 @@ function render(){
     if(c.hsNote) notes.push(c.hsNote+".");
     if(c.ax) notes.push(c.ax.tension
       ? "Tension + bending: cross-section by cl 6.2.9; member buckling per cl 6.3.3 is not required because N<sub>Ed</sub> is tensile."
-      : "Axial compression + bending: cross-section by cl 6.2.9; member buckling by cl 6.3.3 / Annex B Method 2, Table B.1 (fully restrained &mdash; not susceptible to torsional deformation, &chi;<sub>LT</sub> = 1, M<sub>b,Rd</sub> = M<sub>c,Rd</sub>); C<sub>m</sub> per Table B.3. Strut length L<sub>cr</sub> = L<sub>E</sub>-factor &times; L (edit under Axial &amp; LTB; note a cantilever strut classically takes L<sub>cr</sub> = 2L).");
+      : "Axial compression + bending: cross-section by cl 6.2.9; member buckling by cl 6.3.3 / Annex B Method 2, Table B.1 (fully restrained &mdash; not susceptible to torsional deformation, &chi;<sub>LT</sub> = 1, M<sub>b,Rd</sub> = M<sub>c,Rd</sub>); C<sub>m</sub> per Table B.3. Strut length "+(c.buck&&c.buck.cantStrut? "L<sub>cr</sub> = "+g(c.buck.Ky,2)+"L about both axes ("+c.buck.lcrBasis+")" : "L<sub>cr</sub> = L<sub>E</sub>-factor &times; L (edit under Axial &amp; LTB; a cantilever strut with N<sub>Ed</sub> &gt; 0 defaults to 2.0L)")+".");
     notes.push("Fully restrained beam: design follows the SCI worked-example procedure to BS EN 1993-1-1 (UK NA) &mdash; classification (Table 5.2), shear resistance (cl 6.2.6), shear-buckling screen (cl 6.2.6(6)), moment resistance (cl 6.2.5, with the cl 6.2.8 shear check made at the point of maximum bending moment), and vertical deflection. &gamma;<sub>M0</sub> = 1.0 (UK NA); &eta; = 1.0 taken conservatively.");
     notes.push("Vertical deflection is checked against span/"+g(c.divisor,0)+" under the enabled SLS combination(s). NA 2.23 applies the limit to deflection due to <b>variable actions only</b>, so the default SLS combination carries Q only (edit under Load Combinations if a different criterion is required).");
   } else if(sciU){
@@ -4433,7 +4695,7 @@ function render(){
     }
     if(c.ax) notes.push("Axial + bending per EN 1993-1-1: cross-section by cl 6.2.9 ("+(c.ax.cls3?'elastic, Class 3':'plastic M<sub>N,Rd</sub>, Class 1/2')+"); "+(c.ax.tension
       ? "member buckling per cl 6.3.3 is not required because N<sub>Ed</sub> is tensile. Tension: N<sub>t,Rd</sub> = min(N<sub>pl,Rd</sub>, 0.9A<sub>net</sub>f<sub>u</sub>/&gamma;<sub>M2</sub>); the beneficial effect of tension on LTB is conservatively ignored"
-      : "member buckling by cl 6.3.3 with Annex B Method 2 interaction factors (Table "+(c.buck&&c.buck.useB1?'B.1 &mdash; not susceptible to torsional deformation':'B.2 &mdash; susceptible')+", C<sub>m</sub> per Table B.3 from the governing moment diagram). Strut lengths: L<sub>cr,y</sub> = L<sub>E</sub>-factor &times; L"+(c.buck&&c.buck.lczFromRestraints?"; L<sub>cr,z</sub> = largest lateral-restraint spacing (SCI P360 6.2)":"; L<sub>cr,z</sub> = L<sub>E</sub>-factor &times; L")+". The destabilising &times;1.2 switch is an LTB concept and is NOT applied to strut buckling")+". N<sub>Ed</sub> is the direct design value (not run through the combinations). Validated against an independent commercial-software SHS beam-column worked example (C<sub>m</sub> 0.4, k<sub>zy</sub> 0.24, Eq 6.61 0.184, Eq 6.62 0.110).");
+      : "member buckling by cl 6.3.3 with Annex B Method 2 interaction factors (Table "+(c.buck&&c.buck.useB1?'B.1 &mdash; not susceptible to torsional deformation':'B.2 &mdash; susceptible')+", C<sub>m</sub> per Table B.3 from the governing moment diagram). Strut lengths: "+(c.buck&&c.buck.cantStrut? "L<sub>cr,y</sub> = L<sub>cr,z</sub> = "+g(c.buck.Ky,2)+"L ("+c.buck.lcrBasis+")" : "L<sub>cr,y</sub> = L<sub>E</sub>-factor &times; L"+(c.buck&&c.buck.lczFromRestraints?"; L<sub>cr,z</sub> = largest lateral-restraint spacing (SCI P360 6.2)":"; L<sub>cr,z</sub> = L<sub>E</sub>-factor &times; L"))+". The destabilising &times;1.2 switch is an LTB concept and is NOT applied to strut buckling")+". N<sub>Ed</sub> is the direct design value (not run through the combinations). Validated against an independent commercial-software SHS beam-column worked example (C<sub>m</sub> 0.4, k<sub>zy</sub> 0.24, Eq 6.61 0.184, Eq 6.62 0.110).");
     if(c.coex&&!c.coex.pureShearFail) notes.push("Coexistent bending and shear are verified at every section along the span per cl 6.2.8(3) (rolled I/H, Class 1/2): where V<sub>Ed</sub> &gt; 0.5V<sub>pl"+((c.tor&&c.tor.VplTRd!=null)?",T":"")+",Rd</sub>, the moment is checked against the reduced M<sub>v,Rd</sub> = (W<sub>pl,y</sub> &minus; &rho;A<sub>v</sub>&sup2;/4t<sub>w</sub>)f<sub>y</sub>.");
     if(!(c.ltb&&c.ltb.na)) notes.push("&chi;<sub>LT</sub> uses &lambda;&#772;<sub>LT,0</sub>=0.4, &beta;=0.75 and buckling curve per NA 2.17 (Table 6.3: h/b&le;2 &rarr; b; 2&lt;h/b&le;3.1 &rarr; c; h/b&gt;3.1 &rarr; d); &chi;<sub>LT,mod</sub>=&chi;<sub>LT</sub>/f with k<sub>c</sub>=1/&radic;C<sub>1</sub> (NA 2.18), where C<sub>1</sub> is "+(mcrStd? "the tabulated/derived value used for M<sub>cr</sub>" : "back-calculated from the shape-only eigen result for k<sub>c</sub> only")+". The design strength f<sub>y</sub> from the flange thickness is used consistently in every expression, including Eq 6.56.");
   } else if(S.code==='BS5950'){
@@ -4755,6 +5017,7 @@ function render(){
     <div class="dt">Loading</div>
     ${beamDiagram(a)}
     <div class="note" style="margin-left:0">Reactions (governing-moment combo, ${a.governM.combo.label}): ${reactLine}</div>
+    ${upliftLines}
   </div>
 
   ${combosBlock}
@@ -4836,7 +5099,7 @@ function render(){
   ${(sci||sciU)&&c.buck? `
   <div class="section-title smallgap">Member Buckling Resistance (Cl. 6.3.3, Annex B Method 2 &mdash; Table ${c.buck.useB1?'B.1':'B.2'})</div>
   <div class="calc-block">
-    <div>L<sub>cr,y</sub> = ${g(S.leFactor,2)}&middot;L${c.buck.lczFromRestraints? '; L<sub>cr,z</sub> = restraint spacing (P360 6.2)':''}</div><div class="formula">&lambda;&#772;<sub>y</sub> = ${g(c.buck.lamY,3)} (curve ${c.buck.cvY.curve}); &lambda;&#772;<sub>z</sub> = ${g(c.buck.lamZ,3)} (curve ${c.buck.cvZ.curve})</div><div class="value">${g((c.buck.LcrY!=null?c.buck.LcrY:c.buck.Lcr)/1000,2)}${c.buck.LcrZ!=null&&Math.abs(c.buck.LcrZ-(c.buck.LcrY!=null?c.buck.LcrY:c.buck.Lcr))>1e-6? ' / '+g(c.buck.LcrZ/1000,2):''} m</div><div></div>
+    <div>L<sub>cr,y</sub> = ${g(c.buck.Ky!=null?c.buck.Ky:S.leFactor,2)}&middot;L${c.buck.lczFromRestraints? '; L<sub>cr,z</sub> = restraint spacing (P360 6.2)':''}</div><div class="formula">${c.buck.lcrBasis? c.buck.lcrBasis+'; ' : ''}&lambda;&#772;<sub>y</sub> = ${g(c.buck.lamY,3)} (curve ${c.buck.cvY.curve}); &lambda;&#772;<sub>z</sub> = ${g(c.buck.lamZ,3)} (curve ${c.buck.cvZ.curve})</div><div class="value">${g((c.buck.LcrY!=null?c.buck.LcrY:c.buck.Lcr)/1000,2)}${c.buck.LcrZ!=null&&Math.abs(c.buck.LcrZ-(c.buck.LcrY!=null?c.buck.LcrY:c.buck.Lcr))>1e-6? ' / '+g(c.buck.LcrZ/1000,2):''} m</div><div class="status">${c.buck.cantStrut? (c.buck.leOverride? 'user L<sub>E</sub>' : 'cantilever 2.0L') : ''}</div>
     <div>N<sub>b,y,Rd</sub>; N<sub>b,z,Rd</sub> = &chi;Af<sub>y</sub>/&gamma;<sub>M1</sub></div><div class="formula">&chi;<sub>y</sub> = ${g(c.buck.chiY,3)}; &chi;<sub>z</sub> = ${g(c.buck.chiZ,3)}</div><div class="value">${f1(c.buck.NbY,1)} / ${f1(c.buck.NbZ,1)} kN</div><div></div>
     <div>C<sub>my</sub> = C<sub>mLT</sub> (Table B.3)</div><div class="formula" style="font-size:12.5px">${c.buck.cmLabel}${c.buck.swayNote? ' &mdash; sway buckling mode (cantilever): C<sub>m</sub> = 0.9 floor applied (Table B.3 note)':''}</div><div class="value">${g(c.buck.Cmy,3)}; C<sub>mz</sub> = ${g(c.buck.Cmz,2)}</div><div></div>
     <div>k<sub>yy</sub>; k<sub>zz</sub>; k<sub>yz</sub>; k<sub>zy</sub></div><div class="formula">${c.buck.kzyLbl}</div><div class="value">${g(c.buck.kyy,3)}; ${g(c.buck.kzz,3)}; ${g(c.buck.kyz,3)}; ${g(c.buck.kzy,3)}</div><div></div>
@@ -4864,8 +5127,9 @@ function render(){
 
   <div class="section-title smallgap">${(sci||sciU)? 'Vertical Deflection of Beam (BS EN 1993-1-1 NA 2.23 &mdash; ' : 'Deflection Check (SLS &mdash; '}${a.governD.combo.label})</div>
   <div class="calc-block">
-    <div>w (governing span utilisation)</div><div class="formula">@ x = ${g(a.deflection?a.deflection.dpos/1000:a.dpos,2)} m</div><div class="value">${f1(c.dmax,1)} mm</div><div></div>
-    <div>Limit = span/${g(c.divisor,0)}</div><div class="formula">${g(c.span,0)}/${g(c.divisor,0)} = ${f1(c.dlimit,1)} mm</div><div class="value">${f1(c.dmax,1)} ${c.defOk?'&lt;':'&gt;'} ${f1(c.dlimit,1)} mm</div>${st(c.defOk,'OK')}
+    <div>${c.deflCant? 'Tip deflection (cantilever segment, relative to its support)' : 'w (governing span utilisation)'}</div><div class="formula">@ x = ${g(a.deflection?a.deflection.dpos/1000:a.dpos,2)} m${a.deflection&&(a.deflection.start>1e-6||a.deflection.end<a.L-1e-6)? '; segment '+g(a.deflection.start/1000,2)+'&ndash;'+g(a.deflection.end/1000,2)+' m':''}</div><div class="value">${f1(c.dmax,1)} mm</div><div></div>
+    <div>Limit = ${c.deflCant? 'L/' : 'span/'}${g(c.divisor,0)}${a.deflection&&a.deflection.abs!=null? ', capped at '+f1(a.deflection.abs,1)+' mm (absolute)' : ''}</div><div class="formula">${g(c.span,0)}/${g(c.divisor,0)} = ${f1(a.deflection?a.deflection.limSpan:c.dlimit,1)} mm${c.deflAbsGoverns? ' &gt; absolute limit '+f1(a.deflection.abs,1)+' mm, which governs' : ''}${c.deflCant? ' (cantilever: L/'+g(c.divisor,0)+' per UK NA to EN 1993-1-1 Table NA.2 [verify])' : ''}</div><div class="value">${f1(c.dmax,1)} ${c.defOk?'&lt;':'&gt;'} ${f1(c.dlimit,1)} mm</div>${st(c.defOk,'OK')}
+    ${a.deflSegments&&a.deflSegments.length>1? a.deflSegments.map(sg=>`<div>${sg.cant? 'Cantilever':'Span'} ${sg.no}: ${g(sg.start/1000,2)}&ndash;${g(sg.end/1000,2)} m</div><div class="formula">&delta; = ${f1(Math.abs(sg.dmax),2)} mm @ x = ${g(sg.dpos/1000,2)} m (${sg.combo}); limit ${sg.absGoverns? f1(sg.abs,1)+' mm (absolute governs; '+g(sg.span,0)+'/'+g(sg.divisor,0)+' = '+f1(sg.limSpan,1)+' mm)' : g(sg.span,0)+'/'+g(sg.divisor,0)+' = '+f1(sg.limit,1)+' mm'}</div><div class="value">${g(sg.util,3)}</div>${st(sg.util<=1.0001,'OK')}`).join('') : ''}
   </div>
 
   ${(sci||sciU)&&c.tor&&c.tor.p385? `
@@ -4989,15 +5253,17 @@ function msbRhoShear(V,Vpl){ return Math.min(Math.pow(2*V/Math.max(Vpl,1e-9)-1,2
 function msbWplN(MN_kNm,fy){ return MN_kNm*1e3/fy; }
 // Phi_LT of cl 6.3.2.3 (the expression the check engine evaluates)
 function msbPhiLT(lam,alphaLT){ return 0.5*(1+alphaLT*(lam-0.4)+0.75*lam*lam); }
-// 1-based index of a combination among the enabled ULS (or SLS) combinations
-function msbCaseIndex(combo,sls){
-  const list=(S.combos||[]).filter(cb=>cb.on && (sls? cb.sls : !cb.sls));
+// 1-based index of a combination among the analysed ULS (or SLS) combinations:
+// the expanded list of analyse() (user combinations each followed by their
+// automatic patterns) when `a` is given, else the enabled entries of S.combos
+function msbCaseIndex(combo,sls,a){
+  const list= a? (sls? a.slsResults : a.ulsResults).map(r=>r.combo) : (S.combos||[]).filter(cb=>cb.on && (sls? cb.sls : !cb.sls));
   let i=list.indexOf(combo);
   if(i<0 && combo) i=list.findIndex(cb=>cb.label===combo.label);
   return i<0? null : i+1;
 }
-function msbCaseLabel(combo,sls){
-  const n=msbCaseIndex(combo,sls);
+function msbCaseLabel(combo,sls,a){
+  const n=msbCaseIndex(combo,sls,a);
   return (n!=null? String(n) : '?')+(combo&&combo.label? ' ('+combo.label+')' : '');
 }
 // [1,2,4,5,6] -> "1-2, 4-6"
@@ -5024,6 +5290,7 @@ function msbPortion(a,LT){
 // which brief block a blocking message belongs to
 function msbBlockFor(msg){
   const s=msbEsc(msg);
+  if(/^Hold-down/.test(s)) return 'forces';
   if(/torsion|Torsion|Eccentric loads|Annex A|k_alpha|Torsional constants|eccentric load/i.test(s)) return 'torsion';
   if(/Class 4|effective-section|Effective-area|slender/i.test(s)) return 'class';
   if(/shear/i.test(s)) return 'local';
@@ -5065,9 +5332,9 @@ function renderMasterSeriesBrief(a,c,sec){
   const [xa,xb]=msbPortion(a,LT);
   const wholePortion = xa<=1e-6 && Math.abs(xb-a.L)<=1e-6;
   const nULS=a.ulsResults.length;
-  const caseM=msbCaseLabel(a.governM.combo,false), caseD=msbCaseLabel(a.governD.combo,true);
+  const caseM=msbCaseLabel(a.governM.combo,false,a), caseD=msbCaseLabel(a.governD.combo,true,a);
   // blocking messages sorted into their blocks
-  const nv={class:[],local:[],compression:[],ltb:[],torsion:[],general:[]};
+  const nv={forces:[],class:[],local:[],compression:[],ltb:[],torsion:[],general:[]};
   unsupported.forEach(m=>{ let k=msbBlockFor(m); if(k==='compression' && !(B && B.Fc>1e-9)) k='local'; if(k==='torsion' && !T) k= /Annex A|k_alpha/.test(m)? 'ltb' : 'general'; nv[k].push(m); });
 
   let h='';
@@ -5090,6 +5357,16 @@ function renderMasterSeriesBrief(a,c,sec){
   });
   const swE=selfWeightEccentricity(sec);
   loadLines.push('G SW '+g(selfWeightValue(sec),4)+' kN/m 0&ndash;'+g(S.L)+' m'+(S.eccOn&&Math.abs(swE)>1e-9? ' e = '+g(swE,1)+' mm' : '')+' ( automatic )');
+  // automatic pattern loading (item 1.3): the generated combinations are listed
+  // with the loads, in MasterSeries' "pattern" position; the gamma_G,inf limitation is stated
+  const PT=a.patterns||null;
+  if(PT && PT.segs && PT.segs.length>1){
+    if(PT.active){
+      loadLines.push('<b>Pattern loading</b> ('+PT.segText+'): '+PT.nUls+' ULS + '+PT.nSls+' SLS combinations generated &mdash; Q on each span, adjacent pairs, alternate spans; G/W/E at their entered factors on every span');
+      a.ulsResults.concat(a.slsResults).filter(r=>r.combo.pattern).forEach(r=>loadLines.push('&nbsp;&nbsp;'+(r.combo.sls? 'SLS ':'ULS ')+msbCaseIndex(r.combo,!!r.combo.sls,a)+': '+msbEsc(r.combo.label)));
+      loadLines.push('<span class="ms-note">'+PT.limitation+'</span>');
+    } else loadLines.push('<span class="ms-note"><b>Pattern loading OFF</b> ('+PT.segText+'): only the entered combinations are analysed; '+PT.limitation+'</span>');
+  }
   const sketch=(typeof beamDiagram==='function'? beamDiagram(a) : '')+(typeof plot==='function'? plot(a.diag.xs,a.diag.M,{color:'#1a237e',fill:'#c9d3ea',unit:'kN.m',flip:true,fmt:v=>f1(v,2)}) : '');
   h+='<div class="ms-loading"><div class="ms-loadlist">'+loadLines.join('<br>')+'</div><div class="ms-sketch">'+sketch+'</div></div>';
 
@@ -5109,6 +5386,21 @@ function renderMasterSeriesBrief(a,c,sec){
      '</tbody></table>';
   const reactLine=a.reactions.map(r=>'R @ '+msbM(r.pos/1000)+' m = '+f1(r.V/1000,2)+' kN'+(r.type==='fixed'? ', M = '+f1(-r.M/1e6,2)+' kN.m' : '')).join(' &nbsp; ');
   h+='<div class="ms-note">Reactions ('+a.governM.combo.label+'): '+reactLine+'. V<sub>z</sub> = 0: no minor-axis shear in the single-plane model; M<sub>z</sub> is the entered constant design moment.</div>';
+  // uplift / hold-down (item 1.2): one row per lifting support, in the Member Forces block
+  const HD=c.holdDown||null;
+  if(HD && HD.rows && HD.rows.length){
+    HD.rows.forEach(u=>{
+      if(u.level==='sls'){
+        h+=msbRow('Uplift at SLS only, support '+u.n+' (x = '+msbM(u.pos/1000)+' m)', 'R = &minus;'+f1(Math.abs(u.RSls),2)+' kN (SLS combination '+msbEsc(u.comboSls)+'); no ULS combination lifts this support; EQU set A (&gamma;<sub>G,inf</sub> = 0.9) not generated &mdash; verify by hand (advisory)', 'R = &minus;'+f1(Math.abs(u.RSls),2)+' kN', 'advisory');
+        return;
+      }
+      const lbl='Hold-down '+(u.holdDown? 'provided' : 'required')+' at support '+u.n+' (x = '+msbM(u.pos/1000)+' m)';
+      const vals='R = &minus;'+f1(Math.abs(u.RUls),2)+' kN (combination '+msbEsc(u.comboUls)+')'+(u.RSls!=null? '; SLS uplift &minus;'+f1(Math.abs(u.RSls),2)+' kN ('+msbEsc(u.comboSls)+')' : '')+'; '+u.nCombos+' combination(s) lift this support';
+      if(u.holdDown) h+=msbRow(lbl, vals+' &mdash; design the hold-down connection for this force (advisory)', 'R = &minus;'+f1(Math.abs(u.RUls),2)+' kN', 'hold-down');
+    });
+    h+=msbNotVerifiedRows(nv.forces);
+  }
+  if(a.uplift && !a.uplift.any) h+=msbRow('Uplift', 'no support lifts in any of the '+(a.ulsResults.length+a.slsResults.length)+' combinations (all reactions &ge; 0)', 'R<sub>min</sub> &ge; 0', 'OK');
   if(nULS>1 || a.slsResults.length>1){
     h+='<table class="ms-combos"><thead><tr><th>Combination</th><th>V<sub>max</sub> (kN)</th><th>M<sub>max</sub> (kN.m @ m)</th><th>&delta; (mm)</th></tr></thead><tbody>'+
        a.ulsResults.map(r=>'<tr><td>'+r.combo.label+(r===a.governM? ' (governs M)':'')+'</td><td class="num">'+f1(r.Vmax/1000,3)+'</td><td class="num">'+f1(r.Mmax/1e6,3)+' @ '+g(r.Mpos/1000,3)+'</td><td class="num">&mdash;</td></tr>').join('')+
@@ -5130,9 +5422,8 @@ function renderMasterSeriesBrief(a,c,sec){
       : 'biaxial: uniform-compression web bound; limits '+g(wl[0],1)+'&epsilon; / '+g(wl[1],1)+'&epsilon; / '+g(wl[2],1)+'&epsilon;',
       'Class '+c.cl.wc, 'Table 5.2');
   }
-  const ulsIdx=[], slsIdx=[]; let iu=0, is=0;
-  (S.combos||[]).forEach(cb=>{ if(!cb.on) return; if(cb.sls){ is++; slsIdx.push(is);} else { iu++; ulsIdx.push(iu);} });
-  h+=msbRow('Auto Design Load Cases', msbCaseRanges(ulsIdx)+(slsIdx.length? '; SLS '+msbCaseRanges(slsIdx) : ''),'','');
+  const ulsIdx=a.ulsResults.map((r,i)=>i+1), slsIdx=a.slsResults.map((r,i)=>i+1);
+  h+=msbRow('Auto Design Load Cases', msbCaseRanges(ulsIdx)+(slsIdx.length? '; SLS '+msbCaseRanges(slsIdx) : '')+(a.patterns&&a.patterns.active? ' (incl. '+a.patterns.nUls+' + '+a.patterns.nSls+' automatic patterns)' : ''),'','');
   h+=msbNotVerifiedRows(nv.class);
 
   /* ---- 5.3 Local Capacity Check / Moment Capacity Check ---- */
@@ -5193,10 +5484,11 @@ function renderMasterSeriesBrief(a,c,sec){
   if(B && B.Fc>1e-9){
     h+=msbHead('Compression Resistance N.b.Rd');
     const NcrY=msbNcr(a.E,sec.Ix,B.LcrY), NcrZ=msbNcr(a.E,sec.Iy,B.LcrZ);
-    h+=msbRow('L<sub>ey</sub> = K<sub>y</sub>.L<sub>y</sub>', g(S.leFactor,2)+' x '+msbM(S.L)+' =', msbM(B.LcrY/1000)+' m', '');
+    const Ky=(B.Ky!=null? B.Ky : S.leFactor);
+    h+=msbRow('L<sub>ey</sub> = K<sub>y</sub>.L<sub>y</sub>', g(Ky,2)+' x '+msbM(S.L)+' ='+(B.cantStrut? ' ('+msbEsc(B.lcrBasis)+')' : ''), msbM(B.LcrY/1000)+' m', B.cantStrut? (B.leOverride? 'user L<sub>E</sub>' : 'cantilever 2.0L') : '');
     h+=msbRow('&lambda;&#772;<sub>y</sub> = &radic;A.f<sub>y</sub>/N<sub>cr</sub>', '&radic;'+f1(sec.A,2)+'x'+msbInt(c.fy)+'/'+f1(NcrY,2)+' (N<sub>cr,y</sub> = &pi;&sup2;EI<sub>y</sub>/L<sub>ey</sub>&sup2;)', msbR(B.lamY), '');
     h+=msbRow('N<sub>b.y.Rd</sub> = Area.&chi;.f<sub>y</sub>/&gamma;<sub>M1</sub>', f1(sec.A,2)+'x'+msbR(B.chiY)+'x'+msbInt(c.fy)+'/10/1 =', msbKN(B.NbY)+' kN', 'Curve '+B.cvY.curve);
-    h+=msbRow('L<sub>ez</sub> = K<sub>z</sub>.L<sub>z</sub>', B.lczFromRestraints? 'largest lateral-restraint spacing =' : g(S.leFactor,2)+' x '+msbM(S.L)+' =', msbM(B.LcrZ/1000)+' m', B.lczFromRestraints? 'P360 6.2' : '');
+    h+=msbRow('L<sub>ez</sub> = K<sub>z</sub>.L<sub>z</sub>', B.lczFromRestraints? 'largest lateral-restraint spacing =' : g(Ky,2)+' x '+msbM(S.L)+' =', msbM(B.LcrZ/1000)+' m', B.lczFromRestraints? 'P360 6.2' : (B.cantStrut? (B.leOverride? 'user L<sub>E</sub>' : 'cantilever 2.0L') : ''));
     h+=msbRow('&lambda;&#772;<sub>z</sub> = &radic;A.f<sub>y</sub>/N<sub>crz</sub>', '&radic;'+f1(sec.A,2)+'x'+msbInt(c.fy)+'/'+f1(NcrZ,2)+' (N<sub>cr,z</sub> = &pi;&sup2;EI<sub>z</sub>/L<sub>ez</sub>&sup2;)', msbR(B.lamZ), '');
     h+=msbRow('N<sub>b.z.Rd</sub> = Area.&chi;.f<sub>y</sub>/&gamma;<sub>M1</sub>', f1(sec.A,2)+'x'+msbR(B.chiZ)+'x'+msbInt(c.fy)+'/10/1 =', msbKN(B.NbZ)+' kN', 'Curve '+B.cvZ.curve);
     h+=msbNotVerifiedRows(nv.compression);
@@ -5420,7 +5712,20 @@ function renderMasterSeriesBrief(a,c,sec){
   /* ---- 5.9 Deflection Check ---- */
   h+=msbHead('Deflection Check - Load Case '+caseD);
   const defSeg = a.deflection && (a.deflection.start>1e-6 || a.deflection.end<a.L-1e-6);
-  h+=msbRow((isCant? 'Tip &delta; &le; L/' : 'In-span &delta; &le; Span/')+msbInt(c.divisor), msbMM(c.dmax)+' &le; '+g(c.span,0)+' / '+msbInt(c.divisor)+' = '+msbMM(c.dlimit)+' mm @ x = '+msbM(dfl.dpos/1000)+' m'+(defSeg? ' (segment '+msbM(a.deflection.start/1000)+'&ndash;'+msbM(a.deflection.end/1000)+' m)' : ''), msbMM(c.dmax)+' mm', msbWarn(c.defOk));
+  const dCant = a.deflection? !!a.deflection.cant : isCant;
+  const dAbs = a.deflection && a.deflection.abs!=null ? a.deflection.abs : null;
+  const dAbsGov = !!(a.deflection && a.deflection.absGoverns);
+  // limit label: Span/divisor (L/divisorCant for a cantilever segment), with the absolute cap when entered
+  const limLbl=(cant,div)=>(cant? 'Tip &delta; &le; L/' : 'In-span &delta; &le; Span/')+msbInt(div)+(dAbs!=null? ' (&le; '+msbMM(dAbs)+' mm)' : '');
+  const limVals=(sg)=>msbMM(Math.abs(sg.dmax))+' &le; '+(sg.absGoverns? msbMM(sg.abs)+' mm (absolute limit governs; '+g(sg.span,0)+' / '+msbInt(sg.divisor)+' = '+msbMM(sg.limSpan)+' mm)' : g(sg.span,0)+' / '+msbInt(sg.divisor)+' = '+msbMM(sg.limit)+' mm'+(sg.abs!=null? ' (absolute limit '+msbMM(sg.abs)+' mm not governing)' : ''))+' @ x = '+msbM(sg.dpos/1000)+' m';
+  const gseg = a.deflection || {dmax:c.dmax,dpos:dfl.dpos,span:c.span,divisor:c.divisor,limit:c.dlimit,limSpan:c.dlimit,abs:null,absGoverns:false};
+  h+=msbRow(limLbl(dCant,c.divisor), limVals(gseg)+(defSeg? ' (segment '+msbM(a.deflection.start/1000)+'&ndash;'+msbM(a.deflection.end/1000)+' m'+(dCant? ', cantilever' : '')+')' : '')+(dCant? '; cantilever L/'+msbInt(c.divisor)+' per UK NA to EN 1993-1-1 Table NA.2 [verify]' : ''), msbMM(c.dmax)+' mm', msbWarn(c.defOk)+(dAbsGov? ' abs' : ''));
+  // per-segment limits (multi-span / overhang members): every segment with its own limit and governing SLS case
+  if(a.deflSegments && a.deflSegments.length>1){
+    a.deflSegments.forEach(sg=>{
+      h+=msbRow((sg.cant? 'Cantilever ' : 'Span ')+sg.no+' ('+msbM(sg.start/1000)+'&ndash;'+msbM(sg.end/1000)+' m): '+(sg.cant? 'tip &delta; &le; L/' : '&delta; &le; Span/')+msbInt(sg.divisor), limVals(sg)+' ('+msbEsc(sg.combo)+')', msbMM(Math.abs(sg.dmax))+' mm', msbWarn(sg.util<=1.0001));
+    });
+  }
 
   /* ---- 5.10 Unity bar ---- */
   const findU=(re)=>{ const u=utils.find(u=>re.test(u.name)); return u? u.val : null; };
@@ -5508,6 +5813,9 @@ function readScalarInputs(){
   const mxo=parseFloat($("mxo").value); S.mxo=isFinite(mxo)?mxo:null;
   const c1o=parseFloat($("C1o").value); S.C1o=isFinite(c1o)?c1o:null;
   S.divisor=parseFloat($("divisor").value);
+  if($("divisorCant")){ const dc=parseFloat($("divisorCant").value); S.divisorCant=isFinite(dc)?dc:180; }
+  if($("deflAbs")){ const da=parseFloat($("deflAbs").value); S.deflAbs=isFinite(da)?da:null; }
+  if($("autoPattern")) S.autoPattern=$("autoPattern").checked;
   S.E=parseFloat($("E").value);
   const ke=parseFloat($("Ke").value); S.Ke=isFinite(ke)?ke:null;
   const autoRob=defaultRobertson(S.family,sec.boxType,sec.tf);
@@ -5530,10 +5838,11 @@ function wirePlate(){
 }
 
 function wire(){
-  ["grade","py","anet","length","axial","Mz","leFactor","mLTo","mxo","C1o","divisor","E","Ke","robertsonX","robertsonY"]
-    .forEach(id=>$(id).addEventListener("input",()=>{ readScalarInputs(); recompute(); }));
+  ["grade","py","anet","length","axial","Mz","leFactor","mLTo","mxo","C1o","divisor","divisorCant","deflAbs","E","Ke","robertsonX","robertsonY"]
+    .forEach(id=>{ if($(id)) $(id).addEventListener("input",()=>{ readScalarInputs(); recompute(); }); });
   $("za").addEventListener("input",()=>{ readScalarInputs(); renderLoadList(); recompute(); });
   $("destab").addEventListener("change",()=>{ readScalarInputs(); recompute(); });
+  if($("autoPattern")) $("autoPattern").addEventListener("change",()=>{ readScalarInputs(); recompute(); });
   $("eccOn").addEventListener("change",()=>{ readScalarInputs(); renderLoadList(); recompute(); });
   $("rootWarp").addEventListener("change",()=>{ readScalarInputs(); recompute(); });
   function refreshAutoFields(){
@@ -6005,14 +6314,16 @@ function wire(){
   function unitLoadsFor(a, combo) {
     var fac = combo.factors;
     var dl = [], pl = [];
-    S.loads.forEach(function (ld) {
-      if (ld.isSelfWeight || ld.type === 'moment') return;
-      var f = fac[ld.case] != null ? fac[ld.case] : 0;
+    /* comboLoadPieces() (04-checks.js) applies a pattern combination's mask
+       and splits distributed Q loads at the span boundaries, so the eigen
+       model of a pattern combination carries exactly that pattern's loads. */
+    comboLoadPieces(combo).forEach(function (p) {
+      if (p.type === 'moment') return;
+      var f = p.factor;
       if (!f) return;
-      var zg = typeof loadZgValue === 'function' ? loadZgValue(ld) : (+S.za || 0);
-      if (ld.type === 'point') pl.push({ x: (+ld.pos) * 1000, P: (ld.P || 0) * f * 1000, zg: zg });
-      else if (ld.type === 'udl') dl.push({ x1: (+ld.x1) * 1000, x2: (+ld.x2) * 1000, w1: (ld.w || 0) * f, w2: (ld.w || 0) * f, zg: zg });
-      else if (ld.type === 'trap') dl.push({ x1: (+ld.x1) * 1000, x2: (+ld.x2) * 1000, w1: (ld.w1 || 0) * f, w2: (ld.w2 || 0) * f, zg: zg });
+      var zg = typeof loadZgValue === 'function' ? loadZgValue(p.ld) : (+S.za || 0);
+      if (p.type === 'point') pl.push({ x: p.pos, P: p.P * f * 1000, zg: zg });
+      else dl.push({ x1: p.x1, x2: p.x2, w1: p.w1 * f, w2: p.w2 * f, zg: zg });
     });
     var gF = fac.G != null ? fac.G : 0;
     var sw = selfWeightValue(a.sec);
@@ -6360,7 +6671,7 @@ function wire(){
     var segC1 = spanGov ? { xa: spanGov.a, xb: spanGov.b, whole: false }
                         : (typeof c1Segment === 'function' ? c1Segment(a) : { xa: 0, xb: a.L, whole: true });
     var stdCmp = null;
-    try { stdCmp = mcrStandardFor(a, sec, segC1, { fb: govEv.res.fb, factors: govEv.res.combo.factors }); }
+    try { stdCmp = mcrStandardFor(a, sec, segC1, { fb: govEv.res.fb, factors: govEv.res.combo.factors, combo: govEv.res.combo }); }
     catch (eStd) { stdCmp = { route: 'n/a', Mcr: null, C1: null, label: 'closed form not available: ' + eStd.message, c1in: null, seg: segC1 }; }
     if (stdCmp && !stdCmp.c1in && typeof c1Inputs === 'function') stdCmp.c1in = c1Inputs(govEv.res.fb, segC1.xa, segC1.xb);
     ltb.mcrMethod = 'eigen';
