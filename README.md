@@ -1,6 +1,7 @@
 # Beam Design Modular Source
 
 The September 2026 structural audit, corrections, reference basis and remaining limitations are documented in [AUDIT.md](AUDIT.md).
+The section tables (UB, UC, SHS, RHS completed from the MasterSeries 2025 UK library, cross-check and derivation basis) are documented in [docs/SECTION_LIBRARY.md](docs/SECTION_LIBRARY.md).
 
 Run the regression suite with `node --test tests/*.test.cjs` (Node 22+). After editing source, run `./build-single-html.ps1` in PowerShell to regenerate `dist/beam-design-single.html`, then rerun the tests. The single-file distribution must match the modular source.
 
