@@ -9,7 +9,7 @@
   member, one segment L<sub>E</sub> = k L).
 - **Direction of conservatism.** Ratio > 1 means the closed form gives the **lower** M<sub>cr</sub> (conservative);
   **ratio < 1 means the closed form gives the higher M<sub>cr</sub>, i.e. the standard method is unconservative there**.
-- The batch (`results.md`, 279 cases / 479 runs) flags 54 same-segment outliers and 84 across-run outliers. The runner
+- The batch (`results.md`, 279 cases / 479 runs) flags 46 same-segment outliers (54 on the first run of the library, before the closed form stopped being evaluated for the refused end sets) and 84 across-run outliers. The runner
   tabulates a reason beside every same-segment outlier (`outlierReason()` in `run-batch.cjs`: cantilever, destabilising
   device, C<sub>2</sub> unpublished, hinge, clamped or warping-fixed ends, guided end, an end with U<sub>y</sub> or
   R<sub>x</sub> released, intermediate restraints, channel); the families are explained here.
@@ -45,9 +45,17 @@
 - **F3 (closed by the scope change):** overhang layouts on the closed-form route left with the multi-span scope.
 - **F4 (open, information):** UB-44 and ZG-02 print a closed-form M<sub>cr</sub> 32-43 % above the eigenvalue when
   C<sub>2</sub> is not published; the verdict is blocked, the printed number should be read with the block.
-- **F-A, F-B, F-D (corrected by the 19 Sep 2026 review fixes), F-E (open):** see tests/batch/README.md "Findings":
+- **F-A, F-B, F-D (corrected by the 19 Sep 2026 review fixes), F-E (closed at `f4f7adc`):** see tests/batch/README.md "Findings":
   the End 2 web-bearing station moment (viii-Mend, 71 runs -> 0), the vanishing-bimoment mesh measure (TOR-07 PASS),
-  the in-span couple off a mesh node (UB-57 PASS); the box-cantilever mesh error at the 0.5 % limit (RHS-07) stays open.
+  the in-span couple off a mesh node (UB-57 PASS); the box-cantilever "mesh error" was the warping flag imposed on an
+  I<sub>w</sub> = 0 model and is no longer applied there (RHS-07 PASS at 4.2e-7).
+- **F-F (open, standard route; docs/VERIFICATION_REPORT.md 7.5):** UB-57 (fixed-fixed, in-span couple at 2 m of 5 m + UDL)
+  keeps a same-segment ratio of 0.774 after F-D: the closed form is 214.5 kN·m (Serna C<sub>1</sub> 3.16 on the diagram with
+  the jump, k<sub>c</sub> floored) against the clamped eigenvalue 165.9 and, with R<sub>z</sub> unticked so that the FE carries
+  fork ends too, 160.3 (eigen C<sub>1</sub> 2.36). Serna's quarter-point expression over-reads a jump that falls between the
+  quarter points by 34 % on M<sub>cr</sub>; the k<sub>c</sub> floor holds M<sub>b,Rd</sub> to +2.5 % (108.1 vs 105.4) and both
+  verdicts PASS. UB-27 (couple at mid-span) is on the conservative side (1.155). Recommendation: block the Serna route, or cap
+  C<sub>1</sub> at the smooth-diagram value, when an applied couple lies inside the segment.
 - **F-C (corrected by the 19 Sep 2026 review fixes):** the standard (closed-form) route evaluated SN003a with fork ends
   for any end flag set. For an end releasing R<sub>x</sub> or U<sub>y</sub> (CUS-05/06/07/11/12) the closed form is
   1.5-2.4 times the eigenvalue and the standard verdict was PASS at 0.50 where the eigen verdict is 0.90. The route now

@@ -21,8 +21,9 @@ layouts). The ids and inputs of the cases pinned by `tests/campaign.test.cjs`
 (WEB, UPL, TFB, HSV, TOR, AEF, BIX, UB-04/19/27/40/43/45/49/51/52) are
 unchanged from the 19 Sep 2026 campaign.
 
-**Current run (2026-09-19, Node v24.14.1, 54 s, after the review fixes of the
-same day):** PASS 348 | FAIL 82 | NOT VERIFIED 35 | ERROR 0 (465 member runs);
+**Current run (2026-09-19, Node v24.14.1, 73 s, after the review fixes and the
+F-E closure of the same day; identical counts at `ce8dc0d`):** PASS 349 | FAIL 82 |
+NOT VERIFIED 34 | ERROR 0 (465 member runs);
 the 14 ERR layouts threw the declared message (0 failed). Cross-check
 mismatches: **0** - i-Mmax / i-dmax / i-Rend 352/352 each, i-Mend 243/243,
 viii-Mend 268/268 (was 71 mismatches: finding F-A, corrected), ii-equilibrium,
@@ -38,7 +39,9 @@ corrected: those runs are NOT VERIFIED on the standard route). Verdict changes
 against the first run of this library: UB-57 (eigen) and TOR-07 (both routes)
 NOT VERIFIED -> PASS (F-D, F-B corrected); CUS-05/06/07/11/12, PFC-26 and
 RHS-07 standard PASS -> NOT VERIFIED (F-C: an end releasing U<sub>y</sub> or
-R<sub>x</sub>, a channel / box cantilever). Trigger mismatches 0. Hand checks
+R<sub>x</sub>, a channel / box cantilever); RHS-07 eigen NOT VERIFIED -> PASS
+(F-E closed: the warping flag is not applied to an I<sub>w</sub> = 0 box, mesh
+measure 5.1e-3 -> 4.2e-7). Trigger mismatches 0. Hand checks
 (`hand-checks.md`): 59 quantities over 24 cases, 57 within 0.01 %, the two
 above 1 % expected and explained (the SN003a k = 0.5 method difference).
 
@@ -148,12 +151,14 @@ stiffeners (WEB-02, HSV-03, HSV-05, HSV-07).
 
 | Method | Runs | PASS | FAIL | NOT VERIFIED | ERROR |
 |---|---|---|---|---|---|
-| eigen | 200 | 173 | 15 | 12 | 0 |
-| standard | 200 | 138 | 46 | 16 | 0 |
+| eigen | 200 | 176 | 15 | 9 | 0 |
+| standard | 200 | 132 | 46 | 22 | 0 |
 | n/a (restrained) | 65 | 41 | 21 | 3 | 0 |
 | n/a (invalid, ERR group) | 14 | - | - | - | 14 THROWS |
 
-The standard route fails 31 runs more than the eigen route: the whole-member
+(Counts after the review fixes and the F-E closure; the first run of this
+library was eigen 173 / 15 / 12 and standard 138 / 46 / 16.) The standard route
+fails 31 runs more than the eigen route: the whole-member
 closed form with fork ends (intermediate restraints not applied, k = 1 for
 clamped ends, k<sub>w</sub> = 1 for warping-fixed ends, SN006a blocked outside
 its tables, the channel &kappa; chain) is the conservative MasterSeries-type
@@ -215,11 +220,21 @@ answer; the per-group and per-family tables are in `results.md`.
   moment jump inside an element and the Richardson error rises to 2.3 %
   (PASS blocked). UB-27 (couple at 4 m of 8 m) happens to sit on a node. Fix:
   add the moment-load positions to the forced node list.
-- **F-E (RHS-07, SHS-06; box cantilever eigen mesh error 0.42-0.51 %):** the
-  hollow-section cantilever (I<sub>w</sub> &asymp; 0) converges slowly in the
-  cubic Hermite twist field; RHS-07 sits at 0.51 %, just above the 0.5 % block
-  (NOT VERIFIED, the deflection verdict unaffected). Raising the base mesh for
-  I<sub>w</sub> = 0 sections, or a second Richardson level, would settle it.
+- **F-E (RHS-07, SHS-06; box cantilever eigen mesh error 0.42-0.51 %) -
+  closed (AUDIT.md "19 Sep 2026 single-span scope, end-condition DOFs"):** the
+  "mesh error" was the root warping flag imposed as &phi;&prime; = 0 on an
+  I<sub>w</sub> = 0 model, a spurious constraint whose effect faded only with
+  the mesh; the flag is now printed as not applied on a box section (EN 1993-1-1
+  6.2.7(7)) and RHS-07 converges to 4.2e-7 (PASS), SHS-06 to 1.8e-7. As found:
+  the hollow-section cantilever appeared to converge slowly in the cubic Hermite
+  twist field, RHS-07 at 0.51 %, just above the 0.5 % block.
+- **F-F (UB-57; Serna C<sub>1</sub> on a diagram with an in-span couple) -
+  open, recorded by docs/VERIFICATION_REPORT.md 7.5:** the closed form gives
+  214.5 kN.m against the clamped eigenvalue 165.9 (ratio 0.774) and against the
+  fork-ended eigenvalue 160.3 (Serna C<sub>1</sub> 3.16 vs the eigen 2.36, +34 %
+  on M<sub>cr</sub>); the k<sub>c</sub> floor holds M<sub>b,Rd</sub> to +2.5 %
+  and both verdicts PASS. An applied couple inside the segment should block the
+  Serna route or cap C<sub>1</sub> at the smooth-diagram value.
 - **Observations, not defects:** the SN006a route does not cover a tip couple
   combined with the self-weight moment above the 2 % de-minimis (UB-66), a
   partial UDL + tip load (UB-65) or a triangular load (UB-67): the standard
