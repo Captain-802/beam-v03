@@ -546,6 +546,10 @@
 
     var zgAny = evals.some(function (ev) { return Math.abs(ev.sol.zg || 0) > 1e-9; });
     if (zgAny && S.destab) warn.push('The destabilising x1.2 switch is ignored on the EC3 path: load height is carried exactly by per-load zg. Untick it to avoid confusion.');
+    /* 19 Sep 2026 verification campaign (UB-40): the switch declares a destabilising load, but with every
+       z_g = 0 the eigenvalue would take the load at the shear centre and print a PASS the closed-form route
+       (L_E x 1.2) refuses - a contradictory input, so PASS is blocked until z_g is entered or the switch cleared. */
+    if (!zgAny && S.destab) unsupported.push('Destabilising loading is ticked but every load height z<sub>g</sub> is 0 (load at the shear centre): the eigenvalue M<sub>cr</sub> carries the load height exactly through z<sub>g</sub> and does not apply the &times;1.2 L<sub>E</sub> device of the closed-form route, so this solve would treat the load as non-destabilising. Enter the load height (e.g. z<sub>g</sub> = +h/2 for a top-flange load, with eccentricity/height inputs on) or untick the switch; PASS is blocked.');
     if (Math.abs(S.leFactor - 1) > 1e-9) warn.push('The LE factor no longer affects EC3 LTB; buckling length is set by the restraint positions. It still sets the major-axis strut length (and the minor-axis one where no intermediate lateral restraints are modelled).');
 
     var curve = ltbCurve(sec);

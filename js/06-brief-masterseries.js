@@ -39,7 +39,7 @@ function msbMomentAt(fb,x){ return interpAt(fb.xs,fb.M,x)/1e6; }
 function msbPortionMoments(fb,xa,xb){
   const Ma=msbMomentAt(fb,xa+1e-4), Mb=msbMomentAt(fb,xb-1e-4);
   const [M1,M2]= Math.abs(Mb)>=Math.abs(Ma)? [Ma,Mb] : [Mb,Ma];
-  const Mmid=msbMomentAt(fb,(xa+xb)/2);
+  const Mmid=mAtStation(fb,(xa+xb)/2,xa,xb)/1e6;   // larger side of a jump (in-span couple), as c1Inputs
   const Mo=Mmid-(M1+M2)/2;
   const psi= Math.abs(M2)>1e-9? M1/M2 : 0;
   const mu= Math.abs(M2)>1e-9? Math.min(Mo/M2,300) : 300;

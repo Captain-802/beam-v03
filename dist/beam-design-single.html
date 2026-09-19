@@ -3733,6 +3733,21 @@ function checksEC3Restrained(a){
    cmTableB3, annexB2) must stay in place.
    =========================================================================== */
 
+// ---- Moment ordinate at an interior station of a diagram with jumps ----
+// An applied in-span couple makes M(x) discontinuous. A quarter-point or
+// mid-span sample that lands exactly on the jump must take the larger of the
+// two side ordinates: the closed-form C1 expressions (Serna quarter points,
+// the MasterSeries M_o) describe the envelope of the diagram, and the far-side
+// value overstates C1 (19 Sep 2026 verification campaign, UB-27: C1 1.68 ->
+// 1.21, the standard M_cr was 20 % above the eigenvalue). The diagram grid
+// carries x - 1e-4, x, x + 1e-4 at a jump, so 1e-3 mm either side reaches
+// both sides while a smooth diagram is unchanged to 1e-6. Clamped to the
+// segment. Pure.
+function mAtStation(fb,x,xa,xb){
+  const d=1e-3;
+  const l=interpAt(fb.xs,fb.M,Math.max(x-d,xa)), r=interpAt(fb.xs,fb.M,Math.min(x+d,xb));
+  return Math.abs(l)>=Math.abs(r)? l : r;
+}
 // ---- C1 inputs in the MasterSeries convention (pure) ----
 // fb = {xs (mm), M (N.mm)} of one combination's BMD (sagging positive);
 // xa, xb = the segment ends (mm). Returns kN.m:
@@ -3745,7 +3760,7 @@ function checksEC3Restrained(a){
 // a support reaction exactly at the end does not pick the wrong side of the jump.
 function c1Inputs(fb,xa,xb){
   const Ma=interpAt(fb.xs,fb.M,xa+1e-4)/1e6, Mb=interpAt(fb.xs,fb.M,xb-1e-4)/1e6;
-  const Mmid=interpAt(fb.xs,fb.M,(xa+xb)/2)/1e6;
+  const Mmid=mAtStation(fb,(xa+xb)/2,xa,xb)/1e6;
   let [M1,M2]= Math.abs(Mb)>=Math.abs(Ma)? [Ma,Mb] : [Mb,Ma];
   const Mo=Mmid-(Ma+Mb)/2;
   // end moments that are numerical noise next to the in-span moment (a pinned
@@ -3896,10 +3911,11 @@ function sn003aC1(a,isCant,seg,diag){
   if(S.C1o!=null) return {C1:S.C1o, C2:null, label:'user override', route:'override', c1in};
   if(isCant) return {C1:1.0, C2:null, label:'cantilever', route:'cantilever', c1in};
   const Mat=x=>interpAt(fbM.xs,fbM.M,x)/1e6;
+  const Mst=x=>mAtStation(fbM,x,xa,xb)/1e6;   // interior stations: larger side of a jump (in-span couple)
   // peak, end (read a fraction inside the segment) and quarter-point moments of
   // the segment; for the whole member these equal the analysis quantities
   let Mm=0; fbM.xs.forEach((x,i)=>{ if(x>=xa-1e-6&&x<=xb+1e-6) Mm=Math.max(Mm,Math.abs(fbM.M[i])/1e6); });
-  const M0=Mat(xa+1e-4), ML=Mat(xb-1e-4), Mq=Mat(xa+Ls/4), Mq3=Mat(xa+3*Ls/4);
+  const M0=Mat(xa+1e-4), ML=Mat(xb-1e-4), Mq=Mst(xa+Ls/4), Mq3=Mst(xa+3*Ls/4);
   if(Mm<1e-9) return {C1:1.0, C2:0, label:'negligible moment', route:'negligible', c1in};
   const endLevel=Math.max(Math.abs(M0),Math.abs(ML))/Mm;
   const shape=stdLoadShape(fac);
@@ -3942,7 +3958,7 @@ function sn003aC1(a,isCant,seg,diag){
     }
   }
   { // general diagram: Serna et al. quarter-point expression (SCI, NSC Nov 2013)
-    const M2=Mat(xa+Ls/4), M3=Mat(xa+Ls/2), M4=Mat(xa+3*Ls/4);
+    const M2=Mst(xa+Ls/4), M3=Mst(xa+Ls/2), M4=Mst(xa+3*Ls/4);
     const c=sernaC1(Math.max(Mm,1e-9),M2,M3,M4);
     return {C1:c, C2:null, label:'general moment diagram &mdash; Serna et al. quarter-point expression (SCI): M(L/4)='+M2.toFixed(1)+', M(L/2)='+M3.toFixed(1)+', M(3L/4)='+M4.toFixed(1)+', M<sub>max</sub>='+Mm.toFixed(1)+' kN&middot;m', route:'serna', c1in};
   }
@@ -5996,7 +6012,7 @@ function msbMomentAt(fb,x){ return interpAt(fb.xs,fb.M,x)/1e6; }
 function msbPortionMoments(fb,xa,xb){
   const Ma=msbMomentAt(fb,xa+1e-4), Mb=msbMomentAt(fb,xb-1e-4);
   const [M1,M2]= Math.abs(Mb)>=Math.abs(Ma)? [Ma,Mb] : [Mb,Ma];
-  const Mmid=msbMomentAt(fb,(xa+xb)/2);
+  const Mmid=mAtStation(fb,(xa+xb)/2,xa,xb)/1e6;   // larger side of a jump (in-span couple), as c1Inputs
   const Mo=Mmid-(M1+M2)/2;
   const psi= Math.abs(M2)>1e-9? M1/M2 : 0;
   const mu= Math.abs(M2)>1e-9? Math.min(Mo/M2,300) : 300;
@@ -7395,6 +7411,10 @@ function wire(){
 
     var zgAny = evals.some(function (ev) { return Math.abs(ev.sol.zg || 0) > 1e-9; });
     if (zgAny && S.destab) warn.push('The destabilising x1.2 switch is ignored on the EC3 path: load height is carried exactly by per-load zg. Untick it to avoid confusion.');
+    /* 19 Sep 2026 verification campaign (UB-40): the switch declares a destabilising load, but with every
+       z_g = 0 the eigenvalue would take the load at the shear centre and print a PASS the closed-form route
+       (L_E x 1.2) refuses - a contradictory input, so PASS is blocked until z_g is entered or the switch cleared. */
+    if (!zgAny && S.destab) unsupported.push('Destabilising loading is ticked but every load height z<sub>g</sub> is 0 (load at the shear centre): the eigenvalue M<sub>cr</sub> carries the load height exactly through z<sub>g</sub> and does not apply the &times;1.2 L<sub>E</sub> device of the closed-form route, so this solve would treat the load as non-destabilising. Enter the load height (e.g. z<sub>g</sub> = +h/2 for a top-flange load, with eccentricity/height inputs on) or untick the switch; PASS is blocked.');
     if (Math.abs(S.leFactor - 1) > 1e-9) warn.push('The LE factor no longer affects EC3 LTB; buckling length is set by the restraint positions. It still sets the major-axis strut length (and the minor-axis one where no intermediate lateral restraints are modelled).');
 
     var curve = ltbCurve(sec);

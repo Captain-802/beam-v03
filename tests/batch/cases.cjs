@@ -90,6 +90,9 @@ function deriveTriggers(o, tags) {
   } else t.add('3.1');
   if (o.shsType === 'CF' && o.family === 'shs') t.add('3.27');
   (tags || []).forEach(x => { if (/^\d+\.\d+$/.test(x)) t.add(x); });
+  // a tag '-id' removes a derived id: the case is designed to exercise a BLOCK that
+  // stops the check from running (e.g. the Class-4 stress-gradient block keeps 3.9 / 3.12 out)
+  (tags || []).forEach(x => { if (/^-\d+\.\d+$/.test(x)) t.delete(x.slice(1)); });
   return [...t].sort((a, b) => { const [a1, a2] = a.split('.').map(Number), [b1, b2] = b.split('.').map(Number); return a1 - b1 || a2 - b2; });
 }
 
@@ -182,7 +185,7 @@ mk('UB-38', 'UB 127x76x13, 3 m SS, central point load, fully restrained (smalles
   { L: 3, supports: SS(3), restraint: 'full', loads: [P(1.5, 12.5, 'Q')] });
 mk('UB-39', 'UB 838x292x176, 14 m SS, full UDL, quarter-point restraints, top-flange loading', UB('838 x 292 x 176'),
   { L: 14, supports: SS(14), eccOn: true, za: 417, loads: [UDL(0, 14, 20, 'G', { e: 0, zg: 417 }), UDL(0, 14, 25, 'Q', { e: 0, zg: 417 })], ltbRestraints: R(3.5, 7, 10.5) }, ['zg-top']);
-mk('UB-40', 'UB 533x210x92, 8 m SS, full UDL, LE factor 1.2 + destabilising switch', UB('533 x 210 x 92'),
+mk('UB-40', 'UB 533x210x92, 8 m SS, full UDL, LE factor 1.2 + destabilising switch with every z_g = 0 (contradictory input: the eigen route blocks PASS since the 19 Sep 2026 campaign, the closed form applies L_E x 1.2)', UB('533 x 210 x 92'),
   { L: 8, supports: SS(8), leFactor: 1.2, destab: true, loads: [UDL(0, 8, 9, 'G'), UDL(0, 8, 11, 'Q')] });
 mk('UB-41', 'UB 610x229x125, 2 x 5 m continuous, Q on span 1 only, warping-restrained ends', UB('610 x 229 x 125'),
   { L: 10, supports: [{ pos: 0, type: 'pinned', phip: true }, { pos: 5, type: 'pinned' }, { pos: 10, type: 'pinned', phip: true }], loads: [UDL(0, 10, 45, 'G'), UDL(0, 5, 90, 'Q')] }, ['1.2']);
@@ -370,6 +373,123 @@ mk('PFC-20', 'PFC 180x75x20, 4 m SS, full UDL + axial compression 50 kN, unrestr
   { L: 4, supports: SS(4), axial: 50, loads: [UDL(0, 4, 1, 'G'), UDL(0, 4, 2, 'Q')] }, ['tfb']);
 mk('PFC-21', 'PFC 180x75x20, 2 x 4 m continuous, full UDL at e = 20 mm, hold-downs at the end supports, unrestrained (multi-span torsion: warping FE per pattern combination, G4 item 11)', PFC('180x75x20'),
   { L: 8, supports: [{ pos: 0, type: 'pinned', holdDown: true }, { pos: 4, type: 'pinned' }, { pos: 8, type: 'pinned', holdDown: true }], eccOn: true, loads: [UDL(0, 8, 1, 'G', { e: 20 }), UDL(0, 8, 4, 'Q', { e: 20 })] }, ['torsion-fe', 'ecc-small']);
+
+/* =========================================================================
+   19 Sep 2026 verification campaign - every gap-closure check exercised in
+   both directions (a PASS and a FAIL / BLOCK per group). Loads are sized from
+   probe runs so that the check under test governs the verdict where the
+   title says so; "design intent" states the expected verdict of the eigen
+   run. Ids carry the group: WEB (G2 web transverse forces), PAT (G1 pattern
+   loading), UPL (G1 uplift / hold-down), TFB (G3 channel torsional-flexural
+   buckling), HSV (G3 high-shear M_v,Rd / cl 6.2.10), TOR (G4 warping-torsion
+   FE), AEF (G3 A_eff of a Class-4 web under N), BIX (G3 I/H with M_z).
+   ========================================================================= */
+// ---- WEB: EN 1993-1-5 clause 6 / 7.2 (G2) ----
+mk('WEB-01', 'UB 610x229x101 (t_w 10.5), 3 m SS, 600 kN central point load on the bare web (s_s = 0), restrained - design intent: FAIL F_Ed/F_Rd type (a), bending 0.85', UB('610 x 229 x 101'),
+  { L: 3, supports: SS(3), restraint: 'full', loads: [P(1.5, 600, 'Q')] }, ['web', '2.16', '2.18']);
+mk('WEB-02', 'UB 610x229x101, 3 m SS, 600 kN central point load with s_s = 150 mm and a bearing stiffener declared - design intent: PASS (stiffener advisory, supports still checked with a = 1.5 m panels)', UB('610 x 229 x 101'),
+  { L: 3, supports: SS(3), restraint: 'full', loads: [P(1.5, 600, 'Q', { ss: 150, stiff: true })] }, ['web', 'stiffener', '2.16', '2.18']);
+mk('WEB-03', 'UB 457x152x52 (t_w 7.6), 4 m SS, 180 kN central point load, s_s = 0 - design intent: FAIL on the 7.2 interaction only (F_Ed/F_Rd 0.82, bending 0.90)', UB('457 x 152 x 52'),
+  { L: 4, supports: SS(4), restraint: 'full', loads: [P(2, 180, 'Q')] }, ['web', '2.16', '2.18']);
+mk('WEB-04', 'UB 533x210x92, 6 m SS, UDL 30 G + 40 Q, end reactions on short seatings s_s = 40 mm - design intent: FAIL type (c) end reaction (1.01), bending 0.71', UB('533 x 210 x 92'),
+  { L: 6, supports: [{ pos: 0, type: 'pinned', ss: 40 }, { pos: 6, type: 'pinned', ss: 40 }], restraint: 'full', loads: [UDL(0, 6, 30, 'G'), UDL(0, 6, 40, 'Q')] }, ['web', '2.16', '2.18']);
+mk('WEB-05', 'UB 533x210x92, 6 m SS, UDL 30 G + 40 Q, end reactions on s_s = 100 mm - design intent: PASS type (c) 0.73 (WEB-04 with the actual seating)', UB('533 x 210 x 92'),
+  { L: 6, supports: [{ pos: 0, type: 'pinned', ss: 100 }, { pos: 6, type: 'pinned', ss: 100 }], restraint: 'full', loads: [UDL(0, 6, 30, 'G'), UDL(0, 6, 40, 'Q')] }, ['web', '2.16', '2.18']);
+mk('WEB-06', 'RHS 250x150x6.3, 3 m SS, 80 kN central point load at e = 40 mm, s_s = 60 mm, restrained - design intent: PASS (two webs, lever-rule share 0.78 to the near web, box torsion)', RHS('250 x 150 x 6.3'),
+  { L: 3, supports: SS(3), restraint: 'full', eccOn: true, loads: [P(1.5, 80, 'Q', { ss: 60, e: 40 })] }, ['web', 'ecc-small', '2.16', '2.18']);
+mk('WEB-07', 'UB 305x165x40, 2 x 3 m continuous, 300 kN point load directly over the interior support (s_s = 100) - design intent: FAIL type (b) load through the web, F_Ed = max(P, R) = R', UB('305 x 165 x 40'),
+  { L: 6, supports: PINS(0, 3, 6), restraint: 'full', loads: [UDL(0, 6, 5, 'G'), P(3, 300, 'Q', { ss: 100 })] }, ['web', '2.16', '2.18']);
+mk('WEB-08', 'PFC 200x90x30, 3 m SS, 60 kN central point load, s_s = 0, restrained - design intent: PASS (channel: one-sided flange b_f <= t_w + 15 eps t_f)', PFC('200x90x30'),
+  { L: 3, supports: SS(3), restraint: 'full', loads: [P(1.5, 60, 'Q')] }, ['web', '2.16', '2.18']);
+// ---- PAT: automatic pattern loading (G1) ----
+mk('PAT-01', 'UB 457x191x82, 2 x 6 m continuous, UDL 10 G + 20 Q, patterns ON - design intent: PASS; "Q on span 1 only" governs the sagging moment and the SLS deflection', UB('457 x 191 x 82'),
+  { L: 12, supports: PINS(0, 6, 12), loads: [UDL(0, 12, 10, 'G'), UDL(0, 12, 20, 'Q')] }, ['pattern', '1.3']);
+mk('PAT-02', 'UB 457x191x82, 2 x 6 m continuous, UDL 10 G + 20 Q, patterns OFF (comparison with PAT-01: one combination, no SLS uplift, smaller deflection)', UB('457 x 191 x 82'),
+  { L: 12, supports: PINS(0, 6, 12), autoPattern: false, loads: [UDL(0, 12, 10, 'G'), UDL(0, 12, 20, 'Q')] }, ['pattern-off', '1.3']);
+mk('PAT-03', 'UB 533x210x92, 3 x 5 m continuous, UDL 12 G + 25 Q, patterns ON - design intent: PASS; "Q on spans 2+3 only" governs the hogging moment (0.1167 wL^2), odd/even patterns the sagging', UB('533 x 210 x 92'),
+  { L: 15, supports: PINS(0, 5, 10, 15), loads: [UDL(0, 15, 12, 'G'), UDL(0, 15, 25, 'Q')] }, ['pattern', '1.3']);
+mk('PAT-04', 'UB 406x178x54, 5 m back span + 2 m overhang, UDL 8 G + 12 Q + 15 kN tip Q - design intent: PASS; "Q on the overhang only" governs the tip deflection against L/180 and lifts support 1 at SLS only', UB('406 x 178 x 54'),
+  { L: 7, supports: PINS(0, 5), loads: [UDL(0, 7, 8, 'G'), UDL(0, 7, 12, 'Q'), P(7, 15, 'Q')] }, ['pattern', '1.3']);
+mk('PAT-05', 'UB 356x171x45, 2 x 5 m continuous, G UDL + 40 kN Q at each mid-span - design intent: PASS; point-load patterns (Q on span 1 / 2 only)', UB('356 x 171 x 45'),
+  { L: 10, supports: PINS(0, 5, 10), loads: [UDL(0, 10, 4, 'G'), P(2.5, 40, 'Q'), P(7.5, 40, 'Q')] }, ['pattern', '1.3']);
+mk('PAT-06', 'UB 533x210x92, 3 x 5 m continuous, UDL 12 G + 25 Q, patterns OFF (comparison with PAT-03)', UB('533 x 210 x 92'),
+  { L: 15, supports: PINS(0, 5, 10, 15), autoPattern: false, loads: [UDL(0, 15, 12, 'G'), UDL(0, 15, 25, 'Q')] }, ['pattern-off', '1.3']);
+mk('PAT-07', 'UB 457x191x67, fixed - pinned - fixed 2 x 6 m, UDL 12 G + 18 Q, patterns ON - design intent: PASS eigen (span by span), the standard route near 1.0 on the whole 12 m member', UB('457 x 191 x 67'),
+  { L: 12, supports: [{ pos: 0, type: 'fixed' }, { pos: 6, type: 'pinned' }, { pos: 12, type: 'fixed' }], loads: [UDL(0, 12, 12, 'G'), UDL(0, 12, 18, 'Q')] }, ['pattern', '1.3']);
+// ---- UPL: uplift / hold-down (G1) ----
+mk('UPL-01', 'UB 406x178x54, 4 m back span + 2 m overhang, light G 3 kN/m + 30 kN tip Q, no hold-down - design intent: NOT VERIFIED (ULS uplift R1 = -15.4 kN blocks)', UB('406 x 178 x 54'),
+  { L: 6, supports: PINS(0, 4), loads: [UDL(0, 6, 3, 'G'), P(6, 30, 'Q')] }, ['uplift', '1.2']);
+mk('UPL-02', 'UB 406x178x54, 4 m back span + 2 m overhang, light G + 30 kN tip Q, hold-down provided at support 1 - design intent: PASS with the hold-down design force advisory', UB('406 x 178 x 54'),
+  { L: 6, supports: [{ pos: 0, type: 'pinned', holdDown: true }, { pos: 4, type: 'pinned' }], loads: [UDL(0, 6, 3, 'G'), P(6, 30, 'Q')] }, ['uplift', 'hold-down', '1.2']);
+mk('UPL-03', 'UB 254x146x31, 2 x 4 m continuous, UDL 4 G + 6 Q - design intent: PASS; the end supports lift only in the Q-only SLS patterns (advisory, EQU set-A not generated)', UB('254 x 146 x 31'),
+  { L: 8, supports: PINS(0, 4, 8), loads: [UDL(0, 8, 4, 'G'), UDL(0, 8, 6, 'Q')] }, ['uplift-sls', '1.2']);
+mk('UPL-04', 'UB 203x133x25, 5 m SS, UDL G + Q with upward wind 6 kN/m, hold-downs provided at both supports - design intent: PASS; 1.0G + 1.5W lifts both supports (-18.1 kN) with the advisory', UB('203 x 133 x 25'),
+  { L: 5, supports: [{ pos: 0, type: 'pinned', holdDown: true }, { pos: 5, type: 'pinned', holdDown: true }], combos: GQW(), loads: [UDL(0, 5, 1.5, 'G'), UDL(0, 5, 3, 'Q'), UDL(0, 5, -6, 'W')] }, ['uplift', 'hold-down', '1.2']);
+mk('UPL-05', 'RHS 250x150x8.0, 3 m back span + 1.5 m overhang, G 2 kN/m + 20 kN tip Q, restrained, no hold-down - design intent: NOT VERIFIED (ULS uplift -11.3 kN on the restrained path)', RHS('250 x 150 x 8.0'),
+  { L: 4.5, supports: PINS(0, 3), restraint: 'full', loads: [UDL(0, 4.5, 2, 'G'), P(4.5, 20, 'Q')] }, ['uplift', '1.2']);
+// ---- TFB: channel torsional / torsional-flexural buckling (G3 item 10) ----
+mk('TFB-01', 'PFC 200x90x30, 4 m SS, UDL + N = 80 kN, unrestrained - design intent: PASS (N_cr,TF 1274 kN, chi_T 0.60, N_Ed/N_b,T,Rd 0.13; Eq 6.62 governs)', PFC('200x90x30'),
+  { L: 4, supports: SS(4), axial: 80, loads: [UDL(0, 4, 2, 'G'), UDL(0, 4, 3, 'Q')] }, ['tfb']);
+mk('TFB-02', 'PFC 260x90x35, 5 m SS, UDL + N = 120 kN, restrained, user L_T = 2.5 m - design intent: PASS (N_cr,T with the entered torsional length)', PFC('260x90x35'),
+  { L: 5, supports: SS(5), restraint: 'full', axial: 120, LT: 2.5, loads: [UDL(0, 5, 4, 'G'), UDL(0, 5, 6, 'Q')] }, ['tfb', 'LT']);
+mk('TFB-03', 'PFC 150x75x18, 6 m SS, lateral restraints at 1.5 m centres (L_cr,z = 1.5 m) but L_T = 6 m, N = 250 kN - design intent: FAIL on N_Ed/N_b,T,Rd (1.04): the torsional-flexural mode governs over flexural buckling', PFC('150x75x18'),
+  { L: 6, supports: SS(6), axial: 250, LT: 6, ltbRestraints: R(1.5, 3, 4.5), loads: [UDL(0, 6, 1, 'G'), UDL(0, 6, 1, 'Q')] }, ['tfb', 'LT', 'heavy']);
+mk('TFB-04', 'PFC 300x100x46, 4 m SS, eccentric UDL e = 50 mm + N = 100 kN, restrained - design intent: NOT VERIFIED (combined torsion with N_Ed is blocked; 6.3.1.4 itself evaluates at 0.10)', PFC('300x100x46'),
+  { L: 4, supports: SS(4), restraint: 'full', axial: 100, eccOn: true, loads: [UDL(0, 4, 3, 'G', { e: 50 }), UDL(0, 4, 5, 'Q', { e: 50 })] }, ['tfb', 'ecc-large', 'torsion+N']);
+// ---- HSV: high-shear M_v,Rd for every family and cl 6.2.10 (G3 items 7 / 12) ----
+mk('HSV-01', 'UB 457x191x82, 2 m SS, 350 kN at 0.3 m (s_s = 100) + N = 1200 kN, restrained - design intent: PASS; web Class 3 under N + M so the elastic M_v,y,Rd form and the linear 6.2.10 sum apply (0.73)', UB('457 x 191 x 82'),
+  { L: 2, supports: SS(2), restraint: 'full', axial: 1200, loads: [P(0.3, 350, 'Q', { ss: 100 })] }, ['mvn', 'class3', '2.13']);
+mk('HSV-02', 'PFC 300x100x46, 2 m SS, 250 kN at 0.3 m (s_s = 100), restrained - design intent: PASS; channel M_v,y,Rd = (W_pl,y - rho t_w h_w^2/4) f_y with rho = 0.19 (coexistent 0.59)', PFC('300x100x46'),
+  { L: 2, supports: SS(2), restraint: 'full', loads: [P(0.3, 250, 'Q', { ss: 100 })] }, ['mv-channel', '2.10']);
+mk('HSV-03', 'PFC 300x100x46, 2 m SS, 345 kN at 0.3 m with a stiffener at the load and s_s = 200 at the supports, restrained - design intent: FAIL on the coexistent M-V check (rho = 0.98, 1.03) with V/V_pl 0.99', PFC('300x100x46'),
+  { L: 2, supports: [{ pos: 0, type: 'pinned', ss: 200 }, { pos: 2, type: 'pinned', ss: 200 }], restraint: 'full', loads: [P(0.3, 345, 'Q', { ss: 100, stiff: true })] }, ['mv-channel', 'heavy', '2.10']);
+mk('HSV-04', 'RHS 300x100x10 (h/b = 3), 2 m SS, 470 kN at 0.3 m (s_s = 150), restrained - design intent: FAIL on the coexistent M-V check with the two-web form (W_pl - rho t (h - 2t)^2/2) f_y (1.06), bending 0.98', RHS('300 x 100 x 10.0'),
+  { L: 2, supports: SS(2), restraint: 'full', loads: [P(0.3, 470, 'Q', { ss: 150 })] }, ['mv-rhs', 'heavy', '2.10']);
+mk('HSV-05', 'RHS 300x100x10, 2 m SS, 460 kN at 0.3 m (stiffener at the load) + N = 250 kN, restrained - design intent: FAIL cl 6.2.10 (1.02) with Eq 6.39 on the reduced-yield section (a_w,V = 0.5 cap)', RHS('300 x 100 x 10.0'),
+  { L: 2, supports: SS(2), restraint: 'full', axial: 250, loads: [P(0.3, 460, 'Q', { ss: 100, stiff: true })] }, ['mvn', 'mv-rhs', 'heavy', '2.13']);
+mk('HSV-06', 'SHS 200x200x8.0 HF, 2 m SS, 280 kN at 0.3 m (s_s = 100) + M_z = 10 kN.m, restrained - design intent: PASS; cl 6.2.10 biaxial with alpha = beta = 1.66 on the reduced section (0.96)', SHS('200x200x8.0'),
+  { L: 2, supports: SS(2), restraint: 'full', Mz: 10, loads: [P(0.3, 280, 'Q', { ss: 100 })] }, ['mvn', 'biaxial', '2.13']);
+mk('HSV-07', 'UB 610x229x101 S355, 3 m SS, 700 kN at 0.4 m (stiffener at the load) + N = 1500 kN, restrained - design intent: FAIL on the end-reaction web check (1.26) while the Class-3 6.2.10 sum passes (0.76)', UB('610 x 229 x 101'),
+  { grade: 'S355', L: 3, supports: SS(3), restraint: 'full', axial: 1500, loads: [P(0.4, 700, 'Q', { ss: 150, stiff: true })] }, ['mvn', 'class3', 'heavy', '2.13']);
+// ---- TOR: general warping-torsion FE (G4 item 11) ----
+mk('TOR-01', 'PFC 200x90x30, 2.5 m cantilever, 13 kN tip load at e = 45 mm (flange half-width) + self-weight at e_sc, unrestrained - design intent: FAIL Annex A (1.09 eigen; 1.4 on the whole-member channel chain); FE with the root warping fixed', PFC('200x90x30'),
+  { L: 2.5, supports: CANT(), eccOn: true, loads: [P(2.5, 13, 'Q', { e: 45 })] }, ['torsion-fe', 'ecc-large', 'heavy']);
+mk('TOR-02', 'UB 406x178x54, 2 x 5 m continuous, full UDL at e = 60 mm, unrestrained - design intent: PASS (Annex A 0.42); FE per pattern combination with phi = 0 at the three supports', UB('406 x 178 x 54'),
+  { L: 10, supports: PINS(0, 5, 10), eccOn: true, loads: [UDL(0, 10, 4, 'G', { e: 60 }), UDL(0, 10, 6, 'Q', { e: 60 })] }, ['torsion-fe', 'ecc-small', 'pattern']);
+mk('TOR-03', 'UB 533x210x92, 10 m SS, G UDL through the shear centre + partial UDL 3-7 m at e = 100 mm, unrestrained - design intent: PASS (Annex A 0.96); partial-span torque routed to the FE', UB('533 x 210 x 92'),
+  { L: 10, supports: SS(10), eccOn: true, loads: [UDL(0, 10, 4, 'G', { e: 0 }), UDL(3, 7, 6, 'Q', { e: 100 })] }, ['torsion-fe', 'ecc-large']);
+mk('TOR-04', 'UC 203x203x60, 6 m SS, 25 kN central point load at e = 100 mm with both supports warping-restrained, unrestrained - design intent: PASS (Annex A 0.60 against 0.64 with fork ends; twist 0.056 vs 0.096 rad)', UC('203 x 203 x 60'),
+  { L: 6, supports: [{ pos: 0, type: 'pinned', warpFix: true }, { pos: 6, type: 'pinned', warpFix: true }], eccOn: true, loads: [P(3, 25, 'Q', { e: 100 })] }, ['torsion-fe', 'ecc-large', 'warpFix']);
+mk('TOR-05', 'UB 305x165x40, 3 m cantilever, full UDL at e = 80 mm, unrestrained - design intent: PASS (Annex A 0.68); cantilever with a distributed torque: FE with the root warping fixed, SN006a on the standard route', UB('305 x 165 x 40'),
+  { L: 3, supports: CANT(), eccOn: true, loads: [UDL(0, 3, 3, 'G', { e: 80 }), UDL(0, 3, 5, 'Q', { e: 80 })] }, ['torsion-fe', 'ecc-small']);
+mk('TOR-06', 'UB 457x191x67, 7 m span + 2 m overhang, UDL through the shear centre + 20 kN tip load at e = 90 mm, unrestrained - design intent: PASS (Annex A 0.97); overhang layout routed to the FE, pattern combinations', UB('457 x 191 x 67'),
+  { L: 9, supports: PINS(0, 7), eccOn: true, loads: [UDL(0, 9, 8, 'G', { e: 0 }), UDL(0, 9, 10, 'Q', { e: 0 }), P(9, 20, 'Q', { e: 90 })] }, ['torsion-fe', 'ecc-small', 'pattern']);
+// ---- AEF: A_eff of a Class-4 web in uniform compression (G3 item 6) ----
+mk('AEF-01', 'UB 1016x305x222 (d/t_w 54.3), 8 m SS, UDL + N = 1500 kN, restrained - design intent: PASS; A_eff = 0.888 A in N_c,Rd, N_b,Rd and the Table 6.7 Class-4 column (Eq 6.62 0.82)', UB('1016 x 305 x 222'),
+  { L: 8, supports: SS(8), restraint: 'full', axial: 1500, loads: [UDL(0, 8, 20, 'G'), UDL(0, 8, 25, 'Q')] }, ['aeff', '1.9']);
+mk('AEF-02', 'UB 914x305x201 (d/t_w 54.6), 6 m SS, UDL + N = 3300 kN, unrestrained - design intent: FAIL Eq 6.62 with A_eff = 0.887 A (N_Ed/N_c,Rd 0.55)', UB('914 x 305 x 201'),
+  { L: 6, supports: SS(6), axial: 3300, loads: [UDL(0, 6, 10, 'G'), UDL(0, 6, 12, 'Q')] }, ['aeff', 'heavy', '1.9']);
+mk('AEF-03', 'UB 610x229x101 S355 (d/t_w 52.2 > 42 eps = 34.2), 5 m SS, UDL + N = 900 kN, unrestrained - design intent: PASS; grade S355 makes the web Class 4 in compression (rho 0.71, A_eff 0.872 A)', UB('610 x 229 x 101'),
+  { grade: 'S355', L: 5, supports: SS(5), axial: 900, loads: [UDL(0, 5, 8, 'G'), UDL(0, 5, 10, 'Q')] }, ['aeff', '1.9']);
+mk('AEF-04', 'UB 1016x305x249, 12 m SS, UDL + N = 6000 kN, restrained - design intent: NOT VERIFIED (web Class 4 under the combined N + M stress gradient: the e_N shift is not implemented, blocked)', UB('1016 x 305 x 249'),
+  { L: 12, supports: SS(12), restraint: 'full', axial: 6000, loads: [UDL(0, 12, 19.7, 'G'), UDL(0, 12, 19.8, 'Q')] }, ['aeff', 'class4-gradient', '1.9', '-2.11', '-3.9', '-3.12']);
+mk('AEF-05', 'UB 762x267x134 (d/t_w 54.1), 10 m SS, UDL + N = 1200 kN, mid-span lateral restraint (L_cr,z = 5 m) - design intent: PASS (Eq 6.62 0.87 with A_eff = 0.871 A and the shortened L_cr,z)', UB('762 x 267 x 134'),
+  { L: 10, supports: SS(10), axial: 1200, ltbRestraints: R(5), loads: [UDL(0, 10, 8, 'G'), UDL(0, 10, 10, 'Q')] }, ['aeff', '1.9']);
+// ---- BIX: I/H with M_z (G3 item 5, minor-axis classification) ----
+mk('BIX-01', 'UB 457x191x82, 8 m SS, demo UDL + M_z = 10 kN.m, restrained - design intent: PASS; Class 1 with the flange-outstand classification, plastic biaxial (M_y/M_N,y)^2 + M_z/M_N,z = 0.95', UB('457 x 191 x 82'),
+  { L: 8, supports: SS(8), restraint: 'full', Mz: 10, loads: [UDL(0, 8, 19.7, 'G'), UDL(0, 8, 19.8, 'Q')] }, ['biaxial', '2.12']);
+mk('BIX-02', 'UB 457x191x82, 8 m SS, demo UDL + M_z = 60 kN.m, restrained - design intent: FAIL biaxial cross-section 1.55 (was NOT VERIFIED under the former uniform-compression web bound)', UB('457 x 191 x 82'),
+  { L: 8, supports: SS(8), restraint: 'full', Mz: 60, loads: [UDL(0, 8, 19.7, 'G'), UDL(0, 8, 19.8, 'Q')] }, ['biaxial', 'heavy', '2.12']);
+mk('BIX-03', 'UB 533x210x92, 8 m SS, UDL + M_z = 15 kN.m, unrestrained - design intent: PASS (Eq 6.62 0.92 with k_zz = 1 and the LTB M_b,Rd)', UB('533 x 210 x 92'),
+  { L: 8, supports: SS(8), Mz: 15, loads: [UDL(0, 8, 8, 'G'), UDL(0, 8, 10, 'Q')] }, ['biaxial', '2.12']);
+mk('BIX-04', 'UB 305x165x40, 5 m SS, UDL + N = 150 kN + M_z = 5 kN.m, unrestrained - design intent: PASS (Eq 6.62 0.95); beam-column with A_eff (d/t_w 44.2 > 42 eps) and Class 2 under the combined stress', UB('305 x 165 x 40'),
+  { L: 5, supports: SS(5), axial: 150, Mz: 5, loads: [UDL(0, 5, 4, 'G'), UDL(0, 5, 5, 'Q')] }, ['biaxial', 'aeff', '2.12']);
+mk('BIX-05', 'UB 406x178x74, 6 m SS, central point loads + M_z = 25 kN.m, unrestrained - design intent: FAIL Eq 6.62 (1.08) with the plastic biaxial cross-section at 0.57', UB('406 x 178 x 74'),
+  { L: 6, supports: SS(6), Mz: 25, loads: [P(3, 40, 'G'), P(3, 50, 'Q')] }, ['biaxial', 'heavy', '2.12']);
+
+// ---- LTB: the destabilising switch on the eigen route (campaign finding, UB-40) ----
+mk('UB-52', 'UB 533x210x92, 8 m SS, full UDL on the top flange z_g = +D/2 with the LE factor 1.2 + destabilising switch also ticked (UB-40 with the load height entered) - design intent: eigen FAIL 1.06 (load height carried by z_g); standard route counts the height twice (C2 z_g and x1.2 L_E, advisory)', UB('533 x 210 x 92'),
+  { L: 8, supports: SS(8), leFactor: 1.2, destab: true, eccOn: true, za: 266, loads: [UDL(0, 8, 9, 'G', { e: 0, zg: 266 }), UDL(0, 8, 11, 'Q', { e: 0, zg: 266 })] }, ['zg-top', 'destab']);
 
 // ---- sanity: unique ids ----
 {

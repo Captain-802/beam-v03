@@ -137,10 +137,13 @@ function stdInputsIndependent(o, fac, fb, xa, xb, mask) {
   }
   const zg = zgBest == null ? (o.za || 0) : zgBest;
   const Mat = x => interp(fb.xs, fb.M, x) / 1e6;
+  // interior stations (quarter points, mid-span) on a diagram with a jump (in-span couple): the larger side ordinate,
+  // the envelope convention of the closed-form C1 expressions (19 Sep 2026 campaign finding, UB-27)
+  const Mst = x => { const l = interp(fb.xs, fb.M, Math.max(x - 1e-3, xa)) / 1e6, rr = interp(fb.xs, fb.M, Math.min(x + 1e-3, xb)) / 1e6; return Math.abs(l) >= Math.abs(rr) ? l : rr; };
   let Mm = 0; fb.xs.forEach((x, i) => { if (x >= xa - 1e-6 && x <= xb + 1e-6) Mm = Math.max(Mm, Math.abs(fb.M[i]) / 1e6); });
   const Ls = xb - xa, M0 = Mat(xa + 1e-4), ML = Mat(xb - 1e-4);
   const endLevel = Mm > 1e-9 ? Math.max(Math.abs(M0), Math.abs(ML)) / Mm : 0;
-  const r = Mm > 1e-9 ? (Math.abs(Mat(xa + Ls / 4)) + Math.abs(Mat(xa + 3 * Ls / 4))) / (2 * Mm) : 0;
+  const r = Mm > 1e-9 ? (Math.abs(Mst(xa + Ls / 4)) + Math.abs(Mst(xa + 3 * Ls / 4))) / (2 * Mm) : 0;
   let C1, C2 = null, route;
   const notLoaded = nUdl + nPoint + nOther === 0;
   const isLinear = fb.xs.every((x, i) => x < xa + 1e-4 || x > xb - 1e-4 || Math.abs(fb.M[i] / 1e6 - (M0 + (ML - M0) * (x - xa) / Ls)) <= 0.05 * Mm);
@@ -158,7 +161,7 @@ function stdInputsIndependent(o, fac, fb, xa, xb, mask) {
   else if (whole && endFixed && !interior && nMom === 0 && nUdl > 0 && nPoint === 0 && nOther === 0) { C1 = 2.578; C2 = 1.554; route = 'fixed-uniform'; }
   else if (whole && endFixed && !interior && nMom === 0 && nPoint > 0 && nCentral === nPoint && nUdl === 0 && nOther === 0) { C1 = 1.683; C2 = 1.645; route = 'fixed-point'; }
   else {
-    const M2 = Mat(xa + Ls / 4), M3 = Mat(xa + Ls / 2), M4 = Mat(xa + 3 * Ls / 4);
+    const M2 = Mst(xa + Ls / 4), M3 = Mst(xa + Ls / 2), M4 = Mst(xa + 3 * Ls / 4);
     const d = Mm * Mm + 9 * M2 * M2 + 16 * M3 * M3 + 9 * M4 * M4;
     C1 = d > 0 ? Math.sqrt(35 * Mm * Mm / d) : 1; route = 'serna';
   }
@@ -385,18 +388,24 @@ function runOne(cs, method) {
   //        c = 0, interior point load type (a); the (a)/(c) pair in the end zone is evaluated and the
   //        lower taken), s_s from the case (support default = B, load default = 0), a = L when no
   //        stiffener is declared; util2 must equal the largest station ratio; a stiffened station never governs
-  if (c.web && c.web.checked && (o.family === 'ub' || o.family === 'uc')) {
+  //        19 Sep 2026 campaign: extended to a point load over a support ('both' station: type (b) with (c) alongside in the
+  //        end zone, F_Ed = max(P, R)), to PFC (one-sided flange b_f <= t_w + 15 eps t_f) and to RHS/SHS (two webs of
+  //        thickness t with the tabulated flat depth, flange share B/2 per web <= t + 15 eps t, lever-rule share of the load)
+  if (c.web && c.web.checked) {
     const W = c.web, s = W.gov2;
-    const eps = Math.sqrt(235 / py), hw = sec.D - 2 * sec.tf, tw = sec.tw, tf = sec.tf, Lmm = a.L;
-    const bf = Math.min(sec.B, tw + 30 * eps * tf), m1 = bf / tw, m2f = 0.02 * Math.pow(hw / tf, 2);
+    const isBox = !!sec.isBox, chan = sec.kind === 'channel';
+    const eps = Math.sqrt(235 / py), hw = isBox ? sec.d : sec.D - 2 * sec.tf, tw = sec.tw, tf = sec.tf, Lmm = a.L;
+    const bfRaw = isBox ? sec.B / 2 : sec.B, bfLim = (isBox || chan) ? tw + 15 * eps * tf : tw + 30 * eps * tf;
+    const bf = Math.min(bfRaw, bfLim), m1 = bf / tw, m2f = 0.02 * Math.pow(hw / tf, 2);
     const noStiff = !(o.supports || []).some(sp => sp.stiff) && !(o.loads || []).some(ld => ld.stiff);
     const d = Math.min(s.x, Lmm - s.x);
-    const ssIn = s.kind === 'support' ? ((o.supports[s.n - 1] || {}).ss != null ? +o.supports[s.n - 1].ss : sec.B)
-               : s.kind === 'load' ? Math.min(...s.loadIdx.map(i => (o.loads[i - 1] || {}).ss != null ? +o.loads[i - 1].ss : 0)) : null;
+    const ssSup = s.n ? ((o.supports[s.n - 1] || {}).ss != null ? +o.supports[s.n - 1].ss : sec.B) : null;
+    const ssLoad = (s.loadIdx && s.loadIdx.length) ? Math.min(...s.loadIdx.map(i => (o.loads[i - 1] || {}).ss != null ? +o.loads[i - 1].ss : 0)) : null;
+    const ssIn = s.kind === 'support' ? ssSup : s.kind === 'load' ? ssLoad : s.kind === 'both' ? Math.min(ssSup, ssLoad) : null;
     if (ssIn != null && noStiff) {
       const ss = Math.min(ssIn, hw), cc = Math.max(d - ss / 2, 0), endZone = (ss + cc) < 2 * hw / 3;
       const FRdOf = (type) => {
-        const kF = type === 'a' ? 6 + 2 * Math.pow(hw / Lmm, 2) : Math.min(2 + 6 * (ss + cc) / hw, 6);
+        const kF = type === 'a' ? 6 + 2 * Math.pow(hw / Lmm, 2) : type === 'b' ? 3.5 + 2 * Math.pow(hw / Lmm, 2) : Math.min(2 + 6 * (ss + cc) / hw, 6);
         const Fcr = 0.9 * kF * E * Math.pow(tw, 3) / hw;
         const le = type === 'c' ? Math.min(kF * E * tw * tw / (2 * py * hw), ss + cc) : null;
         const ly = (m2) => type === 'c' ? Math.min(le + tf * Math.sqrt(m1 / 2 + Math.pow(le / tf, 2) + m2), le + tf * Math.sqrt(m1 + m2)) : Math.min(ss + 2 * tf * (1 + Math.sqrt(m1 + m2)), Lmm);
@@ -404,11 +413,33 @@ function runOne(cs, method) {
         if (lam <= 0.5) { l = ly(0); lam = Math.sqrt(l * tw * py / Fcr); }
         return py * Math.min(0.5 / lam, 1) * l * tw / 1000;
       };
-      const exp = endZone ? Math.min(FRdOf('a'), FRdOf('c')) : FRdOf('a');
+      const types = s.kind === 'both' ? ['b'].concat(endZone ? ['c'] : []) : (endZone ? ['a', 'c'] : ['a']);
+      const FRdWeb = Math.min(...types.map(FRdOf));
+      // box: lever-rule share of the load to the nearer web from the largest eccentricity at the station (0.5 at e = 0)
+      const eMax = (s.loadIdx && s.loadIdx.length && o.eccOn) ? Math.max(...s.loadIdx.map(i => Math.abs(+(o.loads[i - 1] || {}).e || 0))) : 0;
+      const share = isBox ? Math.min(1, 0.5 + eMax / Math.max(sec.B - tw, 1e-9)) : 1;
+      const exp = FRdWeb / share;
+      // F_Ed of a 'both' station = max(P, R) of the governing combination (checked against the engine's own P and R)
+      const gCase = s.cases ? s.cases[s.g2] : null;
+      const okF = s.kind !== 'both' || (gCase && Math.abs(gCase.F - Math.max(Math.abs(gCase.P), gCase.R)) <= 1e-9);
       const maxEta = Math.max(...W.stations.filter(x => !x.stiff).map(x => x.eta2));
-      add('viii-FRd', rel(exp, s.FRdTot) <= TOL && Math.abs(W.util2 - maxEta) <= 1e-9 && !s.stiff,
-        `station x = ${fmt(s.x / 1000, 2)} m (${s.label}, type (${s.type}), s_s ${fmt(ss, 1)} mm): independent F_Rd ${fmt(exp, 1)} vs engine ${fmt(s.FRdTot, 1)} kN; F_Ed ${fmt(s.F, 1)} kN (${s.combo}); util ${fmt(W.util2, 3)} = max station ratio ${fmt(maxEta, 3)}`);
+      add('viii-FRd', rel(exp, s.FRdTot) <= TOL && Math.abs(W.util2 - maxEta) <= 1e-9 && !s.stiff && okF,
+        `station x = ${fmt(s.x / 1000, 2)} m (${s.label}, type (${s.type}), s_s ${fmt(ss, 1)} mm${isBox ? ', two webs, share ' + fmt(share, 3) : chan ? ', channel' : ''}): independent F_Rd ${fmt(exp, 1)} vs engine ${fmt(s.FRdTot, 1)} kN; F_Ed ${fmt(s.F, 1)} kN (${s.combo}${s.kind === 'both' ? ', = max(P, R)' : ''}); util ${fmt(W.util2, 3)} = max station ratio ${fmt(maxEta, 3)}`);
     }
+  }
+  // (xv) G3 item 12: coexistent shear and moment at the engine's worst high-shear station (cl 6.2.8): rho from the station V
+  //      and V_pl(,T),Rd, M_v,y,Rd by family and class recomputed from the raw table, M/M_v,Rd vs the engine's value
+  if (c.coex && c.coex.red && !c.coex.pureShearFail && c.coex.MvRd != null) {
+    const x = c.coex, Vpl = (c.tor && c.tor.VplTRd != null) ? c.tor.VplTRd : c.VcRd, Av = c.Av;
+    const rho = Math.min(Math.pow(2 * x.V / Vpl - 1, 2), 1), cls12 = c.cl && c.cl.cls <= 2, hw = sec.D - 2 * sec.tf;
+    const Wy = (cls12 ? sec.Sx : sec.Zx) * 1e3, Mc = Wy * py / 1e6;
+    let dW, form;
+    if (sec.kind === 'I') { if (cls12) { dW = rho * Av * Av / (4 * sec.tw); form = 'I/H Class 1/2 (W_pl - rho A_v^2/4t_w)'; } else { dW = rho * sec.tw * Math.pow(hw, 3) / 12 / (sec.D / 2); form = 'I/H Class 3 (W_el - rho I_web/(h/2))'; } }
+    else if (sec.kind === 'channel') { dW = rho * sec.tw * hw * hw / 4; form = 'channel (W_y - rho t_w h_w^2/4)'; }
+    else { const t = sec.tf, hi = sec.D - 2 * t; dW = rho * t * hi * hi / 2; form = 'RHS/SHS (W_y - rho t (h - 2t)^2/2)'; }
+    const MvY = Math.min(Math.max((Wy - dW) * py / 1e6, 0), Mc), MvRd = Math.min(MvY, c.McRd), u = x.M / MvRd;
+    add('xv-MvRd', rel(MvRd, x.MvRd) <= 1e-9 && rel(u, x.u) <= 1e-9 && x.V > 0.5 * Vpl && rho <= 1,
+      `x = ${fmt(x.x / 1000, 2)} m, ${form}: V ${fmt(x.V, 1)} kN / V_pl ${fmt(Vpl, 1)} -> rho ${fmt(rho, 4)}, M_v,Rd ${fmt(MvRd, 1)} vs engine ${fmt(x.MvRd, 1)} kN.m; M ${fmt(x.M, 1)}: ${fmt(u, 4)} vs engine ${fmt(x.u, 4)}`);
   }
 
   // (ix) G3 item 6: A_eff of a Class-4 web in uniform compression recomputed from the raw table (EN 1993-1-5 4.4, psi = 1, k_sigma = 4)
@@ -417,8 +448,11 @@ function runOne(cs, method) {
     const lamP = sec.dt / (28.4 * eps * 2), rho = lamP <= 0.673 ? 1 : Math.min((lamP - 0.22) / (lamP * lamP), 1);
     const Aeff = sec.A * 100 - nW * (1 - rho) * sec.d * sec.tw;
     const nName = utils.find(u => /^Compression/.test(u.name));
-    add('ix-Aeff', rel(Aeff, c.aeff.Aeff) <= 1e-9 && sec.dt > 42 * eps && !!nName && /A_eff/.test(nName.name) && (!c.buck || rel(c.buck.Aeff, Aeff) <= 1e-9),
-      `d/t ${fmt(sec.dt, 2)} > 42 eps ${fmt(42 * eps, 2)}: lambda_p ${fmt(lamP, 4)}, rho ${fmt(rho, 4)}, A_eff ${fmt(Aeff, 1)} vs engine ${fmt(c.aeff.Aeff, 1)} mm2 (${fmt(c.aeff.ratio, 4)} A)`);
+    // a Class-4 block (web Class 4 under the combined N + M stress gradient, e_N shift not implemented) leaves no verdict
+    // entry to check: the A_eff value itself is still compared and the run is recorded as info
+    const class4Block = !nName && (c.unsupported || []).some(m => /Class 4/.test(m));
+    add('ix-Aeff', rel(Aeff, c.aeff.Aeff) <= 1e-9 && sec.dt > 42 * eps && (class4Block || (!!nName && /A_eff/.test(nName.name) && (!c.buck || rel(c.buck.Aeff, Aeff) <= 1e-9))),
+      `d/t ${fmt(sec.dt, 2)} > 42 eps ${fmt(42 * eps, 2)}: lambda_p ${fmt(lamP, 4)}, rho ${fmt(rho, 4)}, A_eff ${fmt(Aeff, 1)} vs engine ${fmt(c.aeff.Aeff, 1)} mm2 (${fmt(c.aeff.ratio, 4)} A)${class4Block ? '; Class-4 stress-gradient block, no verdict entry (A_eff value only)' : ''}`, class4Block ? 'info' : 'check');
   }
   // (x) G3 item 10: channel torsional-flexural buckling N_b,T,Rd recomputed from the raw PFC table and P385 constants
   if (c.buck && c.buck.tfb && c.buck.tfb.ok) {
@@ -435,16 +469,100 @@ function runOne(cs, method) {
     add('x-NbT', rel(NbT, c.buck.tfb.NbT) <= 1e-6 && !!uT && Math.abs(uT.val - (c.buck.Fc / NbT)) <= 1e-6 && c.buck.ny >= c.buck.Fc / Math.max(c.buck.NbY, 1e-9) - 1e-12 && c.buck.nz >= c.buck.Fc / Math.max(c.buck.NbZ, 1e-9) - 1e-12,
       `y0 ${fmt(y0, 1)} mm, N_cr,T ${fmt(NcrT / 1000, 1)}, N_cr,TF ${fmt(NcrTF / 1000, 1)} kN, lambda_T ${fmt(lamT, 3)}, curve c chi ${fmt(chiT, 3)}: N_b,T,Rd ${fmt(NbT, 1)} vs engine ${fmt(c.buck.tfb.NbT, 1)} kN; verdict entry ${uT ? fmt(uT.val, 3) : 'missing'}`);
   }
-  // (xii) G3 item 7: cl 6.2.10 at the engine's worst high-shear station, rolled I/H Class 1/2, uniaxial: chain recomputed from the station V, M and the raw table
-  if (c.mvn && c.mvn.plastic && !c.mvn.biax && sec.kind === 'I') {
+  // (xii) G3 item 7: cl 6.2.10 at the engine's worst high-shear station, uniaxial (N only): chain recomputed from the station V, M, N and the raw table
+  //   rolled I/H Class 1/2 : plastic 6.2.9.1 with (1 - rho) f_y on A_v, the (4) waiver, M_N,V,y,Rd = M_v,y,Rd (1 - n_V)/(1 - 0.5 a_V) <= M_v,y,Rd, u = M/M_N,V,y,Rd
+  //   rolled I/H Class 3   : elastic linear sum n_V + M/M_v,y,Rd with M_v,y,Rd = (W_el,y - rho I_web/(h/2)) f_y
+  //   RHS/SHS Class 1/2    : Eq 6.39 with a_w,V = ((A - 2bt) - rho A_v)/(A - rho A_v) <= 0.5 (no waiver), M_v,y,Rd = (W_pl,y - rho t (h - 2t)^2/2) f_y
+  if (c.mvn && !c.mvn.biax && c.mvn.N > 0 && (sec.kind === 'I' || sec.isBox)) {
     const m = c.mvn, A = sec.A * 100, Av = c.Av, Vpl = (c.tor && c.tor.VplTRd != null) ? c.tor.VplTRd : c.VcRd;
-    const rho = Math.pow(2 * m.V / Vpl - 1, 2), NV = (A - rho * Av) * py / 1000, MvY = Math.min((sec.Sx * 1e3 - rho * Av * Av / (4 * sec.tw)) * py / 1e6, sec.Sx * 1e3 * py / 1e6);
-    const aV = Math.min(Math.max(((A - 2 * sec.B * sec.tf) - rho * Av) / (A - rho * Av), 0), 0.5), nV = m.N / NV, hw = sec.D - 2 * sec.tf;
-    const waiver = m.N <= 0.25 * NV && m.N * 1000 <= 0.5 * hw * sec.tw * (1 - rho) * py;
-    const MNVy = waiver ? MvY : Math.min(MvY * (1 - nV) / (1 - 0.5 * aV), MvY), u = m.M / MNVy;
-    const uE = utils.find(x => /6\.2\.10/.test(x.name));
-    add('xii-MVN', rel(u, m.u) <= 1e-9 && !!uE && Math.abs(uE.val - m.u) <= 1e-12 && m.V > 0.5 * Vpl,
-      `x = ${fmt(m.x / 1000, 2)} m: V ${fmt(m.V, 1)} kN, rho ${fmt(rho, 4)}, N_V,Rd ${fmt(NV, 1)}, M_v,Rd ${fmt(MvY, 1)}, a_V ${fmt(aV, 3)}${waiver ? ', 6.2.9.1(4) waiver' : ''}, M_N,V,Rd ${fmt(MNVy, 1)} kN.m: M/M_N,V,Rd ${fmt(u, 4)} vs engine ${fmt(m.u, 4)}`);
+    const rho = Math.pow(2 * m.V / Vpl - 1, 2), NV = (A - rho * Av) * py / 1000, hw = sec.D - 2 * sec.tf, nV = m.N / NV;
+    const cls12 = !!m.plastic;
+    let MvY, MNVy, u, form;
+    if (sec.kind === 'I' && cls12) {
+      MvY = Math.min((sec.Sx * 1e3 - rho * Av * Av / (4 * sec.tw)) * py / 1e6, sec.Sx * 1e3 * py / 1e6);
+      const aV = Math.min(Math.max(((A - 2 * sec.B * sec.tf) - rho * Av) / (A - rho * Av), 0), 0.5);
+      const waiver = m.N <= 0.25 * NV && m.N * 1000 <= 0.5 * hw * sec.tw * (1 - rho) * py;
+      MNVy = waiver ? MvY : Math.min(MvY * (1 - nV) / (1 - 0.5 * aV), MvY); u = m.M / MNVy;
+      form = `I/H Class 1/2, a_V ${fmt(aV, 3)}${waiver ? ', 6.2.9.1(4) waiver' : ''}`;
+    } else if (sec.kind === 'I') {
+      const Iweb = sec.tw * Math.pow(hw, 3) / 12;
+      MvY = Math.min((sec.Zx * 1e3 - rho * Iweb / (sec.D / 2)) * py / 1e6, sec.Zx * 1e3 * py / 1e6);
+      MNVy = MvY; u = nV + m.M / MvY;
+      form = 'I/H Class 3, linear n_V + M/M_v,y,Rd';
+    } else if (cls12) {
+      const t = sec.tf, hi = sec.D - 2 * t;
+      MvY = Math.min((sec.Sx * 1e3 - rho * t * hi * hi / 2) * py / 1e6, sec.Sx * 1e3 * py / 1e6);
+      const aw = Math.min(Math.max(((A - 2 * sec.B * t) - rho * Av) / (A - rho * Av), 0), 0.5);
+      MNVy = Math.min(MvY * (1 - nV) / (1 - 0.5 * aw), MvY); u = m.M / MNVy;
+      form = `RHS Class 1/2, Eq 6.39 with a_w,V ${fmt(aw, 3)}`;
+    }
+    if (u != null) {
+      const uE = utils.find(x => /6\.2\.10/.test(x.name));
+      add('xii-MVN', rel(u, m.u) <= 1e-9 && !!uE && Math.abs(uE.val - m.u) <= 1e-12 && m.V > 0.5 * Vpl,
+        `x = ${fmt(m.x / 1000, 2)} m (${form}): V ${fmt(m.V, 1)} kN, rho ${fmt(rho, 4)}, N_V,Rd ${fmt(NV, 1)}, M_v,y,Rd ${fmt(MvY, 1)}, M_N,V,y,Rd ${fmt(MNVy, 1)} kN.m: utilisation ${fmt(u, 4)} vs engine ${fmt(m.u, 4)}`);
+    }
+  }
+  // (xiv) G1 item 1.3: pattern loading on a pinned continuous beam (supports at both ends, no hinges) whose loads are
+  //       all UDLs aligned with span boundaries: the interior support moments and the reactions of EVERY analysed ULS
+  //       combination (patterns included) recomputed from the three-moment equation (Clapeyron) with each
+  //       combination's own span loads (Q clipped to the pattern's spans independently of the engine), self-weight
+  //       on every span at the G factor; tolerance 0.5 % on M (1 kN.m floor) and on R
+  {
+    const sup = o.supports, Lm = o.L;
+    const pts = sup.map(s => s.pos).sort((p, q) => p - q);
+    const pinned = sup.every(s => s.type === 'pinned') && pts.length >= 3 && pts[0] === 0 && Math.abs(pts[pts.length - 1] - Lm) < 1e-9 && !(o.hinges || []).length;
+    const onBoundary = x => pts.some(p => Math.abs(p - x) < 1e-9);
+    const aligned = pinned && o.loads.every(ld => ld.type === 'udl' && onBoundary(ld.x1) && onBoundary(ld.x2));
+    if (aligned) {
+      const n = pts.length - 1, Ls = [];
+      for (let i = 0; i < n; i++) Ls.push(pts[i + 1] - pts[i]);
+      const solveThreeMoment = w => {   // w[i] kN/m per span -> interior moments M[1..n-1] (kN.m, hogging negative), M[0] = M[n] = 0
+        const M = new Array(n + 1).fill(0);
+        if (n < 2) return M;
+        // tridiagonal system rows j = 1..n-1: M[j-1] L_j + 2 M[j] (L_j + L_{j+1}) + M[j+1] L_{j+1} = -(w_j L_j^3 + w_{j+1} L_{j+1}^3)/4
+        const sub = [], dia = [], sup2 = [], rhs = [];
+        for (let j = 1; j < n; j++) { sub.push(Ls[j - 1]); dia.push(2 * (Ls[j - 1] + Ls[j])); sup2.push(Ls[j]); rhs.push(-(w[j - 1] * Ls[j - 1] ** 3 + w[j] * Ls[j] ** 3) / 4); }
+        const k = rhs.length, cp = new Array(k), dp = new Array(k);
+        cp[0] = sup2[0] / dia[0]; dp[0] = rhs[0] / dia[0];
+        for (let i = 1; i < k; i++) { const den = dia[i] - sub[i] * cp[i - 1]; cp[i] = sup2[i] / den; dp[i] = (rhs[i] - sub[i] * dp[i - 1]) / den; }
+        const x = new Array(k); x[k - 1] = dp[k - 1];
+        for (let i = k - 2; i >= 0; i--) x[i] = dp[i] - cp[i] * x[i + 1];
+        for (let j = 1; j < n; j++) M[j] = x[j - 1];
+        return M;
+      };
+      let worst = 0, detail = [], nComb = 0;
+      a.ulsResults.forEach(res => {
+        const cb = res.combo, fac = cb.factors, mask = cb.mask || null;
+        const w = new Array(n).fill(sw * (fac.G || 0));
+        o.loads.forEach(ld => {
+          const f = fac[ld.case] || 0; if (!f) return;
+          for (let i = 0; i < n; i++) {
+            const mid = (pts[i] + pts[i + 1]) / 2;
+            if (mid < ld.x1 || mid > ld.x2) continue;
+            if (mask && ld.case === mask.case && !mask.segIdx.includes(i)) continue;
+            w[i] += ld.w * f;
+          }
+        });
+        const M = solveThreeMoment(w);
+        // reactions from the span end shears: with sagging positive, M(x) = M_i + V_l x - w x^2/2 and M(L_i) = M_{i+1}
+        // give V_l = w_i L_i/2 + (M_{i+1} - M_i)/L_i at the left end of span i, V_r = w_i L_i - V_l at its right end
+        const R = new Array(n + 1).fill(0);
+        for (let i = 0; i < n; i++) {
+          const Vl = w[i] * Ls[i] / 2 + (M[i + 1] - M[i]) / Ls[i];
+          const Vr = w[i] * Ls[i] - Vl;
+          R[i] += Vl; R[i + 1] += Vr;
+        }
+        const Mref = Math.max(1, ...M.map(Math.abs));
+        for (let j = 1; j < n; j++) {
+          const Me = interp(res.fb.xs, res.fb.M, pts[j] * 1000) / 1e6;
+          const e = Math.abs(Me - M[j]) / Mref; worst = Math.max(worst, e);
+          if (j === 1 || e > TOL) detail.push(`${cb.label.replace(/ULS: [^(]*/, '').trim() || 'base'}: M${j} ${fmt(M[j], 2)} vs ${fmt(Me, 2)}`);
+        }
+        R.forEach((Rj, j) => { const Re = res.r.reactions[j].V / 1000; const e = Math.abs(Re - Rj) / Math.max(Math.abs(Rj), 1); worst = Math.max(worst, e); if (e > TOL) detail.push(`${cb.label}: R${j + 1} ${fmt(Rj, 2)} vs ${fmt(Re, 2)}`); });
+        nComb++;
+      });
+      add('xiv-pattern', worst <= TOL, `${n} spans, ${nComb} ULS combination(s): three-moment support moments and reactions vs engine, worst rel. diff ${(worst * 100).toExponential(2)} % (${detail.slice(0, 4).join('; ')})`);
+    }
   }
   // (xiii) G4 item 11: warping-torsion FE against the classical closed forms of the Vlasov equation, from the raw P385 constants
   //   cantilever with a single tip point torque and no other torque: phi_tip = (T/GI_T)[L - a tanh(L/a)], root T_t = 0, tip total torque = T
@@ -456,13 +574,17 @@ function runOne(cs, method) {
     const sup = o.supports, loads = o.loads.filter(l => l.type !== 'moment' && Math.abs(+l.e || 0) > 0);
     const isCant = sup.length === 1 && sup[0].type === 'fixed';
     const tipOnly = isCant && loads.length && loads.every(l => l.type === 'point' && Math.abs(l.pos - o.L) < 1e-9) && o.loads.every(l => l.type !== 'udl' && l.type !== 'trap' || Math.abs(+l.e || 0) === 0);
+    // cantilever with full-span uniform torque only (root warping fixed, tip free): phi_tip = (m/GI_T)[L^2/2 + a^2(1 - sech(L/a)) - a L tanh(L/a)]
+    // (solution of E I_w phi'''' - G I_T phi'' = m with phi(0) = phi'(0) = 0, B(L) = 0, T(L) = 0; hand-derived, tests/batch/hand-checks.md)
+    const udlOnly = isCant && loads.length && loads.every(l => l.type === 'udl' && l.x1 === 0 && Math.abs(l.x2 - o.L) < 1e-9) && o.loads.every(l => l.type === 'udl' || Math.abs(+l.e || 0) === 0);
     const bothFix = sup.length === 2 && sup.every(s => s.warpFix) && sup[0].pos === 0 && sup[1].pos === o.L && loads.length && loads.every(l => l.type === 'udl' && l.x1 === 0 && l.x2 === o.L) && o.loads.every(l => l.type === 'udl' || Math.abs(+l.e || 0) === 0);
-    if (tipOnly || bothFix) {
+    if (tipOnly || udlOnly || bothFix) {
       const fac = gM;   // governing-moment combination = the only ULS combination of these single-segment layouts
       let T = 0, t = 0;
       loads.forEach(l => { const f = fac[l.case] || 0; if (l.type === 'point') T += f * l.P * 1000 * l.e; else t += f * l.w * l.e; });
       let phiExp, label, ttZero;
       if (tipOnly) { phiExp = (T / GIt) * (Lmm - aa * Math.tanh(Lmm / aa)); label = `cantilever tip torque T = ${fmt(T / 1e6, 3)} kN.m: phi_tip = (T/GI_T)[L - a tanh(L/a)] = ${fmt(phiExp, 5)} rad`; ttZero = Math.abs(c.tor.TtEnds[0]) <= 1e-9 && Math.abs(Math.abs(c.tor.TEnds[1]) - T / 1e6) <= 1e-6; }
+      else if (udlOnly) { const X = Lmm / aa; phiExp = (t / GIt) * (Lmm * Lmm / 2 + aa * aa * (1 - 1 / Math.cosh(X)) - aa * Lmm * Math.tanh(X)); label = `cantilever uniform torque m = ${fmt(t, 1)} N.mm/mm: phi_tip = (m/GI_T)[L^2/2 + a^2(1 - sech(L/a)) - aL tanh(L/a)] = ${fmt(phiExp, 5)} rad`; ttZero = Math.abs(c.tor.TtEnds[0]) <= 1e-9 && Math.abs(Math.abs(c.tor.TEnds[0]) - t * Lmm / 1e6) <= 1e-6 + Math.abs(c.tor.TEnds[0]) * 1e-6 && Math.abs(c.tor.TEnds[1]) <= 1e-6; }
       else { phiExp = (t / GIt) * (Lmm * Lmm / 8 - Lmm * aa / 2 * Math.tanh(Lmm / (4 * aa))); label = `warping-fixed ends, uniform torque t = ${fmt(t, 1)} N.mm/mm: phi_mid = (t/GI_T)[L^2/8 - (La/2) tanh(L/4a)] = ${fmt(phiExp, 5)} rad`; ttZero = Math.abs(c.tor.TtEnds[0]) <= 1e-9 && Math.abs(c.tor.TtEnds[1]) <= 1e-9; }
       add('xiii-torsionFE', rel(phiExp, c.tor.phiUmax) <= 1e-4 && ttZero && c.tor.meshConverged && c.tor.meshError <= 1e-3,
         `${label} vs engine phi_max ${fmt(c.tor.phiUmax, 5)} rad (${c.tor.methodLabel}, mesh error ${(c.tor.meshError * 100).toExponential(2)} %); St Venant torque zero at the warping-fixed end(s): ${ttZero}`);
