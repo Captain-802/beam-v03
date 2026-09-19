@@ -286,6 +286,7 @@ function render(){
   function ltbBlockBSfn(){ return sec.isBox ? `
   <div class="section-title smallgap">Lateral Torsional Buckling (Cl. 4.3.6.1${S.family==='rhs'?' / Table 15':''})</div>
   <div class="calc-block">
+    <div>L<sub>E</sub> = ${g(c.leK,2)} L</div><div class="formula">${g(c.leK,2)} ${g(S.L,3)} m: ${c.leBasis||''}; end flags ${endsConditionsLine(S)}${c.leMsg? ' &mdash; <b>NOT VERIFIED</b> (no tabulated row: enter L<sub>E</sub>/L)' : ''}</div><div class="value">${g(c.LE/1000,3)} m</div><div class="status">${c.leRow==='user'? 'entered' : c.leMsg? 'blocked' : 'Table 13/14 [verify]'}</div>
     <div>? = L<sub>E</sub>/r<sub>y</sub></div><div class="formula">${f1(c.LE,0)} / ${g(sec.ry*10,1)}</div><div class="value">${f1(c.lam,2)}</div><div></div>
     <div>F<sub>b</sub> = v(S<sub>x</sub> ?'/(AJ))</div><div class="formula">?'=(1-I<sub>y</sub>/I<sub>x</sub>)(1-J/(2.6I<sub>x</sub>))</div><div class="value">${f1(c.phiB,3)}</div><div></div>
     <div> <sub>w</sub></div><div class="formula">${c.cl.cls<=2?'Class 1/2 ? 1.0':'Z<sub>x</sub>/S<sub>x</sub>'}</div><div class="value">${g(c.betaW,3)}</div><div></div>
@@ -295,7 +296,7 @@ function render(){
   </div>` : `
   <div class="section-title smallgap">Lateral Torsional Buckling   M<sub>b</sub> (Cl. 4.3 / Annex B)</div>
   <div class="calc-block">
-    <div>L<sub>E</sub> = ${g(ltbLeFactor(),2)}${S.destab?'   1.2':''} L</div><div class="formula">${g(ltbLeFactor(),2)}${S.destab?' 1.2':''} ${g(S.L,3)} m${S.leFactor==null? ' (L<sub>E</sub>/L factor blank: 1.0 taken)' : ''}; strut lengths L<sub>cr,x</sub> = ${g(c.LcrX/1000,3)} m, L<sub>cr,y</sub> = ${g(c.LcrY/1000,3)} m (${c.lcrBasis||''})</div><div class="value">${g(c.LE/1000,3)} m</div><div></div>
+    <div>L<sub>E</sub> = ${g(c.leK,2)} L</div><div class="formula">${g(c.leK,2)} ${g(S.L,3)} m: ${c.leBasis||''}; end flags ${endsConditionsLine(S)}${c.leMsg? ' &mdash; <b>NOT VERIFIED</b> (no tabulated row: enter L<sub>E</sub>/L)' : ''}; strut lengths L<sub>cr,x</sub> = ${g(c.LcrX/1000,3)} m, L<sub>cr,y</sub> = ${g(c.LcrY/1000,3)} m (${c.lcrBasis||''})</div><div class="value">${g(c.LE/1000,3)} m</div><div class="status">${c.leRow==='user'? 'entered' : c.leMsg? 'blocked' : 'Table 13/14 [verify]'}</div>
     <div>? = L<sub>E</sub> / r<sub>y</sub></div><div class="formula">${f1(c.LE,0)} / ${g(sec.ry*10,1)}</div><div class="value">${f1(c.lam,2)}</div><div></div>
     <div>v = 1/[1+0.05(?/x) ]<sup> </sup></div><div class="formula">x = ${g(sec.x,1)} (torsional index)</div><div class="value">${g(c.v,3)}</div><div class="status">N=0.5</div>
     <div> <sub>w</sub></div><div class="formula">${c.cl.cls<=2?'Class 1/2 ? 1.0':'Z<sub>x</sub>/S<sub>x</sub>'}</div><div class="value">${g(c.betaW,3)}</div><div></div>
@@ -666,4 +667,7 @@ function render(){
   <div class="note">${notes.map(n=>'  '+n).join('<br>')}</div>
   <div class="note" style="margin-top:8px;color:#9a8f78">Analysis: 2-node Euler Bernoulli beam elements (direct stiffness); reactions exact, shear/moment by statics, deflection at nodes exact. Section data: SCI P363 Blue Book. This is a design aid   results to be verified by a competent engineer.</div>
   ${briefClose}`;
+  // the section load-line card zooms on click / Enter: listeners bound here
+  // (no inline handlers in the markup)
+  if(typeof sectionViewBindZoom==='function') sectionViewBindZoom(rep);
 }

@@ -307,7 +307,7 @@
           <option value="ss">Simply supported</option>
           <option value="fixed-fixed">Fixed-fixed</option>
           <option value="fixed-pinned">Fixed-pinned (propped cantilever)</option>
-          <option value="cantilever">Cantilever</option>
+          <option value="cantilever">Cantilever (root at End 1, tip at End 2)</option>
           <option value="guided-fixed">Guided-fixed</option>
           <option value="pinned-guided">Pinned-guided</option>
           <option value="custom">Custom</option>
@@ -320,7 +320,7 @@
         <button type="button" data-preset="fixed-fixed">Fixed fixed</button>
       </div>
       <div class="ends-grid" id="endsPanel"></div>
-      <div class="hint">One span from End 1 (x = 0) to End 2 (x = L). Each end has six degrees of freedom plus warping, each <b>restrained (ticked)</b> or free: U<sub>x</sub> axial, U<sub>y</sub> lateral, U<sub>z</sub> vertical, R<sub>x</sub> twist, R<sub>y</sub> rotation about the major axis (in-plane fixity), R<sub>z</sub> rotation about the minor axis (lateral bending), warping &phi;&prime; = 0. U<sub>z</sub> + R<sub>y</sub> = fixed, U<sub>z</sub> alone = pinned, R<sub>y</sub> alone = guided (sliding end: rotation held, vertical free, no vertical reaction), neither = free end. U<sub>y</sub>, R<sub>z</sub>, R<sub>x</sub> and warping are the LTB eigen and torsion boundary conditions (U<sub>y</sub> + R<sub>x</sub> = fork end, + R<sub>z</sub> = laterally clamped); U<sub>x</sub> is the axial load path (N<sub>Ed</sub> needs it at one end at least). A cantilever is End 1 fully restrained and End 2 free; the guided-fixed preset holds End 1 fixed and End 2 sliding. The strut effective lengths default from these fixities (P360 Table 6.2 / BS 5950 Table 22 style, printed [verify]). Changing a box switches the drop-list to Custom; a mechanism is refused with a message naming the missing restraint. An end that lifts in any combination (negative reaction) blocks PASS with a &ldquo;Hold-down required&rdquo; message unless <b>hold-down provided</b> is ticked for it, in which case the design hold-down force is printed as an advisory; uplift is also tested with the &gamma;<sub>G,inf</sub> companions (G at 1.0, STR set B, and 0.9, EQU set A) of every ULS combination. <b>Web transverse forces (EC3, EN 1993-1-5 clause 6):</b> each end reaction is checked as a patch load on the bottom flange with the entered <b>stiff bearing length s<sub>s</sub></b> along the member (blank = the lower bound 0: a station that passes at s<sub>s</sub> = 0 is verified for any seating, one that fails at 0 is <b>NOT VERIFIED</b> until the seating length is entered; capped at h<sub>w</sub>); an end reaction is load type (c). Tick <b>bearing stiffener provided</b> to declare a stiffener at that end instead &mdash; the stiffener itself must then be designed to EN 1993-1-5 9.4.</div>
+      <div class="hint">One span from End 1 (x = 0) to End 2 (x = L). Each end has six degrees of freedom plus warping, each <b>restrained (ticked)</b> or free: U<sub>x</sub> axial, U<sub>y</sub> lateral, U<sub>z</sub> vertical, R<sub>x</sub> twist, R<sub>y</sub> rotation about the major axis (in-plane fixity), R<sub>z</sub> rotation about the minor axis (lateral bending), warping &phi;&prime; = 0. U<sub>z</sub> + R<sub>y</sub> = fixed, U<sub>z</sub> alone = pinned, R<sub>y</sub> alone = guided (sliding end: rotation held, vertical free, no vertical reaction), neither = free end. U<sub>y</sub>, R<sub>z</sub>, R<sub>x</sub> and warping are the LTB eigen and torsion boundary conditions (U<sub>y</sub> + R<sub>x</sub> = fork end, + R<sub>z</sub> = laterally clamped); U<sub>x</sub> is the axial load path (N<sub>Ed</sub> needs it at one end at least). A cantilever is End 1 fully restrained and End 2 free &mdash; the root must be End 1 (x = 0): a cantilever rooted at End 2 (End 2 U<sub>z</sub> + R<sub>y</sub>, End 1 free) is refused with &ldquo;mirror the member&rdquo;, so enter the loads from the root; the guided-fixed preset holds End 1 fixed and End 2 sliding. The strut effective lengths default from these fixities (P360 Table 6.2 / BS 5950 Table 22 style, printed [verify]). Changing a box switches the drop-list to Custom; a mechanism is refused with a message naming the missing restraint. An end that lifts in any combination (negative reaction) blocks PASS with a &ldquo;Hold-down required&rdquo; message unless <b>hold-down provided</b> is ticked for it, in which case the design hold-down force is printed as an advisory; uplift is also tested with the &gamma;<sub>G,inf</sub> companions (G at 1.0, STR set B, and 0.9, EQU set A) of every ULS combination. <b>Web transverse forces (EC3, EN 1993-1-5 clause 6):</b> each end reaction is checked as a patch load on the bottom flange with the entered <b>stiff bearing length s<sub>s</sub></b> along the member (blank = the lower bound 0: a station that passes at s<sub>s</sub> = 0 is verified for any seating, one that fails at 0 is <b>NOT VERIFIED</b> until the seating length is entered; capped at h<sub>w</sub>); an end reaction is load type (c). Tick <b>bearing stiffener provided</b> to declare a stiffener at that end instead &mdash; the stiffener itself must then be designed to EN 1993-1-5 9.4.</div>
 
       <div style="margin-top:10px;font-size:11px;font-weight:700;color:#374151">Internal hinges (moment releases)</div>
       <div class="list" id="hingeList"></div>
@@ -371,7 +371,7 @@
       <label><span>Minor-axis moment M<sub>z,Ed</sub>, kN&middot;m</span> <input id="Mz" type="number" step="0.001"></label>
       <div class="hint">Coincident ULS design moment about the <b>minor (z&ndash;z)</b> axis, entered directly (this solver bends in one plane). Forms the full EC3 biaxial interaction (M<sub>y</sub>/M<sub>N,y</sub>)<sup>&alpha;</sup> + (M<sub>z</sub>/M<sub>N,z</sub>)<sup>&beta;</sup> &le; 1 (cl 6.2.9.1). Leave 0 for uniaxial bending.</div>
       <label id="leRow"><span>L<sub>E</sub> / L factor</span> <input id="leFactor" type="number" step="0.01" placeholder="auto: from the end fixities"></label>
-      <div class="hint">Blank = the strut buckling lengths L<sub>cr,y</sub> and L<sub>cr,z</sub> come from the end fixities under End conditions (y-y from U<sub>z</sub> / R<sub>y</sub>, z-z from U<sub>y</sub> / R<sub>z</sub>: 0.7 L held in position and direction at both ends, 0.85 L direction at one end, 1.0 L direction at neither, 2.0 L cantilever, 1.2 L fixed with a guided far end; P360 Table 6.2 / BS 5950 Table 22 style, printed [verify]); the minor axis is shortened to the lateral-restraint spacing where restraints are modelled. A number here overrides both axes (an entered 1.0 is an override). On the closed-form and BS 5950 LTB routes the same factor sets L<sub>E</sub> = factor &times; L (blank = 1.0).</div>
+      <div class="hint">Blank = the strut buckling lengths L<sub>cr,y</sub> and L<sub>cr,z</sub> come from the end fixities under End conditions (y-y from U<sub>z</sub> / R<sub>y</sub>, z-z from U<sub>y</sub> / R<sub>z</sub>: 0.7 L held in position and direction at both ends, 0.85 L direction at one end, 1.0 L direction at neither, 2.0 L cantilever, 1.2 L fixed with a guided far end; P360 Table 6.2 / BS 5950 Table 22 style, printed [verify]); the minor axis is shortened to the lateral-restraint spacing where restraints are modelled. A number here overrides both axes (an entered 1.0 is an override). <b>LTB effective length:</b> on the EC3 standard (closed-form) route L<sub>E</sub> = factor &times; L (blank = 1.0) with fork ends (U<sub>y</sub> + R<sub>x</sub>) required at both ends &mdash; an end that releases U<sub>y</sub> or R<sub>x</sub> is NOT VERIFIED on that route (use the FE eigenvalue method, which models the end flags), a laterally clamped or warping-fixed end is taken as a fork (conservative). On the BS 5950 path a blank factor takes L<sub>E</sub> from the end flags: Table 13 for fork ends at both ends (1.0 L, or 0.7 L with R<sub>z</sub> held at both ends; 1.2 L / 0.85 L destabilising), Table 14 (d) for a cantilever whose root holds U<sub>y</sub>, R<sub>z</sub> and R<sub>x</sub> (tip free 0.8 L / 1.4 L destabilising, tip R<sub>x</sub> 0.6 L, tip U<sub>y</sub> + R<sub>x</sub> 0.5 L), printed [verify]; any other end flag set has no tabulated row and is NOT VERIFIED until a factor is entered here.</div>
       <label id="LTRow" style="display:none"><span>Torsional buckling length L<sub>T</sub>, m</span> <input id="LT" type="number" step="0.01" placeholder="blank = twist-restraint spacing"></label>
       <div class="hint">PFC under axial compression: torsional and torsional-flexural buckling (EN 1993-1-1 cl 6.3.1.4) are checked with N<sub>cr,T</sub> = (GI<sub>T</sub> + &pi;&sup2;EI<sub>w</sub>/L<sub>T</sub>&sup2;)/i<sub>0</sub>&sup2; and the torsional-flexural coupling with the major-axis flexural mode through the shear-centre offset e<sub>sc</sub> (SCI P385 Table A.3). L<sub>T</sub> is the length between points where twist is prevented; blank takes the largest spacing of the twist restraints (the ends with R<sub>x</sub> ticked and the intermediate restraints with &phi; held, capped at L<sub>cr,y</sub>) &mdash; a lateral-only restraint shortens L<sub>cr,z</sub> but not L<sub>T</sub>.</div>
       <label id="zaRow"><span>Default z<sub>g</sub>, mm</span> <input id="za" type="number" step="1" placeholder="0"></label>
@@ -1735,6 +1735,16 @@ function endsToSupports(st){
 function verticalEnds(st){ return endsToSupports(st).map((sp,i)=>Object.assign({i},sp)).filter(sp=>sp.type!=='guided'); }
 /* In-plane cantilever: End 1 fixed (U_z + R_y), End 2 free of both. */
 function isCantilever(st){ const [e1,e2]=endsList(st); return !!(e1.uz&&e1.ry&&!e2.uz&&!e2.ry); }
+/* The cantilever NCCI SN006a Tables 3.1-3.3 describe (pure): an in-plane
+   cantilever whose root (End 1) also holds U_y, R_z and R_x (v = v' = phi = 0;
+   the root warping flag selects the "warping restrained / free" column) and
+   whose tip (End 2) is free of every lateral restraint (no U_y, R_x, R_z or
+   warping). A cantilever with a laterally / torsionally restrained tip, or a
+   root that releases R_x or R_z, is outside the tables (19 Sep 2026 review). */
+function isSn006aCantilever(st){
+  const [e1,e2]=endsList(st);
+  return isCantilever(st) && !!(e1.uy&&e1.rz&&e1.rx) && !(e2.uy||e2.rx||e2.rz||e2.warp);
+}
 /* An end that is free vertically (cantilever tip, guided tip): the deflection
    limit is L/divisorCant instead of span/divisor. */
 function hasFreeVerticalEnd(st){ const [e1,e2]=endsList(st); return !(e1.uz&&e2.uz); }
@@ -1747,8 +1757,10 @@ function ltbEndRestraints(st){
 /* Twist-restrained ends for the torsion models: phi = 0 from R_x, phi' = 0
    from warping. Positions in mm. */
 function twistEnds(st){ return endsList(st).filter(e=>e.rx).map(e=>({end:e.n,pos:e.x*1000,warpFix:!!e.warp})); }
-/* LTB / BS 5950 effective-length factor: the entered L_E/L, else 1.0 (the
-   closed forms take k = k_w = 1 fork ends over the member length). */
+/* EC3 standard-route LTB effective-length factor: the entered L_E/L, else 1.0
+   (the closed forms take k = k_w = 1 fork ends over the member length; the
+   route refuses ends that are not forks - stdMcrEndsStatus). The BS 5950 path
+   takes its L_E from bs5950LtbLength() (Table 13 / 14 by the flags). */
 function ltbLeFactor(st){ st=st||S; return (st.leFactor!=null&&st.leFactor!==''&&Number.isFinite(+st.leFactor))? +st.leFactor : 1.0; }
 /* Strut effective-length factor of one buckling plane from the end fixities
    (SCI P360 Table 6.2 / BS 5950-1 Table 22 style; pure). t1, r1 = translation
@@ -1897,6 +1909,8 @@ const DEMO={
   restraint:'full',
   mcrMethod:'eigen',   // EC3 unrestrained Mcr: 'eigen' (FE eigensolver, default) | 'standard' (closed form, SN003a/SN006a)
   eccOn:false, za:0,
+  ltbRestraints:[],   // intermediate lateral restraints [{pos (m), v, phi, vp, phip}] of the LTB eigen model (js/08-mcr-eigen-patch.js); present here so that a Reset (S = copy of DEMO) keeps the field the patch expects (19 Sep 2026 review)
+  zj:0, Cmzo:null,    // eigen patch inputs: monosymmetry z_j (0 for every library section) and the verified C_mz override (null = conservative 1.0)
   pfcMirror:false,
   plate:{on:false, side:'bottom', t:10, outL:0, outR:150}
 };
@@ -2303,16 +2317,20 @@ function endsStability(st){
       : 'Under-restrained layout (mechanism): the end restraints U<sub>z</sub> / R<sub>y</sub> do not hold the member in its plane.');
   }
   if(e2.uz&&e2.ry&&!e1.uz&&!e1.ry) errs.push('A cantilever must have its root at End 1 (x = 0) and its free tip at End 2 (x = L): mirror the member.');
-  // out-of-plane (LTB eigen / standard route): only when LTB is checked
-  const ltbOn = st.code==='EC3' && (st.restraint||'full')!=='full';
+  // out-of-plane: whenever an LTB check is evaluated - the EC3 unrestrained
+  // routes (eigen / standard) and the BS 5950 path, which always checks LTB
+  // (19 Sep 2026 review: the BS path let a released U_y / R_x pass unvalidated)
+  const ec3=st.code==='EC3';
+  const ltbOn = !ec3 || (st.restraint||'full')!=='full';
   if(ltbOn){
     const forks=[e1,e2].filter(e=>e.uy&&e.rx);
     const lateral=[e1,e2].filter(e=>e.uy);
-    if(!lateral.length) errs.push('Lateral-torsional buckling: neither end restrains lateral translation U<sub>y</sub>; the lateral stiffness matrix is singular. Restrain U<sub>y</sub> (and R<sub>x</sub>) at one end at least, or set the member fully restrained.');
+    const singular= ec3? 'the lateral stiffness matrix of the LTB model is singular' : 'the member has no lateral support for the LTB check (lateral mechanism)';
+    if(!lateral.length) errs.push('Lateral-torsional buckling: neither end restrains lateral translation U<sub>y</sub>; '+singular+'. Restrain U<sub>y</sub> (and R<sub>x</sub>) at one end at least'+(ec3? ', or set the member fully restrained.' : '.'));
     else if(!forks.length) errs.push('Lateral-torsional buckling: no end restrains both U<sub>y</sub> and R<sub>x</sub> (a fork / torsional restraint); the twist mode is unrestrained. Restrain R<sub>x</sub> at an end that holds U<sub>y</sub>.');
     else if(lateral.length===1){
       const e=lateral[0];
-      if(!(e.rz&&e.rx)) errs.push('Lateral-torsional buckling: only End '+e.n+' restrains lateral translation U<sub>y</sub>, so the member is a lateral cantilever; that end must also restrain R<sub>z</sub> (lateral bending) and R<sub>x</sub> (twist), or the lateral stiffness matrix is singular.');
+      if(!(e.rz&&e.rx)) errs.push('Lateral-torsional buckling: only End '+e.n+' restrains lateral translation U<sub>y</sub>, so the member is a lateral cantilever; that end must also restrain R<sub>z</sub> (lateral bending) and R<sub>x</sub> (twist), or '+singular+'.');
       else notes.push('Lateral cantilever: End '+e.n+' is the only end holding U<sub>y</sub>; it restrains R<sub>z</sub> and R<sub>x</sub> and its warping is '+(e.warp? 'restrained (&phi;&prime; = 0)' : 'free')+'; the other end is laterally free.');
     }
     if(!(e1.rx||e2.rx)) errs.push('Lateral-torsional buckling: neither end restrains twist R<sub>x</sub>: torsional mechanism.');
@@ -2754,6 +2772,61 @@ function checks(a){
   return c;
 }
 
+/* ---------------------------------------------------------------------------
+   BS 5950-1:2000 LTB effective length from the end flags (pure; reads
+   st.ends, st.leFactor, st.destab; 19 Sep 2026 review finding: a released
+   U_y / R_x passed on L_E = 1.0 L). Returns {LE (mm), K, basis (HTML,
+   [verify]), row, msg (HTML, blocking) | null}.
+   - An entered L_E/L factor: K = factor x (1.2 when destabilising), as before
+     (the user's own Table 13 / 14 reading).
+   - Fork ends at both ends (U_y + R_x held): Table 13, compression flange
+     laterally restrained, nominal torsional restraint - "both flanges free to
+     rotate on plan" (R_z free at both ends) 1.0 L normal / 1.2 L
+     destabilising; "both flanges fully restrained against rotation on plan"
+     (R_z held at both ends) 0.7 L / 0.85 L; R_z at one end only: Table 13 has
+     no one-end row, the 1.0 L / 1.2 L row is taken (conservative).
+   - Cantilever (in-plane fixed root - free tip) whose root holds U_y, R_z and
+     R_x: Table 14 (d) "restrained laterally, torsionally and against
+     rotation on plan" (the root warping flag is not distinguished by the
+     table), tip: free 0.8 L / 1.4 L; torsional restraint (R_x) 0.6 L / 0.6 L;
+     lateral and torsional restraint (U_y + R_x) 0.5 L / 0.5 L; a tip holding
+     U_y only is taken as free (the Table 14 "lateral restraint to top flange"
+     row is not claimed for a shear-centre restraint: conservative).
+   - Any other end flag set (an end releasing U_y or R_x, a lateral
+     cantilever, a cantilever root releasing R_z): no tabulated row - blocked
+     until an L_E/L factor is entered.
+   The destabilising column of the table is used directly (not the x1.2 device
+   of the entered-factor path).
+   --------------------------------------------------------------------------- */
+function bs5950LtbLength(st,L){
+  st=st||S;
+  const [e1,e2]=endsList(st);
+  const destab=!!st.destab;
+  const sym={uy:'U<sub>y</sub>',rx:'R<sub>x</sub>'};
+  if(st.leFactor!=null&&st.leFactor!==''&&Number.isFinite(+st.leFactor)){
+    const K=(+st.leFactor)*(destab?1.2:1);
+    return {LE:K*L, K, row:'user', msg:null,
+      basis:'entered L<sub>E</sub>/L = '+(+st.leFactor).toFixed(2)+(destab? ' &times; 1.2 (destabilising)' : '')+' (the end fixities would give: '+bs5950LtbLength(Object.assign({},st,{leFactor:null}),L).basis+')'};
+  }
+  const cantIP=!!(e1.uz&&e1.ry&&!e2.uz&&!e2.ry);   // in-plane cantilever: Table 14, never Table 13
+  if(cantIP && e1.uy&&e1.rz&&e1.rx){
+    const tip= (e2.uy&&e2.rx)? 'lateral and torsional restraint (U<sub>y</sub> + R<sub>x</sub>)' : e2.rx? 'torsional restraint (R<sub>x</sub>)' : 'free'+(e2.uy? ' (U<sub>y</sub> at the tip not claimed as the top-flange row: conservative)' : '');
+    const K= (e2.uy&&e2.rx)? 0.5 : e2.rx? 0.6 : (destab? 1.4 : 0.8);
+    const row='Table 14 (d): root restrained laterally, torsionally and against rotation on plan; tip '+tip;
+    return {LE:K*L, K, row, msg:null, basis:K.toFixed(2)+' L from the end flags - cantilever, '+row+', '+(destab? 'destabilising' : 'normal')+' loading (the root warping flag is not distinguished by Table 14) [verify]'};
+  }
+  const forkBoth=!!(e1.uy&&e1.rx&&e2.uy&&e2.rx);
+  if(!cantIP && forkBoth){
+    const rzBoth=!!(e1.rz&&e2.rz), rzOne=!rzBoth&&!!(e1.rz||e2.rz);
+    const K= rzBoth? (destab? 0.85 : 0.7) : (destab? 1.2 : 1.0);
+    const row= rzBoth? 'Table 13: both flanges fully restrained against rotation on plan (R<sub>z</sub> held at both ends)' : 'Table 13: both flanges free to rotate on plan'+(rzOne? ' (R<sub>z</sub> held at one end only: no one-end row, taken as free to rotate - conservative)' : '');
+    return {LE:K*L, K, row, msg:null, basis:K.toFixed(2)+' L from the end flags - fork ends (U<sub>y</sub> + R<sub>x</sub>) at both ends, compression flange laterally restrained with nominal torsional restraint, '+row+', '+(destab? 'destabilising' : 'normal')+' loading [verify]'};
+  }
+  const rel=[e1,e2].map(e=>{ const r=['uy','rx'].filter(k=>!e[k]).map(k=>sym[k]); return r.length? 'End '+e.n+' releases '+r.join(' and ') : null; }).filter(Boolean);
+  const why= cantIP? 'the cantilever root (End 1) does not hold U<sub>y</sub>, R<sub>z</sub> and R<sub>x</sub> (Table 14 (d))' : rel.join('; ');
+  return {LE:1.0*L, K:1.0, row:'none', basis:'no tabulated row for these end flags (1.0 L printed, not accepted)',
+    msg:'BS 5950 lateral-torsional buckling: the end flags have no Table 13 / Table 14 row - '+why+'. L<sub>E</sub> cannot be taken as 1.0 L for a released end; enter the L<sub>E</sub>/L factor for these end conditions (Table 13 for a beam with both ends held, Table 14 for a cantilever) under Axial &amp; lateral-torsional buckling. PASS is blocked.'};
+}
 function checksBS5950(a){
   const sec=a.sec, py=a.py, E=a.E;
   const unsupported=[];
@@ -2850,8 +2923,12 @@ function checksBS5950(a){
   // LTB   BS 5950 box-section path. SHS naturally returns very low ?LT because
   // Ix Iy; RHS uses the closed-section ?LT expression rather than a rough Table
   // 15 screen.
-  // LTB effective length: the entered L_E/L factor (blank = 1.0) x L, x1.2 destabilising
-  const LE=ltbLeFactor()*(S.destab?1.2:1)*a.L;
+  // LTB effective length: the entered L_E/L factor (x1.2 destabilising) or, when
+  // blank, Table 13 / 14 from the end flags (bs5950LtbLength; blocked where no
+  // row exists - 19 Sep 2026 review)
+  const leBS=bs5950LtbLength(S,a.L);
+  const LE=leBS.LE;
+  if(leBS.msg) unsupported.push(leBS.msg);
   const ry=sec.ry*10;
   let lam=null,v=null,betaW=null,lamLT=null,pb=null,lamL0=null,Mb,ltbUtil,rhsFlag=false,phiB=null,gammaPrime=null;
   if(sec.isBox){
@@ -2920,7 +2997,7 @@ function checksBS5950(a){
 
   return {eps,cl,clsName,unsupported,advisory,bTBS:bT_BS,Av,Pv,Fv,lowShear,shearBuckle,Mcx,hsNote,Zx,Sx,rhsFlag,
     Ag,Anet,Ke,Ae,Pz,F,n,Srx,Mrx,Mx,localUtil,isCant,mLT,mx,mf,
-    LE,LcrX,LcrY,Kx,Ky,lcrBasis,lam,v,betaW,phiB,gammaPrime,lamLT,pb,lamL0,Mb,ltbUtil,a_robX,a_robY,pcx,pcy,Pc,Pcy,Fc,pyZx,u1,u2,
+    LE,leK:leBS.K,leBasis:leBS.basis,leRow:leBS.row,leMsg:leBS.msg,LcrX,LcrY,Kx,Ky,lcrBasis,lam,v,betaW,phiB,gammaPrime,lamLT,pb,lamL0,Mb,ltbUtil,a_robX,a_robY,pcx,pcy,Pc,Pcy,Fc,pyZx,u1,u2,
     span,divisor,dlimit,dmax,defOk,deflCant,deflAbsGoverns,utils,gov,pass};
 }
 
@@ -3496,12 +3573,22 @@ function webTransverseCheck(a,sec,fy,eps,cl){
       comboLoadPieces(res.combo).forEach(p=>{ if(p.type==='point' && Math.abs(p.pos-s.x)<=tol) P+=p.P*p.factor; });
       const R= s.support? Math.max(res.r.reactions[s.support.i].V/1000,0) : 0;
       const F= kind==='both'? Math.max(Math.abs(P),R) : kind==='load'? Math.abs(P) : R;
-      const Ms=interpAt(res.fb.xs,res.fb.M,s.x)/1e6;
+      // M_Ed at the station: an end station reads the diagram a fraction
+      // inside the member (x = 1e-4 mm, a grid point of sfdBmd, as analyse()
+      // does for M0end / MLend) - the reaction couple of a fixed / guided end
+      // is inside it, whereas sfdBmd closes the diagram to zero at x = L
+      // beyond the End 2 reaction couple, so a sample exactly at the station
+      // dropped the hogging end moment from the 7.2 interaction (19 Sep 2026
+      // review finding F-A); an interior station reads the larger-magnitude
+      // side of a jump (mAtStation: an applied couple at the same x)
+      const xEnd= s.x<=tol? 1e-4 : s.x>=L-tol? L-1e-4 : null;
+      const Ms=(xEnd!=null? interpAt(res.fb.xs,res.fb.M,xEnd) : mAtStation(res.fb,s.x,0,L))/1e6;
       const M=Math.abs(Ms);
       const flange= kind==='support'? 'bottom' : (P>=0? 'top' : 'bottom');
       // is the loaded flange the compression flange (7.2(1)) - a "both" station loads both flanges,
-      // and a station without a coincident moment (simply supported end) has no tension flange
-      const noM = M<1e-6;
+      // and a station without a coincident moment (simply supported end: the sample a fraction
+      // inside the member is R x 1e-4 mm, negligible against the diagram peak) has no tension flange
+      const noM = M<1e-5*Math.max(Math.abs(res.Mmax)/1e6,1e-9);
       const flangeComp= kind==='both'? true : noM? true : (flange==='top'? Ms>1e-9 : Ms<-1e-9);
       const flangeState= kind==='both'? 'load through the web' : noM? 'no coincident moment' : (flangeComp? 'in compression' : 'in tension');
       const eta2=F*share/Math.max(gov.FRd,1e-9);
@@ -4322,12 +4409,63 @@ function mcrSN006aFor(a,sec,factors,zg){
   }
   return {Mcr0,kwt,hs,eta,za,warp,caseLbl,C,Cq,CF,Mq,MF,Mcr:(C==null? null : C*Mcr0),reason};
 }
+// ---- End conditions the closed-form Mcr chain can describe (pure, reads S.ends) ----
+// The SN003a form (and the channel kappa chain and the box chain with I_w = 0)
+// takes k = k_w = 1: FORK ends - U_y (lateral translation) and R_x (twist)
+// held - at BOTH ends. NCCI SN006a describes the cantilever of
+// isSn006aCantilever() (root U_y + R_z + R_x, free tip), doubly symmetric
+// I/H only. A square hollow section is not susceptible to LTB whatever its
+// ends (cl 6.3.2.1(2)). Every other end flag set is refused on the standard
+// route (19 Sep 2026 review finding F-C: an end releasing R_x or U_y was
+// given the fork-fork closed form, 0.41-0.68 of the eigenvalue), the printed
+// chain still assuming fork ends; the FE eigen route models the flags.
+// Laterally clamped (R_z) and warping-fixed ends raise M_cr; taking them as
+// forks is conservative and is stated (the SN003a k = 0.5 rows are not
+// applied). Returns {ok, sn006, msg (HTML, blocking when !ok), note (HTML,
+// advisory), ends (HTML list of the released DOFs)}.
+function stdMcrEndsStatus(st,sec){
+  st=st||S;
+  const ends=endsList(st);
+  const sym={uy:'U<sub>y</sub>',rx:'R<sub>x</sub>',rz:'R<sub>z</sub>',warp:'warping'};
+  const releases=e=>['uy','rx'].filter(k=>!e[k]).map(k=>sym[k]);
+  const holds=e=>['uy','rx','rz','warp'].filter(k=>e[k]).map(k=>sym[k]);
+  const cant=isCantilever(st);
+  const useMcr='Use the FE eigenvalue M<sub>cr</sub> method (Axial &amp; lateral-torsional buckling), which models the end degrees of freedom; PASS is blocked on the standard route.';
+  if(cant && sec && sec.kind==='I'){
+    if(isSn006aCantilever(st)) return {ok:true, sn006:true, msg:null, note:null, ends:''};
+    const [e1,e2]=ends;
+    const rootTxt=releases(e1).length? 'End 1 (root) releases '+releases(e1).join(', ')+(e1.rz? '' : (releases(e1).length? ' and ' : 'releases ')+sym.rz) : (e1.rz? '' : 'End 1 (root) releases '+sym.rz);
+    const tipTxt=holds(e2).length? 'End 2 (tip) restrains '+holds(e2).join(', ') : '';
+    const desc=[rootTxt,tipTxt].filter(Boolean).join('; ');
+    return {ok:false, sn006:false, kind:'sn006', ends:desc,
+      msg:'Cantilever LTB on the standard route: NCCI SN006a (Tables 3.1&ndash;3.3) describes a cantilever whose root holds U<sub>y</sub>, R<sub>z</sub> and R<sub>x</sub> (v = v&prime; = &phi; = 0, warping restrained or free) and whose tip is free of every lateral restraint; here '+desc+', which the tables do not cover. '+useMcr,
+      note:null};
+  }
+  if(sec && sec.isBox && st.family==='shs') return {ok:true, sn006:false, msg:null, note:null, ends:''};
+  const bad=ends.filter(e=>!(e.uy&&e.rx));
+  if(bad.length){
+    const desc=bad.map(e=>'End '+e.n+' releases '+releases(e).join(' and ')).join('; ');
+    return {ok:false, sn006:false, kind:'fork', ends:desc,
+      msg:'Standard (closed-form) M<sub>cr</sub> for LTB: the SN003a form'+(sec&&sec.kind==='channel'? ' and the P385/P362 channel &kappa; chain assume' : ' assumes')+' fork ends &mdash; U<sub>y</sub> (lateral translation) and R<sub>x</sub> (twist) held &mdash; at both ends (k = k<sub>w</sub> = 1); here '+desc+'. The chain printed below assumes fork ends and would be unconservative for these end conditions. '+useMcr,
+      note:null};
+  }
+  const clamped=ends.filter(e=>e.rz).map(e=>'End '+e.n), warped=ends.filter(e=>e.warp).map(e=>'End '+e.n);
+  let note=null;
+  if(clamped.length||warped.length){
+    const parts=[];
+    if(clamped.length) parts.push('laterally clamped end'+(clamped.length>1?'s':'')+' (R<sub>z</sub> held at '+clamped.join(' and ')+')');
+    if(warped.length) parts.push('warping-fixed end'+(warped.length>1?'s':'')+' ('+warped.join(' and ')+')');
+    note='Standard (closed-form) M<sub>cr</sub>: '+parts.join(' and ')+' taken as fork end'+(clamped.length+warped.length>1?'s':'')+', k = k<sub>w</sub> = 1 (conservative: the SN003a k = 0.5 / k<sub>w</sub> = 0.5 rows are not applied; the FE eigen route uses v&prime; = 0 / &phi;&prime; = 0 and gives the higher M<sub>cr</sub>).';
+  }
+  return {ok:true, sn006:false, msg:null, note, ends:''};
+}
 // ---- Standard (closed-form) Mcr for one segment, pure ----
 // Used by the eigen method for the "Mcr eigen / Mcr standard" comparison (no
 // eigen solve needed) and by the report. Cantilever (I/H) -> SN006a; otherwise
 // the SN003a form with C1 from sn003aC1 over the segment, LE = LE-factor
 // (x1.2 if destabilising) x segment length, z_g = the load height of the
-// combination (stdZgFor) with C2 where published.
+// combination (stdZgFor) with C2 where published. End flag sets the closed
+// form cannot describe (stdMcrEndsStatus) return Mcr = null with the reason.
 // `diag` = {fb, factors} selects the combination whose diagram and loads the
 // value describes (default a.governM), so the eigen method can pass its own
 // LTB-governing combination and get a sign-consistent comparison.
@@ -4339,7 +4477,12 @@ function mcrStandardFor(a,sec,seg,diag){
   const fb=(diag&&diag.fb)||a.governM.fb;
   const fac=(diag&&diag.combo)||((diag&&diag.factors)? {factors:diag.factors} : a.governM.combo);   // combination (pattern-aware)
   const zgi=stdZgFor(fac);
-  if(isCant && sec.kind==='I'){
+  const es=stdMcrEndsStatus(S,sec);
+  if(!es.ok){
+    return {route:'unsupported', Mcr:null, C1:null, C2:null, label:'closed form not applicable to these end conditions ('+es.ends+'; '+(es.kind==='sn006'? 'SN006a needs a root holding U<sub>y</sub>, R<sub>z</sub>, R<sub>x</sub> and a free tip' : 'the SN003a form needs fork ends U<sub>y</sub> + R<sub>x</sub> at both ends')+')',
+      c1in:c1Inputs(fb,seg.xa,seg.xb), seg, LE:null, endsMsg:es.msg, zg:zgi.zg, zgSource:zgi.source, zgUsed:false, zgNote:'', zgBlocked:false};
+  }
+  if(es.sn006){
     const r=mcrSN006aFor(a,sec,fac,zgi.zg);
     const c1in=c1Inputs(fb,seg.xa,seg.xb);
     return {route:'sn006a', Mcr:(r.Mcr!=null? r.Mcr/1e6 : null), C1:r.C, C2:null,
@@ -4351,8 +4494,9 @@ function mcrStandardFor(a,sec,seg,diag){
   const cf=mcrClosedForm(sec,a.E,LE,c1r.C1,c1r.C2,zgi.zg);
   const zs=stdZgStatus(zgi.zg,c1r.C2,cf.zgUsed);
   const route= sec.kind==='channel'? 'channel' : c1r.route;
-  return {route, Mcr:cf.Mcr/1e6, C1:c1r.C1, C2:c1r.C2, label:c1r.label, c1in:c1r.c1in, seg, LE,
-    T1:cf.T1/1e3, zg:zgi.zg, zgSource:zgi.source, zgUsed:cf.zgUsed, zgNote:zs.text, zgBlocked:!!zs.block};
+  const endsTag= es.note? ' [k = k<sub>w</sub> = 1: clamped / warping-fixed end(s) taken as forks]' : '';
+  return {route, Mcr:cf.Mcr/1e6, C1:c1r.C1, C2:c1r.C2, label:c1r.label+endsTag, c1in:c1r.c1in, seg, LE,
+    T1:cf.T1/1e3, zg:zgi.zg, zgSource:zgi.source, zgUsed:cf.zgUsed, zgNote:zs.text, zgBlocked:!!zs.block, endsNote:es.note};
 }
 
 function checksEC3UnrestrainedSCI(a){
@@ -4376,6 +4520,12 @@ function checksEC3UnrestrainedSCI(a){
   const advisory=(b.advisory||[]).slice();
   const Wy=b.Wy;
   const isCant=isCantilever(S);
+  // End conditions the closed form can describe (19 Sep 2026 review finding
+  // F-C): fork ends U_y + R_x at both ends, or the SN006a cantilever of
+  // isSn006aCantilever() for an I/H section; anything else is NOT VERIFIED
+  // on this route (message below, the fork-ended chain still printed), a
+  // clamped / warping-fixed end is taken as a fork and said so.
+  const endsStd=stdMcrEndsStatus(S,sec);
   const LE=ltbLeFactor()*(S.destab?1.2:1)*a.L;
   const gfac=a.governM.combo;     // governing-moment combination (pattern-aware load list)
   const c1r=sn003aC1(a,isCant);   // whole member: the closed form treats the member as one segment
@@ -4413,8 +4563,11 @@ function checksEC3UnrestrainedSCI(a){
     ltb={na:sB.ign, box:true, T1:cf.T1/1e3, GIt:cf.GIt/1e9, Mcr:Mcr/1e6, lamLTmcr:lamLT, ignM:sB.ign,
       PhiM:sB.Phi, chiM:sB.chi, fM:sB.f, chiModM:sB.chiMod, curve, kc, kcRaw:kcr.kcRaw, kcFloored:kcr.floored, invSqrtC1,
       zg:zgStd, C2:c1r.C2, zgUsed:cf.zgUsed, MbSimp:Mb, MbMcr:Mb, MbRd:Mb};
-  } else if(isCant && sec.kind==='I'){
-    // NCCI SN006a-EN-EU cantilever path (doubly symmetric I/H): see mcrSN006aFor().
+  } else if(endsStd.sn006){
+    // NCCI SN006a-EN-EU cantilever path (doubly symmetric I/H, root U_y + R_z +
+    // R_x, free tip - isSn006aCantilever): see mcrSN006aFor(). An I/H
+    // cantilever with other lateral flags falls through to the fork-ended
+    // chain below and is refused by endsStd (NOT VERIFIED).
     const sn=mcrSN006aFor(a,sec,gfac,zgStd);
     const {Mcr0,kwt,eta,warp,caseLbl,C,Cq,CF,Mq,MF}=sn;
     zgs={text:'z<sub>g</sub> = '+(zgStd>0?'+':'')+zgStd.toFixed(0)+' mm through &eta; = z<sub>g</sub>/(h<sub>s</sub>/2) = '+eta.toFixed(2)+' (SN006a)', block:null, advisory:null};
@@ -4514,6 +4667,10 @@ function checksEC3UnrestrainedSCI(a){
   ltb.zgBlocked=!!(zgs&&zgs.block);
   if(zgs&&zgs.block) unsupported.push(zgs.block);
   if(zgs&&zgs.advisory) advisory.push(zgs.advisory);
+  // ---- end conditions of the closed form (always recorded; may block PASS) ----
+  ltb.endsOk=endsStd.ok; ltb.endsMsg=endsStd.msg; ltb.endsNote=endsStd.note;
+  if(!endsStd.ok) unsupported.push(endsStd.msg);
+  if(endsStd.note) advisory.push(endsStd.note);
   // ---- method tags and the MasterSeries-style C1 inputs (M1, M2, Mo, psi, mu) ----
   // The closed form derives C1 from the WHOLE member, so the printed inputs are
   // the whole-member values (segment 0..L); the eigen method fills the same
@@ -4546,6 +4703,9 @@ function checksEC3UnrestrainedSCI(a){
   } else {
     ltbBasis = 'M<sub>cr</sub> method (SN003a closed form, k = k<sub>w</sub> = 1, G = 81000 N/mm&sup2;'+(ltb.zgUsed? ', C<sub>2</sub>z<sub>g</sub> load-height term' : '')+'): &lambda;&#772;<sub>LT</sub> = &radic;(W<sub>y</sub>f<sub>y</sub>/M<sub>cr</sub>) = '+ltb.lamLTmcr.toFixed(3)+', &chi;<sub>LT,mod</sub> from cl 6.3.2.3 curve '+curve.curve+' with k<sub>c</sub> = 1/&radic;C<sub>1</sub> (NA 2.18); M<sub>b,Rd</sub> = &chi;<sub>LT,mod</sub>W<sub>y</sub>f<sub>y</sub>/&gamma;<sub>M1</sub> &le; M<sub>c,Rd</sub>. The P362 Expn 6.55 simplified slenderness (&lambda;&#772;<sub>LT</sub> = '+ltb.lamLTsimp.toFixed(3)+', M<sub>b,Rd</sub> = '+ltb.MbSimp.toFixed(1)+' kN&middot;m) is printed for comparison only';
   }
+  // end conditions of the closed form: fork ends assumed (a released end is NOT VERIFIED), clamped / warping-fixed ends taken as forks
+  if(!endsStd.ok) ltbBasis+='. NOT VERIFIED: the closed form assumes fork ends (U<sub>y</sub> + R<sub>x</sub> at both ends'+(isCant? ', or the SN006a cantilever root / free tip' : '')+') and '+endsStd.ends+' &mdash; use the FE eigenvalue method';
+  else if(endsStd.note) ltbBasis+='. Clamped / warping-fixed end(s) taken as fork ends, k = k<sub>w</sub> = 1 (conservative)';
   // ---- BS EN 1993-6 Annex A: LTB + minor-axis bending + torsion interaction (P385 6.2/8.2) ----
   let annex=null;
   if(b.tor && b.tor.p385 && !ltb.na){
@@ -4687,8 +4847,11 @@ function checksEC3UnrestrainedSCI(a){
    the EN 1993-6 Annex A interaction consume it unchanged.
 
    Mesh convergence: solve with nSub and 2 nSub subdivisions, report the fine
-   solution with meshError = the largest relative change of max|phi|,
-   max|phi'| and max|B|; the caller blocks PASS above TORSION_FE_MESH_BLOCK.
+   solution with meshError = the largest change of max|phi|, max|phi'| and
+   max|B| between the two meshes, each normalised by max(its fine-mesh peak,
+   1e-3 x its physical scale from the peak torque) so that a quantity that is
+   zero in the exact solution cannot read as a mesh error (19 Sep 2026 review
+   finding F-B); the caller blocks PASS above TORSION_FE_MESH_BLOCK.
 
    Units: L, x in mm; E I_w in N.mm4; G I_T in N.mm2; point torque P in N.mm;
    distributed torque w1, w2 in N.mm/mm (= N). Pure functions, no DOM.
@@ -4848,17 +5011,28 @@ function warpingTorsionFE(opts){
   if(!(GIt>0)) throw new Error('Warping-torsion FE: G I_T must be > 0');
   const nSub=opts.nSub||TORSION_FE_NSUB;
   const refine=opts.refine!==false;
+  const aa=Math.sqrt(EIw/GIt);
   const coarse=torsionFeSolveOnce(L,EIw,GIt,supports,torques,nSub);
   const rc=torsionFeRecover(coarse,EIw,GIt);
   let fine=coarse, rf=rc, meshError=0, parts={phi:0,p1:0,B:0};
   if(refine){
     fine=torsionFeSolveOnce(L,EIw,GIt,supports,torques,2*nSub);
     rf=torsionFeRecover(fine,EIw,GIt);
-    const rel=(a,b)=>{ const m=torsionFeMax(b); return m>1e-300? Math.abs(torsionFeMax(a)-m)/m : 0; };
-    parts={phi:rel(rc.phi,rf.phi), p1:rel(rc.p1,rf.p1), B:rel(rc.B,rf.B)};
+    // Mesh measure: the change of each peak on doubling the mesh, normalised
+    // by max(the fine-mesh peak, 1e-3 x the physical scale of that quantity
+    // set by the peak torque T_max): T_max L/GI_T (St Venant twist), T_max/GI_T
+    // (rate of twist), T_max min(a, L) (bimoment: T a/2 for a long member, T L/4
+    // for a short one). A peak below a thousandth of its scale is identically
+    // zero in the exact solution up to round-off (the bimoment of a warping-
+    // free cantilever under a tip torque, pure St Venant), so its round-off on
+    // the two meshes no longer reads as a spurious "mesh error" (19 Sep 2026
+    // review finding F-B); a physically significant peak keeps the plain
+    // relative measure.
+    const Tmax=torsionFeMax(rf.T);
+    const rel=(a,b,scale)=>{ const m=torsionFeMax(b), s=Math.max(m,scale); return s>1e-300? Math.abs(torsionFeMax(a)-m)/s : 0; };
+    parts={phi:rel(rc.phi,rf.phi,1e-3*Tmax*L/GIt), p1:rel(rc.p1,rf.p1,1e-3*Tmax/GIt), B:rel(rc.B,rf.B,1e-3*Tmax*Math.min(aa,L))};
     meshError=Math.max(parts.phi,parts.p1,parts.B);
   }
-  const aa=Math.sqrt(EIw/GIt);
   return Object.assign({},rf,{X:L/aa, aa, nElem:fine.nElem, nElemCoarse:coarse.nElem, meshError, meshErrorParts:parts,
     converged:meshError<=TORSION_FE_MESH_BLOCK, reactions:fine.reactions, bc:torsionFeSupports(supports),
     method:'fe', methodLabel:'warping-torsion FE ('+fine.nElem+' elements)'});
@@ -5128,6 +5302,18 @@ function sectionViewZoomActivate(e){
   if(e){ e.preventDefault(); e.stopPropagation(); }
   sectionViewZoomOpen();
 }
+/* Bind the zoom of every clickable section card under `root` after it has
+   been inserted (render() calls this on the report container): the card
+   carries data-section-zoom instead of inline onclick / onkeydown attributes,
+   which a Content Security Policy without 'unsafe-inline' would drop (house
+   rule: no inline handlers; 19 Sep 2026 review). */
+function sectionViewBindZoom(root){
+  if(!root || typeof root.querySelectorAll!=='function') return;
+  root.querySelectorAll('[data-section-zoom]').forEach(el=>{
+    el.addEventListener('click',sectionViewZoomActivate);
+    el.addEventListener('keydown',sectionViewZoomActivate);
+  });
+}
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape') sectionViewZoomClose();
 });
@@ -5249,7 +5435,7 @@ function sectionLoadLineView(sec, opts){
     + ' &middot; <span style="color:#dc2626">&#9679;</span> SC <span style="color:#2563eb">&#9679;</span> C'
     + (zoomed? '' : ' &middot; <b>click to enlarge</b>');
   const cardClass='section-view-card'+(zoomed?' section-view-card-zoomed':' section-view-card-clickable');
-  const cardAttrs=zoomed ? '' : ' tabindex="0" role="button" aria-label="Zoom section load lines" title="Click to enlarge" onclick="sectionViewZoomActivate(event)" onkeydown="sectionViewZoomActivate(event)"';
+  const cardAttrs=zoomed ? '' : ' tabindex="0" role="button" aria-label="Zoom section load lines" title="Click to enlarge" data-section-zoom="1"';
   return '<div class="'+cardClass+'"'+cardAttrs+'>' +
     '<div class="dt">Section load lines</div>' +
     '<svg class="section-view-svg" viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Cross-section load lines and eccentricities from shear centre">' +
@@ -5926,6 +6112,7 @@ function render(){
   function ltbBlockBSfn(){ return sec.isBox ? `
   <div class="section-title smallgap">Lateral Torsional Buckling (Cl. 4.3.6.1${S.family==='rhs'?' / Table 15':''})</div>
   <div class="calc-block">
+    <div>L<sub>E</sub> = ${g(c.leK,2)} L</div><div class="formula">${g(c.leK,2)} ${g(S.L,3)} m: ${c.leBasis||''}; end flags ${endsConditionsLine(S)}${c.leMsg? ' &mdash; <b>NOT VERIFIED</b> (no tabulated row: enter L<sub>E</sub>/L)' : ''}</div><div class="value">${g(c.LE/1000,3)} m</div><div class="status">${c.leRow==='user'? 'entered' : c.leMsg? 'blocked' : 'Table 13/14 [verify]'}</div>
     <div>? = L<sub>E</sub>/r<sub>y</sub></div><div class="formula">${f1(c.LE,0)} / ${g(sec.ry*10,1)}</div><div class="value">${f1(c.lam,2)}</div><div></div>
     <div>F<sub>b</sub> = v(S<sub>x</sub> ?'/(AJ))</div><div class="formula">?'=(1-I<sub>y</sub>/I<sub>x</sub>)(1-J/(2.6I<sub>x</sub>))</div><div class="value">${f1(c.phiB,3)}</div><div></div>
     <div> <sub>w</sub></div><div class="formula">${c.cl.cls<=2?'Class 1/2 ? 1.0':'Z<sub>x</sub>/S<sub>x</sub>'}</div><div class="value">${g(c.betaW,3)}</div><div></div>
@@ -5935,7 +6122,7 @@ function render(){
   </div>` : `
   <div class="section-title smallgap">Lateral Torsional Buckling   M<sub>b</sub> (Cl. 4.3 / Annex B)</div>
   <div class="calc-block">
-    <div>L<sub>E</sub> = ${g(ltbLeFactor(),2)}${S.destab?'   1.2':''} L</div><div class="formula">${g(ltbLeFactor(),2)}${S.destab?' 1.2':''} ${g(S.L,3)} m${S.leFactor==null? ' (L<sub>E</sub>/L factor blank: 1.0 taken)' : ''}; strut lengths L<sub>cr,x</sub> = ${g(c.LcrX/1000,3)} m, L<sub>cr,y</sub> = ${g(c.LcrY/1000,3)} m (${c.lcrBasis||''})</div><div class="value">${g(c.LE/1000,3)} m</div><div></div>
+    <div>L<sub>E</sub> = ${g(c.leK,2)} L</div><div class="formula">${g(c.leK,2)} ${g(S.L,3)} m: ${c.leBasis||''}; end flags ${endsConditionsLine(S)}${c.leMsg? ' &mdash; <b>NOT VERIFIED</b> (no tabulated row: enter L<sub>E</sub>/L)' : ''}; strut lengths L<sub>cr,x</sub> = ${g(c.LcrX/1000,3)} m, L<sub>cr,y</sub> = ${g(c.LcrY/1000,3)} m (${c.lcrBasis||''})</div><div class="value">${g(c.LE/1000,3)} m</div><div class="status">${c.leRow==='user'? 'entered' : c.leMsg? 'blocked' : 'Table 13/14 [verify]'}</div>
     <div>? = L<sub>E</sub> / r<sub>y</sub></div><div class="formula">${f1(c.LE,0)} / ${g(sec.ry*10,1)}</div><div class="value">${f1(c.lam,2)}</div><div></div>
     <div>v = 1/[1+0.05(?/x) ]<sup> </sup></div><div class="formula">x = ${g(sec.x,1)} (torsional index)</div><div class="value">${g(c.v,3)}</div><div class="status">N=0.5</div>
     <div> <sub>w</sub></div><div class="formula">${c.cl.cls<=2?'Class 1/2 ? 1.0':'Z<sub>x</sub>/S<sub>x</sub>'}</div><div class="value">${g(c.betaW,3)}</div><div></div>
@@ -6306,6 +6493,9 @@ function render(){
   <div class="note">${notes.map(n=>'  '+n).join('<br>')}</div>
   <div class="note" style="margin-top:8px;color:#9a8f78">Analysis: 2-node Euler Bernoulli beam elements (direct stiffness); reactions exact, shear/moment by statics, deflection at nodes exact. Section data: SCI P363 Blue Book. This is a design aid   results to be verified by a competent engineer.</div>
   ${briefClose}`;
+  // the section load-line card zooms on click / Enter: listeners bound here
+  // (no inline handlers in the markup)
+  if(typeof sectionViewBindZoom==='function') sectionViewBindZoom(rep);
 }
 
 /* ===========================================================================
@@ -7415,6 +7605,10 @@ function wire(){
     rst.forEach(function (r) { forced.push(r.x); });
     pl.forEach(function (q) { forced.push(q.x); });
     dl.forEach(function (q) { forced.push(q.x1); forced.push(q.x2); });
+    /* an applied couple makes M(x) jump; a node there keeps the jump on an
+       element boundary, where the Hermite O(h^4) extrapolation holds (19 Sep
+       2026 review finding F-D: a couple off a node inflated the mesh error) */
+    (p.couplePositions || []).forEach(function (x) { forced.push(x); });
     var nodes = meshNodes(L, forced, nElem), nn = nodes.length, nd = 4 * nn;
 
     function qzg(x) {
@@ -7603,15 +7797,17 @@ function wire(){
 
   /* Transverse loads of ONE ULS combination, re-signed DOWNWARD
      POSITIVE, each carrying the load-height zg. Moment loads contribute to
-     M(x) but have no load-height term, so they are excluded here.
+     M(x) but have no load-height term, so they are excluded from the load
+     lists; their positions are returned as `couples` so the eigen mesh puts a
+     node at every jump of the moment diagram.
      This deliberately does NOT call comboLoads(), whose sign is inverted. */
   function unitLoadsFor(a, combo) {
     var fac = combo.factors;
-    var dl = [], pl = [];
+    var dl = [], pl = [], couples = [];
     comboLoadPieces(combo).forEach(function (p) {
-      if (p.type === 'moment') return;
       var f = p.factor;
       if (!f) return;
+      if (p.type === 'moment') { if (Math.abs(p.M) > 1e-12) couples.push(p.pos); return; }
       var zg = typeof loadZgValue === 'function' ? loadZgValue(p.ld) : (+S.za || 0);
       if (p.type === 'point') pl.push({ x: p.pos, P: p.P * f * 1000, zg: zg });
       else dl.push({ x1: p.x1, x2: p.x2, w1: p.w1 * f, w2: p.w2 * f, zg: zg });
@@ -7619,7 +7815,7 @@ function wire(){
     var gF = fac.G != null ? fac.G : 0;
     var sw = selfWeightValue(a.sec);
     if (gF !== 0 && sw > 0) dl.push({ x1: 0, x2: a.L, w1: sw * gF, w2: sw * gF, zg: 0 }); // self-weight acts at the centroid
-    return { distLoads: dl, pointLoads: pl };
+    return { distLoads: dl, pointLoads: pl, couples: couples };
   }
 
   /* Full LTB solve for ONE ULS combination (res = {combo, fb}). Returns Mcr,
@@ -7638,7 +7834,7 @@ function wire(){
      (oldest entry dropped); `shared.stats` counts solves and cache hits. */
   var EIGEN_CACHE = new Map(), EIGEN_CACHE_MAX = 96;
   function mcrEigenMemo(p, momentKey, stats) {
-    var key = JSON.stringify([p.E, p.G, p.Iz, p.It, p.Iw, p.L, p.restraints, p.nElem, !!p.refine, p.zj, p.distLoads || [], p.pointLoads || [], momentKey]);
+    var key = JSON.stringify([p.E, p.G, p.Iz, p.It, p.Iw, p.L, p.restraints, p.nElem, !!p.refine, p.zj, p.distLoads || [], p.pointLoads || [], p.couplePositions || [], momentKey]);
     var hit = EIGEN_CACHE.get(key);
     if (hit) { EIGEN_CACHE.delete(key); EIGEN_CACHE.set(key, hit); if (stats) stats.cached++; return hit; }
     var sol = mcrEigen(p);
@@ -7651,7 +7847,7 @@ function wire(){
     var sp = secProps(sec), zj = zjFor(sec), ul = unitLoadsFor(a, res.combo);
     var gfb = res.fb;
     var base = { E: a.E, G: G_STEEL, Iz: sp.Iz, It: sp.It, Iw: sp.Iw, L: a.L,
-                 restraints: ltbRestraintsFor(a), nElem: 32, refine: true };
+                 restraints: ltbRestraintsFor(a), nElem: 32, refine: true, couplePositions: ul.couples };
     var stats = shared && shared.stats;
     var mKey = gfb.xs.length + ':' + gfb.M.join(',');
 
@@ -7802,8 +7998,9 @@ function wire(){
       var Mf = momentFromSamples(ev.res.fb.xs, ev.res.fb.M);
       var sp2 = secProps(sec);
       try {
+        var cpl2 = unitLoadsFor(a, ev.res.combo).couples.filter(function (x) { return x > xa + 1e-9 && x < xb - 1e-9; }).map(function (x) { return x - xa; });
         var base2 = { E: a.E, G: G_STEEL, Iz: sp2.Iz, It: sp2.It, Iw: sp2.Iw, L: Ls, zj: 0,
-                      restraints: [{ x: 0 }, { x: Ls }], nElem: 24, refine: true };
+                      restraints: [{ x: 0 }, { x: Ls }], nElem: 24, refine: true, couplePositions: cpl2 };
         var shb = mcrEigen(Object.assign({}, base2, { moment: (function (x0) { return function (x) { return Mf(x0 + x); }; })(xa) }));
         var unb = mcrEigen(Object.assign({}, base2, { moment: function () { return 1e6; } }));
         if (!(unb.Mcr > 0) || !shb.converged || !unb.converged) return null;
@@ -7930,11 +8127,12 @@ function wire(){
         }).filter(function (d) { return d; });
         var plS = ulG.pointLoads.filter(function (q) { return q.x > xa + 1e-9 && q.x < xb - 1e-9; })
           .map(function (q) { return { x: q.x - xa, P: q.P, zg: q.zg || 0 }; });
+        var cplS = ulG.couples.filter(function (x) { return x > xa + 1e-9 && x < xb - 1e-9; }).map(function (x) { return x - xa; });
         var seg = { a: xa, b: xb, ok: false };
         try {
           var rsS = mcrEigen({ E: a.E, G: G_STEEL, Iz: spG.Iz, It: spG.It, Iw: spG.Iw, L: Ls, zj: zjG,
             restraints: [{ x: 0 }, { x: Ls }], moment: (function (x0) { return function (x) { return MfunG(x0 + x); }; })(xa),
-            distLoads: dlS, pointLoads: plS, nElem: 32, refine: true });
+            distLoads: dlS, pointLoads: plS, couplePositions: cplS, nElem: 32, refine: true });
           var MsS = 0; for (var ii = 0; ii <= 200; ii++) { var mmS = Math.abs(MfunG(xa + Ls * ii / 200)); if (mmS > MsS) MsS = mmS; }
           var lamSg = Math.sqrt(Wy * fy / rsS.Mcr);
           var chiSg = 1;
@@ -8270,6 +8468,7 @@ function wire(){
       'A lateral cantilever (U<sub>y</sub> held at one end only) needs R<sub>z</sub> and R<sub>x</sub> at that end, or the lateral stiffness matrix is singular.</div>';
     host.parentNode.insertBefore(div, host.nextSibling);
     document.getElementById('addLtbRestraint').addEventListener('click', function () {
+      if (!S.ltbRestraints) S.ltbRestraints = [];   // a state built without the field (an older fixture) - DEMO carries it since the 19 Sep 2026 review
       S.ltbRestraints.push({ pos: (S.L / 2).toFixed(3), v: true, phi: true, vp: false, phip: false });
       renderLtbRestraintList(); recompute();
     });

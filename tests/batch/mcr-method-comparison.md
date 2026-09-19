@@ -45,13 +45,17 @@
 - **F3 (closed by the scope change):** overhang layouts on the closed-form route left with the multi-span scope.
 - **F4 (open, information):** UB-44 and ZG-02 print a closed-form M<sub>cr</sub> 32-43 % above the eigenvalue when
   C<sub>2</sub> is not published; the verdict is blocked, the printed number should be read with the block.
-- **F-A, F-B, F-D, F-E (open, this campaign):** see tests/batch/README.md "Findings": the End 2 web-bearing station
-  moment (viii-Mend, unconservative on the 7.2 interaction at End 2), the vanishing-bimoment mesh measure (TOR-07),
-  the in-span couple off a mesh node (UB-57), the box-cantilever mesh error at the 0.5 % limit (RHS-07).
-- **F-C (open, this campaign, unconservative):** the standard (closed-form) route evaluates SN003a with fork ends for
-  any end flag set. For an end releasing R<sub>x</sub> or U<sub>y</sub> (CUS-05/06/07/12) the closed form is 1.5-2.4
-  times the eigenvalue and the standard verdict is PASS at 0.50 where the eigen verdict is 0.90. Recommendation: the
-  closed-form route should require U<sub>y</sub> + R<sub>x</sub> at both ends (or a cantilever for SN006a) and otherwise
-  print NOT VERIFIED with a message naming the released flag, as it does for an unpublished C<sub>2</sub>; clamped and
-  warping-fixed ends may keep k = k<sub>w</sub> = 1 (conservative) or take the SN003a 0.5 factors (1.8 % below the
-  eigen ratio, HC-23).
+- **F-A, F-B, F-D (corrected by the 19 Sep 2026 review fixes), F-E (open):** see tests/batch/README.md "Findings":
+  the End 2 web-bearing station moment (viii-Mend, 71 runs -> 0), the vanishing-bimoment mesh measure (TOR-07 PASS),
+  the in-span couple off a mesh node (UB-57 PASS); the box-cantilever mesh error at the 0.5 % limit (RHS-07) stays open.
+- **F-C (corrected by the 19 Sep 2026 review fixes):** the standard (closed-form) route evaluated SN003a with fork ends
+  for any end flag set. For an end releasing R<sub>x</sub> or U<sub>y</sub> (CUS-05/06/07/11/12) the closed form is
+  1.5-2.4 times the eigenvalue and the standard verdict was PASS at 0.50 where the eigen verdict is 0.90. The route now
+  requires U<sub>y</sub> + R<sub>x</sub> at both ends (or the SN006a cantilever: root U<sub>y</sub> + R<sub>z</sub> +
+  R<sub>x</sub>, free tip; a square hollow section is exempt by cl 6.3.2.1(2)) and otherwise prints NOT VERIFIED with a
+  message naming the released flag (the fork-ended chain still printed), as it does for an unpublished C<sub>2</sub>;
+  the eigen route's comparison value is "not applicable" for those ends (no ratio); clamped and warping-fixed ends keep
+  k = k<sub>w</sub> = 1 (conservative, stated in the basis and as an advisory; the SN003a 0.5 factors are 1.8 % below the
+  eigen ratio, HC-23). The standard runs of CUS-05/06/07/11/12, PFC-26 and RHS-07 (channel / box cantilevers) are now
+  NOT VERIFIED; a cantilever with a laterally / torsionally restrained tip or a twist-free root is refused on the
+  SN006a route too (`isSn006aCantilever`).

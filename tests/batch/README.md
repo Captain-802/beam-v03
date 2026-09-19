@@ -21,21 +21,26 @@ layouts). The ids and inputs of the cases pinned by `tests/campaign.test.cjs`
 (WEB, UPL, TFB, HSV, TOR, AEF, BIX, UB-04/19/27/40/43/45/49/51/52) are
 unchanged from the 19 Sep 2026 campaign.
 
-**Current run (2026-09-19, Node v24.14.1, 57 s):** PASS 352 | FAIL 82 |
-NOT VERIFIED 31 | ERROR 0 (465 member runs); the 14 ERR layouts threw the
-declared message (0 failed). Cross-check mismatches: **71 runs, every one the
-viii-Mend finding** (the web-bearing station at a fixed End 2 reads
-M<sub>Ed</sub> = 0, see "Findings" below) and none of any other check:
-i-Mmax / i-dmax / i-Rend 352/352 each, i-Mend 243/243, ii-equilibrium,
-vi-governing and vii-uplift 465/465, viii-FRd 461/461, iii-McrStd 333/333,
+**Current run (2026-09-19, Node v24.14.1, 54 s, after the review fixes of the
+same day):** PASS 348 | FAIL 82 | NOT VERIFIED 35 | ERROR 0 (465 member runs);
+the 14 ERR layouts threw the declared message (0 failed). Cross-check
+mismatches: **0** - i-Mmax / i-dmax / i-Rend 352/352 each, i-Mend 243/243,
+viii-Mend 268/268 (was 71 mismatches: finding F-A, corrected), ii-equilibrium,
+vi-governing and vii-uplift 465/465, viii-FRd 461/461, iii-McrStd 327/327
+(the closed form is no longer evaluated for the six refused end sets),
 iii-zgBlock 152/152, v-MbRd&le;McRd 400/400, ix-Aeff 25/25, x-NbT 11/11,
 xi-kcFloor 150/150, xii-MVN 5/5, xiii-torsionFE 11/11, xv-MvRd 8/8,
 xvi-McrPair 6/6, xvii-cantSN006a 16 recorded, err-throws 14/14. iv-McrRatio:
-54 same-segment outliers flagged, each with its reason in `results.md`; 7 of
-them have the closed form on the unconservative side (see finding F-C).
-Trigger mismatches 0. Hand checks (`hand-checks.md`): 59 quantities over 24
-cases, 56 within 0.01 %, the three above 1 % expected and explained (one
-engine finding, one method difference).
+46 same-segment outliers flagged (was 54: the released-end cases no longer
+carry a closed-form value), each with its reason in `results.md`; none of them
+has the closed form on the unconservative side of a PASS (finding F-C,
+corrected: those runs are NOT VERIFIED on the standard route). Verdict changes
+against the first run of this library: UB-57 (eigen) and TOR-07 (both routes)
+NOT VERIFIED -> PASS (F-D, F-B corrected); CUS-05/06/07/11/12, PFC-26 and
+RHS-07 standard PASS -> NOT VERIFIED (F-C: an end releasing U<sub>y</sub> or
+R<sub>x</sub>, a channel / box cantilever). Trigger mismatches 0. Hand checks
+(`hand-checks.md`): 59 quantities over 24 cases, 57 within 0.01 %, the two
+above 1 % expected and explained (the SN003a k = 0.5 method difference).
 
 ## Files
 
@@ -154,9 +159,11 @@ clamped ends, k<sub>w</sub> = 1 for warping-fixed ends, SN006a blocked outside
 its tables, the channel &kappa; chain) is the conservative MasterSeries-type
 answer; the per-group and per-family tables are in `results.md`.
 
-## Findings of this campaign (engine, not corrected here)
+## Findings of this campaign (engine; F-A .. F-D corrected by the 19 Sep 2026 review fixes, AUDIT.md "19 Sep 2026 review fixes: end conditions of the closed-form routes"; F-E open)
 
-- **F-A (viii-Mend, HC-17c; unconservative at End 2):** `webTransverseCheck()`
+- **F-A (viii-Mend, HC-17c; unconservative at End 2) - corrected:** the end
+  stations now read the diagram at x = 1e-4 / L - 1e-4 mm (grid points of
+  `sfdBmd`), viii-Mend 268/268. As found: `webTransverseCheck()`
   (js/checks/eurocode-checks.js) reads the station moment of every combination
   with `interpAt(res.fb.xs, res.fb.M, s.x)` exactly at the station. At x = L
   the diagram grid closes to zero beyond the end reaction moment (the last two
@@ -170,7 +177,10 @@ answer; the per-group and per-family tables are in `results.md`.
   (`s.x >= L - tol ? s.x - 1e-4 : s.x`), as `analyse()` does for M<sub>Lend</sub>.
   71 runs flagged (every fixed-fixed member on both routes, HSV-08, WEB-09,
   the fixed-fixed AX / MZ / RES / ZG / HNG / TOR-08 cases, CUS-09).
-- **F-B (TOR-07, HC-21c; blocks a valid PASS):** `warpingTorsionFE()`
+- **F-B (TOR-07, HC-21c; blocks a valid PASS) - corrected:** each part of the
+  mesh measure is normalised by max(its fine-mesh peak, 1e-3 x its physical
+  scale from the peak torque); TOR-07 converges (6.5e-6) and PASSes. As found:
+  `warpingTorsionFE()`
   (js/checks/torsion-fe.js) takes the mesh error as the largest relative change
   of max|&phi;|, max|&phi;&prime;| and max|B| between the 120- and 240-element
   meshes. A cantilever with the root warping FREE under a tip torque is pure
@@ -179,8 +189,14 @@ answer; the per-group and per-family tables are in `results.md`.
   4.5) and its relative change (43 %) blocks PASS as "mesh has not converged".
   Fix: normalise the bimoment part by a physical scale (max(T<sub>max</sub>&middot;a,
   max|B|)) or ignore it when max|B| is below 1e-6 of that scale.
-- **F-C (iv-McrRatio; standard route unconservative for non-fork end flags):**
-  the closed-form route evaluates the SN003a form with k = k<sub>w</sub> = 1
+- **F-C (iv-McrRatio; standard route unconservative for non-fork end flags) -
+  corrected:** `stdMcrEndsStatus()` refuses (NOT VERIFIED, message naming the
+  released flag, the fork-ended chain still printed) every end set that is not
+  fork-fork or the SN006a cantilever (`isSn006aCantilever`: root U<sub>y</sub> +
+  R<sub>z</sub> + R<sub>x</sub>, free tip; square hollow sections exempt);
+  clamped / warping-fixed ends are taken as forks with the conservative note;
+  the eigen comparison prints "not applicable" instead of a ratio. As found:
+  the closed-form route evaluated the SN003a form with k = k<sub>w</sub> = 1
   (fork ends at both ends) for any end flag set. For an end that releases
   R<sub>x</sub> (CUS-05) or U<sub>y</sub> + R<sub>x</sub> (the lateral
   cantilevers CUS-06, CUS-07, CUS-12) the eigenvalue is 0.41-0.68 of the
@@ -190,7 +206,9 @@ answer; the per-group and per-family tables are in `results.md`.
   an unpublished C<sub>2</sub>; the eigen route covers them. (Clamped and
   warping-fixed ends are on the conservative side of the closed form: ratios
   1.3-2.9, F-C does not concern them.)
-- **F-D (UB-57; eigen mesh error 2.3 % at an in-span couple):** `mcrOnce()`
+- **F-D (UB-57; eigen mesh error 2.3 % at an in-span couple) - corrected:** the
+  couple positions are forced mesh nodes (and part of the eigen cache key);
+  UB-57 converges (2.6e-6) and PASSes. As found: `mcrOnce()`
   (js/08-mcr-eigen-patch.js) forces mesh nodes at the restraints, the point
   loads and the ends of the distributed loads but not at an applied couple, so
   a couple that does not fall on a node (2 m of 5 m with 32 elements) puts the

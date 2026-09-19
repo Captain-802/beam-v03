@@ -12,10 +12,12 @@
    the same steps in prose.
 
    Usage:  node tests/batch/hand-checks.cjs        (prints the table)
-   A difference above 1 % is a finding (printed as such, exit code 1). Two
-   findings are expected and explained in hand-checks.md: HC-17c (the web
-   station at a fixed End 2 reads M = 0: engine finding) and HC-23 (the
+   A difference above 1 % is a finding (printed as such, exit code 1). One
+   finding is expected and explained in hand-checks.md: HC-23 (the
    eigenvalue against the SN003a k = 0.5 factor, a method difference).
+   HC-17c (the web station at a fixed End 2 read M = 0) and HC-21c (the
+   vanishing-bimoment mesh measure) were engine findings F-A / F-B, corrected
+   by the 19 Sep 2026 review fixes: both now agree.
    =========================================================================== */
 const { app } = require('../harness.cjs');
 const { cases } = require('./cases.cjs');
@@ -323,8 +325,9 @@ log('\nHC-12  WEB-06  F_Rd two webs + lever rule, RHS 250x150x6.3, e = 40, s_s =
    HC-17  WEB-09  UB 533x210x92, 6 m FIXED-FIXED, UDL 30 G + 40 Q, end reactions on s_s = 40 (WEB-04 with fixed ends)
    F_Rd is the same type (c) value as HC-10 (301.0 kN) and R = wL/2 is the same (305.16 kN); what changes is the 7.2
    interaction: eta_1 = M_Ed/M_c,Rd at the station with M_Ed = the hogging end moment wL^2/12, M_c,Rd = W_pl f_y
-   (S_x 2360 cm3, t_f 15.6 -> 275): (eta_2 + 0.8 eta_1)/1.4 at BOTH ends. Engine finding: the End 2 station samples the
-   diagram exactly at x = L where the grid closes to zero beyond the end reaction moment, so eta_1(End 2) = 0.
+   (S_x 2360 cm3, t_f 15.6 -> 275): (eta_2 + 0.8 eta_1)/1.4 at BOTH ends. Former engine finding F-A (corrected): the End 2
+   station sampled the diagram exactly at x = L where the grid closes to zero beyond the end reaction moment, so
+   eta_1(End 2) was 0; the end stations now read the diagram a fraction inside the member (x = L - 1e-4 mm).
    --------------------------------------------------------------------------- */
 log('\nHC-17  WEB-09  web bearing at a FIXED end reaction: F_Rd, R and the 7.2 interaction at both ends');
 {
@@ -336,7 +339,7 @@ log('\nHC-17  WEB-09  web bearing at a FIXED end reaction: F_Rd, R and the 7.2 i
   const e = engine('WEB-09', 'eigen', '(a,c)=>{ const s1=c.web.stations.find(s=>s.n===1), s2=c.web.stations.find(s=>s.n===2); const k1=s1.cases[s1.g72], k2=s2.cases[s2.g72]; return {FRd:s1.FRdTot,F:s1.F,u1:s1.u72,u2:s2.u72,M1:k1.M,M2:k2.M,eta1a:k1.eta1,eta1b:k2.eta1,Mr1:Math.abs(a.reactions[0].M)/1e6,Mr2:Math.abs(a.reactions[1].M)/1e6}; }');
   record('HC-17', 'WEB-09 F_Rd type (c) at the fixed end, s_s = 40', r.FRd, e.FRd, 'kN');
   record('HC-17b', 'WEB-09 7.2 interaction (eta_2 + 0.8 eta_1)/1.4 at End 1 with M_Ed = wL^2/12', u72, e.u1, '-', 'engine M_Ed at the End 1 station ' + e.M1.toFixed(2) + ' = reaction moment ' + e.Mr1.toFixed(2));
-  record('HC-17c', 'WEB-09 7.2 interaction at End 2 (engine finding: the station reads M = 0)', u72, e.u2, '-', 'engine M_Ed at the End 2 station ' + e.M2.toFixed(2) + ' vs the reaction moment ' + e.Mr2.toFixed(2) + ' kN.m', true);
+  record('HC-17c', 'WEB-09 7.2 interaction at End 2 with M_Ed = wL^2/12 (finding F-A corrected)', u72, e.u2, '-', 'engine M_Ed at the End 2 station ' + e.M2.toFixed(2) + ' = reaction moment ' + e.Mr2.toFixed(2) + ' kN.m');
 }
 
 /* ===========================================================================
@@ -522,7 +525,7 @@ log('\nHC-21  UB-49 / TOR-07  warping-torsion cantilever: tip twist and root bim
   record('HC-21', 'UB-49 cantilever tip twist phi(L), tip torque, root warping fixed', phi, e.phi, 'rad', 'mesh error ' + e.mesh.toExponential(2));
   record('HC-21b', 'UB-49 root bimoment B(0) = T a tanh(L/a)', B0 / 1e9, e.B, 'kN.m2');
   const f = engine('TOR-07', 'eigen', '(a,c)=>({phi:c.tor.phiUmax, B:c.tor.BMax, mesh:c.tor.meshError, Tt:c.tor.TtEnds[0], blocked:c.unsupported.some(m=>/mesh has not converged/.test(m))})');
-  record('HC-21c', 'TOR-07 cantilever tip twist, root warping FREE: phi(L) = TL/GI_T (St Venant)', phiFree, f.phi, 'rad', `B_max ${f.B.toExponential(2)} kN.m2 (noise), root T_t ${f.Tt.toFixed(4)} kN.m = T; engine mesh measure ${(f.mesh * 100).toFixed(1)} % blocks PASS: ${f.blocked} (finding: the relative change of a vanishing bimoment)`);
+  record('HC-21c', 'TOR-07 cantilever tip twist, root warping FREE: phi(L) = TL/GI_T (St Venant)', phiFree, f.phi, 'rad', `B_max ${f.B.toExponential(2)} kN.m2 (round-off), root T_t ${f.Tt.toFixed(4)} kN.m = T; engine mesh measure ${(f.mesh * 100).toExponential(2)} %, PASS blocked: ${f.blocked} (finding F-B corrected: the bimoment part is normalised by max(|B|max, 1e-3 T_max min(a, L)))`);
 }
 
 /* ---------------------------------------------------------------------------

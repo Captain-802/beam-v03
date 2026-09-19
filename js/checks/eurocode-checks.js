@@ -570,12 +570,22 @@ function webTransverseCheck(a,sec,fy,eps,cl){
       comboLoadPieces(res.combo).forEach(p=>{ if(p.type==='point' && Math.abs(p.pos-s.x)<=tol) P+=p.P*p.factor; });
       const R= s.support? Math.max(res.r.reactions[s.support.i].V/1000,0) : 0;
       const F= kind==='both'? Math.max(Math.abs(P),R) : kind==='load'? Math.abs(P) : R;
-      const Ms=interpAt(res.fb.xs,res.fb.M,s.x)/1e6;
+      // M_Ed at the station: an end station reads the diagram a fraction
+      // inside the member (x = 1e-4 mm, a grid point of sfdBmd, as analyse()
+      // does for M0end / MLend) - the reaction couple of a fixed / guided end
+      // is inside it, whereas sfdBmd closes the diagram to zero at x = L
+      // beyond the End 2 reaction couple, so a sample exactly at the station
+      // dropped the hogging end moment from the 7.2 interaction (19 Sep 2026
+      // review finding F-A); an interior station reads the larger-magnitude
+      // side of a jump (mAtStation: an applied couple at the same x)
+      const xEnd= s.x<=tol? 1e-4 : s.x>=L-tol? L-1e-4 : null;
+      const Ms=(xEnd!=null? interpAt(res.fb.xs,res.fb.M,xEnd) : mAtStation(res.fb,s.x,0,L))/1e6;
       const M=Math.abs(Ms);
       const flange= kind==='support'? 'bottom' : (P>=0? 'top' : 'bottom');
       // is the loaded flange the compression flange (7.2(1)) - a "both" station loads both flanges,
-      // and a station without a coincident moment (simply supported end) has no tension flange
-      const noM = M<1e-6;
+      // and a station without a coincident moment (simply supported end: the sample a fraction
+      // inside the member is R x 1e-4 mm, negligible against the diagram peak) has no tension flange
+      const noM = M<1e-5*Math.max(Math.abs(res.Mmax)/1e6,1e-9);
       const flangeComp= kind==='both'? true : noM? true : (flange==='top'? Ms>1e-9 : Ms<-1e-9);
       const flangeState= kind==='both'? 'load through the web' : noM? 'no coincident moment' : (flangeComp? 'in compression' : 'in tension');
       const eta2=F*share/Math.max(gov.FRd,1e-9);
@@ -1396,12 +1406,63 @@ function mcrSN006aFor(a,sec,factors,zg){
   }
   return {Mcr0,kwt,hs,eta,za,warp,caseLbl,C,Cq,CF,Mq,MF,Mcr:(C==null? null : C*Mcr0),reason};
 }
+// ---- End conditions the closed-form Mcr chain can describe (pure, reads S.ends) ----
+// The SN003a form (and the channel kappa chain and the box chain with I_w = 0)
+// takes k = k_w = 1: FORK ends - U_y (lateral translation) and R_x (twist)
+// held - at BOTH ends. NCCI SN006a describes the cantilever of
+// isSn006aCantilever() (root U_y + R_z + R_x, free tip), doubly symmetric
+// I/H only. A square hollow section is not susceptible to LTB whatever its
+// ends (cl 6.3.2.1(2)). Every other end flag set is refused on the standard
+// route (19 Sep 2026 review finding F-C: an end releasing R_x or U_y was
+// given the fork-fork closed form, 0.41-0.68 of the eigenvalue), the printed
+// chain still assuming fork ends; the FE eigen route models the flags.
+// Laterally clamped (R_z) and warping-fixed ends raise M_cr; taking them as
+// forks is conservative and is stated (the SN003a k = 0.5 rows are not
+// applied). Returns {ok, sn006, msg (HTML, blocking when !ok), note (HTML,
+// advisory), ends (HTML list of the released DOFs)}.
+function stdMcrEndsStatus(st,sec){
+  st=st||S;
+  const ends=endsList(st);
+  const sym={uy:'U<sub>y</sub>',rx:'R<sub>x</sub>',rz:'R<sub>z</sub>',warp:'warping'};
+  const releases=e=>['uy','rx'].filter(k=>!e[k]).map(k=>sym[k]);
+  const holds=e=>['uy','rx','rz','warp'].filter(k=>e[k]).map(k=>sym[k]);
+  const cant=isCantilever(st);
+  const useMcr='Use the FE eigenvalue M<sub>cr</sub> method (Axial &amp; lateral-torsional buckling), which models the end degrees of freedom; PASS is blocked on the standard route.';
+  if(cant && sec && sec.kind==='I'){
+    if(isSn006aCantilever(st)) return {ok:true, sn006:true, msg:null, note:null, ends:''};
+    const [e1,e2]=ends;
+    const rootTxt=releases(e1).length? 'End 1 (root) releases '+releases(e1).join(', ')+(e1.rz? '' : (releases(e1).length? ' and ' : 'releases ')+sym.rz) : (e1.rz? '' : 'End 1 (root) releases '+sym.rz);
+    const tipTxt=holds(e2).length? 'End 2 (tip) restrains '+holds(e2).join(', ') : '';
+    const desc=[rootTxt,tipTxt].filter(Boolean).join('; ');
+    return {ok:false, sn006:false, kind:'sn006', ends:desc,
+      msg:'Cantilever LTB on the standard route: NCCI SN006a (Tables 3.1&ndash;3.3) describes a cantilever whose root holds U<sub>y</sub>, R<sub>z</sub> and R<sub>x</sub> (v = v&prime; = &phi; = 0, warping restrained or free) and whose tip is free of every lateral restraint; here '+desc+', which the tables do not cover. '+useMcr,
+      note:null};
+  }
+  if(sec && sec.isBox && st.family==='shs') return {ok:true, sn006:false, msg:null, note:null, ends:''};
+  const bad=ends.filter(e=>!(e.uy&&e.rx));
+  if(bad.length){
+    const desc=bad.map(e=>'End '+e.n+' releases '+releases(e).join(' and ')).join('; ');
+    return {ok:false, sn006:false, kind:'fork', ends:desc,
+      msg:'Standard (closed-form) M<sub>cr</sub> for LTB: the SN003a form'+(sec&&sec.kind==='channel'? ' and the P385/P362 channel &kappa; chain assume' : ' assumes')+' fork ends &mdash; U<sub>y</sub> (lateral translation) and R<sub>x</sub> (twist) held &mdash; at both ends (k = k<sub>w</sub> = 1); here '+desc+'. The chain printed below assumes fork ends and would be unconservative for these end conditions. '+useMcr,
+      note:null};
+  }
+  const clamped=ends.filter(e=>e.rz).map(e=>'End '+e.n), warped=ends.filter(e=>e.warp).map(e=>'End '+e.n);
+  let note=null;
+  if(clamped.length||warped.length){
+    const parts=[];
+    if(clamped.length) parts.push('laterally clamped end'+(clamped.length>1?'s':'')+' (R<sub>z</sub> held at '+clamped.join(' and ')+')');
+    if(warped.length) parts.push('warping-fixed end'+(warped.length>1?'s':'')+' ('+warped.join(' and ')+')');
+    note='Standard (closed-form) M<sub>cr</sub>: '+parts.join(' and ')+' taken as fork end'+(clamped.length+warped.length>1?'s':'')+', k = k<sub>w</sub> = 1 (conservative: the SN003a k = 0.5 / k<sub>w</sub> = 0.5 rows are not applied; the FE eigen route uses v&prime; = 0 / &phi;&prime; = 0 and gives the higher M<sub>cr</sub>).';
+  }
+  return {ok:true, sn006:false, msg:null, note, ends:''};
+}
 // ---- Standard (closed-form) Mcr for one segment, pure ----
 // Used by the eigen method for the "Mcr eigen / Mcr standard" comparison (no
 // eigen solve needed) and by the report. Cantilever (I/H) -> SN006a; otherwise
 // the SN003a form with C1 from sn003aC1 over the segment, LE = LE-factor
 // (x1.2 if destabilising) x segment length, z_g = the load height of the
-// combination (stdZgFor) with C2 where published.
+// combination (stdZgFor) with C2 where published. End flag sets the closed
+// form cannot describe (stdMcrEndsStatus) return Mcr = null with the reason.
 // `diag` = {fb, factors} selects the combination whose diagram and loads the
 // value describes (default a.governM), so the eigen method can pass its own
 // LTB-governing combination and get a sign-consistent comparison.
@@ -1413,7 +1474,12 @@ function mcrStandardFor(a,sec,seg,diag){
   const fb=(diag&&diag.fb)||a.governM.fb;
   const fac=(diag&&diag.combo)||((diag&&diag.factors)? {factors:diag.factors} : a.governM.combo);   // combination (pattern-aware)
   const zgi=stdZgFor(fac);
-  if(isCant && sec.kind==='I'){
+  const es=stdMcrEndsStatus(S,sec);
+  if(!es.ok){
+    return {route:'unsupported', Mcr:null, C1:null, C2:null, label:'closed form not applicable to these end conditions ('+es.ends+'; '+(es.kind==='sn006'? 'SN006a needs a root holding U<sub>y</sub>, R<sub>z</sub>, R<sub>x</sub> and a free tip' : 'the SN003a form needs fork ends U<sub>y</sub> + R<sub>x</sub> at both ends')+')',
+      c1in:c1Inputs(fb,seg.xa,seg.xb), seg, LE:null, endsMsg:es.msg, zg:zgi.zg, zgSource:zgi.source, zgUsed:false, zgNote:'', zgBlocked:false};
+  }
+  if(es.sn006){
     const r=mcrSN006aFor(a,sec,fac,zgi.zg);
     const c1in=c1Inputs(fb,seg.xa,seg.xb);
     return {route:'sn006a', Mcr:(r.Mcr!=null? r.Mcr/1e6 : null), C1:r.C, C2:null,
@@ -1425,8 +1491,9 @@ function mcrStandardFor(a,sec,seg,diag){
   const cf=mcrClosedForm(sec,a.E,LE,c1r.C1,c1r.C2,zgi.zg);
   const zs=stdZgStatus(zgi.zg,c1r.C2,cf.zgUsed);
   const route= sec.kind==='channel'? 'channel' : c1r.route;
-  return {route, Mcr:cf.Mcr/1e6, C1:c1r.C1, C2:c1r.C2, label:c1r.label, c1in:c1r.c1in, seg, LE,
-    T1:cf.T1/1e3, zg:zgi.zg, zgSource:zgi.source, zgUsed:cf.zgUsed, zgNote:zs.text, zgBlocked:!!zs.block};
+  const endsTag= es.note? ' [k = k<sub>w</sub> = 1: clamped / warping-fixed end(s) taken as forks]' : '';
+  return {route, Mcr:cf.Mcr/1e6, C1:c1r.C1, C2:c1r.C2, label:c1r.label+endsTag, c1in:c1r.c1in, seg, LE,
+    T1:cf.T1/1e3, zg:zgi.zg, zgSource:zgi.source, zgUsed:cf.zgUsed, zgNote:zs.text, zgBlocked:!!zs.block, endsNote:es.note};
 }
 
 function checksEC3UnrestrainedSCI(a){
@@ -1450,6 +1517,12 @@ function checksEC3UnrestrainedSCI(a){
   const advisory=(b.advisory||[]).slice();
   const Wy=b.Wy;
   const isCant=isCantilever(S);
+  // End conditions the closed form can describe (19 Sep 2026 review finding
+  // F-C): fork ends U_y + R_x at both ends, or the SN006a cantilever of
+  // isSn006aCantilever() for an I/H section; anything else is NOT VERIFIED
+  // on this route (message below, the fork-ended chain still printed), a
+  // clamped / warping-fixed end is taken as a fork and said so.
+  const endsStd=stdMcrEndsStatus(S,sec);
   const LE=ltbLeFactor()*(S.destab?1.2:1)*a.L;
   const gfac=a.governM.combo;     // governing-moment combination (pattern-aware load list)
   const c1r=sn003aC1(a,isCant);   // whole member: the closed form treats the member as one segment
@@ -1487,8 +1560,11 @@ function checksEC3UnrestrainedSCI(a){
     ltb={na:sB.ign, box:true, T1:cf.T1/1e3, GIt:cf.GIt/1e9, Mcr:Mcr/1e6, lamLTmcr:lamLT, ignM:sB.ign,
       PhiM:sB.Phi, chiM:sB.chi, fM:sB.f, chiModM:sB.chiMod, curve, kc, kcRaw:kcr.kcRaw, kcFloored:kcr.floored, invSqrtC1,
       zg:zgStd, C2:c1r.C2, zgUsed:cf.zgUsed, MbSimp:Mb, MbMcr:Mb, MbRd:Mb};
-  } else if(isCant && sec.kind==='I'){
-    // NCCI SN006a-EN-EU cantilever path (doubly symmetric I/H): see mcrSN006aFor().
+  } else if(endsStd.sn006){
+    // NCCI SN006a-EN-EU cantilever path (doubly symmetric I/H, root U_y + R_z +
+    // R_x, free tip - isSn006aCantilever): see mcrSN006aFor(). An I/H
+    // cantilever with other lateral flags falls through to the fork-ended
+    // chain below and is refused by endsStd (NOT VERIFIED).
     const sn=mcrSN006aFor(a,sec,gfac,zgStd);
     const {Mcr0,kwt,eta,warp,caseLbl,C,Cq,CF,Mq,MF}=sn;
     zgs={text:'z<sub>g</sub> = '+(zgStd>0?'+':'')+zgStd.toFixed(0)+' mm through &eta; = z<sub>g</sub>/(h<sub>s</sub>/2) = '+eta.toFixed(2)+' (SN006a)', block:null, advisory:null};
@@ -1588,6 +1664,10 @@ function checksEC3UnrestrainedSCI(a){
   ltb.zgBlocked=!!(zgs&&zgs.block);
   if(zgs&&zgs.block) unsupported.push(zgs.block);
   if(zgs&&zgs.advisory) advisory.push(zgs.advisory);
+  // ---- end conditions of the closed form (always recorded; may block PASS) ----
+  ltb.endsOk=endsStd.ok; ltb.endsMsg=endsStd.msg; ltb.endsNote=endsStd.note;
+  if(!endsStd.ok) unsupported.push(endsStd.msg);
+  if(endsStd.note) advisory.push(endsStd.note);
   // ---- method tags and the MasterSeries-style C1 inputs (M1, M2, Mo, psi, mu) ----
   // The closed form derives C1 from the WHOLE member, so the printed inputs are
   // the whole-member values (segment 0..L); the eigen method fills the same
@@ -1620,6 +1700,9 @@ function checksEC3UnrestrainedSCI(a){
   } else {
     ltbBasis = 'M<sub>cr</sub> method (SN003a closed form, k = k<sub>w</sub> = 1, G = 81000 N/mm&sup2;'+(ltb.zgUsed? ', C<sub>2</sub>z<sub>g</sub> load-height term' : '')+'): &lambda;&#772;<sub>LT</sub> = &radic;(W<sub>y</sub>f<sub>y</sub>/M<sub>cr</sub>) = '+ltb.lamLTmcr.toFixed(3)+', &chi;<sub>LT,mod</sub> from cl 6.3.2.3 curve '+curve.curve+' with k<sub>c</sub> = 1/&radic;C<sub>1</sub> (NA 2.18); M<sub>b,Rd</sub> = &chi;<sub>LT,mod</sub>W<sub>y</sub>f<sub>y</sub>/&gamma;<sub>M1</sub> &le; M<sub>c,Rd</sub>. The P362 Expn 6.55 simplified slenderness (&lambda;&#772;<sub>LT</sub> = '+ltb.lamLTsimp.toFixed(3)+', M<sub>b,Rd</sub> = '+ltb.MbSimp.toFixed(1)+' kN&middot;m) is printed for comparison only';
   }
+  // end conditions of the closed form: fork ends assumed (a released end is NOT VERIFIED), clamped / warping-fixed ends taken as forks
+  if(!endsStd.ok) ltbBasis+='. NOT VERIFIED: the closed form assumes fork ends (U<sub>y</sub> + R<sub>x</sub> at both ends'+(isCant? ', or the SN006a cantilever root / free tip' : '')+') and '+endsStd.ends+' &mdash; use the FE eigenvalue method';
+  else if(endsStd.note) ltbBasis+='. Clamped / warping-fixed end(s) taken as fork ends, k = k<sub>w</sub> = 1 (conservative)';
   // ---- BS EN 1993-6 Annex A: LTB + minor-axis bending + torsion interaction (P385 6.2/8.2) ----
   let annex=null;
   if(b.tor && b.tor.p385 && !ltb.na){

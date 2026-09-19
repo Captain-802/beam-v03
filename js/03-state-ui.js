@@ -89,6 +89,16 @@ function endsToSupports(st){
 function verticalEnds(st){ return endsToSupports(st).map((sp,i)=>Object.assign({i},sp)).filter(sp=>sp.type!=='guided'); }
 /* In-plane cantilever: End 1 fixed (U_z + R_y), End 2 free of both. */
 function isCantilever(st){ const [e1,e2]=endsList(st); return !!(e1.uz&&e1.ry&&!e2.uz&&!e2.ry); }
+/* The cantilever NCCI SN006a Tables 3.1-3.3 describe (pure): an in-plane
+   cantilever whose root (End 1) also holds U_y, R_z and R_x (v = v' = phi = 0;
+   the root warping flag selects the "warping restrained / free" column) and
+   whose tip (End 2) is free of every lateral restraint (no U_y, R_x, R_z or
+   warping). A cantilever with a laterally / torsionally restrained tip, or a
+   root that releases R_x or R_z, is outside the tables (19 Sep 2026 review). */
+function isSn006aCantilever(st){
+  const [e1,e2]=endsList(st);
+  return isCantilever(st) && !!(e1.uy&&e1.rz&&e1.rx) && !(e2.uy||e2.rx||e2.rz||e2.warp);
+}
 /* An end that is free vertically (cantilever tip, guided tip): the deflection
    limit is L/divisorCant instead of span/divisor. */
 function hasFreeVerticalEnd(st){ const [e1,e2]=endsList(st); return !(e1.uz&&e2.uz); }
@@ -101,8 +111,10 @@ function ltbEndRestraints(st){
 /* Twist-restrained ends for the torsion models: phi = 0 from R_x, phi' = 0
    from warping. Positions in mm. */
 function twistEnds(st){ return endsList(st).filter(e=>e.rx).map(e=>({end:e.n,pos:e.x*1000,warpFix:!!e.warp})); }
-/* LTB / BS 5950 effective-length factor: the entered L_E/L, else 1.0 (the
-   closed forms take k = k_w = 1 fork ends over the member length). */
+/* EC3 standard-route LTB effective-length factor: the entered L_E/L, else 1.0
+   (the closed forms take k = k_w = 1 fork ends over the member length; the
+   route refuses ends that are not forks - stdMcrEndsStatus). The BS 5950 path
+   takes its L_E from bs5950LtbLength() (Table 13 / 14 by the flags). */
 function ltbLeFactor(st){ st=st||S; return (st.leFactor!=null&&st.leFactor!==''&&Number.isFinite(+st.leFactor))? +st.leFactor : 1.0; }
 /* Strut effective-length factor of one buckling plane from the end fixities
    (SCI P360 Table 6.2 / BS 5950-1 Table 22 style; pure). t1, r1 = translation
@@ -251,6 +263,8 @@ const DEMO={
   restraint:'full',
   mcrMethod:'eigen',   // EC3 unrestrained Mcr: 'eigen' (FE eigensolver, default) | 'standard' (closed form, SN003a/SN006a)
   eccOn:false, za:0,
+  ltbRestraints:[],   // intermediate lateral restraints [{pos (m), v, phi, vp, phip}] of the LTB eigen model (js/08-mcr-eigen-patch.js); present here so that a Reset (S = copy of DEMO) keeps the field the patch expects (19 Sep 2026 review)
+  zj:0, Cmzo:null,    // eigen patch inputs: monosymmetry z_j (0 for every library section) and the verified C_mz override (null = conservative 1.0)
   pfcMirror:false,
   plate:{on:false, side:'bottom', t:10, outL:0, outR:150}
 };

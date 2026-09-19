@@ -106,16 +106,20 @@ function endsStability(st){
       : 'Under-restrained layout (mechanism): the end restraints U<sub>z</sub> / R<sub>y</sub> do not hold the member in its plane.');
   }
   if(e2.uz&&e2.ry&&!e1.uz&&!e1.ry) errs.push('A cantilever must have its root at End 1 (x = 0) and its free tip at End 2 (x = L): mirror the member.');
-  // out-of-plane (LTB eigen / standard route): only when LTB is checked
-  const ltbOn = st.code==='EC3' && (st.restraint||'full')!=='full';
+  // out-of-plane: whenever an LTB check is evaluated - the EC3 unrestrained
+  // routes (eigen / standard) and the BS 5950 path, which always checks LTB
+  // (19 Sep 2026 review: the BS path let a released U_y / R_x pass unvalidated)
+  const ec3=st.code==='EC3';
+  const ltbOn = !ec3 || (st.restraint||'full')!=='full';
   if(ltbOn){
     const forks=[e1,e2].filter(e=>e.uy&&e.rx);
     const lateral=[e1,e2].filter(e=>e.uy);
-    if(!lateral.length) errs.push('Lateral-torsional buckling: neither end restrains lateral translation U<sub>y</sub>; the lateral stiffness matrix is singular. Restrain U<sub>y</sub> (and R<sub>x</sub>) at one end at least, or set the member fully restrained.');
+    const singular= ec3? 'the lateral stiffness matrix of the LTB model is singular' : 'the member has no lateral support for the LTB check (lateral mechanism)';
+    if(!lateral.length) errs.push('Lateral-torsional buckling: neither end restrains lateral translation U<sub>y</sub>; '+singular+'. Restrain U<sub>y</sub> (and R<sub>x</sub>) at one end at least'+(ec3? ', or set the member fully restrained.' : '.'));
     else if(!forks.length) errs.push('Lateral-torsional buckling: no end restrains both U<sub>y</sub> and R<sub>x</sub> (a fork / torsional restraint); the twist mode is unrestrained. Restrain R<sub>x</sub> at an end that holds U<sub>y</sub>.');
     else if(lateral.length===1){
       const e=lateral[0];
-      if(!(e.rz&&e.rx)) errs.push('Lateral-torsional buckling: only End '+e.n+' restrains lateral translation U<sub>y</sub>, so the member is a lateral cantilever; that end must also restrain R<sub>z</sub> (lateral bending) and R<sub>x</sub> (twist), or the lateral stiffness matrix is singular.');
+      if(!(e.rz&&e.rx)) errs.push('Lateral-torsional buckling: only End '+e.n+' restrains lateral translation U<sub>y</sub>, so the member is a lateral cantilever; that end must also restrain R<sub>z</sub> (lateral bending) and R<sub>x</sub> (twist), or '+singular+'.');
       else notes.push('Lateral cantilever: End '+e.n+' is the only end holding U<sub>y</sub>; it restrains R<sub>z</sub> and R<sub>x</sub> and its warping is '+(e.warp? 'restrained (&phi;&prime; = 0)' : 'free')+'; the other end is laterally free.');
     }
     if(!(e1.rx||e2.rx)) errs.push('Lateral-torsional buckling: neither end restrains twist R<sub>x</sub>: torsional mechanism.');

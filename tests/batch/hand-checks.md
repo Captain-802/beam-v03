@@ -9,13 +9,16 @@ of the two expected findings). Constants: E = 210 000 N/mm², G = 81 000 N/mm²
 (SN003a / P385), γ<sub>M0</sub> = γ<sub>M1</sub> = 1.0, self-weight = mass × 9.81/1000
 rounded to 4 decimals as the engine stores it.
 
-Result (2026-09-19, Node 24): 56 of 59 comparisons agree to better than 0.01 %
-(the propped-cantilever deflection maximum to 0.008 %, a sampling effect of the
-120-element grid against the exact station). Three differences above 1 % are
-expected and explained: HC-17c is an **engine finding** (the web-bearing
-station at a fixed End 2 reads M<sub>Ed</sub> = 0), HC-23b / HC-23c are a
-**method difference** (the SN003a k = 0.5 column against the eigenvalue of the
-laterally clamped member, 1.8 % on the ratio).
+Result (2026-09-19, Node 24, after the review fixes of the same day): 57 of 59
+comparisons agree to better than 0.01 % (the propped-cantilever deflection
+maximum to 0.008 %, a sampling effect of the 120-element grid against the
+exact station). The two differences above 1 % are expected and explained:
+HC-23b / HC-23c are a **method difference** (the SN003a k = 0.5 column against
+the eigenvalue of the laterally clamped member, 1.8 % on the ratio). HC-17c
+(the web-bearing station at a fixed End 2 read M<sub>Ed</sub> = 0, finding
+F-A) and the TOR-07 mesh block (finding F-B) were engine findings of the first
+run of this library; both are corrected (AUDIT.md "19 Sep 2026 review fixes:
+end conditions of the closed-form routes") and now agree.
 
 ## A. Statics and deflections of the presets
 
@@ -174,18 +177,21 @@ at a fixed end is the 7.2 interaction, η<sub>2</sub> + 0.8η<sub>1</sub> ≤ 1.
 - η<sub>2</sub> = 305.16/301.0 = 1.0138; M<sub>end</sub> = wL²/12 = 101.720 × 36/12 = 305.16 kN·m; M<sub>c,Rd</sub> = W<sub>pl</sub>f<sub>y</sub> = 2360 × 10³ × 275 = 649.0 kN·m → η<sub>1</sub> = 0.4702
 - (η<sub>2</sub> + 0.8η<sub>1</sub>)/1.4 = **0.9928 at both ends** (the loading and the ends are symmetric)
 
-Engine: End 1 station M<sub>Ed</sub> = 305.16 kN·m = the reaction moment, 0.9928 (0.000 %).
-**End 2 station: M<sub>Ed</sub> = 0.00, η<sub>1</sub> = 0, 0.7242 (−27 %): engine finding.**
-`webTransverseCheck()` samples the combination diagram with `interpAt(fb.xs, fb.M, s.x)`
+Engine: End 1 station M<sub>Ed</sub> = 305.16 kN·m = the reaction moment, 0.9928 (0.000 %);
+End 2 station M<sub>Ed</sub> = 305.16 kN·m, 0.9928 (0.000 %) since the review fix F-A.
+**Before the fix the End 2 station read M<sub>Ed</sub> = 0.00, η<sub>1</sub> = 0, 0.7242 (−27 %): engine finding F-A.**
+`webTransverseCheck()` sampled the combination diagram with `interpAt(fb.xs, fb.M, s.x)`
 exactly at the station; at x = L the grid closes to zero beyond the end reaction
 moment (the last two grid values are −305.16 at 5999.9999 and 0 at 6000), so the
 End 2 station of any member with R<sub>y</sub> held at End 2 loses its η<sub>1</sub>.
 At End 1 the first grid value already carries the reaction moment, so End 1 is
 right. The symmetric library cases still get the correct governing station from
 End 1; an asymmetric member whose larger hogging moment is at End 2 is
-under-checked on the 7.2 interaction. Fix: read the station moment a fraction
-inside the member (`s.x >= L - tol ? s.x - 1e-4 : s.x`), as `analyse()` already
-does for M<sub>Lend</sub>. Batch cross-check viii-Mend flags it on 71 runs.
+under-checked on the 7.2 interaction. Fix applied: the end stations read the
+station moment a fraction inside the member (x = 1e-4 and L − 1e-4 mm, grid
+points of `sfdBmd`), as `analyse()` does for M<sub>Lend</sub>; an interior
+station takes the larger side of a jump (`mAtStation`). Batch cross-check
+viii-Mend flagged 71 runs before the fix and 0 after it.
 
 ## D. Elastic critical moment
 
@@ -277,14 +283,16 @@ EI<sub>w</sub> = 1.9362 × 10¹⁷ N·mm⁴, a = √(EI<sub>w</sub>/GI<sub>T</su
 - root warping fixed (UB-49): φ(L) = (T/GI<sub>T</sub>)[L − a tanh(L/a)] = 4.2817 × 10⁻⁵ × (4000 − 1809.0) = **0.09381 rad**; B(0) = T a tanh(L/a) = **4.3417 kN·m²**
 - root warping free (TOR-07): the solution of EI<sub>w</sub>φ⁗ − GI<sub>T</sub>φ″ = 0 with φ(0) = 0, φ″(0) = 0 (natural), φ″(L) = 0, torque T at L is linear, φ = Tx/GI<sub>T</sub>: pure St Venant, **φ(L) = TL/GI<sub>T</sub> = 0.17127 rad**, B ≡ 0
 
-Engine: 0.0938118 rad, 4.34166 kN·m² (UB-49); 0.171270 rad, B<sub>max</sub> 6.7 × 10⁻⁸ kN·m² (noise), root St Venant torque 2.400 kN·m = T (TOR-07), 0.000 %.
-**TOR-07 finding:** the engine's mesh measure reports 43 % and blocks PASS ("mesh has not converged"):
-`warpingTorsionFE()` takes the largest relative change of max|φ|, max|φ′| and max|B|
+Engine: 0.0938118 rad, 4.34166 kN·m² (UB-49); 0.171270 rad, B<sub>max</sub> 6.7 × 10⁻⁸ kN·m² (round-off), root St Venant torque 2.400 kN·m = T (TOR-07), 0.000 %; mesh measure 6.5 × 10⁻⁶, PASS.
+**TOR-07 finding F-B (corrected):** the engine's mesh measure reported 43 % and blocked PASS ("mesh has not converged"):
+`warpingTorsionFE()` took the largest relative change of max|φ|, max|φ′| and max|B|
 between the 120- and 240-element meshes, and with B being round-off (10⁻⁸ against a
-physical scale T·a ≈ 4.5 kN·m²) the relative change of B is meaningless. Fix: normalise
-the bimoment part by a physical scale (e.g. max(T<sub>max</sub>·a, max|B|)) or drop it when
-max|B| is below 10⁻⁶ of that scale. Every other warping-free case in the library carries
-a distributed torque or a mid-span torque, where B is real and the measure converges.
+physical scale T·a ≈ 4.5 kN·m²) the relative change of B was meaningless. Fix applied:
+each part is normalised by max(its fine-mesh peak, 10⁻³ × its physical scale from the
+peak torque — T<sub>max</sub>L/GI<sub>T</sub>, T<sub>max</sub>/GI<sub>T</sub>, T<sub>max</sub> min(a, L)), so a
+vanishing quantity cannot read as a mesh error while a real one keeps the plain relative
+measure. Every other warping-free case in the library carries a distributed torque or a
+mid-span torque, where B is real and the measure converges as before.
 
 ### HC-22  TOR-05 / UB-51  distributed torques
 
@@ -342,7 +350,7 @@ Engine: 0.125587 rad, 2.772 kN·m, 0.0707132 rad (0.000 %).
 | HC-12 | WEB-06 RHS two-web F<sub>Rd</sub> with the lever-rule share | 258.362 kN | 258.362 kN | +0.000 |
 | HC-17 | WEB-09 F<sub>Rd</sub> type (c) at the fixed end, s<sub>s</sub> = 40 | 301.001 kN | 301.001 kN | +0.000 |
 | HC-17b | WEB-09 7.2 interaction (η<sub>2</sub> + 0.8η<sub>1</sub>)/1.4 at End 1 with M<sub>Ed</sub> = wL²/12 | 0.992839 | 0.992839 | −0.000 |
-| HC-17c | WEB-09 7.2 interaction at End 2 (engine finding: the station reads M = 0) | 0.992839 | 0.724154 | −27.062 (FINDING) |
+| HC-17c | WEB-09 7.2 interaction at End 2 with M<sub>Ed</sub> = wL²/12 (finding F-A corrected) | 0.992839 | 0.992839 | −0.000 |
 | HC-13 | UB-04 standard M<sub>cr</sub>, SS UDL, C<sub>1</sub> 1.127 / C<sub>2</sub> 0.454, z<sub>g</sub> +152 | 80.2349 kN·m | 80.2349 kN·m | +0.000 |
 | HC-14 | UB-45 standard M<sub>cr</sub>, fixed-ended central point load, C<sub>1</sub> 1.683 / C<sub>2</sub> 1.645, z<sub>g</sub> +105 | 189.461 kN·m | 189.461 kN·m | +0.000 |
 | HC-14b | UB-43 standard M<sub>cr</sub>, fixed-ended UDL, C<sub>1</sub> 2.578 / C<sub>2</sub> 1.554, z<sub>g</sub> +203 | 46.0888 kN·m | 46.0888 kN·m | +0.000 |
@@ -366,4 +374,4 @@ Engine: 0.125587 rad, 2.772 kN·m, 0.0707132 rad (0.000 %).
 | HC-22b | TOR-05 root torque mL | 2.77200 kN·m | 2.77200 kN·m | +0.000 |
 | HC-22c | UB-51 mid-span twist, warping-fixed ends | 0.0707132 rad | 0.0707132 rad | −0.000 |
 
-59 comparisons, 3 above 1 % (0 unexpected: HC-17c is the End 2 station finding, HC-23b / HC-23c the SN003a k = 0.5 method difference).
+59 comparisons, 2 above 1 % (0 unexpected: HC-23b / HC-23c, the SN003a k = 0.5 method difference; HC-17c and HC-21c agree since the review fixes F-A / F-B).

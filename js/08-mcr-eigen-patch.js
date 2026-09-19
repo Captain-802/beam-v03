@@ -211,6 +211,10 @@
     rst.forEach(function (r) { forced.push(r.x); });
     pl.forEach(function (q) { forced.push(q.x); });
     dl.forEach(function (q) { forced.push(q.x1); forced.push(q.x2); });
+    /* an applied couple makes M(x) jump; a node there keeps the jump on an
+       element boundary, where the Hermite O(h^4) extrapolation holds (19 Sep
+       2026 review finding F-D: a couple off a node inflated the mesh error) */
+    (p.couplePositions || []).forEach(function (x) { forced.push(x); });
     var nodes = meshNodes(L, forced, nElem), nn = nodes.length, nd = 4 * nn;
 
     function qzg(x) {
@@ -399,15 +403,17 @@
 
   /* Transverse loads of ONE ULS combination, re-signed DOWNWARD
      POSITIVE, each carrying the load-height zg. Moment loads contribute to
-     M(x) but have no load-height term, so they are excluded here.
+     M(x) but have no load-height term, so they are excluded from the load
+     lists; their positions are returned as `couples` so the eigen mesh puts a
+     node at every jump of the moment diagram.
      This deliberately does NOT call comboLoads(), whose sign is inverted. */
   function unitLoadsFor(a, combo) {
     var fac = combo.factors;
-    var dl = [], pl = [];
+    var dl = [], pl = [], couples = [];
     comboLoadPieces(combo).forEach(function (p) {
-      if (p.type === 'moment') return;
       var f = p.factor;
       if (!f) return;
+      if (p.type === 'moment') { if (Math.abs(p.M) > 1e-12) couples.push(p.pos); return; }
       var zg = typeof loadZgValue === 'function' ? loadZgValue(p.ld) : (+S.za || 0);
       if (p.type === 'point') pl.push({ x: p.pos, P: p.P * f * 1000, zg: zg });
       else dl.push({ x1: p.x1, x2: p.x2, w1: p.w1 * f, w2: p.w2 * f, zg: zg });
@@ -415,7 +421,7 @@
     var gF = fac.G != null ? fac.G : 0;
     var sw = selfWeightValue(a.sec);
     if (gF !== 0 && sw > 0) dl.push({ x1: 0, x2: a.L, w1: sw * gF, w2: sw * gF, zg: 0 }); // self-weight acts at the centroid
-    return { distLoads: dl, pointLoads: pl };
+    return { distLoads: dl, pointLoads: pl, couples: couples };
   }
 
   /* Full LTB solve for ONE ULS combination (res = {combo, fb}). Returns Mcr,
@@ -434,7 +440,7 @@
      (oldest entry dropped); `shared.stats` counts solves and cache hits. */
   var EIGEN_CACHE = new Map(), EIGEN_CACHE_MAX = 96;
   function mcrEigenMemo(p, momentKey, stats) {
-    var key = JSON.stringify([p.E, p.G, p.Iz, p.It, p.Iw, p.L, p.restraints, p.nElem, !!p.refine, p.zj, p.distLoads || [], p.pointLoads || [], momentKey]);
+    var key = JSON.stringify([p.E, p.G, p.Iz, p.It, p.Iw, p.L, p.restraints, p.nElem, !!p.refine, p.zj, p.distLoads || [], p.pointLoads || [], p.couplePositions || [], momentKey]);
     var hit = EIGEN_CACHE.get(key);
     if (hit) { EIGEN_CACHE.delete(key); EIGEN_CACHE.set(key, hit); if (stats) stats.cached++; return hit; }
     var sol = mcrEigen(p);
@@ -447,7 +453,7 @@
     var sp = secProps(sec), zj = zjFor(sec), ul = unitLoadsFor(a, res.combo);
     var gfb = res.fb;
     var base = { E: a.E, G: G_STEEL, Iz: sp.Iz, It: sp.It, Iw: sp.Iw, L: a.L,
-                 restraints: ltbRestraintsFor(a), nElem: 32, refine: true };
+                 restraints: ltbRestraintsFor(a), nElem: 32, refine: true, couplePositions: ul.couples };
     var stats = shared && shared.stats;
     var mKey = gfb.xs.length + ':' + gfb.M.join(',');
 
@@ -598,8 +604,9 @@
       var Mf = momentFromSamples(ev.res.fb.xs, ev.res.fb.M);
       var sp2 = secProps(sec);
       try {
+        var cpl2 = unitLoadsFor(a, ev.res.combo).couples.filter(function (x) { return x > xa + 1e-9 && x < xb - 1e-9; }).map(function (x) { return x - xa; });
         var base2 = { E: a.E, G: G_STEEL, Iz: sp2.Iz, It: sp2.It, Iw: sp2.Iw, L: Ls, zj: 0,
-                      restraints: [{ x: 0 }, { x: Ls }], nElem: 24, refine: true };
+                      restraints: [{ x: 0 }, { x: Ls }], nElem: 24, refine: true, couplePositions: cpl2 };
         var shb = mcrEigen(Object.assign({}, base2, { moment: (function (x0) { return function (x) { return Mf(x0 + x); }; })(xa) }));
         var unb = mcrEigen(Object.assign({}, base2, { moment: function () { return 1e6; } }));
         if (!(unb.Mcr > 0) || !shb.converged || !unb.converged) return null;
@@ -726,11 +733,12 @@
         }).filter(function (d) { return d; });
         var plS = ulG.pointLoads.filter(function (q) { return q.x > xa + 1e-9 && q.x < xb - 1e-9; })
           .map(function (q) { return { x: q.x - xa, P: q.P, zg: q.zg || 0 }; });
+        var cplS = ulG.couples.filter(function (x) { return x > xa + 1e-9 && x < xb - 1e-9; }).map(function (x) { return x - xa; });
         var seg = { a: xa, b: xb, ok: false };
         try {
           var rsS = mcrEigen({ E: a.E, G: G_STEEL, Iz: spG.Iz, It: spG.It, Iw: spG.Iw, L: Ls, zj: zjG,
             restraints: [{ x: 0 }, { x: Ls }], moment: (function (x0) { return function (x) { return MfunG(x0 + x); }; })(xa),
-            distLoads: dlS, pointLoads: plS, nElem: 32, refine: true });
+            distLoads: dlS, pointLoads: plS, couplePositions: cplS, nElem: 32, refine: true });
           var MsS = 0; for (var ii = 0; ii <= 200; ii++) { var mmS = Math.abs(MfunG(xa + Ls * ii / 200)); if (mmS > MsS) MsS = mmS; }
           var lamSg = Math.sqrt(Wy * fy / rsS.Mcr);
           var chiSg = 1;
@@ -1066,6 +1074,7 @@
       'A lateral cantilever (U<sub>y</sub> held at one end only) needs R<sub>z</sub> and R<sub>x</sub> at that end, or the lateral stiffness matrix is singular.</div>';
     host.parentNode.insertBefore(div, host.nextSibling);
     document.getElementById('addLtbRestraint').addEventListener('click', function () {
+      if (!S.ltbRestraints) S.ltbRestraints = [];   // a state built without the field (an older fixture) - DEMO carries it since the 19 Sep 2026 review
       S.ltbRestraints.push({ pos: (S.L / 2).toFixed(3), v: true, phi: true, vp: false, phip: false });
       renderLtbRestraintList(); recompute();
     });

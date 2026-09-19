@@ -164,10 +164,24 @@ test('cantilever M_cr: the eigen route reproduces NCCI SN006a within 2.1 % for e
   }
 });
 
-test('[hand-derived] warping-free cantilever with a tip torque is pure St Venant: TOR-07 phi(L) = TL/GI_T = 0.17127 rad, B = 0 (HC-21c); the engine blocks it on its relative bimoment mesh measure (finding, hand-checks.md)', () => {
-  const t = runCase('TOR-07', 'eigen', '(a,c)=>({phi:c.tor.phiUmax, B:c.tor.BMax, Tt:c.tor.TtEnds[0], blocked:c.unsupported.some(m=>/mesh has not converged/.test(m))})');
+test('[hand-derived] warping-free cantilever with a tip torque is pure St Venant: TOR-07 phi(L) = TL/GI_T = 0.17127 rad, B = 0 (HC-21c); the mesh measure no longer blocks it on the round-off bimoment (review finding F-B corrected)', () => {
+  const t = runCase('TOR-07', 'eigen', '(a,c)=>({phi:c.tor.phiUmax, B:c.tor.BMax, Tt:c.tor.TtEnds[0], mesh:c.tor.meshError, blocked:c.unsupported.some(m=>/mesh has not converged/.test(m)), pass:c.pass})');
   near(t.phi, 0.171270, 1e-4, 'TOR-07 phi(L)'); assert.ok(Math.abs(t.B) < 1e-5, 'B is round-off: ' + t.B); near(t.Tt, 2.4, 1e-6, 'root St Venant torque = T');
-  assert.equal(t.blocked, true, 'documented finding: the vanishing-bimoment mesh measure blocks PASS');
+  assert.equal(t.blocked, false, 'the bimoment part is normalised by max(|B|max, 1e-3 T_max min(a, L)), so a vanishing bimoment cannot block');
+  assert.ok(t.mesh < 1e-4 && t.pass, 'converged (' + t.mesh + ') and PASS');
+});
+
+test('[hand-derived] web station at a fixed End 2 reads the hogging end moment (review finding F-A corrected): WEB-09 gives the same 7.2 interaction at both ends, and a mirrored point load gives mirrored stations', () => {
+  // hand-checks.md HC-17b / HC-17c: UB 533x210x92, 6 m fixed-fixed, 30 G + 40 Q, s_s = 40 at both ends
+  const w9 = runCase('WEB-09', 'eigen', '(a,c)=>{ const s1=c.web.stations.find(s=>s.n===1), s2=c.web.stations.find(s=>s.n===2); return {u1:s1.u72,u2:s2.u72,M1:s1.cases[s1.g72].M,M2:s2.cases[s2.g72].M,Mr1:Math.abs(a.reactions[0].M)/1e6,Mr2:Math.abs(a.reactions[1].M)/1e6}; }');
+  near(w9.M1, w9.Mr1, 1e-6, 'End 1 station M_Ed = reaction moment'); near(w9.M2, w9.Mr2, 1e-6, 'End 2 station M_Ed = reaction moment');
+  near(w9.u2, w9.u1, 1e-6, 'symmetric member: the same 7.2 value at both ends');
+  // UB 457x191x82, 6 m fixed-fixed, s_s = 50 both ends, 300 kN Q at 1.5 m and its mirror at 4.5 m: identical physics, mirrored stations
+  const mirror = pos => { ctx.reset({ family: 'ub', ubKey: '457 x 191 x 82', L: 6, restraint: 'full', ends: ctx.ends('fixed-fixed', { e1: { ss: 50 }, e2: { ss: 50 } }), loads: [{ type: 'point', pos, P: 300, case: 'Q' }] });
+    return ctx.run('(()=>{ const a=analyse(); const c=checks(a); const st=n=>c.web.stations.find(s=>s.n===n); return {u1:st(1).u72,u2:st(2).u72,eta1a:st(1).cases[st(1).g72].eta1,eta1b:st(2).cases[st(2).g72].eta1,util72:c.web.util72}; })()'); };
+  const a = mirror(1.5), b = mirror(4.5);
+  near(a.u1, b.u2, 1e-6, 'End 1 of the load at 1.5 m = End 2 of the load at 4.5 m'); near(a.u2, b.u1, 1e-6, 'and vice versa');
+  near(a.util72, b.util72, 1e-6, 'the verdict entry is the same for both'); assert.ok(b.eta1b > 0.7 && a.u1 > 1.2, 'the hogging end moment enters eta_1 at End 2 (' + b.eta1b.toFixed(3) + ')');
 });
 
 test('expected-error group: every ERR case of the library throws the declared message (mechanisms, torque without a twist restraint, N_Ed with U_x free at both ends, lateral cantilever without R_z, hinge at an end)', () => {

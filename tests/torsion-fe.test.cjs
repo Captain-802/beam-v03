@@ -100,6 +100,18 @@ test('[validation 2, hand-derived] cantilever tip torque: phi(L) = (T/GI_T)[L - 
   assert.ok(r.mesh < 1e-6);
 });
 
+test('[validation 2b, hand-derived] warping-FREE root under a tip torque is pure St Venant: phi(L) = TL/GI_T, B = 0 everywhere, and the mesh measure converges (TOR-07; review finding F-B: the round-off bimoment used to read as a 43 % mesh error)', () => {
+  const r = run(`(()=>{ ${UB}
+    const L=4000, T=2.4e6;
+    const fe=warpingTorsionFE({L,EIw,GIt,supports:[{pos:0,warpFix:false}],torques:[{type:'point',pos:L,P:T}]});   // twist held, warping free at the root
+    const n=fe.xs.length;
+    return {GIt,aa, phiL:fe.phi[n-1], Bmax:mx(fe.B), Tmax:mx(fe.T), mesh:fe.meshError, parts:fe.meshErrorParts, converged:fe.converged}; })()`);
+  // [hand-derived] phi(L) = TL/GI_T = 2.4e6 x 4000 / 5.6052e10 = 0.171270 rad; B = E I_w phi'' = 0 (phi linear)
+  near(r.phiL, 2.4e6 * 4000 / r.GIt, 1e-6, 'phi(L) = TL/GI_T'); near(r.phiL, 0.17127, 1e-4);
+  assert.ok(r.Bmax < 1e-6 * r.Tmax * Math.min(r.aa, 4000), 'B is round-off: ' + r.Bmax + ' against the scale T a = ' + (r.Tmax * r.aa));
+  assert.ok(r.parts.B < 1e-4 && r.mesh < 1e-4 && r.converged, 'the bimoment part is normalised by max(|B|max, 1e-3 T_max min(a, L)): ' + JSON.stringify(r.parts));
+});
+
 test('[validation 3, hand-derived] warping-fixed ends reduce phi_max: fixed-fixed uniform torque phi(L/2) = (t/GI_T)[L^2/8 - (La/2) tanh(L/4a)] = 0.0943 rad against 0.2381 fork-fork; phi\' = 0 at the fixed ends', () => {
   const r = run(`(()=>{ ${UB}
     const L=8000, T=20e6, tq=[{type:'udl',x1:0,x2:L,w1:T/L,w2:T/L}];

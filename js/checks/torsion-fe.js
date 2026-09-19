@@ -62,8 +62,11 @@
    the EN 1993-6 Annex A interaction consume it unchanged.
 
    Mesh convergence: solve with nSub and 2 nSub subdivisions, report the fine
-   solution with meshError = the largest relative change of max|phi|,
-   max|phi'| and max|B|; the caller blocks PASS above TORSION_FE_MESH_BLOCK.
+   solution with meshError = the largest change of max|phi|, max|phi'| and
+   max|B| between the two meshes, each normalised by max(its fine-mesh peak,
+   1e-3 x its physical scale from the peak torque) so that a quantity that is
+   zero in the exact solution cannot read as a mesh error (19 Sep 2026 review
+   finding F-B); the caller blocks PASS above TORSION_FE_MESH_BLOCK.
 
    Units: L, x in mm; E I_w in N.mm4; G I_T in N.mm2; point torque P in N.mm;
    distributed torque w1, w2 in N.mm/mm (= N). Pure functions, no DOM.
@@ -223,17 +226,28 @@ function warpingTorsionFE(opts){
   if(!(GIt>0)) throw new Error('Warping-torsion FE: G I_T must be > 0');
   const nSub=opts.nSub||TORSION_FE_NSUB;
   const refine=opts.refine!==false;
+  const aa=Math.sqrt(EIw/GIt);
   const coarse=torsionFeSolveOnce(L,EIw,GIt,supports,torques,nSub);
   const rc=torsionFeRecover(coarse,EIw,GIt);
   let fine=coarse, rf=rc, meshError=0, parts={phi:0,p1:0,B:0};
   if(refine){
     fine=torsionFeSolveOnce(L,EIw,GIt,supports,torques,2*nSub);
     rf=torsionFeRecover(fine,EIw,GIt);
-    const rel=(a,b)=>{ const m=torsionFeMax(b); return m>1e-300? Math.abs(torsionFeMax(a)-m)/m : 0; };
-    parts={phi:rel(rc.phi,rf.phi), p1:rel(rc.p1,rf.p1), B:rel(rc.B,rf.B)};
+    // Mesh measure: the change of each peak on doubling the mesh, normalised
+    // by max(the fine-mesh peak, 1e-3 x the physical scale of that quantity
+    // set by the peak torque T_max): T_max L/GI_T (St Venant twist), T_max/GI_T
+    // (rate of twist), T_max min(a, L) (bimoment: T a/2 for a long member, T L/4
+    // for a short one). A peak below a thousandth of its scale is identically
+    // zero in the exact solution up to round-off (the bimoment of a warping-
+    // free cantilever under a tip torque, pure St Venant), so its round-off on
+    // the two meshes no longer reads as a spurious "mesh error" (19 Sep 2026
+    // review finding F-B); a physically significant peak keeps the plain
+    // relative measure.
+    const Tmax=torsionFeMax(rf.T);
+    const rel=(a,b,scale)=>{ const m=torsionFeMax(b), s=Math.max(m,scale); return s>1e-300? Math.abs(torsionFeMax(a)-m)/s : 0; };
+    parts={phi:rel(rc.phi,rf.phi,1e-3*Tmax*L/GIt), p1:rel(rc.p1,rf.p1,1e-3*Tmax/GIt), B:rel(rc.B,rf.B,1e-3*Tmax*Math.min(aa,L))};
     meshError=Math.max(parts.phi,parts.p1,parts.B);
   }
-  const aa=Math.sqrt(EIw/GIt);
   return Object.assign({},rf,{X:L/aa, aa, nElem:fine.nElem, nElemCoarse:coarse.nElem, meshError, meshErrorParts:parts,
     converged:meshError<=TORSION_FE_MESH_BLOCK, reactions:fine.reactions, bc:torsionFeSupports(supports),
     method:'fe', methodLabel:'warping-torsion FE ('+fine.nElem+' elements)'});
