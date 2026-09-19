@@ -61,9 +61,9 @@ engine's intermediate results. Tolerance 0.5 % relative unless stated.
 | v-MbRd<=McRd | Mb,Rd <= Mc,Rd | every LTB run that produced an Mb,Rd |
 | vi-governing | the reported governing utilisation equals the max of the printed utilisations | every run |
 | vii-uplift | every support whose reaction is negative in the governing-moment combination is reported by the engine's uplift record and, unless the case declares `holdDown` for it, carries a blocking "Hold-down required" message; every reported lifting support has a hold-down message | every run |
-| viii-FRd | Web transverse-force resistance (EN 1993-1-5 clause 6, G2): F_Rd at the engine's governing station recomputed from the raw section table (h_w = h - 2t_f, t_w, t_f, b_f <= t_w + 30 eps t_f, m1, m2 with the m2 = 0 second pass, k_F of type (a) with a = L or type (c) with c = max(d - s_s/2, 0), the (a)/(c) pair in the end zone), s_s from the case (support default = B, load default = 0); the printed utilisation must equal the largest station ratio and a stiffened station must never govern. 19 Sep 2026 campaign: extended to a point load over a support ('both' station, type (b) k_F = 3.5 + 2(h_w/a)^2 with (c) alongside in the end zone, F_Ed = max(P, R) verified against the engine's own P and R), to PFC (one-sided flange b_f <= t_w + 15 eps t_f) and to RHS/SHS (two webs of thickness t with the tabulated flat depth, flange share B/2 per web <= t + 15 eps t, lever-rule share 0.5 + e/(B - t) of the load) | every run with a checked station and no declared stiffener (292 runs) |
+| viii-FRd | Web transverse-force resistance (EN 1993-1-5 clause 6, G2): F_Rd at the engine's governing station recomputed from the raw section table (h_w = h - 2t_f, t_w, t_f, b_f <= t_w + 30 eps t_f, m1, m2 with the m2 = 0 second pass, k_F of type (a) with a = L or type (c) with c = max(d - s_s/2, 0), the (a)/(c) pair in the end zone), s_s from the case (a blank support entry = the lower bound 0 since the 19 Sep 2026 review fixes; the library declares 100 mm seatings, `LIB_SS`; load default = 0); the printed utilisation must equal the largest station ratio of the verified stations (a blank-s_s station failing at 0 is NOT VERIFIED and carries no verdict entry) and a stiffened station must never govern. 19 Sep 2026 campaign: extended to a point load over a support ('both' station, type (b) k_F = 3.5 + 2(h_w/a)^2 with (c) alongside in the end zone, F_Ed = max(P, R) verified against the engine's own P and R), to PFC (one-sided flange b_f <= t_w + 15 eps t_f) and to RHS/SHS (two webs of thickness t with the tabulated flat depth, flange share B/2 per web <= t + 15 eps t, lever-rule share 0.5 + e/(B - t) of the load) | every run with a checked station and no declared stiffener (292 runs) |
 | ix-Aeff | Effective area of a Class-4 web in uniform compression (EN 1993-1-5 4.4, G3): lambda_p = (d/t)/(28.4 eps x 2), rho = (lambda_p - 0.22)/lambda_p^2, A_eff = A - n_webs (1 - rho) d t_w from the raw table; must equal the engine's A_eff, feed the "Compression N_Ed/N_c,Rd (A_eff)" entry and the strut block | runs with N > 0 and d/t > 42 eps (UB-46, UB-47, UB-48) |
-| x-NbT | Channel torsional-flexural buckling (cl 6.3.1.4, G3): i_0^2, N_cr,T (P385 I_T, I_w, y0 = e_sc, L_T = L_cr,z or the case L_T), N_cr,TF coupled with the y-y mode, lambda_T, chi_T on curve c, N_b,T,Rd recomputed from the raw PFC table; the verdict entry must equal N_Ed/N_b,T,Rd and the 6.61/6.62 axial terms must not be below N_Ed/N_b,y,Rd, N_Ed/N_b,z,Rd | PFC runs with N > 0 (PFC-20, both routes) |
+| x-NbT | Channel torsional-flexural buckling (cl 6.3.1.4, G3): i_0^2, N_cr,T (P385 I_T, I_w, y0 = e_sc, L_T = the case L_T, else the largest spacing of the case's TWIST restraints - supports plus restraints with phi !== false, overhangs counted double - capped at L_cr,y, never the lateral-only L_cr,z: review fix F1), N_cr,TF coupled with the y-y mode, lambda_T, chi_T on curve c, N_b,T,Rd recomputed from the raw PFC table; the verdict entry must equal N_Ed/N_b,T,Rd and the 6.61/6.62 axial terms must not be below N_Ed/N_b,y,Rd, N_Ed/N_b,z,Rd | PFC runs with N > 0 (PFC-20, both routes) |
 | xi-kcFloor | k_c floor (G3): the printed k_c must equal max(1/sqrt(C1), 1/sqrt(2.76)) on both routes and be flagged floored exactly when C1 > 2.76 | I/H LTB runs with a trusted C1 and no user override (74 runs) |
 | xii-MVN | cl 6.2.10 (G3): at the engine's worst high-shear station of a uniaxial case with N, rho, N_V,Rd, M_v,y,Rd, a_V, the 6.2.9.1(4) waiver and M_N,V,y,Rd recomputed from the station V, M, N and the raw table; the utilisation must equal the engine's value and the verdict entry. 19 Sep 2026 campaign: rolled I/H Class 1/2 (plastic 6.2.9.1), rolled I/H Class 3 (linear n_V + M/M_v,y,Rd with the elastic web deduction) and RHS/SHS Class 1/2 (Eq 6.39 with a_w,V <= 0.5, no waiver) | UB-48, HSV-01, HSV-05, HSV-07 |
 | xiii-torsionFE | Warping-torsion FE (G4): the engine's peak twist on the FE route recomputed from the classical closed forms of E I_w phi'''' - G I_T phi'' = m_t with the raw P385 constants (I_T, I_w, a = sqrt(E I_w/G I_T)): a cantilever with a single tip point torque, phi_tip = (T/GI_T)[L - a tanh(L/a)] with T_t = 0 at the root and total torque T at the tip (UB-49); a cantilever under a full-span uniform torque m, phi_tip = (m/GI_T)[L^2/2 + a^2(1 - sech(L/a)) - aL tanh(L/a)] with the root total torque mL and zero tip torque (TOR-05; derivation in hand-checks.md HC-14); a fork-fork span with both ends warping-fixed under a full-span uniform torque, phi_mid = (t/GI_T)[L^2/8 - (La/2) tanh(L/4a)] with T_t = 0 at both ends (UB-51); tolerance 1e-4, the printed mesh error must be <= 1e-3 and converged | rolled I/H runs on the FE route with those layouts (6 runs) |
@@ -116,8 +116,13 @@ Axial: compression in 20 cases up to ~0.55 N_c,Rd(A_eff), tension in 3; Mz in
 13 cases; intermediate lateral restraints at third points, quarter points, at
 the point loads and at 1.5 m centres with a separate L_T in 13 cases; LE
 factor + destabilising switch (UB-40, UB-52); root warping restrained (UB-19).
-Web bearing inputs: per-support and per-load s_s (40, 50, 60, 100, 150, 200
-mm) and declared bearing stiffeners (WEB-02, HSV-03, HSV-05, HSV-07).
+Web bearing inputs: every library support declares a 100 mm seating (`LIB_SS`
+in cases.cjs, applied by `mk()` to supports without their own `ss`; since the
+19 Sep 2026 review fixes a blank s_s is the engine's lower bound 0, NOT
+VERIFIED where it fails, so the library states the seating explicitly);
+cases with their own s_s (40, 60, 100, 150, 200 mm) and declared bearing
+stiffeners (WEB-02, HSV-03, HSV-05, HSV-07); WEB-02 and HSV-01 need 150 mm
+seatings for their PASS intent (416 / 437 kN F_Rd at 100 mm would fail).
 
 ### 19 Sep 2026 campaign groups (cases.cjs, "verification campaign" block)
 
@@ -129,7 +134,7 @@ is seen deciding the verdict in both directions; the eigen-run verdicts are:
 | WEB | EN 1993-1-5 cl 6 / 7.2 (G2) | WEB-01 FAIL (type (a), s_s = 0, 1.41), WEB-02 PASS (same with a stiffener declared), WEB-03 FAIL (7.2 interaction alone, 1.10), WEB-04 FAIL (type (c) end reaction s_s = 40, 1.01), WEB-05 PASS (s_s = 100, 0.73), WEB-06 PASS (RHS two webs, lever rule), WEB-07 FAIL (type (b) over the interior support, 2.07), WEB-08 PASS (PFC) |
 | PAT | automatic pattern loading (G1) | PAT-01 PASS (2 x 6 m, 3 ULS combinations) vs PAT-02 (off, 1), PAT-03 PASS (3 x 5 m, 7 combinations) vs PAT-06 (off), PAT-04 PASS (back span + overhang, tip deflection under the "Q on the overhang only" pattern), PAT-05 PASS (point-load patterns), PAT-07 PASS (fixed - pinned - fixed) |
 | UPL | uplift / hold-down (G1) | UPL-01 NOT VERIFIED (ULS uplift, no hold-down), UPL-02 PASS (hold-down provided, advisory), UPL-03 PASS (SLS-only uplift advisory), UPL-04 PASS (wind uplift with hold-downs), UPL-05 NOT VERIFIED (RHS overhang, restrained path) |
-| TFB | channel torsional-flexural buckling (G3) | TFB-01 PASS (0.13), TFB-02 PASS (user L_T = 2.5 m), TFB-03 FAIL on N_Ed/N_b,T,Rd (1.04, L_cr,z = 1.5 m but L_T = 6 m), TFB-04 NOT VERIFIED (torsion + N block) |
+| TFB | channel torsional-flexural buckling (G3) | TFB-01 PASS (0.13), TFB-02 PASS (user L_T = 2.5 m), TFB-03 FAIL on N_Ed/N_b,T,Rd (1.04, L_cr,z = 1.5 m but the user L_T = 6 m; with v + phi restraints and no user L_T the twist spacing 1.5 m would give 0.94, with v-only restraints 1.04 - review fix F1), TFB-04 NOT VERIFIED (torsion + N block) |
 | HSV | high-shear M_v,Rd and cl 6.2.10 (G3) | HSV-01 PASS (I/H Class 3 linear 6.2.10, 0.73), HSV-02 PASS (channel, rho 0.19), HSV-03 FAIL (channel coexistent M-V 1.03 at rho 0.98), HSV-04 FAIL (RHS coexistent 1.06), HSV-05 FAIL (RHS 6.2.10 Eq 6.39 1.02), HSV-06 PASS (SHS biaxial 6.2.10 0.96), HSV-07 FAIL on the end-reaction web check with the Class-3 6.2.10 at 0.76 |
 | TOR | warping-torsion FE (G4) | TOR-01 FAIL (PFC cantilever, Annex A 1.09), TOR-02 PASS (two-span UB at e = 60), TOR-03 PASS (partial-span UDL, 0.96), TOR-04 PASS (UC, warping-fixed ends), TOR-05 PASS (UB cantilever, uniform torque, closed form reproduced), TOR-06 PASS (overhang with an eccentric tip load, 0.97) |
 | AEF | A_eff of a Class-4 web under N (G3) | AEF-01 PASS (1016x305x222, 0.888 A), AEF-02 FAIL (914x305x201 + 3300 kN, Eq 6.62 1.07), AEF-03 PASS (S355 610x229x101), AEF-04 NOT VERIFIED (Class-4 stress-gradient block), AEF-05 PASS (762x267x134 with a mid-span restraint) |
@@ -139,39 +144,47 @@ is seen deciding the verdict in both directions; the eigen-run verdicts are:
 A tag `-id` in `cases.cjs` removes a derived trigger id from `expect` when the
 case is designed to exercise a block that keeps a check from running (AEF-04).
 
-## Results of the current run (2026-09-19, Node v24.14.1, verification campaign)
+## Results of the current run (2026-09-19, Node v24.14.1, after the review fixes F1-F7)
 
-Verdicts: PASS 205 | FAIL 71 | NOT VERIFIED 20 | ERROR 0 (170 cases, 296 runs).
+Verdicts: PASS 202 | FAIL 74 | NOT VERIFIED 20 | ERROR 0 (170 cases, 296 runs,
+48 s with the solve caches of review fix F6; 339 s before them).
 Cross-check mismatches: 0 runs (viii-FRd 292/292, ix-Aeff 16/16, x-NbT 9/9,
 xi-kcFloor 99/99, xii-MVN 4/4, xiii-torsionFE 6/6, xiv-pattern 32/32,
 xv-MvRd 8/8, iii-McrStd 212/212, iii-zgBlock 101/101, i-Mmax / i-dmax
 161/161, ii-equilibrium, vi-governing and vii-uplift 296/296). Trigger
 mismatches: 0. Every case executes (ERROR 0).
 
-Changes against the post-G4 run (PASS 161 | FAIL 47 | NOT VERIFIED 14, 122
-cases / 222 runs): 48 cases added (the campaign groups above and UB-52).
-Of the 222 original runs, 219 print exactly the same rows; three moved through
-the two campaign findings of `mcr-method-comparison.md`: UB-27 standard (in-span
-couple at mid-span: the quarter-point sample now takes the larger side of the
-jump, C1 1.676 -> 1.206, M_cr 382.3 -> 275.0 kN.m, LTB 0.743 -> 0.982, still
-PASS, no longer an eigen / standard outlier), MIX-01 standard (couple at 3L/4:
-M_cr 273.3 -> 257.3, LTB 0.810 -> 0.851, PASS) and UB-40 eigen (destabilising
-switch with every z_g = 0: PASS 0.843 -> NOT VERIFIED, contradictory input
-blocked; UB-52 with the load height entered FAILs at 1.06 on both routes).
+Changes against the campaign run (PASS 205 | FAIL 71 | NOT VERIFIED 20):
+29 runs change their governing utilisation, every one through the web-bearing
+seating - the library now declares s_s = 100 mm at its supports (review fix
+F3) where the engine formerly assumed the flange width B (191-305 mm for the
+affected UBs / UCs): UB-14 eigen (2 x 6 m continuous 686x254x140) and UC-07
+(2 x 4 m continuous 305x305x97, both routes) now FAIL the EN 1993-1-5 7.2
+interaction at the interior support (0.994 -> 1.115, 0.990 -> 1.210); the
+other 26 runs keep their verdict with a higher web ratio (UB-15, UB-17,
+UB-24, UB-41, RHS-08/09, MIX-02/05/09, WEB-02, PAT-01/02/03/06/07, UPL-03,
+HSV-07, AEF-04). PAT-04 (back span + overhang) lifts support 1 by 0.08 kN in
+the gamma_G,inf = 0.9 EQU companion of "Q on the overhang only" (review fix
+F2) and declares its hold-down (advisory). No M_cr, C1, lambda_LT, chi_LT,
+M_b,Rd, deflection or torsion figure moved: the F5 layouts (UB-51, TOR-04,
+PFC-21, TOR-06) have their warping-fixed nodes at member ends or fork
+supports, and the F1 layouts (PFC-11, PFC-20, TFB-01..04) have v + phi
+restraints or a user L_T, so their L_T equals the previous value.
 
 Hand checks (`hand-checks.md`): 29 quantities over 16 cases, every difference
-below 0.001 %. Eigen / standard ratio outliers: 12 same-segment (UB-23, UB-40,
-UB-44, PFC-09, SHS-06, RHS-07, MIX-06, PAT-04, UPL-01/02, TOR-06, UB-52), 52
-across the two runs - all explained in `mcr-method-comparison.md`; after the
-UB-27 fix the only closed-form value on the unconservative side is UB-44
-(printed M_cr 47 % above the eigenvalue with PASS refused).
+below 0.001 % (unchanged). Eigen / standard ratio outliers: 12 same-segment
+(UB-23, UB-40, UB-44, PFC-09, SHS-06, RHS-07, MIX-06, PAT-04, UPL-01/02,
+TOR-06, UB-52), 52 across the two runs - all explained in
+`mcr-method-comparison.md`; after the UB-27 fix the only closed-form value on
+the unconservative side is UB-44 (printed M_cr 47 % above the eigenvalue with
+PASS refused).
 
 ### Per section family
 
 | Family | Cases | Runs | PASS | FAIL | NOT VERIFIED | ERROR |
 |---|---|---|---|---|---|---|
-| UB | 91 | 160 | 105 | 43 | 12 | 0 |
-| UC | 16 | 30 | 26 | 2 | 2 | 0 |
+| UB | 91 | 160 | 104 | 44 | 12 | 0 |
+| UC | 16 | 30 | 24 | 4 | 2 | 0 |
 | PFC | 29 | 49 | 32 | 16 | 1 | 0 |
 | SHS | 12 | 19 | 15 | 2 | 2 | 0 |
 | RHS | 22 | 38 | 27 | 8 | 3 | 0 |
@@ -180,8 +193,8 @@ UB-27 fix the only closed-form value on the unconservative side is UB-44
 
 | Method | Runs | PASS | FAIL | NOT VERIFIED | ERROR |
 |---|---|---|---|---|---|
-| eigen | 126 | 101 | 17 | 8 | 0 |
-| standard | 126 | 76 | 41 | 9 | 0 |
+| eigen | 126 | 99 | 19 | 8 | 0 |
+| standard | 126 | 75 | 42 | 9 | 0 |
 | n/a (restrained) | 44 | 28 | 13 | 3 | 0 |
 
 ### Cross-check totals
@@ -230,17 +243,23 @@ The engineering reasons, case by case, are in `mcr-method-comparison.md`.
   block or treat the back span as the segment; conservative in the five library
   cases); F4 UB-44 prints an unconservative closed-form M_cr with PASS refused.
 
-- Web transverse forces (G2): outside the WEB / HSV campaign cases the
-  supports carry no `ss`, so the section flange width B is used as a typical
-  seating length [verify], and the point loads carry no `ss` (0 mm). Add `ss`
-  (mm) and `stiff: true` to a support or point load object in `cases.cjs` to
-  model the actual bearing or a declared stiffener (WEB-02..05, HSV-03/05/07
-  do); the G2 verdict changes follow from these defaults.
+- Web transverse forces (G2, review fix F3): every library support carries
+  the declared seating `LIB_SS` = 100 mm unless the case sets its own `ss`
+  (the engine's blank default is the lower bound 0, NOT VERIFIED where it
+  fails); the point loads carry no `ss` (0 mm). Add `ss` (mm) and
+  `stiff: true` to a support or point load object in `cases.cjs` to model
+  the actual bearing or a declared stiffener (WEB-02..05, HSV-01/03/05/07
+  do); UB-14 and UC-07 fail the 7.2 interaction at the interior support with
+  the 100 mm seating.
 
 - Wind-uplift and end-couple cases (UB-26, UB-36, UB-37, UC-13, RHS-16):
   a support lifts at ULS and no hold-down is declared in the case -> NOT
   VERIFIED with the hold-down force printed (item 1.2 now implemented; add
-  `holdDown: true` to the support to turn it into an advisory).
+  `holdDown: true` to the support to turn it into an advisory). Since review
+  fix F2 the uplift record includes the gamma_G,inf companions (G at 1.0 STR
+  set B and 0.9 EQU set A of every ULS combination with G > 1.0), so the
+  printed hold-down force is the EQU value and a support that holds at 1.35G
+  but lifts at 0.9G is reported (PAT-04).
 
 - Open-section torsion outside the P385 closed forms (G4): PFC-17, UB-49/50/51
   and PFC-21 now run the warping-torsion FE (`c.tor.fe`, column

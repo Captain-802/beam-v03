@@ -1,11 +1,16 @@
 /* ===========================================================================
    7. WIRING
    =========================================================================== */
+/* render() is synchronous and a multi-span eccentric eigen case can take tens
+   of seconds (every ULS combination is an eigen + FE torsion solve), so the
+   recompute is debounced: rapid input events collapse into one render after
+   RECOMPUTE_DEBOUNCE_MS of quiet (19 Sep 2026 review). */
+const RECOMPUTE_DEBOUNCE_MS=250;
 let raf=null;
-function recompute(){ if(raf) cancelAnimationFrame(raf); raf=requestAnimationFrame(render); }
+function recompute(){ if(raf) clearTimeout(raf); raf=setTimeout(()=>{ raf=null; render(); },RECOMPUTE_DEBOUNCE_MS); }
 function printReport(){
   try{
-    if(raf) cancelAnimationFrame(raf);
+    if(raf) clearTimeout(raf);
     raf=null;
     render();
     window.focus();

@@ -97,10 +97,16 @@ function deriveTriggers(o, tags) {
 }
 
 const cases = [];
+// Stiff bearing length declared at every library support unless the case sets its
+// own (19 Sep 2026 review: the engine no longer assumes a seating - a blank s_s is
+// the lower bound 0 and a station failing there is NOT VERIFIED - so the library
+// states a typical 100 mm seating explicitly; the point loads keep s_s = 0).
+const LIB_SS = 100;
 function mk(id, title, sec, ov, tags = []) {
   const overrides = Object.assign({ code: 'EC3', grade: 'S275', restraint: 'ltb', mcrMethod: 'eigen', hinges: [], combos: GQ() }, sec, ov);
   if (!overrides.supports) throw new Error(id + ': supports missing');
   if (!overrides.loads) throw new Error(id + ': loads missing');
+  overrides.supports = overrides.supports.map(sp => sp.ss === undefined ? Object.assign({ ss: LIB_SS }, sp) : sp);
   cases.push({ id, title, overrides, expect: deriveTriggers(overrides, tags), tags });
 }
 
@@ -387,8 +393,8 @@ mk('PFC-21', 'PFC 180x75x20, 2 x 4 m continuous, full UDL at e = 20 mm, hold-dow
 // ---- WEB: EN 1993-1-5 clause 6 / 7.2 (G2) ----
 mk('WEB-01', 'UB 610x229x101 (t_w 10.5), 3 m SS, 600 kN central point load on the bare web (s_s = 0), restrained - design intent: FAIL F_Ed/F_Rd type (a), bending 0.85', UB('610 x 229 x 101'),
   { L: 3, supports: SS(3), restraint: 'full', loads: [P(1.5, 600, 'Q')] }, ['web', '2.16', '2.18']);
-mk('WEB-02', 'UB 610x229x101, 3 m SS, 600 kN central point load with s_s = 150 mm and a bearing stiffener declared - design intent: PASS (stiffener advisory, supports still checked with a = 1.5 m panels)', UB('610 x 229 x 101'),
-  { L: 3, supports: SS(3), restraint: 'full', loads: [P(1.5, 600, 'Q', { ss: 150, stiff: true })] }, ['web', 'stiffener', '2.16', '2.18']);
+mk('WEB-02', 'UB 610x229x101, 3 m SS, 600 kN central point load with s_s = 150 mm and a bearing stiffener declared, 150 mm seatings - design intent: PASS (stiffener advisory, supports still checked with a = 1.5 m panels: end reactions 452 kN vs F_Rd 502 kN at s_s = 150; 416 kN at the library 100 mm would fail)', UB('610 x 229 x 101'),
+  { L: 3, supports: [{ pos: 0, type: 'pinned', ss: 150 }, { pos: 3, type: 'pinned', ss: 150 }], restraint: 'full', loads: [P(1.5, 600, 'Q', { ss: 150, stiff: true })] }, ['web', 'stiffener', '2.16', '2.18']);
 mk('WEB-03', 'UB 457x152x52 (t_w 7.6), 4 m SS, 180 kN central point load, s_s = 0 - design intent: FAIL on the 7.2 interaction only (F_Ed/F_Rd 0.82, bending 0.90)', UB('457 x 152 x 52'),
   { L: 4, supports: SS(4), restraint: 'full', loads: [P(2, 180, 'Q')] }, ['web', '2.16', '2.18']);
 mk('WEB-04', 'UB 533x210x92, 6 m SS, UDL 30 G + 40 Q, end reactions on short seatings s_s = 40 mm - design intent: FAIL type (c) end reaction (1.01), bending 0.71', UB('533 x 210 x 92'),
@@ -408,8 +414,8 @@ mk('PAT-02', 'UB 457x191x82, 2 x 6 m continuous, UDL 10 G + 20 Q, patterns OFF (
   { L: 12, supports: PINS(0, 6, 12), autoPattern: false, loads: [UDL(0, 12, 10, 'G'), UDL(0, 12, 20, 'Q')] }, ['pattern-off', '1.3']);
 mk('PAT-03', 'UB 533x210x92, 3 x 5 m continuous, UDL 12 G + 25 Q, patterns ON - design intent: PASS; "Q on spans 2+3 only" governs the hogging moment (0.1167 wL^2), odd/even patterns the sagging', UB('533 x 210 x 92'),
   { L: 15, supports: PINS(0, 5, 10, 15), loads: [UDL(0, 15, 12, 'G'), UDL(0, 15, 25, 'Q')] }, ['pattern', '1.3']);
-mk('PAT-04', 'UB 406x178x54, 5 m back span + 2 m overhang, UDL 8 G + 12 Q + 15 kN tip Q - design intent: PASS; "Q on the overhang only" governs the tip deflection against L/180 and lifts support 1 at SLS only', UB('406 x 178 x 54'),
-  { L: 7, supports: PINS(0, 5), loads: [UDL(0, 7, 8, 'G'), UDL(0, 7, 12, 'Q'), P(7, 15, 'Q')] }, ['pattern', '1.3']);
+mk('PAT-04', 'UB 406x178x54, 5 m back span + 2 m overhang, UDL 8 G + 12 Q + 15 kN tip Q, hold-down at support 1 - design intent: PASS; "Q on the overhang only" governs the tip deflection against L/180; support 1 holds at 1.35G but lifts by 0.08 kN in the gamma_G,inf = 0.9 EQU companion of that pattern (review F2), so the hold-down is declared and the force printed as an advisory', UB('406 x 178 x 54'),
+  { L: 7, supports: [{ pos: 0, type: 'pinned', holdDown: true }, { pos: 5, type: 'pinned' }], loads: [UDL(0, 7, 8, 'G'), UDL(0, 7, 12, 'Q'), P(7, 15, 'Q')] }, ['pattern', '1.3', 'hold-down']);
 mk('PAT-05', 'UB 356x171x45, 2 x 5 m continuous, G UDL + 40 kN Q at each mid-span - design intent: PASS; point-load patterns (Q on span 1 / 2 only)', UB('356 x 171 x 45'),
   { L: 10, supports: PINS(0, 5, 10), loads: [UDL(0, 10, 4, 'G'), P(2.5, 40, 'Q'), P(7.5, 40, 'Q')] }, ['pattern', '1.3']);
 mk('PAT-06', 'UB 533x210x92, 3 x 5 m continuous, UDL 12 G + 25 Q, patterns OFF (comparison with PAT-03)', UB('533 x 210 x 92'),
@@ -437,8 +443,8 @@ mk('TFB-03', 'PFC 150x75x18, 6 m SS, lateral restraints at 1.5 m centres (L_cr,z
 mk('TFB-04', 'PFC 300x100x46, 4 m SS, eccentric UDL e = 50 mm + N = 100 kN, restrained - design intent: NOT VERIFIED (combined torsion with N_Ed is blocked; 6.3.1.4 itself evaluates at 0.10)', PFC('300x100x46'),
   { L: 4, supports: SS(4), restraint: 'full', axial: 100, eccOn: true, loads: [UDL(0, 4, 3, 'G', { e: 50 }), UDL(0, 4, 5, 'Q', { e: 50 })] }, ['tfb', 'ecc-large', 'torsion+N']);
 // ---- HSV: high-shear M_v,Rd for every family and cl 6.2.10 (G3 items 7 / 12) ----
-mk('HSV-01', 'UB 457x191x82, 2 m SS, 350 kN at 0.3 m (s_s = 100) + N = 1200 kN, restrained - design intent: PASS; web Class 3 under N + M so the elastic M_v,y,Rd form and the linear 6.2.10 sum apply (0.73)', UB('457 x 191 x 82'),
-  { L: 2, supports: SS(2), restraint: 'full', axial: 1200, loads: [P(0.3, 350, 'Q', { ss: 100 })] }, ['mvn', 'class3', '2.13']);
+mk('HSV-01', 'UB 457x191x82, 2 m SS, 350 kN at 0.3 m (s_s = 100) + N = 1200 kN, 150 mm seatings, restrained - design intent: PASS; web Class 3 under N + M so the elastic M_v,y,Rd form and the linear 6.2.10 sum apply (0.73); end reaction 447 kN vs F_Rd 539 kN at s_s = 150 (437 kN at the library 100 mm would fail)', UB('457 x 191 x 82'),
+  { L: 2, supports: [{ pos: 0, type: 'pinned', ss: 150 }, { pos: 2, type: 'pinned', ss: 150 }], restraint: 'full', axial: 1200, loads: [P(0.3, 350, 'Q', { ss: 100 })] }, ['mvn', 'class3', '2.13']);
 mk('HSV-02', 'PFC 300x100x46, 2 m SS, 250 kN at 0.3 m (s_s = 100), restrained - design intent: PASS; channel M_v,y,Rd = (W_pl,y - rho t_w h_w^2/4) f_y with rho = 0.19 (coexistent 0.59)', PFC('300x100x46'),
   { L: 2, supports: SS(2), restraint: 'full', loads: [P(0.3, 250, 'Q', { ss: 100 })] }, ['mv-channel', '2.10']);
 mk('HSV-03', 'PFC 300x100x46, 2 m SS, 345 kN at 0.3 m with a stiffener at the load and s_s = 200 at the supports, restrained - design intent: FAIL on the coexistent M-V check (rho = 0.98, 1.03) with V/V_pl 0.99', PFC('300x100x46'),

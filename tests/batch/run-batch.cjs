@@ -386,7 +386,7 @@ function runOne(cs, method) {
   // (viii) web transverse forces (EN 1993-1-5 clause 6, G2): F_Rd at the governing station recomputed
   //        independently from the raw section table for rolled I/H sections (end reaction type (c) with
   //        c = 0, interior point load type (a); the (a)/(c) pair in the end zone is evaluated and the
-  //        lower taken), s_s from the case (support default = B, load default = 0), a = L when no
+  //        lower taken), s_s from the case (support blank = lower bound 0, load default = 0), a = L when no
   //        stiffener is declared; util2 must equal the largest station ratio; a stiffened station never governs
   //        19 Sep 2026 campaign: extended to a point load over a support ('both' station: type (b) with (c) alongside in the
   //        end zone, F_Ed = max(P, R)), to PFC (one-sided flange b_f <= t_w + 15 eps t_f) and to RHS/SHS (two webs of
@@ -399,7 +399,7 @@ function runOne(cs, method) {
     const bf = Math.min(bfRaw, bfLim), m1 = bf / tw, m2f = 0.02 * Math.pow(hw / tf, 2);
     const noStiff = !(o.supports || []).some(sp => sp.stiff) && !(o.loads || []).some(ld => ld.stiff);
     const d = Math.min(s.x, Lmm - s.x);
-    const ssSup = s.n ? ((o.supports[s.n - 1] || {}).ss != null ? +o.supports[s.n - 1].ss : sec.B) : null;
+    const ssSup = s.n ? ((o.supports[s.n - 1] || {}).ss != null ? +o.supports[s.n - 1].ss : 0) : null;   // blank = lower bound 0 (19 Sep 2026 review)
     const ssLoad = (s.loadIdx && s.loadIdx.length) ? Math.min(...s.loadIdx.map(i => (o.loads[i - 1] || {}).ss != null ? +o.loads[i - 1].ss : 0)) : null;
     const ssIn = s.kind === 'support' ? ssSup : s.kind === 'load' ? ssLoad : s.kind === 'both' ? Math.min(ssSup, ssLoad) : null;
     if (ssIn != null && noStiff) {
@@ -422,7 +422,7 @@ function runOne(cs, method) {
       // F_Ed of a 'both' station = max(P, R) of the governing combination (checked against the engine's own P and R)
       const gCase = s.cases ? s.cases[s.g2] : null;
       const okF = s.kind !== 'both' || (gCase && Math.abs(gCase.F - Math.max(Math.abs(gCase.P), gCase.R)) <= 1e-9);
-      const maxEta = Math.max(...W.stations.filter(x => !x.stiff).map(x => x.eta2));
+      const maxEta = Math.max(...W.stations.filter(x => !x.stiff && !x.nv).map(x => x.eta2));   // a NOT VERIFIED (blank s_s, fails at 0) station is excluded from the verdict entry
       add('viii-FRd', rel(exp, s.FRdTot) <= TOL && Math.abs(W.util2 - maxEta) <= 1e-9 && !s.stiff && okF,
         `station x = ${fmt(s.x / 1000, 2)} m (${s.label}, type (${s.type}), s_s ${fmt(ss, 1)} mm${isBox ? ', two webs, share ' + fmt(share, 3) : chan ? ', channel' : ''}): independent F_Rd ${fmt(exp, 1)} vs engine ${fmt(s.FRdTot, 1)} kN; F_Ed ${fmt(s.F, 1)} kN (${s.combo}${s.kind === 'both' ? ', = max(P, R)' : ''}); util ${fmt(W.util2, 3)} = max station ratio ${fmt(maxEta, 3)}`);
     }
@@ -459,7 +459,14 @@ function runOne(cs, method) {
     const tp = sec.tp, G = 81000, Ag = sec.A * 100;
     const IT = (tp && tp.IT ? tp.IT : sec.J) * 1e4, Iw = ((tp && tp.Iw != null ? tp.Iw : sec.Iw) || 0) * 1e12, y0 = tp.esc;
     const iy = sec.rx * 10, iz = sec.ry * 10, i0sq = iy * iy + iz * iz + y0 * y0;
-    const LcrY = c.buck.LcrY, LT = (cs.overrides.LT > 0) ? cs.overrides.LT * 1000 : c.buck.LcrZ;
+    // L_T (19 Sep 2026 review): the case's L_T, else the largest spacing of the TWIST restraints (supports and
+    // restraints with phi !== false; free overhangs beyond the outermost counted double) capped at L_cr,y - never the
+    // lateral-only spacing L_cr,z
+    const LcrY = c.buck.LcrY;
+    const twistPts = [...new Set((o.supports || []).map(sp => +sp.pos * 1000).concat((o.ltbRestraints || []).filter(r => r.phi !== false).map(r => +r.pos * 1000)).map(x => +x.toFixed(3)))].sort((p, q) => p - q);
+    let LTsp = 0; for (let i = 1; i < twistPts.length; i++) LTsp = Math.max(LTsp, twistPts[i] - twistPts[i - 1]);
+    LTsp = Math.max(LTsp, 2 * twistPts[0], 2 * (a.L - twistPts[twistPts.length - 1]));
+    const LT = (cs.overrides.LT > 0) ? cs.overrides.LT * 1000 : ((o.ltbRestraints || []).some(r => r.phi !== false) && (o.supports || []).length >= 2 && LTsp > 0) ? Math.min(LTsp, LcrY) : LcrY;
     const NcrT = (G * IT + Math.PI ** 2 * E * Iw / (LT * LT)) / i0sq, NcrY = Math.PI ** 2 * E * sec.Ix * 1e4 / (LcrY * LcrY);
     const beta = 1 - y0 * y0 / i0sq;
     const NcrTF = (NcrY + NcrT) / (2 * beta) * (1 - Math.sqrt(1 - 4 * beta * NcrY * NcrT / (NcrY + NcrT) ** 2));

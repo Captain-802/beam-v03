@@ -175,11 +175,12 @@ function msbWebBlock(a,c,sec,nvRows){
   h+=msbRow('Web h<sub>w</sub>, t<sub>w</sub>, t<sub>f</sub>, b<sub>f</sub>', msbMM(W.hw)+', '+msbMM(W.tw)+', '+msbMM(W.tf)+', '+msbMM(W.bf)+' mm ('+(W.isBox? 'B/2' : 'B')+' = '+msbMM(W.bfRaw)+' &le; '+(W.isBox||W.chan? 't<sub>w</sub> + 15&epsilon;t<sub>f</sub>' : 't<sub>w</sub> + 30&epsilon;t<sub>f</sub>')+' = '+msbMM(W.bfLim)+'); f<sub>yw</sub> = f<sub>yf</sub> = '+msbInt(W.fyw)+'; '+webs+(W.isBox? ' (flat depth from the section table, corner geometry)' : ''), '', 'Fig 5.1');
   h+=msbRow('m<sub>1</sub> = f<sub>yf</sub>.b<sub>f</sub>/(f<sub>yw</sub>.t<sub>w</sub>) ; m<sub>2</sub> = 0.02(h<sub>w</sub>/t<sub>f</sub>)&sup2;', msbInt(W.fyf)+' x '+msbMM(W.bf)+'/('+msbInt(W.fyw)+' x '+msbMM(W.tw)+') = '+msbR(W.m1)+' ; 0.02 x ('+msbMM(W.hw)+'/'+msbMM(W.tf)+')&sup2; = '+msbR(W.m2full)+' if &lambda;&#772;<sub>F</sub> &gt; 0.5, else 0', '', '6.5(1)');
   h+=msbRow('a = distance between transverse stiffeners', msbEsc(W.aBasis), '', '6.4(1)');
-  const G=W.gov2||null;
+  const G=W.show||W.gov2||null;
   if(G){
     const s=G, t=s.gov, cs=s.cases[s.g2], c72=s.cases[s.g72];
-    h+=msbSub('Governing station x = '+msbM(s.x/1000)+' m: '+msbEsc(s.label)+', load type ('+t.type+') '+msbWebTypeText(t.type)+(s.types.length>1? ' [types '+s.types.map(x=>'('+x+')').join(', ')+' evaluated, lower F<sub>Rd</sub> governs]' : ''));
-    const ssTxt='s<sub>s</sub> = '+msbMM(s.ss)+' mm'+(s.ssDefault? ' (default B [verify])' : s.kind==='load'&&s.ssIn===0? ' (default 0)' : ' (entered)')+(s.ssCap? ' (capped at h<sub>w</sub>, 6.3(1))' : '')+'; c = '+msbMM(s.c)+' mm (d = '+msbMM(s.d)+' to the member end)';
+    const nvTag='<span class="ms-warn">NOT VERIFIED</span>';
+    h+=msbSub((s.nv? 'Worst station (NOT VERIFIED: s<sub>s</sub> not entered, lower bound 0) x = ' : 'Governing station x = ')+msbM(s.x/1000)+' m: '+msbEsc(s.label)+', load type ('+t.type+') '+msbWebTypeText(t.type)+(s.types.length>1? ' [types '+s.types.map(x=>'('+x+')').join(', ')+' evaluated, lower F<sub>Rd</sub> governs]' : ''));
+    const ssTxt='s<sub>s</sub> = '+msbMM(s.ss)+' mm'+(s.ssDefault? ' (not entered: lower bound 0)' : s.kind==='load'&&s.ssIn===0? ' (default 0)' : ' (entered)')+(s.ssCap? ' (capped at h<sub>w</sub>, 6.3(1))' : '')+'; c = '+msbMM(s.c)+' mm (d = '+msbMM(s.d)+' to the member end)';
     const kfTxt= t.type==='c'? 'k<sub>F</sub> = 2 + 6(s<sub>s</sub> + c)/h<sub>w</sub> &le; 6 = 2 + 6 x '+msbMM(s.ss+s.c)+'/'+msbMM(W.hw) : 'k<sub>F</sub> = '+(t.type==='b'? '3.5' : '6')+' + 2(h<sub>w</sub>/a)&sup2; = '+(t.type==='b'? '3.5' : '6')+' + 2('+msbMM(W.hw)+'/'+g(s.a,0)+')&sup2;';
     h+=msbRow('s<sub>s</sub>, c ; k<sub>F</sub>', ssTxt+' ; '+kfTxt, msbR(t.kF), 'Fig 6.1('+t.type+')');
     h+=msbRow('F<sub>cr</sub> = 0.9k<sub>F</sub>.E.t<sub>w</sub>&sup3;/h<sub>w</sub>', '0.9 x '+msbR(t.kF)+' x '+msbInt(a.E)+' x '+msbMM(W.tw)+'&sup3;/'+msbMM(W.hw), msbKN(t.Fcr)+' kN', '6.4(1)');
@@ -194,9 +195,9 @@ function msbWebBlock(a,c,sec,nvRows){
     h+=msbRow('&chi;<sub>F</sub> = 0.5/&lambda;&#772;<sub>F</sub> &le; 1 ; L<sub>eff</sub> = &chi;<sub>F</sub>.l<sub>y</sub>', '0.5/'+msbR(t.lam)+' = '+msbR(t.chiRaw)+(t.chiRaw>1? ' &rarr; 1.000' : '')+' ; '+msbR(t.chi)+' x '+msbMM(t.ly), msbMM(t.Leff)+' mm', '6.4(1)');
     h+=msbRow('F<sub>Rd</sub> = f<sub>yw</sub>.L<sub>eff</sub>.t<sub>w</sub>/&gamma;<sub>M1</sub>', msbInt(W.fyw)+' x '+msbMM(t.Leff)+' x '+msbMM(W.tw)+'/1.0'+(W.isBox? ' per web; load share to this web = '+msbR(s.share)+(s.eMax>0? ' (lever rule, e = '+g(s.eMax,0)+' mm)' : ' (e = 0)')+'; F<sub>Rd</sub> for the load = '+msbKN(s.FRdTot)+' kN' : ''), msbKN(t.FRd)+' kN', '6.2(1)');
     const fTxt=(cs.P!==0&&s.support? 'P = '+msbKN(Math.abs(cs.P))+', R = '+msbKN(cs.R)+': ' : '')+'F<sub>Ed</sub> = '+msbKN(cs.F)+' kN ('+msbEsc(cs.combo)+'; on the '+cs.flange+' flange, '+msbEsc(cs.flangeState)+')';
-    h+=msbRow('F<sub>Ed</sub>/F<sub>Rd</sub>', fTxt+' / '+msbKN(s.FRdTot)+' =', msbR(cs.eta2), msbWarn(cs.eta2<=1.0001));
+    h+=msbRow('F<sub>Ed</sub>/F<sub>Rd</sub>', fTxt+' / '+msbKN(s.FRdTot)+' =', msbR(cs.eta2), s.nv? nvTag : msbWarn(cs.eta2<=1.0001));
     const eta1Txt='M<sub>Ed</sub>/M<sub>c.y.Rd</sub> = '+msbKNm(c72.M)+'/'+msbKNm(W.McRd0)+(W.NEd>1e-9? ' + N<sub>Ed</sub>/N<sub>pl.Rd</sub> = '+msbKN(W.NEd)+'/'+msbKN(W.NplRd) : '')+' = '+msbR(c72.eta1);
-    h+=msbRow('&eta;<sub>2</sub> + 0.8&eta;<sub>1</sub> &le; 1.4', msbR(c72.eta2)+' + 0.8 x ('+eta1Txt+') = '+msbR(c72.u72raw)+' &le; 1.4 ('+msbEsc(c72.combo)+(c72.flangeComp? '' : '; loaded flange in tension: 7.2(2) refers to 6.2.1(5), expression applied as a screen [verify]')+')', msbR(c72.u72), msbWarn(c72.u72<=1.0001)+' 7.2');
+    h+=msbRow('&eta;<sub>2</sub> + 0.8&eta;<sub>1</sub> &le; 1.4', msbR(c72.eta2)+' + 0.8 x ('+eta1Txt+') = '+msbR(c72.u72raw)+' &le; 1.4 ('+msbEsc(c72.combo)+(c72.flangeComp? '' : '; loaded flange in tension: 7.2(2) refers to 6.2.1(5), expression applied as a screen [verify]')+')', msbR(c72.u72), (s.nv? nvTag : msbWarn(c72.u72<=1.0001))+' 7.2');
   }
   // every station
   if(W.stations.length){
@@ -204,10 +205,10 @@ function msbWebBlock(a,c,sec,nvRows){
       W.stations.map(s=>{
         if(s.stiff) return '<tr><td class="num">'+msbM(s.x/1000)+'</td><td>'+msbEsc(s.label)+'</td><td colspan="11">'+msbEsc(s.msg)+'</td><td>advisory</td></tr>';
         const t=s.gov, cs=s.cases[s.g2];
-        return '<tr><td class="num">'+msbM(s.x/1000)+'</td><td>'+msbEsc(s.label)+'</td><td>('+t.type+')</td><td class="num">'+msbMM(s.ss)+(s.ssDefault? '*' : '')+'</td><td class="num">'+msbR(t.kF)+'</td><td class="num">'+msbMM(t.ly)+'</td><td class="num">'+msbR(t.lam)+'</td><td class="num">'+msbR(t.chi)+'</td><td class="num">'+msbKN(s.FRdTot)+'</td><td class="num">'+msbKN(cs.F)+'</td><td>'+msbEsc(cs.combo)+'</td><td class="num">'+msbR(s.eta2)+'</td><td class="num">'+msbR(s.u72)+'</td><td>'+((s.eta2<=1.0001&&s.u72<=1.0001)? (s===W.gov2? 'governs' : 'OK') : '<span class="ms-warn">Warning</span>')+'</td></tr>';
+        return '<tr><td class="num">'+msbM(s.x/1000)+'</td><td>'+msbEsc(s.label)+'</td><td>('+t.type+')</td><td class="num">'+msbMM(s.ss)+(s.ssDefault? '*' : '')+'</td><td class="num">'+msbR(t.kF)+'</td><td class="num">'+msbMM(t.ly)+'</td><td class="num">'+msbR(t.lam)+'</td><td class="num">'+msbR(t.chi)+'</td><td class="num">'+msbKN(s.FRdTot)+'</td><td class="num">'+msbKN(cs.F)+'</td><td>'+msbEsc(cs.combo)+'</td><td class="num">'+msbR(s.eta2)+'</td><td class="num">'+msbR(s.u72)+'</td><td>'+(s.nv? '<span class="ms-warn">NOT VERIFIED</span>' : (s.eta2<=1.0001&&s.u72<=1.0001)? (s===W.gov2? 'governs' : 'OK') : '<span class="ms-warn">Warning</span>')+'</td></tr>';
       }).join('')+'</tbody></table>';
   }
-  h+='<div class="ms-note">'+(W.anyDefaultSs? '* s<sub>s</sub> = section flange width B taken as a typical seating length [verify: enter the actual stiff bearing length along the member]. ' : '')+'Point loads act on the top flange (bottom flange for an upward load), reactions on the bottom flange; s<sub>s</sub> &le; h<sub>w</sub> (6.3(1)); c = distance from the bearing edge to the member end; type (c) is evaluated whenever s<sub>s</sub> + c &lt; 2h<sub>w</sub>/3 (k<sub>F</sub>(c) &lt; 6) and the lower F<sub>Rd</sub> of types (a) and (c) governs; a load over a support is type (b) with F<sub>Ed</sub> = max(P, R). &eta;<sub>1</sub> uses the unreduced M<sub>c.y.Rd</sub> ('+(W.cls<=2? 'W<sub>pl.y</sub>' : 'W<sub>el.y</sub>')+') [verify: EN 1993-1-5 4.6 writes &eta;<sub>1</sub> with W<sub>eff</sub>]. Distributed loads, hanger loads, the closely-spaced total-load check (6.3(3)) and flange-induced buckling (section 8) are not evaluated.</div>';
+  h+='<div class="ms-note">'+(W.anyDefaultSs? '* s<sub>s</sub> not entered at this support: evaluated at the lower bound s<sub>s</sub> = 0 (F<sub>Rd</sub> rises with the seating length, so a station passing at 0 is verified for any seating; one failing at 0 is NOT VERIFIED until s<sub>s</sub> is entered). ' : '')+'Point loads act on the top flange (bottom flange for an upward load), reactions on the bottom flange; s<sub>s</sub> &le; h<sub>w</sub> (6.3(1)); c = distance from the bearing edge to the member end; type (c) is evaluated whenever s<sub>s</sub> + c &lt; 2h<sub>w</sub>/3 (k<sub>F</sub>(c) &lt; 6) and the lower F<sub>Rd</sub> of types (a) and (c) governs; a load over a support is type (b) with F<sub>Ed</sub> = max(P, R). &eta;<sub>1</sub> uses the unreduced M<sub>c.y.Rd</sub> ('+(W.cls<=2? 'W<sub>pl.y</sub>' : 'W<sub>el.y</sub>')+') [verify: EN 1993-1-5 4.6 writes &eta;<sub>1</sub> with W<sub>eff</sub>]. Distributed loads, hanger loads, the closely-spaced total-load check (6.3(3)) and flange-induced buckling (section 8) are not evaluated.</div>';
   h+=msbNotVerifiedRows(nvRows);
   return h;
 }
@@ -263,11 +264,17 @@ function renderMasterSeriesBrief(a,c,sec){
   const PT=a.patterns||null;
   if(PT && PT.segs && PT.segs.length>1){
     if(PT.active){
-      loadLines.push('<b>Pattern loading</b> ('+PT.segText+'): '+PT.nUls+' ULS + '+PT.nSls+' SLS combinations generated &mdash; Q on each span, adjacent pairs, alternate spans; G/W/E at their entered factors on every span');
+      loadLines.push('<b>Pattern loading</b> ('+PT.segText+'): '+PT.nUls+' ULS + '+PT.nSls+' SLS combinations generated &mdash; Q on each span, adjacent pairs, alternate spans, max-reaction sets (4+ spans); G/W/E at their entered factors on every span');
       a.ulsResults.concat(a.slsResults).filter(r=>r.combo.pattern).forEach(r=>loadLines.push('&nbsp;&nbsp;'+(r.combo.sls? 'SLS ':'ULS ')+msbCaseIndex(r.combo,!!r.combo.sls,a)+': '+msbEsc(r.combo.label)));
-      loadLines.push('<span class="ms-note">'+PT.limitation+'</span>');
-    } else loadLines.push('<span class="ms-note"><b>Pattern loading OFF</b> ('+PT.segText+'): only the entered combinations are analysed; '+PT.limitation+'</span>');
+    } else loadLines.push('<span class="ms-note"><b>Pattern loading OFF</b> ('+PT.segText+'): only the entered combinations are analysed; adverse / relieving span patterns must be entered by hand.</span>');
   }
+  // gamma_G,inf companions (19 Sep 2026 review): G at 1.0 (STR set B) and 0.9 (EQU set A) of every ULS combination
+  // with G > 1.0, solved for the support reactions (uplift / hold-down, web bearing); listed after the patterns
+  if(a.ulsCompanions && a.ulsCompanions.length){
+    loadLines.push('<b>&gamma;<sub>G,inf</sub> companions</b> (reactions only): '+a.ulsCompanions.length+' &mdash; G at 1.0 (STR set B) and 0.9 (EQU set A) of every ULS combination with G &gt; 1.0, variable factors as entered');
+    a.ulsCompanions.forEach((r,i)=>loadLines.push('&nbsp;&nbsp;ULS C'+(i+1)+': '+r.combo.label));
+  }
+  if(PT && PT.limitation) loadLines.push('<span class="ms-note">'+PT.limitation+'</span>');
   const sketch=(typeof beamDiagram==='function'? beamDiagram(a) : '')+(typeof plot==='function'? plot(a.diag.xs,a.diag.M,{color:'#1a237e',fill:'#c9d3ea',unit:'kN.m',flip:true,fmt:v=>f1(v,2)}) : '');
   h+='<div class="ms-loading"><div class="ms-loadlist">'+loadLines.join('<br>')+'</div><div class="ms-sketch">'+sketch+'</div></div>';
 
@@ -292,7 +299,7 @@ function renderMasterSeriesBrief(a,c,sec){
   if(HD && HD.rows && HD.rows.length){
     HD.rows.forEach(u=>{
       if(u.level==='sls'){
-        h+=msbRow('Uplift at SLS only, support '+u.n+' (x = '+msbM(u.pos/1000)+' m)', 'R = &minus;'+f1(Math.abs(u.RSls),2)+' kN (SLS combination '+msbEsc(u.comboSls)+'); no ULS combination lifts this support; EQU set A (&gamma;<sub>G,inf</sub> = 0.9) not generated &mdash; verify by hand (advisory)', 'R = &minus;'+f1(Math.abs(u.RSls),2)+' kN', 'advisory');
+        h+=msbRow('Uplift at SLS only, support '+u.n+' (x = '+msbM(u.pos/1000)+' m)', 'R = &minus;'+f1(Math.abs(u.RSls),2)+' kN (SLS combination '+msbEsc(u.comboSls)+'); no ULS combination lifts this support, incl. the &gamma;<sub>G,inf</sub> companions (G at 1.0 STR set B, 0.9 EQU set A) (advisory)', 'R = &minus;'+f1(Math.abs(u.RSls),2)+' kN', 'advisory');
         return;
       }
       const lbl='Hold-down '+(u.holdDown? 'provided' : 'required')+' at support '+u.n+' (x = '+msbM(u.pos/1000)+' m)';
@@ -301,7 +308,7 @@ function renderMasterSeriesBrief(a,c,sec){
     });
     h+=msbNotVerifiedRows(nv.forces);
   }
-  if(a.uplift && !a.uplift.any) h+=msbRow('Uplift', 'no support lifts in any of the '+(a.ulsResults.length+a.slsResults.length)+' combinations (all reactions &ge; 0)', 'R<sub>min</sub> &ge; 0', 'OK');
+  if(a.uplift && !a.uplift.any) h+=msbRow('Uplift', 'no support lifts in any of the '+(a.uplift.nCombos!=null? a.uplift.nCombos : a.ulsResults.length+a.slsResults.length)+' combinations (all reactions &ge; 0'+((a.ulsCompanions&&a.ulsCompanions.length)? '; incl. the '+a.ulsCompanions.length+' &gamma;<sub>G,inf</sub> companions with G at 1.0 and 0.9' : '')+')', 'R<sub>min</sub> &ge; 0', 'OK');
   if(nULS>1 || a.slsResults.length>1){
     h+='<table class="ms-combos"><thead><tr><th>Combination</th><th>V<sub>max</sub> (kN)</th><th>M<sub>max</sub> (kN.m @ m)</th><th>&delta; (mm)</th></tr></thead><tbody>'+
        a.ulsResults.map(r=>'<tr><td>'+r.combo.label+(r===a.governM? ' (governs M)':'')+'</td><td class="num">'+f1(r.Vmax/1000,3)+'</td><td class="num">'+f1(r.Mmax/1e6,3)+' @ '+g(r.Mpos/1000,3)+'</td><td class="num">&mdash;</td></tr>').join('')+
@@ -512,7 +519,7 @@ function renderMasterSeriesBrief(a,c,sec){
       h+=msbRow('L<sub>e</sub> = portion between restraints', (isCant? 'root at x = 0 (fixed), tip free; root warping '+(S.rootWarp==='restrained'?'restrained':'free') : 'restraints at x = '+(LT.vPoints||[]).map(x=>msbM(x/1000)).join(', ')+' m (fork)')+(supExtras.length? '; '+supExtras.join('; ') : ''), msbM((xb-xa)/1000)+' m', 'FE');
       const zgTxt=(LT.zgValues&&LT.zgValues.length>1)? '; z<sub>g</sub> = '+LT.zgValues.map(z=>g(z,0)).join(', ')+' mm' : (Math.abs(LT.zg||0)>1e-9? '; z<sub>g</sub> = '+g(LT.zg,0)+' mm (load reversed: '+msbKNm(LT.McrRev)+')' : '');
       const mcrBad = LT.mcrConverged===false || (LT.meshError||0)>0.005;
-      h+=msbRow('M<sub>cr</sub> = FE eigenvalue (n<sub>Elem</sub>, mesh error)', msbInt(LT.nElem)+' elements, '+f1((LT.meshError||0)*100,3)+' %'+(LT.nCombos>1? '; governing: '+msbEsc(LT.governCombo) : '')+zgTxt, msbKNm(LT.Mcr)+' kN.m'+(sg? ' (whole member)' : ''), mcrBad? '<span class="ms-warn">BLOCKED</span>' : 'converged');
+      h+=msbRow('M<sub>cr</sub> = FE eigenvalue (n<sub>Elem</sub>, mesh error)', msbInt(LT.nElem)+' elements, '+f1((LT.meshError||0)*100,3)+' %'+(LT.nCombos>1? '; governing: '+msbEsc(LT.governCombo) : '')+zgTxt+(LT.nSolves!=null? '; '+LT.nCombos+' combination(s), '+LT.nSolves+' solve(s)'+(LT.nCached? ' + '+LT.nCached+' cached' : '') : ''), msbKNm(LT.Mcr)+' kN.m'+(sg? ' (whole member)' : ''), mcrBad? '<span class="ms-warn">BLOCKED</span>' : 'converged');
       const lam= sg? sg.lam : LT.lamLT, Mcr= sg? sg.Mcr : LT.Mcr;
       h+=lamLine(lam,Mcr);
       if(sg){
@@ -637,7 +644,7 @@ function renderMasterSeriesBrief(a,c,sec){
       // [beam-v03 addition, 19 Sep 2026 G4] method line: P385 closed forms where
       // they apply, the warping-torsion FE elsewhere (with its mesh error)
       if(T.fe){
-        h+=msbRow('Torsion analysis', 'EI<sub>w</sub>&phi;&#8279; &minus; GI<sub>T</sub>&phi;&Prime; = m<sub>t</sub>(x): '+msbEsc(T.methodLabel)+'; '+T.bcText+'; closed forms not applicable: '+msbEsc((T.feReasons||[]).join('; ')),
+        h+=msbRow('Torsion analysis', 'EI<sub>w</sub>&phi;&#8279; &minus; GI<sub>T</sub>&phi;&Prime; = m<sub>t</sub>(x): '+msbEsc(T.methodLabel)+'; '+T.bcText+'; closed forms not applicable: '+msbEsc((T.feReasons||[]).join('; '))+(T.nSolves!=null? '; '+T.nSolves+' FE solve(s)'+(T.nCached? ' + '+T.nCached+' cached' : '') : ''),
           'mesh error '+(T.meshError*100).toFixed(3)+' %', T.meshConverged? 'FE (&le; '+(T.meshBlock*100).toFixed(1)+' %)' : '<span class="ms-warn">BLOCKED</span>');
       } else {
         h+=msbRow('Torsion analysis', msbEsc(T.methodLabel)+'; '+T.bcText, 'L/a = '+f1(T.X,2), 'P385 App C');

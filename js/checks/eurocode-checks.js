@@ -213,6 +213,29 @@ function lcrZFromRestraints(a){
   gmax=Math.max(gmax, 2*pts[0], 2*(a.L-pts[pts.length-1]));
   return gmax>1e-6? gmax : null;
 }
+/* Torsional buckling length from the TWIST restraints (19 Sep 2026 review
+   finding): EN 1993-1-1 6.3.1.4(1) with EN 1993-1-3 6.2.3(5) - l_T is set by
+   the torsional / warping restraint at the ends of the torsional segment. A
+   restraint that holds lateral displacement v only (phi unticked) does not
+   bound the torsional mode, so L_T is the largest spacing between points that
+   prevent twist: every support (fork / torsional restraint) and every
+   intermediate restraint with phi !== false; free overhangs beyond the
+   outermost twist restraint count double (cantilever segment), as in
+   lcrZFromRestraints(). Mirrors lcrZFromRestraints(): null (keep the
+   flexural default) when there are no intermediate twist restraints, for a
+   cantilever, or in the fully restrained mode. */
+function lcrTFromTwistRestraints(a){
+  if(!(S.code==='EC3' && (S.restraint||'full')!=='full')) return null;
+  const ir=(S.ltbRestraints||[]).filter(r=>r.phi!==false).map(r=>(+r.pos)*1000).filter(x=>isFinite(x)&&x>=0&&x<=a.L);
+  if(!ir.length) return null;
+  if(S.supports.length<2) return null;
+  const pts=[...new Set(S.supports.map(s=>(+s.pos)*1000).concat(ir).map(x=>+x.toFixed(3)))].sort((p,q)=>p-q);
+  if(pts.length<2) return null;
+  let gmax=0;
+  for(let i=1;i<pts.length;i++) gmax=Math.max(gmax,pts[i]-pts[i-1]);
+  gmax=Math.max(gmax, 2*pts[0], 2*(a.L-pts[pts.length-1]));
+  return gmax>1e-6? gmax : null;
+}
 /* ---- k_c floor (19 Sep 2026 gap closure, item 3.5) ----
    NA 2.18 allows k_c = 1/sqrt(C1). Table 6.6 lists k_c down to 0.60 (the
    psi = -1 end-moment case, C1 = 2.76), so a back-calculated or Serna C1 above
@@ -264,8 +287,11 @@ function mzFlangeStress(sec,F,My,Mz){
    3.10, EN 1993-1-1 6.3.1.4). Monosymmetric about y-y (the major axis, the
    axis of symmetry); the shear centre lies on it at y0 = e_sc from the
    centroid (SCI P385 Table A.3 / Blue Book, sec.tp.esc, mm). i0^2 = i_y^2 +
-   i_z^2 + y0^2; N_cr,T = (G I_T + pi^2 E I_w/L_T^2)/i0^2 with L_T = L_cr,z
-   unless the user enters S.LT (m); the torsional mode couples with flexure
+   i_z^2 + y0^2; N_cr,T = (G I_T + pi^2 E I_w/L_T^2)/i0^2 with L_T = the
+   spacing of the TWIST restraints (lcrTFromTwistRestraints: supports and
+   intermediate restraints with phi ticked, never the v-only spacing L_cr,z),
+   capped at L_cr,y, unless the user enters S.LT (m); the torsional mode
+   couples with flexure
    about the axis of symmetry (the y-y flexural mode, N_cr,y) through the
    standard cubic, which for one axis of symmetry reduces to
    N_cr,TF = (N_cr,y + N_cr,T)/(2 beta) [1 - sqrt(1 - 4 beta N_cr,y N_cr,T/
@@ -273,7 +299,7 @@ function mzFlangeStress(sec,F,My,Mz){
    N_cr = min(N_cr,T, N_cr,TF); lambda_T = sqrt(A f_y/N_cr); chi from the curve
    related to the z-z axis (6.3.1.4(3)): Table 6.2 "U-sections: any axis ->
    curve c" [verify]; N_b,T,Rd = chi A f_y/gamma_M1. Pure. */
-function torsionalFlexuralBuckling(sec,fy,E,LcrY,LcrZ,Ag,gM1){
+function torsionalFlexuralBuckling(sec,fy,E,LcrY,LcrZ,Ag,gM1,LcrT){
   const G=81000;
   const IT=((sec.tp&&sec.tp.IT)? sec.tp.IT : sec.J)*1e4, ITSrc=(sec.tp&&sec.tp.IT)? 'SCI P385 Table A.3' : 'section table';
   const Iw=(((sec.tp&&sec.tp.Iw!=null)? sec.tp.Iw : sec.Iw)||0)*1e12;
@@ -282,7 +308,11 @@ function torsionalFlexuralBuckling(sec,fy,E,LcrY,LcrZ,Ag,gM1){
   const iy=sec.rx*10, iz=sec.ry*10;
   const i0sq=iy*iy+iz*iz+y0*y0, i0=Math.sqrt(i0sq);
   const LTin=(S.LT!=null && S.LT!=='' && isFinite(+S.LT) && +S.LT>0)? (+S.LT)*1000 : null;
-  const LT= LTin!=null? LTin : LcrZ;
+  // default L_T: the twist-restraint spacing (LcrT, capped at L_cr,y by the
+  // caller), never the lateral-only spacing L_cr,z; LcrZ is kept for reporting
+  const LTdef= (LcrT!=null && isFinite(LcrT) && LcrT>0)? LcrT : LcrY;
+  const LT= LTin!=null? LTin : LTdef;
+  const LTSrc= LTin!=null? 'user L<sub>T</sub>' : (LcrT!=null && LcrT<LcrY-1e-6)? 'spacing of twist restraints (supports and restraints with &phi; held)' : 'L<sub>cr,y</sub> (no intermediate twist restraint)';
   const NcrT=(G*IT+Math.PI*Math.PI*E*Iw/(LT*LT))/i0sq;            // N
   const NcrY=Math.PI*Math.PI*E*sec.Ix*1e4/(LcrY*LcrY);           // N, flexural about the axis of symmetry (y-y, major)
   const beta=1-(y0*y0)/i0sq;
@@ -292,7 +322,7 @@ function torsionalFlexuralBuckling(sec,fy,E,LcrY,LcrZ,Ag,gM1){
   const cvT=strutCurveEC3(sec,'z');
   const chiT=chiStrutEC3(lamT,cvT.alpha);
   const NbT=chiT*Ag*fy/gM1/1000;                                 // kN
-  return {ok:true,y0,y0Src:'e<sub>sc</sub> = shear centre to centroid, SCI P385 Table A.3 (Blue Book e<sub>0</sub> + c<sub>y</sub>)',iy,iz,i0,i0sq,IT,ITSrc,Iw,G,LT,LTSrc:(LTin!=null? 'user L<sub>T</sub>' : 'L<sub>cr,z</sub>'),
+  return {ok:true,y0,y0Src:'e<sub>sc</sub> = shear centre to centroid, SCI P385 Table A.3 (Blue Book e<sub>0</sub> + c<sub>y</sub>)',iy,iz,i0,i0sq,IT,ITSrc,Iw,G,LT,LTSrc,LTdef,LcrZ,LcrT,
     NcrT:NcrT/1000,NcrY:NcrY/1000,beta,NcrTF:NcrTF/1000,Ncr:Ncr/1000,mode,lamT,cvT,chiT,NbT};
 }
 function annexB2(a,sec,fy,cl,MbRdI,useB1,isCant,aeff){
@@ -341,7 +371,11 @@ function annexB2(a,sec,fy,cl,MbRdI,useB1,isCant,aeff){
   // the lower of chi_T and the flexural chi feeds both axial terms of 6.61/6.62
   let tfb=null;
   if(sec.kind==='channel' && Fc>1e-9){
-    tfb=torsionalFlexuralBuckling(sec,fy,E,LcrY,LcrZ,Aeff,gM1);
+    // L_T from the twist-restraint spacing (phi held), capped at L_cr,y; a
+    // lateral-only restraint shortens L_cr,z but not L_T
+    const lt=lcrTFromTwistRestraints(a);
+    const LcrT= lt!=null? Math.min(lt,LcrY) : LcrY;
+    tfb=torsionalFlexuralBuckling(sec,fy,E,LcrY,LcrZ,Aeff,gM1,LcrT);
     if(tfb.ok) tfb.util=Fc/Math.max(tfb.NbT,1e-9);
   }
   const NbYeff= (tfb&&tfb.ok)? Math.min(NbY,tfb.NbT) : NbY;
@@ -411,9 +445,13 @@ function annexB2(a,sec,fy,cl,MbRdI,useB1,isCant,aeff){
    lambda_F <= 0.5); l_y = s_s + 2 t_f (1 + sqrt(m1 + m2)) <= a for (a)/(b),
    the two 6.5(4) expressions with l_e = k_F E t_w^2/(2 f_yw h_w) <= s_s + c
    for (c). b_f is limited to 15 eps t_f each side of the web (6.5(1)).
-   s_s: per-load input (default 0) and per-support input (default = the
-   section flange width B, tagged [verify]: enter the seating length along the
-   member), capped at h_w (6.3(1)). c = max(d - s_s/2, 0) with d the distance
+   s_s: per-load input (default 0) and per-support input (blank = the LOWER
+   BOUND s_s = 0, since the seating length is set by the bearing, not by the
+   beam; F_Rd rises monotonically with s_s, so a station that passes at 0 is
+   verified for any seating, while a station that fails at 0 with s_s not
+   entered is reported NOT VERIFIED - blocking, with the s_s = 0 values
+   printed - instead of FAIL: 19 Sep 2026 review finding, replacing the
+   former default s_s = B), capped at h_w (6.3(1)). c = max(d - s_s/2, 0) with d the distance
    from the station to the nearer member end. a = distance between declared
    bearing stiffeners bounding the station, the full member length when none
    are declared (conservative, printed).
@@ -502,10 +540,11 @@ function webTransverseCheck(a,sec,fy,eps,cl){
       out.advisory.push('Web transverse forces at x = '+g(s.x/1000,3)+' m ('+label+'): '+rec.msg+'.');
       out.stations.push(rec); return;
     }
-    // stiff bearing length: the smaller of the entries at the station; support default = B [verify]
+    // stiff bearing length: the smaller of the entries at the station; a blank
+    // support entry is the lower bound 0 (ssDefault: NOT VERIFIED if it fails)
     const ssLoad= s.loads.length? Math.min(...s.loads.map(l=>l.ss==null? 0 : l.ss)) : null;
     let ssSup=null, ssDefault=false;
-    if(s.support){ ssSup= s.support.ss==null? sec.B : s.support.ss; ssDefault= s.support.ss==null; }
+    if(s.support){ ssSup= s.support.ss==null? 0 : s.support.ss; ssDefault= s.support.ss==null; }
     const ssIn= kind==='both'? Math.min(ssLoad,ssSup) : kind==='load'? ssLoad : ssSup;
     const ssCap= ssIn>hw;
     const ss=Math.min(ssIn,hw);
@@ -521,8 +560,11 @@ function webTransverseCheck(a,sec,fy,eps,cl){
     const eMax=s.loads.length? Math.max(...s.loads.map(l=>l.e)) : 0;
     const share= isBox? Math.min(1,0.5+eMax/Math.max(sec.B-tw,1e-9)) : 1;
     const FRdTot= isBox? gov.FRd/share : gov.FRd;
-    // F_Ed, M_Ed per ULS combination (its own load pieces, reactions and diagram)
-    const cases=a.ulsResults.map(res=>{
+    // F_Ed, M_Ed per ULS combination (its own load pieces, reactions and diagram);
+    // the gamma_G,inf = 1.0 STR set-B companions (19 Sep 2026 review) are swept
+    // too - a relieving G raises the reaction where G lifts the support
+    const ulsList=a.ulsResults.concat((a.ulsCompanions||[]).filter(res=>res.combo.gInfSet==='B'));
+    const cases=ulsList.map(res=>{
       let P=0;
       comboLoadPieces(res.combo).forEach(p=>{ if(p.type==='point' && Math.abs(p.pos-s.x)<=tol) P+=p.P*p.factor; });
       const R= s.support? Math.max(res.r.reactions[s.support.i].V/1000,0) : 0;
@@ -543,11 +585,23 @@ function webTransverseCheck(a,sec,fy,eps,cl){
     let g2=0,g72=0; cases.forEach((cs,i)=>{ if(cs.eta2>cases[g2].eta2) g2=i; if(cs.u72>cases[g72].u72) g72=i; });
     if(!cases[g2].flangeComp && cases[g2].F>1e-9) out.anyTension=true;
     Object.assign(rec,{ssIn,ss,ssCap,ssDefault,d,c,endZone,a:panel.a,panel,types,sols,gov,type:gov.type,share,eMax,FRd:gov.FRd,FRdTot,cases,g2,g72,
-      eta2:cases[g2].eta2,u72:cases[g72].u72,F:cases[g2].F,combo:cases[g2].combo});
+      eta2:cases[g2].eta2,u72:cases[g72].u72,F:cases[g2].F,combo:cases[g2].combo,nv:false});
+    // s_s not entered and the lower bound fails: the seating is unknown, so the
+    // station is NOT VERIFIED (blocking) rather than FAIL; its s_s = 0 values are printed
+    if(ssDefault && (rec.eta2>1.0001 || rec.u72>1.0001)){
+      rec.nv=true;
+      rec.msg='NOT VERIFIED: s<sub>s</sub> not entered; at the lower bound s<sub>s</sub> = 0 the station gives F<sub>Ed</sub>/F<sub>Rd</sub> = '+g(rec.eta2,3)+(rec.u72>1.0001? ' and 7.2 = '+g(rec.u72,3) : '');
+      out.unsupported.push('Web transverse force at x = '+g(s.x/1000,3)+' m ('+label+'): the stiff bearing length s<sub>s</sub> is not entered; at the lower bound s<sub>s</sub> = 0 the station gives F<sub>Ed</sub>/F<sub>Rd</sub> = '+g(rec.eta2,3)+' (F<sub>Ed</sub> = '+g(rec.F,1)+' kN, F<sub>Rd</sub> = '+g(rec.FRdTot,1)+' kN, type ('+rec.type+'))'+(rec.u72>1.0001? ' and (&eta;<sub>2</sub> + 0.8&eta;<sub>1</sub>)/1.4 = '+g(rec.u72,3) : '')+'. F<sub>Rd</sub> rises with the seating length: enter s<sub>s</sub> (mm along the member, EN 1993-1-5 6.3(1)) in the support row, or tick "bearing stiffener provided"; PASS is blocked until then.');
+    }
     out.stations.push(rec);
   });
-  const checked=out.stations.filter(s=>!s.stiff);
+  const checked=out.stations.filter(s=>!s.stiff && !s.nv);
+  out.anyNv=out.stations.some(s=>s.nv);
   out.checked=checked.length>0;
+  // station whose derivation is printed: the worst F_Ed/F_Rd of every evaluated
+  // station, a NOT VERIFIED one included (its s_s = 0 chain is shown as such)
+  const shown=out.stations.filter(s=>!s.stiff);
+  if(shown.length){ let w=shown[0]; shown.forEach(s=>{ if(s.eta2>w.eta2) w=s; }); out.show=w; } else out.show=null;
   if(out.checked){
     let w2=checked[0], w72=checked[0];
     checked.forEach(s=>{ if(s.eta2>w2.eta2) w2=s; if(s.u72>w72.u72) w72=s; });
@@ -860,7 +914,7 @@ function checksEC3Restrained(a){
         method:O.method||'closed',methodLabel:O.methodLabel||'SCI P385 App C closed forms (Cases 3/4/10)',fe:feMethod,
         nElem:O.nElem||null,nElemCoarse:O.nElemCoarse||null,meshError:feMethod? O.meshError:null,meshBlock:O.meshBlock||null,meshConverged:feMethod? !!O.converged:true,
         bcText:O.bcText||'',feReasons:O.feReasons||[],
-        BMax:BMaxAbs,BMaxPos,TEnds,
+        BMax:BMaxAbs,BMaxPos,TEnds,nSolves:(O.nSolves!=null? O.nSolves : null),nCached:(O.nCached!=null? O.nCached : null),
         e0:(sec.tp&&sec.tp.e0!=null)? sec.tp.e0 : (sec.e0!=null? sec.e0*10 : null),
         esc:(sec.tp&&sec.tp.esc!=null)? sec.tp.esc : null,
         aa:O.aa,X:O.X,IT:O.IT,Iw:O.Iw,chan,cls12,

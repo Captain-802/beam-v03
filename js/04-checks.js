@@ -78,13 +78,19 @@ function patternKey(mask){
 }
 /* Expand the enabled user combinations with the automatic span-wise patterns.
    For every combination with a non-zero Q factor: Q on each single segment,
-   on each pair of adjacent segments and on the alternate (odd / even) segments,
+   on each pair of adjacent segments, on the alternate (odd / even) segments
+   and, for four or more segments, the influence-line set for the maximum
+   reaction at each interior support - the two adjacent segments plus every
+   alternate segment continuing outward (k+2, k+4, ... and k-3, k-5, ...; the
+   reaction influence line changes sign span by span beyond the loaded pair;
+   19 Sep 2026 review finding: the pair set alone under-enveloped F_Ed at an
+   interior support of a 4+ span member by the far alternate spans' share) -
    G (and W, E) at their entered factors on every span. Patterns whose Q load
    set is empty, equals the parent's or repeats an earlier pattern are dropped.
    Each generated combination is a shallow copy of its parent with a new id,
    the label suffixed "(Q on span 2 only)" etc., mask and parent fields. The
-   limitation gamma_G,inf = 1.0 on relieving spans (EN 1990 Table A1.2(B)) is
-   NOT generated; it is stated in the printed note (patternInfo). */
+   favourable-G cases gamma_G,inf = 1.0 / 0.9 (EN 1990 Table A1.2(B) / (A))
+   are the companion combinations of gammaInfCompanions() (reactions only). */
 function expandPatternCombos(userCombos){
   if(!patternLoadingActive()) return userCombos.slice();
   const segs=spanSegments(), n=segs.length;
@@ -94,6 +100,16 @@ function expandPatternCombos(userCombos){
   if(n>=3){
     sets.push({idx:segs.map((s,i)=>i).filter(i=>i%2===0),label:'Q on odd spans only',kind:'odd'});
     sets.push({idx:segs.map((s,i)=>i).filter(i=>i%2===1),label:'Q on even spans only',kind:'even'});
+  }
+  if(n>=4){
+    for(let k=1;k<n;k++){                       // interior support between segments k-1 and k
+      const idx=[k-1,k];
+      for(let j=k+2;j<n;j+=2) idx.push(j);
+      for(let j=k-3;j>=0;j-=2) idx.unshift(j);
+      idx.sort((p,q)=>p-q);
+      const xs=(segs[k].a/1000).toFixed(2).replace(/\.?0+$/,'');
+      sets.push({idx,label:'Q on spans '+idx.map(i=>i+1).join('+')+' only (max reaction at x = '+xs+' m)',kind:'reaction',support:segs[k].a});
+    }
   }
   const fullKey=patternKey({case:PATTERN_CASE,segIdx:segs.map((s,i)=>i),segs});
   const out=[];
@@ -112,16 +128,42 @@ function expandPatternCombos(userCombos){
   return out;
 }
 /* Printed description of the pattern set (pure). */
-function patternInfo(ulsCombos,slsCombos){
+function patternInfo(ulsCombos,slsCombos,companions){
   const segs=spanSegments();
   const on = S.autoPattern==null ? true : !!S.autoPattern;
   const nU=ulsCombos.filter(c=>c.pattern).length, nS=slsCombos.filter(c=>c.pattern).length;
   const segText=segs.map(s=>'span '+s.no+': '+(s.a/1000).toFixed(2).replace(/\.?0+$/,'')+'&ndash;'+(s.b/1000).toFixed(2).replace(/\.?0+$/,'')+' m'+(s.cant? ' (cantilever)':'')).join('; ');
-  const limitation='&gamma;<sub>G,inf</sub> = 1.0 on relieving spans (EN 1990 Table A1.2(B)) is NOT generated: G acts at its entered factor on every span; add a reduced-G combination by hand where a relieving permanent action could govern (uplift, cantilever back spans).';
+  const nComp=(companions||[]).length;
+  const limitation= nComp
+    ? '&gamma;<sub>G,inf</sub> companions: '+nComp+' ULS combination(s) re-solved with G at 1.0 (STR set B, EN 1990 6.4.3.1(4) / Table A1.2(B)) and at 0.9 (EQU set A, Table A1.2(A)) over the whole member (single-source permanent action) for the SUPPORT REACTIONS only - uplift / hold-down forces and the web-bearing reactions; the moment and shear envelopes keep the entered &gamma;<sub>G</sub>, so add a reduced-G combination by hand where a relieving permanent action could increase a span moment.'
+    : '&gamma;<sub>G,inf</sub> companions: none generated (no enabled ULS combination has a G factor above 1.0; a relieving-G case must be entered by hand where a permanent action is favourable).';
   let note=null;
-  if(segs.length>1 && on) note='Automatic pattern loading: '+nU+' ULS and '+nS+' SLS combinations generated from the support layout ('+segText+'): Q on each span, on each pair of adjacent spans and on alternate spans, with G, W and E at their entered factors on every span (EN 1990 6.10 as entered). '+limitation;
-  else if(segs.length>1) note='Automatic pattern loading is OFF: only the entered combinations are analysed ('+segText+'). Adverse / relieving span patterns of the variable action must be entered by hand, and '+limitation;
-  return {on, active:on&&segs.length>1, segs, nUls:nU, nSls:nS, note, limitation, segText};
+  if(segs.length>1 && on) note='Automatic pattern loading: '+nU+' ULS and '+nS+' SLS combinations generated from the support layout ('+segText+'): Q on each span, on each pair of adjacent spans, on alternate spans and, for four or more spans, the influence-line set for the maximum reaction at each interior support (the adjacent pair plus every alternate span outward), with G, W and E at their entered factors on every span (EN 1990 6.10 as entered). '+limitation;
+  else if(segs.length>1) note='Automatic pattern loading is OFF: only the entered combinations are analysed ('+segText+'). Adverse / relieving span patterns of the variable action must be entered by hand. '+limitation;
+  return {on, active:on&&segs.length>1, segs, nUls:nU, nSls:nS, nComp, note, limitation, segText};
+}
+/* gamma_G,inf companion combinations (19 Sep 2026 review finding): EN 1990
+   6.4.3.1(4) - where a permanent action is favourable (a back span holding
+   down an overhang, an end span holding down a lifting support) gamma_G,inf
+   applies: 1.0 in the STR set B (Table A1.2(B)) and 0.9 in the EQU set A
+   (Table A1.2(A)); the single-source rule (6.4.3.1(4) note, A1.3.1(1)) means
+   one gamma_G over the whole member, not span by span. For every analysed
+   ULS combination (patterns included) whose G factor exceeds 1.0 two
+   companions are formed with factors.G replaced by 1.0 and 0.9 (the variable
+   factors unchanged). They are solved for their REACTIONS (uplift / hold-down
+   design force and the web-bearing reactions); the moment / shear envelopes
+   are not extended (printed limitation). Pure. */
+function gammaInfCompanions(ulsCombos){
+  const out=[];
+  ulsCombos.forEach(cb=>{
+    const gF=cb.factors.G??0;
+    if(!(gF>1+1e-9)) return;
+    [[1.0,'B','STR set B','EN 1990 Table A1.2(B)'],[0.9,'A','EQU set A','EN 1990 Table A1.2(A)']].forEach(([gInf,set,setName,ref])=>{
+      out.push(Object.assign({},cb,{id:(cb.id||'combo')+'#gInf'+set,label:cb.label+' [&gamma;<sub>G,inf</sub> = '+gInf.toFixed(1)+', '+setName+']',
+        factors:Object.assign({},cb.factors,{G:gInf}),parent:cb,gInf,gInfSet:set,gInfRef:ref,companion:true}));
+    });
+  });
+  return out;
 }
 
 function comboLoads(combo){
@@ -167,7 +209,7 @@ function validateInputs(py,E,ulsCombos,slsCombos){
   const area=activeSection().A;
   if(S.anet!=null && !(finite(S.anet)&&S.anet>0&&S.anet<=area)) errs.push('Net area must be greater than zero and no greater than the gross area.');
   ['Ke','robX','robY','C1o'].forEach(k=>{ if(S[k]!=null && !(finite(S[k])&&S[k]>0)) errs.push(`${k} override must be greater than zero.`); });
-  if(S.LT!=null && S.LT!=='' && !(finite(S.LT) && +S.LT>0)) errs.push('Torsional buckling length L_T must be blank (= L_cr,z) or greater than 0 m.');
+  if(S.LT!=null && S.LT!=='' && !(finite(S.LT) && +S.LT>0)) errs.push('Torsional buckling length L_T must be blank (= spacing of the twist restraints) or greater than 0 m.');
   if(S.mcrMethod!=null && S.mcrMethod!=='eigen' && S.mcrMethod!=='standard') errs.push(`Unknown Mcr method "${S.mcrMethod}": use "eigen" (FE eigensolver) or "standard" (closed form).`);
   [['mLTo',0.44],['mxo',0.4]].forEach(([k,min])=>{ if(S[k]!=null && !(finite(S[k])&&S[k]>=min&&S[k]<=1)) errs.push(`${k} override must be between ${min} and 1.`); });
   if(S.mLTo!=null && (S.destab || (S.supports.length===1&&S.supports[0].type==='fixed')) && S.mLTo!==1) errs.push('mLT must be 1 for cantilevers and destabilising loading.');
@@ -217,6 +259,22 @@ function validateInputs(py,E,ulsCombos,slsCombos){
   }
   if(errs.length) throw errs.join(" ");
 }
+/* Memo of warping-torsion FE solves (19 Sep 2026 review, performance): keyed
+   by the full input of warpingTorsionFE (L, E I_w, G I_T, support list with
+   the warping flags, torque list), bounded; a re-render after an unrelated
+   input, or a pattern / companion whose torque list repeats, is served from
+   the cache. Pure function results are immutable here (never mutated). */
+const TORSION_FE_CACHE=new Map(), TORSION_FE_CACHE_MAX=64;
+function warpingTorsionFEMemo(opts,stats){
+  const key=JSON.stringify([opts.L,opts.EIw,opts.GIt,opts.supports,opts.torques]);
+  const hit=TORSION_FE_CACHE.get(key);
+  if(hit){ TORSION_FE_CACHE.delete(key); TORSION_FE_CACHE.set(key,hit); if(stats) stats.cached++; return hit; }
+  const sol=warpingTorsionFE(opts);
+  if(stats) stats.solved++;
+  TORSION_FE_CACHE.set(key,sol);
+  if(TORSION_FE_CACHE.size>TORSION_FE_CACHE_MAX) TORSION_FE_CACHE.delete(TORSION_FE_CACHE.keys().next().value);
+  return sol;
+}
 function analyse(){
   const sec=activeSection();
   syncSelfWeightLoads();
@@ -250,11 +308,12 @@ function analyse(){
   // consumer below sees them exactly like user combinations.
   const ulsCombos=expandPatternCombos(ulsUser);
   const slsCombos=expandPatternCombos(slsUser);
-  const patterns=patternInfo(ulsCombos,slsCombos);
+  const companionCombos=gammaInfCompanions(ulsCombos);
+  const patterns=patternInfo(ulsCombos,slsCombos,companionCombos);
 
   // Run every enabled ULS combination; the same load/support geometry means every
   // combo's result lands on an identical x-grid, so elementwise envelopes are valid.
-  const ulsResults=ulsCombos.map(combo=>{
+  const solveUls=combo=>{
     const loads=comboLoads(combo);
     const r=solveBeam(L,EI,supportsMM,loads,120,hingesMM);
     if(!r.w.every(Number.isFinite)) throw hingesMM.length? "Under-restrained layout (mechanism): an internal hinge has left part of the beam unrestrained. Add another support (e.g. a propped/Gerber layout) or remove the hinge." : "Under-restrained layout (mechanism). Add a support, or make a support Fixed to prevent rigid-body motion.";
@@ -262,7 +321,11 @@ function analyse(){
     let Vmax=0; fb.V.forEach(v=>{ if(Math.abs(v)>Math.abs(Vmax)) Vmax=v; });
     let Mmax=0,Mpos=0; fb.xs.forEach((x,i)=>{ if(Math.abs(fb.M[i])>Math.abs(Mmax)){Mmax=fb.M[i];Mpos=x;} });
     return {combo,r,fb,Vmax,Mmax,Mpos};
-  });
+  };
+  const ulsResults=ulsCombos.map(solveUls);
+  // gamma_G,inf companions (1.0 STR set B and 0.9 EQU set A of every ULS
+  // combination with G > 1.0): reactions for uplift / hold-down and web bearing
+  const ulsCompanions=companionCombos.map(solveUls);
   const xs=ulsResults[0].fb.xs;
   const Venv=xs.map((_,i)=>{ let best=0; ulsResults.forEach(res=>{ if(Math.abs(res.fb.V[i])>Math.abs(best)) best=res.fb.V[i]; }); return best; });
   const Menv=xs.map((_,i)=>{ let best=0; ulsResults.forEach(res=>{ if(Math.abs(res.fb.M[i])>Math.abs(best)) best=res.fb.M[i]; }); return best; });
@@ -324,7 +387,7 @@ function analyse(){
   // the beam down. Recorded per combination; the worst per support is kept
   // (design force = the worst ULS value, SLS uplift listed separately).
   const uplift=[];
-  ulsResults.forEach(res=>res.r.reactions.forEach((re,i)=>{ if(re.V< -1) uplift.push({n:i+1,pos:re.pos,R:re.V/1000,combo:res.combo.label,sls:false}); }));
+  ulsResults.concat(ulsCompanions).forEach(res=>res.r.reactions.forEach((re,i)=>{ if(re.V< -1) uplift.push({n:i+1,pos:re.pos,R:re.V/1000,combo:res.combo.label,sls:false,gInf:res.combo.gInf||null}); }));
   slsResults.forEach(res=>res.r.reactions.forEach((re,i)=>{ if(re.V< -1) uplift.push({n:i+1,pos:re.pos,R:re.V/1000,combo:res.combo.label,sls:true}); }));
   const upliftSupports=S.supports.map((sp,i)=>{
     const rows=uplift.filter(u=>u.n===i+1);
@@ -334,7 +397,7 @@ function analyse(){
     const worstUls=ulsRows.length? ulsRows.reduce((p,u)=>u.R<p.R?u:p) : null;
     const worstSls=slsRows.length? slsRows.reduce((p,u)=>u.R<p.R?u:p) : null;
     return {n:i+1,pos:worst.pos,type:sp.type,holdDown:!!sp.holdDown,R:worst.R,combo:worst.combo,sls:worst.sls,
-      RUls:worstUls? worstUls.R : null, comboUls:worstUls? worstUls.combo : null,
+      RUls:worstUls? worstUls.R : null, comboUls:worstUls? worstUls.combo : null, gInfUls:worstUls? worstUls.gInf : null,
       RSls:worstSls? worstSls.R : null, comboSls:worstSls? worstSls.combo : null, nCombos:rows.length};
   }).filter(Boolean);
 
@@ -471,7 +534,8 @@ function analyse(){
       // cantilever root, free ends natural; mesh doubled once for the error.
       const feSup=S.supports.map(s=>({pos:(+s.pos)*1000,type:s.type,warpFix:!!s.warpFix}));
       const EIwO=E*IwO;
-      const feSolve=(cb)=>warpingTorsionFE({L,EIw:EIwO,GIt:GItO,supports:feSup,torques:mkT(cb)});
+      const feStats={solved:0,cached:0};
+      const feSolve=(cb)=>warpingTorsionFEMemo({L,EIw:EIwO,GIt:GItO,supports:feSup,torques:mkT(cb)},feStats);
       const sols=ulsResults.map(res=>({combo:res.combo, fb:res.fb, sol:feSolve(res.combo)}));
       let slsSol=null, meshError=0, nElem=0, nElemCoarse=0;
       sols.forEach(se=>{ meshError=Math.max(meshError,se.sol.meshError); nElem=Math.max(nElem,se.sol.nElem); nElemCoarse=Math.max(nElemCoarse,se.sol.nElemCoarse); });
@@ -482,7 +546,7 @@ function analyse(){
         if(!slsSol||Math.abs(pm)>Math.abs(slsSol.phiMax)) slsSol={combo:cb,phiMax:pm,phiPos:pp};
       }
       torsO={ok:true,method:'fe',methodLabel:'warping-torsion FE ('+nElem+' elements)',nElem,nElemCoarse,meshError,
-        converged:meshError<=TORSION_FE_MESH_BLOCK,meshBlock:TORSION_FE_MESH_BLOCK,
+        converged:meshError<=TORSION_FE_MESH_BLOCK,meshBlock:TORSION_FE_MESH_BLOCK,nSolves:feStats.solved,nCached:feStats.cached,
         bcText:torsionFeBcText(feSup,L),feReasons,
         aa,X:L/aa,IT,Iw:IwO,GIt:GItO,sols,sls:slsSol};
     }
@@ -493,8 +557,8 @@ function analyse(){
     dmax, dpos:dpos/1000, deflection:governD.deflection, deflSegments, divisorCant, deflAbs,
     diag:{xs:xs.map(x=>x/1000), V:Venv.map(v=>v/1000), M:Menv.map(m=>m/1e6),
           dx:governD.r.nodes.map(x=>x/1000), dw:governD.r.w},
-    reactions, ulsResults, slsResults, governV, governM, governD,
-    patterns, ulsCombos, slsCombos, uplift:{list:uplift, supports:upliftSupports, any:upliftSupports.length>0}};
+    reactions, ulsResults, ulsCompanions, slsResults, governV, governM, governD,
+    patterns, ulsCombos, slsCombos, companionCombos, uplift:{list:uplift, supports:upliftSupports, any:upliftSupports.length>0, nCombos:ulsResults.length+ulsCompanions.length+slsResults.length}};
 }
 
 /* ---- Hold-down check (19 Sep 2026 gap closure, item 1.2), pure ----
@@ -520,10 +584,10 @@ function holdDownCheck(a){
       level='uls';
       const force=(withWhere)=>'R = &minus;'+kN(u.RUls)+' kN'+(withWhere? ' '+where : '')+' (combination '+u.comboUls+')'+(u.RSls!=null? '; SLS uplift &minus;'+kN(u.RSls)+' kN ('+u.comboSls+')' : '');
       if(u.holdDown) msg='Hold-down provided '+where+': design the hold-down for '+force(false)+'. Reaction taken as tension at the support; the connection and the supporting structure are not designed here.';
-      else { blocking=true; msg='Hold-down required: '+force(true)+'. The support cannot resist uplift as modelled; tick "hold-down provided" for this support once a holding-down connection is designed for this force, or revise the layout / loading (EN 1990 2.4.4 EQU; the '+PATTERN_CASE+' patterns and any relieving-G combination must be included).'; }
+      else { blocking=true; msg='Hold-down required: '+force(true)+'. The support cannot resist uplift as modelled; tick "hold-down provided" for this support once a holding-down connection is designed for this force, or revise the layout / loading (EN 1990 2.4.4 EQU; the '+PATTERN_CASE+' patterns and the &gamma;<sub>G,inf</sub> companions - G at 1.0 (STR set B) and 0.9 (EQU set A) with the entered variable factors - are included).'; }
     } else {
       level='sls';
-      msg='Hold-down check (SLS only) '+where+': the variable-action-only combination '+u.comboSls+' lifts this support by R = &minus;'+kN(u.RSls)+' kN; no ULS combination lifts it (G holds it down at ULS)'+(u.holdDown? '; hold-down provided' : '')+'. A deflection combination without G is not an equilibrium state, so this does not block PASS, but the EQU set-A combination with &gamma;<sub>G,inf</sub> = 0.9 (EN 1990 Table A1.2(A)) is NOT generated: verify it by hand where the permanent action is small relative to the variable action.';
+      msg='Hold-down check (SLS only) '+where+': the variable-action-only combination '+u.comboSls+' lifts this support by R = &minus;'+kN(u.RSls)+' kN; no ULS combination lifts it, including the &gamma;<sub>G,inf</sub> companions with G at 1.0 (STR set B) and 0.9 (EQU set A, EN 1990 Table A1.2(A)) and the entered variable factors'+(u.holdDown? '; hold-down provided' : '')+'. A deflection combination without G is not an equilibrium state, so this does not block PASS.';
     }
     const row=Object.assign({},u,{msg,level,blocking});
     out.rows.push(row);

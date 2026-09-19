@@ -94,37 +94,52 @@ test('[hand-derived] UB 457x191x82: type (a) at the mid-span load and type (c) a
 });
 
 // ---------------------------------------------------------------------------
-// [hand-derived] default s_s at a support = B = 191.3 mm [verify]; end reaction
-// of the demo beam (457 x 191 x 82, 8 m, 1.35 x 19.7 + 1.5 x 19.8 + 1.35 x 0.8044
-// self-weight = 57.38 kN/m -> R = 229.5 kN):
-//   s_s + c = 191.3 < 285.3 -> type (c): k_F = 2 + 6 x 191.3/428 = 4.68178
-//   F_cr = 0.9 x 4.68178 x 210000 x 970.299/428 = 2,006,000 N = 2006.0 kN
-//   l_e = 4.68178 x 210000 x 98.01/235,400 = 409.35 > 191.3 -> l_e = 191.3
-//   l_y = min[191.3 + 16 sqrt(9.6616 + 142.952 + 14.3113), 191.3 + 16 x 5.79953] = min[398.0, 284.09] = 284.09
-//   lambda_F = sqrt(284.09 x 9.9 x 275/2,006,000) = 0.62094; chi_F = 0.80523; L_eff = 228.76
-//   F_Rd = 275 x 228.76 x 9.9 = 622,799 N = 622.8 kN
-//   (type (a) at the same station with a = L = 8000: k_F = 6 + 2 (428/8000)^2 = 6.005724, F_cr = 2573.3 kN,
-//    l_y = 191.3 + 217.585 = 408.885, lambda_F = sqrt(408.885 x 9.9 x 275/2,573,283) = 0.65772, chi_F = 0.76021,
-//    L_eff = 310.84, F_Rd = 275 x 310.84 x 9.9 = 846.3 kN -> (c) governs)
+// [hand-derived] stiff bearing length at a support (19 Sep 2026 review): the demo
+// state carries s_s = 100 mm at both supports (F_Rd = 437.3 kN, the type (c)
+// chain of the first test); a BLANK support entry is the lower bound s_s = 0 -
+// a station that passes at 0 is verified for any seating, one that fails at 0
+// is NOT VERIFIED (blocking, values printed) rather than FAIL. Demo end reaction
+// 229.5 kN (457 x 191 x 82, 8 m, 57.38 kN/m) at s_s = 0:
+//   c = 0, s_s + c = 0 < 285.3 -> type (c): k_F = 2 + 0 = 2
+//   F_cr = 0.9 x 2 x 210000 x 970.299/428 = 856,946 N = 856.9 kN
+//   l_e = 2 x 210000 x 98.01/235,400 = 174.87 > s_s + c = 0 -> l_e = 0
+//   pass 1 (m2 = 14.3113): l_y = min[16 sqrt(9.6616 + 0 + 14.3113), 16 sqrt(19.3232 + 14.3113)] = min[78.34, 92.79] = 78.34
+//     lambda_F = sqrt(78.34 x 9.9 x 275/856,946) = 0.4989 <= 0.5 -> m2 = 0
+//   pass 2: l_y = min[16 sqrt(9.6616), 16 sqrt(19.3232)] = min[49.73, 70.33] = 49.73; lambda_F = 0.3975; chi_F = 1.258 -> 1
+//   F_Rd = 275 x 49.73 x 9.9 = 135,390 N = 135.4 kN; F_Ed/F_Rd = 229.5/135.4 = 1.695 -> NOT VERIFIED until s_s is entered
 // ---------------------------------------------------------------------------
-test('[hand-derived] support s_s defaults to the flange width B [verify], capped at h_w; a point load defaults to s_s = 0 with the m2 = 0 second pass', () => {
+test('[hand-derived] blank support s_s = lower bound 0 (NOT VERIFIED when it fails, F_Rd 135.4 kN for the demo reaction); the demo carries s_s = 100; s_s capped at h_w; a point load defaults to s_s = 0 with the m2 = 0 second pass', () => {
   c.reset({});
   let r = probe(), W = r.web;
   assert.equal(W.stations.length, 2);
-  W.stations.forEach(s => { assert.equal(s.ssDefault, true); near(s.ss, 191.3, 1e-12); assert.equal(s.type, 'c'); });
-  const tc = W.stations[0].gov, ta = W.stations[0].sols.find(t => t.type === 'a');
-  near(tc.kF, 4.68178, 2e-6); near(tc.Fcr, 2006.0, 2e-4); near(tc.le, 191.3, 1e-12); near(tc.ly, 284.09, 1e-4); near(tc.lam, 0.62094, 2e-5); near(tc.FRd, 622.80, 1e-4); near(ta.kF, 6.005724, 1e-6); near(ta.FRd, 846.3, 2e-4);
-  assert.equal(W.anyDefaultSs, true);
-  near(W.stations[0].F, 229.5, 1e-3); near(util(r, U2), 229.5 / 622.8, 1e-3);
+  W.stations.forEach(s => { assert.equal(s.ssDefault, false); near(s.ss, 100, 1e-12); assert.equal(s.type, 'c'); near(s.FRdTot, 437.34, 1e-4); });
+  assert.equal(W.anyDefaultSs, false); assert.equal(r.pass, true);
+  near(W.stations[0].F, 229.5, 1e-3); near(util(r, U2), 229.5 / 437.34, 1e-3);
   // demo utilisations of AUDIT.md are unchanged by the new entries
   near(r.utils[0].val, 0.303499, 1e-5); near(r.utils[1].val, 0.912166, 1e-5); near(r.utils[2].val, 0.609935, 1e-5);
+  // blank s_s at both supports: lower bound 0, fails there -> NOT VERIFIED (blocking), not FAIL; the unity entries exclude the station
+  c.reset({supports:[{pos:0,type:'pinned'},{pos:8,type:'pinned'}]});
+  r = probe(); W = r.web;
+  W.stations.forEach(s => { assert.equal(s.ssDefault, true); near(s.ss, 0, 1e-12); assert.equal(s.type, 'c'); assert.equal(s.nv, true); });
+  const t0 = W.stations[0].gov;
+  near(t0.kF, 2, 1e-12); near(t0.Fcr, 856.946, 1e-4); near(t0.le, 0, 1e-12); assert.equal(t0.iter, true); near(t0.ly1, 78.34, 2e-4); near(t0.lam1, 0.4989, 3e-4);
+  near(t0.ly, 49.73, 2e-4); near(t0.lam, 0.3975, 3e-4); assert.equal(t0.chi, 1); near(t0.FRd, 135.39, 1e-4);
+  near(W.stations[0].eta2, 229.5 / 135.39, 1e-3); assert.equal(W.anyDefaultSs, true); assert.equal(W.anyNv, true); assert.equal(W.checked, false);
+  assert.equal(r.pass, false); assert.ok(!r.utils.some(u => u.val > 1.0001), 'NOT VERIFIED, not FAIL');
+  assert.ok(r.utils.every(u => !/Web transverse/.test(u.name)), 'no verdict entry from a NOT VERIFIED station');
+  const m = r.unsupported.find(x => /^Web transverse force at x = 0 m \(support 1\): the stiff bearing length s<sub>s<\/sub> is not entered; at the lower bound s<sub>s<\/sub> = 0 the station gives F<sub>Ed<\/sub>\/F<sub>Rd<\/sub> = 1\.695/.test(x));
+  assert.ok(m && /F<sub>Rd<\/sub> = 135\.4 kN, type \(c\)/.test(m) && /enter s<sub>s<\/sub>/.test(m), r.unsupported.join(' | '));
+  assert.equal(r.unsupported.filter(x => /^Web transverse force at x/.test(x)).length, 2);
+  // a blank support that PASSES at the lower bound is verified for any seating: light loading
+  c.reset({supports:[{pos:0,type:'pinned'},{pos:8,type:'pinned'}], loads:[{type:'udl',x1:0,x2:8,w:5,case:'G'},{type:'udl',x1:0,x2:8,w:5,case:'Q'}]});
+  r = probe(); assert.ok(r.web.stations.every(s => s.ssDefault && !s.nv && s.ss === 0) && r.pass && util(r, U2) > 0, 'passes at s_s = 0');
   // s_s larger than h_w is capped (6.3(1))
-  c.reset({supports:[{pos:0,type:'pinned',ss:1000},{pos:8,type:'pinned'}]});
+  c.reset({supports:[{pos:0,type:'pinned',ss:1000},{pos:8,type:'pinned',ss:100}]});
   r = probe(); assert.equal(r.web.stations[0].ssCap, true); near(r.web.stations[0].ss, 428, 1e-12); near(r.web.stations[0].ssIn, 1000, 1e-12);
   // point load with s_s = 0 (default): first pass lambda_F = 0.480 <= 0.5, so m2 = 0:
   //   l_y = 2 x 16 (1 + sqrt(19.3232)) = 172.666; lambda_F = sqrt(172.666 x 9.9 x 275/2,575,192) = 0.42725
   //   chi_F = 1.170 -> 1.0; F_Rd = 275 x 172.666 x 9.9 = 470,083 N = 470.1 kN
-  c.reset({L:6, supports:[{pos:0,type:'pinned'},{pos:6,type:'pinned'}], loads:[{type:'point',pos:3,P:100,case:'Q'}], combos:Q15()});
+  c.reset({L:6, supports:[{pos:0,type:'pinned',ss:100},{pos:6,type:'pinned',ss:100}], loads:[{type:'point',pos:3,P:100,case:'Q'}], combos:Q15()});
   r = probe(); const sm = r.web.stations[1], t = sm.gov;
   assert.equal(sm.ssIn, 0); assert.equal(sm.ssDefault, false); assert.equal(t.iter, true); near(t.lam1, 0.47962, 2e-5); near(t.m2, 0, 1e-12);
   near(t.ly, 172.666, 1e-5); near(t.lam, 0.42725, 2e-5); near(t.chiRaw, 1.1703, 2e-4); assert.equal(t.chi, 1); near(t.FRd, 470.08, 1e-4);
@@ -248,7 +263,7 @@ test('pattern combinations and uplift: a masked load contributes F_Ed = 0 in its
 // ---------------------------------------------------------------------------
 test('verdict: F_Ed > F_Rd fails the member with a "bearing stiffener required" advisory; declaring the stiffener restores PASS; BS 5950 path untouched', () => {
   // 457 x 191 x 82, 2 m, 500 kN (Q) at mid-span with s_s = 0: F_Ed = 750 kN > F_Rd = 470.1 kN (eta_2 = 1.595); M = 375 < 503, V = 375 < 0.5 V_pl
-  const lay = {L:2, supports:[{pos:0,type:'pinned'},{pos:2,type:'pinned'}], loads:[{type:'point',pos:1,P:500,case:'Q'}], combos:Q15()};
+  const lay = {L:2, supports:[{pos:0,type:'pinned',ss:100},{pos:2,type:'pinned',ss:100}], loads:[{type:'point',pos:1,P:500,case:'Q'}], combos:Q15()};
   c.reset(lay);
   let r = probe();
   assert.equal(r.pass, false); near(util(r, U2), 750 / 470.083, 1e-4); assert.equal(r.unsupported.length, 0, 'a failing resistance is FAIL, not NOT VERIFIED');
@@ -256,11 +271,11 @@ test('verdict: F_Ed > F_Rd fails the member with a "bearing stiffener required" 
   assert.ok(r.utils.filter(u => u.val > 1).every(u => U2.test(u.name) || U72.test(u.name)), 'only the web entries fail');
   for (const m of ['eigen', 'standard']) { c.reset(Object.assign({}, lay, {restraint:'ltb', mcrMethod:m})); const u = probe(); assert.equal(u.pass, false); near(util(u, U2), 750 / 470.083, 1e-4, m); }
   c.reset(Object.assign({}, lay, {loads:[{type:'point',pos:1,P:500,case:'Q',stiff:true}]}));
-  r = probe(); assert.equal(r.pass, true); near(util(r, U2), 375 / 622.80, 1e-3, 'end reactions govern once the load is stiffened');
+  r = probe(); assert.equal(r.pass, true); near(util(r, U2), 375 / 437.34, 1e-3, 'end reactions (s_s = 100, F_Rd 437.3 kN) govern once the load is stiffened');
   // validation of the new inputs
   c.reset(Object.assign({}, lay, {loads:[{type:'point',pos:1,P:500,case:'Q',ss:-5}]})); assert.throws(() => run('analyse()'), /Load 1 stiff bearing length s_s/);
   c.reset(Object.assign({}, lay, {supports:[{pos:0,type:'pinned',ss:'abc'},{pos:2,type:'pinned'}]})); assert.throws(() => run('analyse()'), /Support 1 stiff bearing length s_s/);
-  c.reset(Object.assign({}, lay, {supports:[{pos:0,type:'pinned',ss:''},{pos:2,type:'pinned',ss:null}]})); r = probe(); assert.ok(r.web.stations[0].ssDefault && r.web.stations[2].ssDefault);
+  c.reset(Object.assign({}, lay, {supports:[{pos:0,type:'pinned',ss:''},{pos:2,type:'pinned',ss:null}]})); r = probe(); assert.ok(r.web.stations[0].ssDefault && r.web.stations[2].ssDefault && r.web.stations[0].ss === 0 && r.web.stations[2].ss === 0);
   // BS 5950 dispatcher: no EN 1993-1-5 entries, its own cl 4.5 advisory remains
   c.reset(Object.assign({}, lay, {code:'BS5950'}));
   r = probe(); assert.equal(r.web, undefined); assert.equal(util(r, U2), null); assert.ok(r.advisory.some(m => /cl 4\.5\.2 \/ 4\.5\.3/.test(m)));
@@ -302,11 +317,17 @@ test('brief: "Web Transverse Forces (EN 1993-1-5 cl 6)" block directly after Loc
   const u0 = h.indexOf('<div class="ms-unity-head">'), u1 = h.indexOf('<div class="ms-unity-vals">', u0);
   const names = [...h.slice(u0, u1).matchAll(/<div[^>]*>(.*?)<\/div>/g)].map(x => x[1]);
   assert.ok(names.includes('F/F_Rd') && names.includes('Web 7.2') && names[names.length - 1] === 'Max');
-  // default s_s: the [verify] tag on the governing row and the asterisk note
-  c.reset({}); h = brief().html;
-  assert.ok(/s<sub>s<\/sub> = 191\.30 mm \(default B \[verify\]\)/.test(h) && /\* s<sub>s<\/sub> = section flange width B taken as a typical seating length \[verify/.test(h));
+  // blank s_s at a support that fails at the lower bound 0: NOT VERIFIED row in the block, the asterisk note, the station row tag and the title
+  c.reset({supports:[{pos:0,type:'pinned'},{pos:8,type:'pinned'}]}); r = brief(); h = r.html;
+  assert.ok(/s<sub>s<\/sub> = 0\.00 mm \(not entered: lower bound 0\)/.test(h) && /\* s<sub>s<\/sub> not entered at this support: evaluated at the lower bound s<sub>s<\/sub> = 0/.test(h), 'lower-bound note');
+  assert.ok(/\(NOT VERIFIED\)/.test(h.slice(0, 400)) && !r.pass && !r.utils.some(u => /Web transverse/.test(u.name)), 'NOT VERIFIED, no web verdict entry');
+  const wb = h.slice(h.indexOf('Web Transverse Forces (EN 1993-1-5 cl 6)'), h.indexOf('Compression Resistance') > 0 ? h.indexOf('Compression Resistance') : h.indexOf('Lateral'));
+  assert.ok(/ms-nv-msg">Web transverse force at x = 0 m \(support 1\): the stiff bearing length/.test(wb), 'NOT VERIFIED row inside the web block');
+  assert.ok(/<td>support 1<\/td><td>\(c\)<\/td><td class="num">0\.00\*<\/td>.*<td><span class="ms-warn">NOT VERIFIED<\/span><\/td><\/tr>/.test(wb), 'station row tagged NOT VERIFIED');
+  // the demo (s_s = 100 entered) prints "(entered)" and no asterisk note
+  c.reset({}); h = brief().html; assert.ok(/s<sub>s<\/sub> = 100\.00 mm \(entered\)/.test(h) && !/lower bound s<sub>s<\/sub> = 0 \(F/.test(h));
   // failing station: Warning tag and the FAIL title
-  c.reset({L:2, supports:[{pos:0,type:'pinned'},{pos:2,type:'pinned'}], loads:[{type:'point',pos:1,P:500,case:'Q'}], combos:Q15()});
+  c.reset({L:2, supports:[{pos:0,type:'pinned',ss:100},{pos:2,type:'pinned',ss:100}], loads:[{type:'point',pos:1,P:500,case:'Q'}], combos:Q15()});
   r = brief(); h = r.html;
   assert.ok(/\(FAIL\)/.test(h.slice(0, 400)) && rows(h).find(x => x.label === 'F<sub>Ed</sub>/F<sub>Rd</sub>').tag === '<span class="ms-warn">Warning</span>');
   // detailed report: the block, the station table and the note, for the restrained and the unrestrained routes

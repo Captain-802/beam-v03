@@ -37,7 +37,8 @@ test('pattern loading: two-span 2 x 4 m UDL Q gives wL2/8 hogging (both spans) a
   const far = a.uplift.supports.find(u => u.n === 3);
   near(far.RUls, -w * L / 16, 0.005, 'ULS uplift'); near(far.RSls, -20 * L / 16, 0.005, 'SLS uplift');
   assert.equal(far.comboUls, 'ULS: 1.5Q (Q on span 1 only)');
-  assert.ok(a.patterns.active && a.patterns.nUls === 2 && a.patterns.nSls === 2 && /gamma;<sub>G,inf<\/sub> = 1\.0 on relieving spans .* NOT generated/.test(a.patterns.note));
+  // 19 Sep 2026 review: the relieving-G cases are the gamma_G,inf companions (reactions only); this combination has G = 0, so none
+  assert.ok(a.patterns.active && a.patterns.nUls === 2 && a.patterns.nSls === 2 && /gamma;<sub>G,inf<\/sub> companions: none generated/.test(a.patterns.note), a.patterns.note);
 });
 test('pattern loading: three-span alternate and adjacent-pair patterns reproduce the continuous-beam tables', () => {
   c.reset({L:15, supports:[{pos:0,type:'pinned'},{pos:5,type:'pinned'},{pos:10,type:'pinned'},{pos:15,type:'pinned'}], loads:[{type:'udl',x1:0,x2:15,w:12,case:'Q'}], combos:Q15()});
@@ -229,7 +230,7 @@ test('brief: pattern combinations in the loading list, hold-down row in Member F
   assert.equal([...h.matchAll(/<div class="ms-row ms-nv">/g)].length, r.unsupported.length, 'one NOT VERIFIED row per blocking message');
   assert.ok(/<b>Pattern loading<\/b> \(span 1: 0&ndash;6 m; span 2: 6&ndash;8 m \(cantilever\)\): 2 ULS \+ 2 SLS combinations generated/.test(h), 'pattern line in the load list');
   assert.ok(h.indexOf('ULS 3: ULS: 1.5Q (Q on span 2 only)') > iLoad && h.indexOf('ULS 3: ULS: 1.5Q (Q on span 2 only)') < iCls);
-  assert.ok(/NOT generated/.test(h.slice(iLoad, iCls)), 'gamma_G,inf limitation printed with the loads');
+  assert.ok(/&gamma;<sub>G,inf<\/sub> companions: none generated/.test(h.slice(iLoad, iCls)), 'gamma_G,inf companion note printed with the loads');
   assert.ok(rows(h).find(x => /^Auto Design Load Cases$/.test(x.label)).vals === '1-3; SLS 1-3 (incl. 2 + 2 automatic patterns)');
   assert.ok(h.includes('in Load Case 1 (ULS: 1.5Q)') && h.includes('Maximum Deflection from Load Case 3 (SLS: Q (Q on span 2 only))'), 'case numbers index the expanded lists');
   const defl = rows(h).filter(x => /^(Span|Cantilever) \d/.test(x.label));

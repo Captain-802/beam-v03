@@ -43,7 +43,16 @@
        phi, phi'   nodal DOFs
        B           element end forces f = K_e d_e - f_eq,e (the consistent
                    flux; satisfies the natural conditions B = 0 at free and
-                   fork ends exactly) averaged at interior nodes
+                   fork ends exactly) averaged at interior nodes where B is
+                   continuous. At an interior node whose phi' DOF is fixed
+                   (warping restrained) the restraint applies a REACTION
+                   BIMOMENT, so B jumps there exactly like T jumps at a point
+                   torque: the node is reported as three stations with the
+                   left element value at x - 0.01, the larger-magnitude side
+                   at x and the right element value at x + 0.01 mm (averaging
+                   across the jump under-reported the peak B_Ed and made the
+                   mesh-convergence measure creep instead of converge;
+                   19 Sep 2026 review finding)
        T           element end forces (nodal equilibrium exact); a node where
                    T jumps (point torque, interior support) is reported as
                    three stations x - 0.01, x, x + 0.01 mm like p385Solve
@@ -172,24 +181,32 @@ function torsionFeSolveOnce(L, EIw, GIt, supports, torques, nSub){
     ef.push({TL:-f[0], BL:-f[1], TR:f[2], BR:f[3]});
   }
   const reactions=sp.map(s=>{ const i=idx.get(+(+s.pos).toFixed(6)); return {pos:s.pos, warpFix:s.warpFix, T:i!=null? R[2*i]:0, B:(i!=null&&s.warpFix)? R[2*i+1]:0}; });
-  return {nodes,d,ef,nodalP,reactions,nElem:nN-1,supportNodes:new Set(sp.map(s=>idx.get(+(+s.pos).toFixed(6))).filter(i=>i!=null))};
+  const nodeOf=s=>idx.get(+(+s.pos).toFixed(6));
+  return {nodes,d,ef,nodalP,reactions,nElem:nN-1,
+    supportNodes:new Set(sp.map(nodeOf).filter(i=>i!=null)),
+    warpNodes:new Set(sp.filter(s=>s.warpFix).map(nodeOf).filter(i=>i!=null))};   // phi' fixed: B jumps by the reaction bimoment
 }
 /* Station values from one solve (see the header for the recovery rules). */
 function torsionFeRecover(sol, EIw, GIt){
-  const {nodes,d,ef,nodalP,supportNodes}=sol;
+  const {nodes,d,ef,nodalP,supportNodes}=sol, warpNodes=sol.warpNodes||new Set();
   const nN=nodes.length;
   const xs=[],phi=[],p1=[],p2=[],p3=[],T=[],B=[];
   const push=(x,ph,dph,Bv,Tv)=>{ xs.push(x); phi.push(ph); p1.push(dph); B.push(Bv); T.push(Tv); p2.push(Bv/EIw); p3.push((GIt*dph-Tv)/EIw); };
   for(let i=0;i<nN;i++){
     const x=nodes[i], ph=d[2*i], dph=d[2*i+1];
     const left = i>0? ef[i-1] : null, right = i<nN-1? ef[i] : null;
-    const Bv = left&&right? 0.5*(left.BR+right.BL) : (left? left.BR : right.BL);
+    // B is continuous at an ordinary interior node (average the two element
+    // values); at an interior warping-fixed node the reaction bimoment makes
+    // B jump, so the one-sided element values are kept (larger magnitude at x)
+    const bJump = !!(left&&right && warpNodes.has(i));
+    const BLv = left? left.BR : null, BRv = right? right.BL : null;
+    const Bv = bJump? (Math.abs(BLv)>=Math.abs(BRv)? BLv : BRv) : (left&&right? 0.5*(BLv+BRv) : (left? BLv : BRv));
     const TLv = left? left.TR : null, TRv = right? right.TL : null;
-    const jump = left&&right && (Math.abs(nodalP[i])>1e-9 || supportNodes.has(i));
+    const jump = (left&&right && (Math.abs(nodalP[i])>1e-9 || supportNodes.has(i))) || bJump;
     if(jump){
-      if(x-0.01>xs[xs.length-1]) push(x-0.01, ph, dph, Bv, TLv);
+      if(x-0.01>xs[xs.length-1]) push(x-0.01, ph, dph, bJump? BLv : Bv, TLv);
       push(x, ph, dph, Bv, Math.abs(TLv)>=Math.abs(TRv)? TLv : TRv);
-      push(x+0.01, ph, dph, Bv, TRv);
+      push(x+0.01, ph, dph, bJump? BRv : Bv, TRv);
     } else push(x, ph, dph, Bv, TLv!=null? TLv : TRv);
   }
   return {xs,phi,p1,p2,p3,T,B};

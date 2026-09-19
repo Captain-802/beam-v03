@@ -424,25 +424,44 @@
      where no tabulated C1 exists. Used only for kc (NA 2.18).
      `shared` caches the combo-independent uniform-moment reference solve so a
      multi-combination run does not repeat it. */
+  /* Memo of eigen solves (19 Sep 2026 review, performance): keyed by every
+     input of the solve - section constants, L, restraints, mesh, zj, the load
+     lists and the sampled moment diagram - so a re-render after an unrelated
+     input (deflection divisor, grade, s_s) or an identical pattern of another
+     parent combination does not repeat a coarse + fine eigen solve. Bounded
+     (oldest entry dropped); `shared.stats` counts solves and cache hits. */
+  var EIGEN_CACHE = new Map(), EIGEN_CACHE_MAX = 96;
+  function mcrEigenMemo(p, momentKey, stats) {
+    var key = JSON.stringify([p.E, p.G, p.Iz, p.It, p.Iw, p.L, p.restraints, p.nElem, !!p.refine, p.zj, p.distLoads || [], p.pointLoads || [], momentKey]);
+    var hit = EIGEN_CACHE.get(key);
+    if (hit) { EIGEN_CACHE.delete(key); EIGEN_CACHE.set(key, hit); if (stats) stats.cached++; return hit; }
+    var sol = mcrEigen(p);
+    if (stats) stats.solved++;
+    EIGEN_CACHE.set(key, sol);
+    if (EIGEN_CACHE.size > EIGEN_CACHE_MAX) EIGEN_CACHE.delete(EIGEN_CACHE.keys().next().value);
+    return sol;
+  }
   function solveLTB(a, sec, res, shared) {
     var sp = secProps(sec), zj = zjFor(sec), ul = unitLoadsFor(a, res.combo);
     var gfb = res.fb;
     var base = { E: a.E, G: G_STEEL, Iz: sp.Iz, It: sp.It, Iw: sp.Iw, L: a.L,
                  restraints: ltbRestraintsFor(a), nElem: 32, refine: true };
+    var stats = shared && shared.stats;
+    var mKey = gfb.xs.length + ':' + gfb.M.join(',');
 
-    var actual = mcrEigen(Object.assign({}, base, {
+    var actual = mcrEigenMemo(Object.assign({}, base, {
       moment: momentFromSamples(gfb.xs, gfb.M), zj: zj,
       distLoads: ul.distLoads, pointLoads: ul.pointLoads
-    }));
+    }), mKey, stats);
 
-    var shapeOnly = mcrEigen(Object.assign({}, base, {
+    var shapeOnly = mcrEigenMemo(Object.assign({}, base, {
       moment: momentFromSamples(gfb.xs, gfb.M), zj: 0,
       distLoads: ul.distLoads.map(function (d) { return Object.assign({}, d, { zg: 0 }); }),
       pointLoads: ul.pointLoads.map(function (q) { return Object.assign({}, q, { zg: 0 }); })
-    }));
+    }), mKey, stats);
 
     var uniform = (shared && shared.uniform) ||
-      mcrEigen(Object.assign({}, base, { moment: function () { return 1e6; }, zj: 0 }));
+      mcrEigenMemo(Object.assign({}, base, { moment: function () { return 1e6; }, zj: 0 }), 'uniform', stats);
     if (shared) shared.uniform = uniform;
 
     var C1 = uniform.Mcr > 0 ? shapeOnly.Mcr / uniform.Mcr : 1;
@@ -506,7 +525,7 @@
        is combo-independent and shared. */
     var combosLTB = (a.ulsResults || []).filter(function (r) { return Math.abs(r.Mmax) > 1e-9; });
     if (!combosLTB.length) combosLTB = [a.governM];
-    var shared = { uniform: null };
+    var shared = { uniform: null, stats: { solved: 0, cached: 0 } };
     var evals = [];
     try {
       combosLTB.forEach(function (res) {
@@ -665,7 +684,7 @@
              c1Trusted: c1Trusted, mcrConverged: allConverged,
              mode: sol.mode, warn: warn, chanTorsionGap: chanTorsionGap,
              MxGov: chn.MxC, governCombo: govEv.res.combo ? govEv.res.combo.label : '',
-             nCombos: evals.length,
+             nCombos: evals.length, nSolves: shared.stats.solved, nCached: shared.stats.cached,
              Iz: sol.sp.Iz, It: sol.sp.It, Iw: sol.sp.Iw, hs: sol.sp.hs };
 
     /* ---- Informational extras (NOT the design basis) ----
@@ -931,7 +950,8 @@
     rows += '<div>Load height</div><div class="formula">' + zgText + zrefText +
             (LT.zg > 0 ? ' (max value destabilising)' : LT.zg < 0 ? ' (max value stabilising)' : '') + '</div><div class="value">M<sub>cr</sub> (load reversed) = ' + f1(LT.McrRev, 1) + ' kN&middot;m</div><div></div>';
     rows += '<div><b>M<sub>cr</sub></b> (FE eigenvalue method)</div><div class="formula">eigenvalue &times; max|M(x)| &mdash; no C<sub>1</sub>, C<sub>2</sub> or C<sub>3</sub> used' +
-            (LT.nCombos > 1 ? '; each of the ' + LT.nCombos + ' ULS combinations solved with its own diagram &mdash; governing: ' + LT.governCombo : '') + '</div>' +
+            (LT.nCombos > 1 ? '; each of the ' + LT.nCombos + ' ULS combinations solved with its own diagram &mdash; governing: ' + LT.governCombo : '') +
+            (LT.nSolves != null ? '; ' + LT.nSolves + ' eigen solve(s) this render' + (LT.nCached ? ', ' + LT.nCached + ' from the cache' : '') : '') + '</div>' +
             '<div class="value"><b>' + f1(LT.Mcr, 1) + ' kN&middot;m</b></div><div></div>';
     /* standard closed-form comparison for the same segment (informational) */
     if (LT.std) {

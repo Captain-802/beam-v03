@@ -11,12 +11,12 @@ const DEMO={
   family:"ub", sectionKey:"180x75x20", shsType:"HF", shsKey:"150x150x6.3", ubKey:"457 x 191 x 82", ucKey:"203 x 203 x 60", rhsKey:"200 x 100 x 8.0",
   grade:"S275", py:null, anet:null,
   L:8.0,
-  supports:[{pos:0,type:'pinned'},{pos:8.0,type:'pinned'}],
+  supports:[{pos:0,type:'pinned',ss:100},{pos:8.0,type:'pinned',ss:100}],   // ss: stiff bearing length of the seating (mm along the member); blank = lower bound 0
   hinges:[],
   loads:[{type:'udl',x1:0,x2:8.0,w:19.7,case:'G'},{type:'udl',x1:0,x2:8.0,w:19.8,case:'Q'}],
   combos:JSON.parse(JSON.stringify(DEFAULT_COMBOS)),
   axial:0, Mz:0, leFactor:1.0, destab:false, mLTo:null, mxo:null, C1o:null,
-  LT:null,             // torsional buckling length L_T (m) for a channel under N (cl 6.3.1.4); blank = L_cr,z
+  LT:null,             // torsional buckling length L_T (m) for a channel under N (cl 6.3.1.4); blank = spacing of the twist restraints (supports + restraints with phi held), capped at L_cr,y
   divisor:360, divisorCant:180, deflAbs:null,   // span/360 between supports; L/180 for cantilever segments (UK NA Table NA.2 [verify]); absolute mm cap (null = none)
   autoPattern:true,                             // automatic span-wise Q patterns for multi-span / cantilevered members (expandPatternCombos)
   E:210000, Ke:null, robX:null, robY:null,
@@ -104,7 +104,7 @@ function renderSupportList(){
   // fixity to the LTB model only - the SCI Mcr tool's dU = F / dtheta = F -
   // without touching the vertical bending model (unlike a Fixed support).
   const ltbBCOn = S.code==='EC3' && (S.restraint||'full')!=='full';
-  const webBearingOn = webBearingInputsOn(), secWB = activeSection();
+  const webBearingOn = webBearingInputsOn();
   // Torsion boundary condition (19 Sep 2026 G4): every support prevents twist;
   // this option adds phi' = 0 (warping fixed) at the support in the
   // warping-torsion FE. Default unticked = fork end, warping free (P385).
@@ -120,7 +120,7 @@ function renderSupportList(){
           <option value="fixed"${sp.type==='fixed'?' selected':''}>Fixed</option></select></div>
       </div>
       ${webBearingOn? `<div class="grid2" style="margin-top:4px">
-        <div class="fld"><span>Stiff bearing s<sub>s</sub>, mm (blank = B = ${fmtMM(secWB.B)} [verify])</span><input type="number" step="1" min="0" placeholder="${fmtMM(secWB.B)}" value="${sp.ss!=null&&sp.ss!==''&&isFinite(+sp.ss)? sp.ss : ''}" data-sp="ss" data-i="${i}"></div>
+        <div class="fld"><span>Stiff bearing s<sub>s</sub>, mm (blank = lower bound 0: NOT VERIFIED if it fails)</span><input type="number" step="1" min="0" placeholder="0 (enter the seating length)" value="${sp.ss!=null&&sp.ss!==''&&isFinite(+sp.ss)? sp.ss : ''}" data-sp="ss" data-i="${i}"></div>
         <label class="checkline" style="align-self:end"><input type="checkbox" data-spc="stiff" data-i="${i}"${sp.stiff?' checked':''}> <span>bearing stiffener provided (EN 1993-1-5 9.4)</span></label>
       </div>` : ''}
       <div class="ltb-checks" style="margin-top:4px">
@@ -133,7 +133,7 @@ function renderSupportList(){
   });
   c.querySelectorAll("[data-sp]").forEach(el=>el.addEventListener("input",e=>{
     const i=+e.target.dataset.i, k=e.target.dataset.sp;
-    // ss: blank = default (section flange width B); a number is kept as entered
+    // ss: blank = lower bound 0 (NOT VERIFIED if the station fails); a number is kept as entered
     S.supports[i][k]= k==='pos'? parseFloat(e.target.value) : k==='ss'? (e.target.value===''? null : parseFloat(e.target.value)) : e.target.value; recompute();
   }));
   c.querySelectorAll("[data-spc]").forEach(el=>el.addEventListener("change",e=>{

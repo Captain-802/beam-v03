@@ -137,6 +137,8 @@ Reference: section 4 of the trigger list and sections 5.2-5.10 of `docs/MASTERSE
 
 **Status update, 19 Sep 2026 gap closure (group G3):** items 5 (1.9(b) minor-axis classification of I/H), 6 (1.9(c)/3.9(c) A_eff of a Class-4 web in uniform compression), 7 (2.13 cl 6.2.10 M-V-N), 8 (3.5 k_c floor 0.60), 9 (3.12(a) Table B.1 RHS row), 10 (3.10 PFC torsional / torsional-flexural buckling with a user L_T), 12 (2.10 high-shear M_v,Rd for Class 3 I/H, channels and hollow sections) and 15 (1.7/3.17 restraint design forces, advisory) are IMPLEMENTED on branch `ms-brief-standard-mcr`; see AUDIT.md "19 Sep 2026 gap closure, group G3" and `tests/gap-closure-g3.test.cjs`. Still blocking: Class 4 under the combined N + M stress gradient (e_N shift), Class-4 flanges, a channel web Class 4 in compression.
 
+**Status update, 19 Sep 2026 review fixes (F1-F7):** see AUDIT.md "19 Sep 2026 gap closure, review fixes" - PFC L_T from the twist restraints (3.10), gamma_G,inf companions (1.0 STR set B / 0.9 EQU set A) for uplift / hold-down and web-bearing reactions (1.2, 1.3), the max-reaction pattern set for 4+ spans (1.3), a blank support s_s = lower bound 0 with NOT VERIFIED where it fails (2.16), the one-sided bimoment at an interior warping-fixed node of the torsion FE (2.6), solve caches and a debounced recompute.
+
 P1: a beam with in-scope loads could PASS while a required check fails.
 
 1. **2.16 + 2.18 Web transverse-force resistance** at every point load and every support reaction (EN 1993-1-5 clause 6 with the 7.2 interaction), blocking PASS until a stiffener is declared. Today an unconditional advisory is the only trace (`eurocode-checks.js:291`). Effort M.

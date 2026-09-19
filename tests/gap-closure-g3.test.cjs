@@ -211,7 +211,7 @@ test('[hand-derived] item 10: PFC 180x75x20 under N = 50 kN: N_cr,T = 858.1 kN, 
   // i_y = 72.7, i_z = 23.8, y0 = e_sc = 49.6 (P385 Table A.3): i0^2 = 5285.3 + 566.4 + 2460.2 = 8311.9 mm2
   near(t.y0, 49.6, 1e-12); near(t.i0sq, 72.7 * 72.7 + 23.8 * 23.8 + 49.6 * 49.6, 1e-9);
   // N_cr,T = (81000 x 7.6e4 + pi^2 x 210000 x 7.54e9/4000^2)/8311.9 = (6.156e9 + 9.767e8)/8311.9 = 858.1 kN (L_T = L_cr,z = 4 m)
-  const NcrT = (81000 * 7.6e4 + Math.PI ** 2 * 210000 * 7.54e9 / 4000 ** 2) / 8311.89 / 1000; near(t.NcrT, NcrT, 1e-4); near(NcrT, 858.1, 2e-4); assert.equal(t.LTSrc, 'L<sub>cr,z</sub>');
+  const NcrT = (81000 * 7.6e4 + Math.PI ** 2 * 210000 * 7.54e9 / 4000 ** 2) / 8311.89 / 1000; near(t.NcrT, NcrT, 1e-4); near(NcrT, 858.1, 2e-4); assert.equal(t.LTSrc, 'L<sub>cr,y</sub> (no intermediate twist restraint)'); near(t.LT, 4000, 1e-12);   // no intermediate twist restraint: L_T = L_cr,y = L (19 Sep 2026 review: never the v-only L_cr,z)
   // N_cr,y = pi^2 x 210000 x 1370e4/4000^2 = 1774.7 kN; beta = 1 - 49.6^2/8311.9 = 0.7040
   const NcrY = Math.PI ** 2 * 210000 * 1370e4 / 4000 ** 2 / 1000; near(t.NcrY, NcrY, 1e-9); near(NcrY, 1774.7, 1e-4);
   const beta = 1 - 49.6 * 49.6 / 8311.89; near(t.beta, beta, 1e-6);

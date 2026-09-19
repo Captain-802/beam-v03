@@ -241,3 +241,55 @@ test('mesh-convergence guard: an unconverged FE solution blocks PASS with the pr
   const iTor = r.html.indexOf('Torsion Design'), iMsg = r.html.indexOf('ms-nv-msg">' + msg), iDef = r.html.indexOf('Deflection Check');
   assert.ok(iTor > 0 && iMsg > iTor && iMsg < iDef, 'NOT VERIFIED row inside the Torsion Design block');
 });
+
+// 19 Sep 2026 review finding (high): the bimoment was AVERAGED across an interior
+// warping-fixed node, where the reaction bimoment makes B jump, so the peak B_Ed
+// was under-reported, printed at the wrong x and the mesh-convergence measure
+// crept with the mesh instead of converging (blocking PASS at 4.4 % on the
+// default mesh). The one-sided element values are now kept at such a node.
+test('[hand-derived] interior warping-fixed support: B jumps by the reaction bimoment; single fixed support at mid-member with opposite tip torques gives B(root-) = +T a tanh(l/a), B(root+) = -T a tanh(l/a), max|B| at the root, mesh error <= 0.5 %', () => {
+  // 8 m member, single (root) support at x = 4 m -> warping fixed automatically; tip torques +T at x = 0 and -T at x = 8 m:
+  // each half is the validation-2 cantilever, B(root) = T a tanh(l/a) with opposite signs on the two sides -> the average is 0
+  const r = run(`(()=>{ ${UB}
+    const L=8000, T=10e6;
+    const fe=warpingTorsionFE({L,EIw,GIt,supports:[{pos:4000,type:'fixed'}],torques:[{type:'point',pos:0,P:T},{type:'point',pos:L,P:-T}]});
+    const i=fe.xs.findIndex(x=>Math.abs(x-4000)<1e-9);
+    let bm=0,bp=0; fe.B.forEach((b,k)=>{ if(Math.abs(b)>bm){bm=Math.abs(b);bp=fe.xs[k];} });
+    return {aa,GIt, xs:fe.xs.slice(i-1,i+2), B:fe.B.slice(i-1,i+2), Bmax:bm, Bpos:bp, mesh:fe.meshError, parts:fe.meshErrorParts, Breac:fe.reactions[0].B, phiTip:[fe.phi[0],fe.phi[fe.phi.length-1]]}; })()`);
+  // [hand-derived] a tanh(l/a) = 1858.57 x tanh(4000/1858.57) = 1808.96 mm; T a tanh = 1e7 x 1808.96 = 1.80896e10 N.mm2
+  const Bcf = 10e6 * r.aa * Math.tanh(4000 / r.aa);
+  near(Bcf, 1.80896e10, 1e-4);
+  near(r.xs[0], 3999.99, 1e-9); near(r.xs[1], 4000, 1e-9); near(r.xs[2], 4000.01, 1e-9);
+  near(Math.abs(r.B[0]), Bcf, 1e-4, 'B(root-)'); near(Math.abs(r.B[2]), Bcf, 1e-4, 'B(root+)');
+  assert.ok(r.B[0] * r.B[2] < 0, 'opposite signs either side of the root: ' + r.B.join(', '));
+  near(Math.abs(r.B[1]), Bcf, 1e-4, 'B at the root = the larger side, not the average (which is 0)');
+  near(r.Bmax, Bcf, 1e-4, 'max|B|'); near(r.Bpos, 4000, 1e-9, 'max|B| at the root');
+  near(Math.abs(r.Breac), 2 * Bcf, 1e-4, 'reaction bimoment = the jump');
+  assert.ok(r.mesh <= 1e-3, 'mesh error converged: ' + JSON.stringify(r.parts));
+  // tip twists +-(T/GI_T)[l - a tanh(l/a)] = 0.39090 rad (validation 2)
+  near(Math.abs(r.phiTip[0]), (10e6 / r.GIt) * (4000 - r.aa * Math.tanh(4000 / r.aa)), 1e-6); assert.ok(r.phiTip[0] * r.phiTip[1] < 0);
+});
+
+test('[hand-derived] overhang with the interior support warping-fixed (review layout): the back span stays untwisted, B(support+) = T a tanh(l/a) of the 4 m cantilever, reported at x = 6 m; mesh converged and PASS not blocked through analyse()/checks()', () => {
+  // 457x191x82, 10 m, supports at 0 (fork, hold-down) and 6 m (warping restrained), 20 kN Q at the tip with e = 100 mm:
+  // ULS torque T = 1.5 x 20 x 100 = 3000 kN.mm; the overhang is a cantilever rooted at x = 6 m (phi = phi' = 0), l = 4000 mm
+  const lay = { restraint: 'ltb', mcrMethod: 'eigen', eccOn: true, L: 10, supports: [{ pos: 0, type: 'pinned', holdDown: true, ss: 100 }, { pos: 6, type: 'pinned', warpFix: true, ss: 100 }],
+    loads: [{ type: 'point', pos: 10, P: 20, case: 'Q', e: 100 }] };
+  c.reset(lay);
+  const r = run(`(()=>{ ${MX} const a=analyse(); const ch=checks(a); const O=a.torsO; const g=O.sols[0].sol;
+    const i=g.xs.findIndex(x=>Math.abs(x-6000)<1e-9);
+    return {method:O.method, mesh:O.meshError, conv:O.converged, aa:O.aa, GIt:O.GIt, B:g.B.slice(i-1,i+2), xs:g.xs.slice(i-1,i+2), Bmax:mx(g.B), BMax:ch.tor.BMax, BMaxPos:ch.tor.BMaxPos,
+      phiBack:mx(g.phi.filter((v,k)=>g.xs[k]<=6000)), phiTip:g.phi[g.phi.length-1], pass:ch.pass, uns:ch.unsupported, label:O.sols[0].combo.label}; })()`);
+  assert.equal(r.method, 'fe'); assert.ok(r.conv && r.mesh <= 1e-3, 'mesh error ' + r.mesh);
+  assert.ok(!r.uns.some(m => /mesh has not converged/.test(m)), r.uns.join(' | '));
+  // [hand-derived] B = 3.0e6 N.mm x 1858.57 x tanh(2.1522) = 3.0e6 x 1808.96 = 5.4269e9 N.mm2 = 5.427 kN.m2; back span B = 0 (no torque, phi = 0 at both ends and phi' = 0 at x = 6 m)
+  const Bcf = 3.0e6 * r.aa * Math.tanh(4000 / r.aa);
+  near(Bcf, 5.4269e9, 1e-4);
+  assert.ok(Math.abs(r.B[0]) < 1e-3 * Bcf, 'B(support-) = 0 on the untwisted back span: ' + r.B[0]);
+  near(Math.abs(r.B[2]), Bcf, 1e-4, 'B(support+)'); near(Math.abs(r.B[1]), Bcf, 1e-4, 'B at the support = the cantilever side');
+  near(r.Bmax, Bcf, 1e-4, 'max|B|'); near(r.BMax, Bcf / 1e9, 1e-4, 'ch.tor.BMax kN.m2'); near(r.BMaxPos, 6000, 1e-9, 'B_Ed printed at the support (mm)');
+  assert.ok(r.phiBack < 1e-9, 'back span untwisted');
+  // tip twist (T/GI_T)[l - a tanh(l/a)] = 3.0e6/5.6052e10 x 2191.04 = 0.11727 rad
+  near(Math.abs(r.phiTip), (3.0e6 / r.GIt) * (4000 - r.aa * Math.tanh(4000 / r.aa)), 1e-6);
+  assert.ok(r.pass, r.uns.join(' | '));
+});
