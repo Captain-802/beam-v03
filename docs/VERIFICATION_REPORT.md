@@ -1,0 +1,385 @@
+# beam-v03 verification report: branch `ms-brief-standard-mcr`
+
+Date: 19 September 2026. Written for the engineer who owns the tool, from the committed state of the branch at `42565d7` (13 commits on top of `54070b8`, the audited v03 base). Every number below is taken from a file in the repository (named in each section) or was reproduced through `tests/harness.cjs` while writing this report; nothing is estimated.
+
+Contents:
+
+1. [What changed on the branch](#1-what-changed-on-the-branch)
+2. [EC3 trigger coverage now](#2-ec3-trigger-coverage-now)
+3. [The brief against the MasterSeries printout](#3-the-brief-against-the-masterseries-printout)
+4. [The verification campaign](#4-the-verification-campaign)
+5. [Known limitations and NOT VERIFIED cases](#5-known-limitations-and-not-verified-cases)
+6. [How to run everything](#6-how-to-run-everything)
+
+Status at the end of the branch: `node --test tests/*.test.cjs` 113 tests pass (9 files); `node tests/batch/run-batch.cjs` 170 cases / 296 runs, PASS 202 / FAIL 74 / NOT VERIFIED 20 / ERROR 0, 0 cross-check mismatches, 0 trigger mismatches (re-run for this report: identical counts, 47.4 s); `pwsh ./build-single-html.ps1` reproduces `dist/beam-design-single.html` and the parity test passes.
+
+---
+
+## 1. What changed on the branch
+
+`git log --oneline 54070b8..HEAD`, oldest first. The three documentation commits at the start define the target (what MasterSeries prints, what EC3 requires, what the tool did); the ten that follow are engineering and verification.
+
+| Commit | Date (19 Sep 2026) | Change | Files that carry it |
+|---|---|---|---|
+| `e7b8f8e` | docs | MasterSeries 2025 steel-beam logic extract (`docs/MASTERSERIES_STEEL_BEAM_LOGIC.md`, 11 evidence crops in `docs/masterseries-evidence/`), the EC3 beam trigger list `docs/EC3_BEAM_TRIGGER_LIST.md` (65 checks, sections 1-3, plus the MasterSeries printed order, section 4) | docs only |
+| `5f5f9cc` | docs | `docs/BRIEF_MAPPING.md`: line-by-line specification of the MasterSeries-format brief (block order, three-column rows, every printed value mapped to a field of `analyse()` / `checks()`, DERIVE helpers, NOT AVAILABLE register, cross-check vectors from three MasterSeries examples) | docs only |
+| `e00b27e` | docs | `docs/COVERAGE_MATRIX.md`: status of every trigger id against the code at `e7b8f8e` with file:line evidence, the interaction-by-interaction comparison with MasterSeries (section 4) and the ranked P1/P2 gap list (section 5) | docs only |
+| `711b80b` | feature | **Standard closed-form M<sub>cr</sub> method as a user option** beside the FE eigensolver: `S.mcrMethod` (`eigen` default, `standard`); the eigen patch keeps the closed-form route alive as `window.checksEC3UnrestrainedStandard` and dispatches on the switch; SN003a Table 3.2 rows / SCI end-moment curve / Serna quarter-point C<sub>1</sub>, SN006a cantilever tables, P385/P362 channel κ chain, hollow sections with I<sub>w</sub> = 0 | `js/08-mcr-eigen-patch.js`, `js/checks/eurocode-checks.js`, `index.html`, `js/03-state-ui.js`, `js/07-wiring.js` |
+| `ec9dfff` | verification | **Headless batch runner** `tests/batch/run-batch.cjs` and the first 111-case library `tests/batch/cases.cjs`; every LTB case run with both M<sub>cr</sub> methods; independent cross-checks (i-vi) computed in the runner from the raw section tables; `results.json` / `results.md` (at that commit PASS 160 / FAIL 38 / NOT VERIFIED 4) | `tests/batch/*` |
+| `6f650b9` | feature | **MasterSeries-format EC3 design brief** `js/06-brief-masterseries.js`: `renderMasterSeriesBrief(a, c, sec)`, a pure function printing the checks in MasterSeries order, wording and three-column layout above the detailed report; `tests/brief.test.cjs` | `js/06-brief-masterseries.js`, `js/06-render.js`, `css/beam-design.css`, `index.html` |
+| `0a2b016` | fix | **Standard route as a design basis**: `ltb.MbRd = ltb.MbMcr` (the M<sub>cr</sub> chain, capped at M<sub>c,Rd</sub>) instead of the P362 Expn 6.55 simplified slenderness (now comparison only); one z<sub>g</sub> per combination (`stdZgFor`, most destabilising signed per-load value); a destabilising z<sub>g</sub> on a diagram without a published C<sub>2</sub> blocks PASS (`ltb.zgBlocked`); one shared `ltbCurveNA()` on both routes; the brief prints engine values only (`msb*` helpers, no recomputed resistance) | `js/checks/eurocode-checks.js`, `js/08-mcr-eigen-patch.js`, `js/06-brief-masterseries.js` |
+| `c3adfbe` | gap closure G1 | **Automatic pattern loading** (`S.autoPattern`, `spanSegments()`, `expandPatternCombos()`, `comboLoadPieces()`), **uplift / hold-down** (`a.uplift`, `holdDownCheck`, per-support "hold-down provided"), **cantilever strut length** L<sub>cr</sub> = 2.0 L, **per-segment deflection limits** (span/`S.divisor`, cantilever L/`S.divisorCant` = 180 [verify], absolute cap `S.deflAbs`); `tests/gap-closure.test.cjs` (10 tests) | `js/04-checks.js`, `js/checks/eurocode-checks.js`, `js/checks/bs5950-checks.js`, brief, report, UI |
+| `e2fcd00` | gap closure G2 | **Web transverse forces**, EN 1993-1-5 clause 6 with the 7.2 interaction (`webTransverseCheck`): every point load and support as a patch load, types (a)/(b)/(c), k<sub>F</sub>, F<sub>cr</sub>, m<sub>1</sub>, m<sub>2</sub>, l<sub>y</sub>, λ̄<sub>F</sub>, χ<sub>F</sub>, F<sub>Rd</sub>; per-load / per-support s<sub>s</sub> and "bearing stiffener provided"; rolled I/H, PFC, RHS/SHS (two webs, lever rule); two verdict entries; brief block after Local Capacity; `tests/web-transverse.test.cjs` (9 tests) | `js/checks/eurocode-checks.js`, `js/03-state-ui.js`, `js/07-wiring.js`, brief, report |
+| `b1dc961` | gap closure G3 | **I/H minor-axis classification** (flange outstands under M<sub>y</sub> + M<sub>z</sub> + N, web unstressed by M<sub>z</sub>), **A<sub>eff</sub> of a Class-4 web** in uniform compression (EN 1993-1-5 4.4) in N<sub>c,Rd</sub>, N<sub>b,Rd</sub> and Table 6.7, **cl 6.2.10 M-V-N** station sweep, **k<sub>c</sub> floor** 1/√2.76, **Table B.1 RHS row**, **PFC torsional / torsional-flexural buckling** (N<sub>cr,T</sub>, N<sub>cr,TF</sub>, χ<sub>T</sub> curve c [verify], `S.LT`), **high-shear M<sub>v,Rd</sub>** for Class 3 I/H, channels and hollow sections, **restraint design forces** (2.5 % N<sub>f,Ed</sub>, advisory); `tests/gap-closure-g3.test.cjs` (9 tests) | `js/01-computation-engine.js`, `js/checks/eurocode-checks.js`, brief, report, UI |
+| `78ee2a8` | gap closure G4 | **General warping-torsion FE** `js/checks/torsion-fe.js` (E I<sub>w</sub> φ⁗ − G I<sub>T</sub> φ″ = m<sub>t</sub>, Hermite (φ, φ′) elements, φ = 0 at every support, warping free / per-support "warping restrained for torsion" / cantilever root fixed, mesh doubled once, 0.5 % block) for cantilevers, multi-span / overhang, partial-span and multiple torques; P385 App C closed forms kept where they apply; `tests/torsion-fe.test.cjs` (12 tests) | `js/checks/torsion-fe.js` (new), `js/04-checks.js`, `js/checks/eurocode-checks.js`, brief, report, UI, build script, harness |
+| `fa631fa` | verification | **Campaign**: library 122 → 170 cases (groups WEB, PAT, UPL, TFB, HSV, TOR, AEF, BIX, UB-52), cross-checks viii-xv extended / added, `tests/batch/hand-checks.cjs` + `hand-checks.md` (16 cases, 29 quantities), `tests/batch/mcr-method-comparison.md`; two engine fixes: **F1** `mAtStation()` reads a moment jump on the larger side (closed-form C<sub>1</sub> was 20 % unconservative at an in-span couple), **F2** the eigen route blocks the destabilising switch when every z<sub>g</sub> = 0; `tests/campaign.test.cjs` (8 tests) | `tests/batch/*`, `js/checks/eurocode-checks.js`, `js/08-mcr-eigen-patch.js` |
+| `42565d7` | review fixes | **F5** one-sided bimoment at an interior warping-fixed node of the torsion FE (peak B<sub>Ed</sub> was under-reported, mesh measure crept); **F1** PFC L<sub>T</sub> from the twist restraints (`lcrTFromTwistRestraints`, never the lateral-only L<sub>cr,z</sub>); **F2** γ<sub>G,inf</sub> companions (G at 1.0 STR set B and 0.9 EQU set A) for uplift / hold-down and the web-bearing reactions; **F4** max-reaction pattern set for four or more spans; **F3** blank support s<sub>s</sub> = lower bound 0, NOT VERIFIED where it fails; **F7** support-row label independent of the section; **F6** eigen / torsion-FE memo caches, solve counts printed, debounced recompute (batch 339 s → 48 s); `tests/review-fixes.test.cjs` (5 tests), `tests/torsion-fe.test.cjs` (+2) | `js/checks/torsion-fe.js`, `js/checks/eurocode-checks.js`, `js/04-checks.js`, `js/08-mcr-eigen-patch.js`, `js/03-state-ui.js`, brief, report |
+
+Record of every change: `AUDIT.md` (headings "19 Sep 2026 gap closure", "... group G2", "... group G3", "... group G4", "19 Sep 2026 verification campaign", "19 Sep 2026 gap closure, review fixes") and the feature paragraphs of `README.md`.
+
+Test suite growth: 31 tests at the audit base (`AUDIT.md`), 113 at `42565d7`: `structural` 44, `brief` 13, `torsion-fe` 14, `gap-closure` 10, `gap-closure-g3` 9, `web-transverse` 9, `campaign` 8, `review-fixes` 5, `artifact` (dist parity) 1. Every test added on the branch carries hand-computed expected values in its comments (marked `[hand-derived]`), with `p385Solve` as the independent reference for the fork-fork torsion cases.
+
+---
+
+## 2. EC3 trigger coverage now
+
+Trigger ids are those of `docs/EC3_BEAM_TRIGGER_LIST.md`. "Before" is the Status column of `docs/COVERAGE_MATRIX.md` as committed at `e00b27e` (the code at `e7b8f8e`, i.e. v03 with the eigen route only); "After" is the state at `42565d7`. Vocabulary: IMPLEMENTED = computed and in the verdict (`c.utils`); BLOCKING = detected, PASS refused with a NOT VERIFIED message (`c.unsupported`); ADVISORY = printed, not in the verdict; MISSING = not detected; N/A = cannot occur in this tool (rolled UB/UC/PFC/SHS/RHS, vertical loads, isolated member). Unchanged rows are kept so the table is complete.
+
+### 2.1 Modelling, analysis, classification (section 5)
+
+| Id | Check | Before | After | Where |
+|---|---|---|---|---|
+| 1.1 | Load position: offsets to torque, load height, biaxial components | IMPLEMENTED (partial) | IMPLEMENTED (partial): per-load e and z<sub>g</sub>; no horizontal load component (M<sub>z</sub> is one constant input) | unchanged |
+| 1.2 | EQU: uplift, overturning, hold-down | MISSING | IMPLEMENTED: every ULS/SLS reaction tested, γ<sub>G,inf</sub> companions (1.0 and 0.9) included; ULS uplift blocks unless "hold-down provided"; SLS-only uplift advisory | G1 `c3adfbe`, F2 `42565d7`; `holdDownCheck`, `gammaInfCompanions` |
+| 1.3 | Combinations and patterns | IMPLEMENTED (partial: user-entered combinations only) | IMPLEMENTED: automatic Q patterns (single, adjacent pair, odd/even, max-reaction sets for ≥ 4 spans) for every ULS and SLS combination with Q; γ<sub>G,inf</sub> companions for reactions. Not generated: W/E patterns, γ<sub>G,inf</sub> in the moment / shear envelopes (printed limitation), EN 1990 6.10a/b alternatives | G1, F4, F2 |
+| 1.4 | Not a mechanism after releases | IMPLEMENTED | IMPLEMENTED | unchanged |
+| 1.5 | Second-order effects | N/A | N/A | |
+| 1.6 | Imperfections | N/A | N/A | |
+| 1.7 | Bracing-system forces at every restraint | MISSING (partial ADVISORY) | ADVISORY: 2.5 % N<sub>f,Ed</sub> = M<sub>Ed</sub>/h per lateral restraint and per support torsional restraint | G3 `restraintForces` |
+| 1.8 | Plastic global analysis | N/A | N/A | |
+| 1.9 | Classification under the actual stress distribution; Class 4 effective widths | IMPLEMENTED (partial); BLOCKING for Class 4 | IMPLEMENTED (partial): I/H web unstressed by M<sub>z</sub>, flange outstands under the combined stress (Table 5.2 sheet 2); A<sub>eff</sub> of a Class-4 web in uniform compression. **BLOCKING**: Class 4 under the combined N + M stress gradient (e<sub>N</sub> shift), Class-4 flanges, channel web Class 4 | G3 `classifyEC3`, `mzFlangeStress`, `aeffWebCompression` |
+| 1.10 | Shear lag | N/A | N/A | |
+| 1.11 | Material toughness / Z-quality | MISSING (advisory) | MISSING | unchanged |
+
+### 2.2 Cross-section resistance (section 6.2, EN 1993-1-5)
+
+| Id | Check | Before | After | Where |
+|---|---|---|---|---|
+| 2.1 | Bending each axis, M<sub>c,Rd</sub> by class | IMPLEMENTED | IMPLEMENTED | |
+| 2.2 | Holes: tension-flange criterion 6.2.5(4) | IMPLEMENTED (tension only, A<sub>net</sub> in N<sub>u,Rd</sub>) | unchanged; flange holes in bending still MISSING | P2 item 14 not done |
+| 2.3 | Shear V<sub>pl,Rd</sub> | IMPLEMENTED (major axis) | IMPLEMENTED; V<sub>z</sub> printed 0 in the brief | |
+| 2.4 | Elastic shear | N/A | N/A | |
+| 2.5 | Shear buckling h<sub>w</sub>/t<sub>w</sub> > 72ε/η | BLOCKING | BLOCKING (unchanged) | P2 item 13 not done |
+| 2.6 | Torsion: St Venant + warping, end conditions, τ<sub>t</sub>, σ<sub>w</sub>, τ<sub>w</sub>, B<sub>Ed</sub> | IMPLEMENTED (partial: one fork-fork span, full-span torque, P385 closed forms); BLOCKING outside | IMPLEMENTED for every open-section layout (cantilever, multi-span / overhang, partial-span and multiple torques, warping-fixed supports) through the warping-torsion FE; closed forms kept where they apply. **BLOCKING**: torsion combined with N<sub>Ed</sub> or an imposed M<sub>z</sub>; cold-formed SHS torsion constants; sections without I<sub>w</sub> / I<sub>T</sub>; FE mesh error > 0.5 % (never in the library) | G4 `js/checks/torsion-fe.js`, F5 |
+| 2.7 | Torsion simplifications by section type | IMPLEMENTED | IMPLEMENTED | |
+| 2.8 | V<sub>pl,T,Rd</sub> | IMPLEMENTED | IMPLEMENTED (both torsion routes) | |
+| 2.9 | Cross-section distortion | N/A | N/A | |
+| 2.10 | Bending with shear, ρ reduction | IMPLEMENTED for rolled I Class 1/2; BLOCKING otherwise | IMPLEMENTED for every family, Class 1-3 (Class 3 I/H elastic web deduction [conservative], channel W − ρt<sub>w</sub>h<sub>w</sub>²/4, RHS two webs), peak station and span-wise sweep | G3 `shearReducedResistances` |
+| 2.11 | Bending with axial, M<sub>N,Rd</sub> | IMPLEMENTED (Class 1-3); BLOCKING Class 4 | IMPLEMENTED (Class 1-3) with A<sub>eff</sub> in the axial terms for a Class-4 web; BLOCKING for Class 4 under the stress gradient | G3 |
+| 2.12 | Biaxial (M<sub>y</sub>/M<sub>N,y</sub>)<sup>α</sup> + (M<sub>z</sub>/M<sub>N,z</sub>)<sup>β</sup> | IMPLEMENTED (but almost every I/H case NOT VERIFIED through 1.9(b)) | IMPLEMENTED and reachable for I/H (BIX-01..05 carry verdicts) | G3 |
+| 2.13 | Bending, shear and axial together 6.2.10 | BLOCKING | IMPLEMENTED: (1 − ρ)f<sub>y</sub> on the shear area, station sweep, uniaxial plain ratio / biaxial exponents | G3 `c.mvn` |
+| 2.14 | Von Mises | N/A | N/A | |
+| 2.15 | Linear summation fallback | IMPLEMENTED | IMPLEMENTED | |
+| 2.16 | Transverse forces on the web, F<sub>Rd</sub>, s<sub>s</sub>, bearing stiffener | ADVISORY (nothing computed) | IMPLEMENTED at every point load and support: types (a)/(b)/(c), rolled I/H, PFC, RHS/SHS; blank support s<sub>s</sub> = lower bound 0 (NOT VERIFIED where it fails); declared stiffener → advisory. Not evaluated (printed): distributed loads as patch loads, hangers, 6.3(3), section 8, the stiffener itself (9.4) | G2 `webTransverseCheck`, F3 |
+| 2.17 | EN 1993-1-5 7.1 | N/A | N/A | |
+| 2.18 | EN 1993-1-5 7.2 η<sub>2</sub> + 0.8η<sub>1</sub> ≤ 1.4 | MISSING | IMPLEMENTED at every station of every ULS combination | G2 |
+| 2.19 | Flange-induced buckling | N/A | N/A (printed as not evaluated) | |
+| 2.20 | Stiffeners | N/A | N/A (declared stiffener printed "design separately, 9.4") | |
+| 2.21 | Reduced-stress method | N/A | N/A | |
+| 2.22 | Web openings | N/A | N/A | |
+| 2.23 | Notched ends | N/A | N/A | |
+| 2.24 | Built-up members | N/A (advisory missing) | unchanged | |
+| 2.25 | Net-section tension | IMPLEMENTED | IMPLEMENTED | |
+| 2.26 | Local flange bending under a hung load | MISSING | MISSING | |
+
+### 2.3 Member stability and serviceability (sections 6.3, 6.4, 7, Annex BB)
+
+| Id | Check | Before | After | Where |
+|---|---|---|---|---|
+| 3.1 | LTB exemption tests | IMPLEMENTED | IMPLEMENTED | |
+| 3.2 | Segment definition; hinges are not restraints | IMPLEMENTED | IMPLEMENTED; restraint height (top-flange-only restraint) still not modelled | P2 item 17 not done |
+| 3.3 | M<sub>cr</sub> for each segment from the real moment shape, load height, end restraint | IMPLEMENTED (FE eigenvalue only) | IMPLEMENTED: FE eigenvalue (default) **or** the standard closed-form chain (SN003a / SCI end-moment / Serna C<sub>1</sub>, C<sub>2</sub>z<sub>g</sub> where published, SN006a cantilevers, channel κ chain, I<sub>w</sub> = 0 boxes) as a user option; F1 jump sampling fixed; unpublished C<sub>2</sub> with a destabilising z<sub>g</sub> blocks. Open (R1): the closed form is still evaluated with fork ends over the whole member for overhang and hinged layouts (conservative in the library) | `711b80b`, `0a2b016`, `fa631fa` |
+| 3.4 | χ<sub>LT</sub> general case | N/A under the UK NA | N/A | |
+| 3.5 | χ<sub>LT</sub> rolled-section method, f and k<sub>c</sub> | IMPLEMENTED (k<sub>c</sub> unbounded) | IMPLEMENTED with k<sub>c</sub> ≥ 1/√2.76 on both routes | G3 `kcFromC1` |
+| 3.6 | M<sub>b,Rd</sub> ≤ M<sub>c,Rd</sub> | IMPLEMENTED | IMPLEMENTED | |
+| 3.7 | Simplified compression-flange method | N/A | N/A | |
+| 3.8 | LTB with torsion (EN 1993-6 Annex A) | IMPLEMENTED where P385 runs; BLOCKING otherwise | IMPLEMENTED on every open-section torsion layout (FE feeds the same interaction); C<sub>mz</sub> = 1.0 (conservative) | G4 |
+| 3.9 | Flexural buckling y, z | IMPLEMENTED with gaps (b) cantilever strut L<sub>cr</sub> = L, (c) Class-4 web block | IMPLEMENTED: (b) L<sub>cr</sub> = 2.0 L for a single fixed support with N > 0; (c) λ̄ with A<sub>eff</sub>. (a) intermediate supports are still not used to shorten L<sub>cr</sub> (conservative) | G1, G3 |
+| 3.10 | Torsional / torsional-flexural buckling | BLOCKING for PFC | IMPLEMENTED for PFC: N<sub>cr,T</sub>, N<sub>cr,TF</sub> (coupled with y-y), χ<sub>T</sub> curve c [verify], L<sub>T</sub> from the twist restraints or `S.LT` | G3, F1 |
+| 3.11 | Non-symmetric Class 4 | N/A | N/A | |
+| 3.12 | Interaction 6.61/6.62, Annex B | IMPLEMENTED (Method 2) | IMPLEMENTED: Table B.1 RHS row, Table 6.7 Class-4 column with A<sub>eff</sub>, lower of χ<sub>T</sub> / χ in the PFC axial terms. Open: C<sub>mz</sub> = 1.0; the restrained path prints 6.61/6.62 only when N > 0 (P3) | G3 |
+| 3.13 | General method 6.3.4 | N/A | N/A | |
+| 3.14 | Plastic-hinge LTB | N/A | N/A | |
+| 3.15 | Annex BB.3 stable lengths, tension-flange restraint | MISSING | MISSING | |
+| 3.16 | Continuous restraint by sheeting BB.2 | MISSING | MISSING | |
+| 3.17 | Restraint force and stiffness | MISSING | ADVISORY (force); stiffness not | G3 |
+| 3.18 | Built-up compression members | N/A | N/A | |
+| 3.19 | Deflection per span / cantilever, limits, precamber | IMPLEMENTED (partial: one divisor) | IMPLEMENTED: per-segment limits (span/n, cantilever L/180 [verify], absolute cap); precamber and action-pattern rows not | G1 |
+| 3.20 | Horizontal deflection | N/A | N/A | |
+| 3.21 | Twist under torsion, rotation limit | ADVISORY (2°) | ADVISORY (both torsion routes) | |
+| 3.22 | Vibration | MISSING | MISSING | |
+| 3.23-3.26 | Construction stage, fatigue, fire, connections | N/A | N/A | |
+| 3.27 | Cold-formed members | IMPLEMENTED (partial) | unchanged (CF SHS torsion constants block) | |
+| 3.28 | Class 4 CHS | N/A | N/A | |
+
+Net movement: of the 18 ranked P1/P2 items in `docs/COVERAGE_MATRIX.md` section 5, 15 are implemented (items 1-12, 15, 16, 18); items 13 (shear buckling), 14 (flange holes) and 17 (restraint height) are open.
+
+### 2.4 What remains MISSING or BLOCKING, and the recommended route
+
+| Trigger | State | Why it is still open | Recommended route |
+|---|---|---|---|
+| 1.9 / 2.11 / 3.9(c) Class 4 under the combined N + M stress gradient; Class-4 flanges; channel web Class 4 | BLOCKING (message printed; AEF-04 in the library) | Needs the ψ-dependent effective width of EN 1993-1-5 4.4 (k<sub>σ</sub> from Table 4.1 for the web, Table 4.2 for the outstand), the centroid shift e<sub>N</sub> and the additional moment ΔM<sub>Ed</sub> = N<sub>Ed</sub>e<sub>N</sub> into 6.2.9.3 and 6.3.3, iterated because the stress ratio depends on the effective section | Implement Table 4.1 / 4.2 with the iteration and W<sub>eff</sub>; feed ΔM<sub>Ed</sub> through the Table 6.7 Class-4 column already in place (`buck.wFac`, N<sub>Rk</sub> = A<sub>eff</sub>f<sub>y</sub>). Effort M. In this rolled-section library only the deep S355/S460 UBs with N ≥ 0.4N<sub>pl</sub> reach it, so keeping the block is defensible |
+| 2.5 Shear buckling, h<sub>w</sub>/t<sub>w</sub> > 72ε/η | BLOCKING (screen only) | EN 1993-1-5 5.2-5.3 not implemented | For an unstiffened rolled web with a non-rigid end post: λ̄<sub>w</sub> = h<sub>w</sub>/(86.4tε), χ<sub>w</sub> from Table 5.1, V<sub>bw,Rd</sub> = χ<sub>w</sub>f<sub>yw</sub>h<sub>w</sub>t/(√3γ<sub>M1</sub>); flange contribution 5.4 optional; then the 7.1 M-V interaction where η̄<sub>3</sub> > 0.5. Effort M. Affects S460 deep UBs only (e.g. 1016×305×249: 55 against 51.5) |
+| 2.2 Flange holes 6.2.5(4) | MISSING in bending | No hole input for the flanges | Per-flange hole count / diameter input; test A<sub>f,net</sub>0.9f<sub>u</sub>/γ<sub>M2</sub> ≥ A<sub>f</sub>f<sub>y</sub>/γ<sub>M0</sub>, else net flange in W<sub>el</sub>. Effort S |
+| 2.6 / 3.8 Torsion combined with N<sub>Ed</sub> or an imposed M<sub>z</sub> | BLOCKING (TFB-04) | No single interaction expression for torsion + axial + biaxial in EN 1993-1-1; P385 treats torsion with bending only | Class 3: elastic summation at the critical fibre, N/A + M<sub>y</sub>/W<sub>y</sub> + (M<sub>z</sub> + φM<sub>y</sub>)/W<sub>z</sub> + σ<sub>w</sub> ≤ f<sub>y</sub> with the 6.2.1(5) von Mises check including τ<sub>t</sub> + τ<sub>w</sub> + τ<sub>V</sub>; Class 1/2: the P385 3.1.2 plastic sum extended by n = N/N<sub>pl</sub> and the applied M<sub>z</sub> added to φM<sub>y</sub> in the Annex A line; 6.3.3 with the torsion-induced M<sub>z</sub>. Print [verify] on the plastic extension. Effort M |
+| 2.6 Cold-formed SHS torsion constants | BLOCKING (SHS-07) | `TP385_SHS` carries hot-finished corner geometry | Compute I<sub>T</sub> and W<sub>t</sub> from the EN 10219-2 corner radii (P385 Appendix A formulae for hollow sections) or add the CF table. Effort S |
+| 2.16 web check: distributed loads as patch loads, hangers, 6.3(3), section 8, stiffener design 9.4 | not evaluated (printed) | Out of the G2 scope | Advisory kept; a bearing-stiffener design block (9.4: effective stiffener section as a strut, curve c, L<sub>cr</sub> = 0.75h<sub>w</sub>) would let "stiffener declared" become a check. Effort S-M |
+| 2.26 Hanger / bracket flange bending | MISSING | No model | Advisory when a point load carries e ≠ 0 on an open section (SCI P385 / EN 1993-1-8 T-stub by the connection designer). Effort S |
+| 3.2 Restraint height (top-flange-only restraint) | gap | The eigen model holds v at the shear centre and/or φ | Constraint v + z<sub>r</sub>φ = 0 in `mcrOnce` (penalty or elimination); a hogging region with a top-flange restraint is currently treated as laterally restrained at the shear centre, which is unconservative if the user declares such a restraint. Until then: do not declare a top-flange-only restraint as a v-restraint in a hogging region. Effort M |
+| 3.15 / 3.16 Annex BB.3 stable lengths, BB.2 sheeting | MISSING | Purlin- / sheeting-restrained rafters are outside a member tool; the MasterSeries Annex-BB brief covers them | L<sub>m</sub> (BB.5), L<sub>k</sub> (BB.6), L<sub>s</sub> (BB.7/BB.8) with C<sub>m</sub>, C<sub>n</sub> for a declared tension-flange restraint spacing, plus N<sub>cr,T</sub> with i<sub>s</sub>² = i<sub>y</sub>² + i<sub>z</sub>² + a² (BB.8/BB.9); or a continuous elastic restraint in the eigen model. Effort L. Out of scope unless rafters are to be designed here |
+| 3.22 Vibration | MISSING | Not a member check in EN 1993-1-1 | Advisory f<sub>1</sub> ≈ 18/√δ<sub>sw</sub> (δ<sub>sw</sub> in mm under the permanent + quasi-permanent load) against the SCI P354 floor guidance; not a verdict entry. Effort S |
+| 1.11 Sub-grade toughness | MISSING | No sub-grade input | One advisory line: verify the EN 1993-1-10 sub-grade for t<sub>f</sub> and the service temperature. Effort S |
+| 1.3 W / E patterns; γ<sub>G,inf</sub> in the moment envelopes | not generated (printed) | Design decision on the envelope | Pattern W/E only where the case has span-wise loads; add the reduced-G combination to the envelopes where a relieving G could increase a span moment (currently a printed instruction to add it by hand) |
+| 3.3 Closed-form route on overhang and hinged layouts (R1, F3) | open (conservative in the library) | The SN003a / Serna form assumes fork ends at both ends of L<sub>E</sub> | Block overhangs and members with internal hinges on the standard route as unpublished-C<sub>2</sub> cases are blocked, or evaluate the back span as the segment between its supports and hand the overhang to SN006a-type treatment. See section 4.5 |
+| BS 5950 path | web bearing / buckling (cl 4.5) advisory only; no torsion; any M<sub>z</sub> blocks | Untouched by the branch | Separate work |
+
+---
+
+## 3. The brief against the MasterSeries printout
+
+Reference: `docs/MASTERSERIES_STEEL_BEAM_LOGIC.md` section 5 (transcribed printouts), `docs/EC3_BEAM_TRIGGER_LIST.md` section 4 (printed order) and `docs/BRIEF_MAPPING.md` (the contract). The brief is `renderMasterSeriesBrief(a, c, sec)` in `js/06-brief-masterseries.js`, rendered above the detailed report for `S.code === 'EC3'`. Two house rules shape every difference below: every check that enters the verdict must be printed (so beam-v03 prints rows and unity cells MasterSeries has no equivalent for), and no resistance is recomputed in the renderer (every number is a field of `analyse()` / `checks()` or an `msb*` formatting helper).
+
+| MasterSeries block (order) | beam-v03 brief | Verdict | Justification |
+|---|---|---|---|
+| 0 Title: brief type, member, "Between x and y m, in Load Case n" | Same three-line blue title; "Axial with Moments (Member)" when N or M<sub>z</sub> is present, else "Beam & Beam-Portion (Member)"; "Cantilever 0 to L m" for a cantilever | Same / different | The member name is the section string (no member / node numbers in the tool); the title carries "(FAIL)" or "(NOT VERIFIED)" because the verdict vocabulary has three states |
+| 1 Member Loading and Member Forces: combination string, itemised loads, moment sketch, forces table | Same: combination label, load list with case letter (G/Q/W/E), e and z<sub>g</sub> where entered, automatic self-weight line, forces table (V at each end, end moments, max M @ x, max δ @ x) | Same + additions | Added under the loads: the generated pattern combinations and the γ<sub>G,inf</sub> companions (MasterSeries has auto-patterning in MasterFrame, not on the printout); the Uplift / hold-down rows (NOT VERIFIED row, hold-down design force, SLS-only advisory, "Uplift ... OK"); V<sub>z</sub> printed 0 with a note (single-plane solver) |
+| 2 Classification: `Class = Fn(b/T, d/t, fy, N, My, Mz)`, "(Axial: Non-Slender)", "Auto Design Load Cases" | `Class = Fn(c/t, d/t, fy, N, My, Mz)` with the values, class; "Auto Design Load Cases" = the enabled ULS indices | Different (documented) | c/t is the Table 5.2 outstand actually used in the classification, MasterSeries prints (B/2)/T (open decision 3 of BRIEF_MAPPING). Added rows: "Web classified for" (basis: bending / bending + compression), "Flange outstands under M<sub>y</sub> + M<sub>z</sub> (+N)" with the four stresses, "A<sub>eff</sub> = A − (1 − ρ)b̄t<sub>w</sub>" when a Class-4 web is reduced. A Class-4 stress-gradient case prints a red NOT VERIFIED row here; MasterSeries prints an effective area |
+| 3 Local Capacity Check: V<sub>y.Ed</sub>/V<sub>pl.y.Rd</sub> (Low Shear), M<sub>c.y.Rd</sub>, M<sub>y.Ed</sub>/M<sub>c.y.Rd</sub>; axial variant adds V<sub>z</sub>, M<sub>c.z.Rd</sub>, N<sub>pl.Rd</sub>, n, W<sub>pl.N.y</sub> = Fn(W<sub>pl.y</sub>, A<sub>vy</sub>, n), M<sub>N.y.Rd</sub>, W<sub>pl.N.z</sub>, M<sub>N.z.Rd</sub>, (M<sub>y</sub>/M<sub>N.y</sub>)<sup>α</sup> + (M<sub>z</sub>/M<sub>N.z</sub>)<sup>β</sup> | Same lines in the same order and wording, "Low Shear" / "High shear" tag, V<sub>y.Ed</sub> = the shear coincident with the maximum moment (`c.VatM`, as MasterSeries prints it), α = 2, β = 5n ≥ 1 for I/H | Same in substance + additions | W<sub>pl.N.y</sub> in beam-v03 is Eq 6.36 with a = (A − 2bt<sub>f</sub>)/A ≤ 0.5 and the 6.2.9.1(4) waiver; MasterSeries' A<sub>v</sub>-based parameter is not printed by it and cannot be confirmed (both return W<sub>pl</sub> at small n; BRIEF_MAPPING section 10 shows 1303.548 vs 1304.1 kN·m for UB 161). Added rows: V<sub>y.Ed,max</sub>/V<sub>pl.y.Rd</sub> (verdict entry), ρ and M<sub>v.y.Rd</sub> with the family form when high shear coexists, "M<sub>y.Ed</sub>/M<sub>v.y.Rd</sub> @ x" (span-wise sweep), the cl 6.2.10 M-V-N row, N<sub>c.Rd</sub> = A<sub>eff</sub>f<sub>y</sub> and N<sub>u.Rd</sub> (tension). Class 3 prints the elastic linear line, channels the "no M<sub>N</sub> reduction" linear line, RHS the Eq 6.39/6.40 exponents |
+| (no MasterSeries block) | **Web Transverse Forces (EN 1993-1-5 cl 6)** directly after Local Capacity: geometry, m<sub>1</sub>/m<sub>2</sub>, a, the governing station's full chain, one table row per station, NOT VERIFIED rows for blank-s<sub>s</sub> stations that fail at 0 | Not in MasterSeries | MasterSeries' EC3 brief prints "(No bearing / block tearing design)" beside N<sub>pl.Rd</sub>; beam-v03 verifies the web, so the block is required by the house rule. Position chosen as the next cross-section check after Local Capacity (`docs/BRIEF_MAPPING.md` 5.3a) |
+| 4 Compression Resistance N<sub>.b.Rd</sub>: L<sub>ey</sub> = K<sub>y</sub>L<sub>y</sub>, λ̄<sub>y</sub> = √(Af<sub>y</sub>/N<sub>cr</sub>), N<sub>b.y.Rd</sub> "Curve a"; same for z | Same six lines with the curve letters (Table 6.2 allocation identical: UB t<sub>f</sub> ≤ 40 a/b, UC b/c, HF hollow a, CF c, channel c) | Same + additions | Tags "cantilever 2.0L" / "user L<sub>E</sub>" on the L<sub>e</sub> lines; A<sub>eff</sub> row for a Class-4 web; six PFC rows (i<sub>0</sub>², N<sub>cr.T</sub>, N<sub>cr.TF</sub>, λ̄<sub>T</sub>, N<sub>b.T.Rd</sub> "Curve c", N<sub>Ed</sub>/N<sub>b.T.Rd</sub>) which MasterSeries prints only in its Annex-BB brief |
+| 5 Equivalent Uniform Moment Factors: `C1 = fn(M1, M2, Mo, ψ, μ)` values → C1 "Uniform" / "Not Loaded"; C<sub>mLT</sub>, C<sub>mz</sub>, C<sub>my</sub> with M<sub>h</sub>, M<sub>s</sub>, ψ, α<sub>s</sub> "Table B.3" | Standard mode: the same `C1 = fn(M1, M2, Mo, ψ, μ)` line with the five values (`ltb.c1in`), the C<sub>1</sub> value and the tag (Uniform / Not Loaded / the SN003a row / Serna). Eigen mode: "C<sub>1</sub> = M<sub>cr</sub>/M<sub>cr,uniform</sub>" (back-calculated, for k<sub>c</sub> only) and a "C<sub>1</sub> basis" row. C<sub>m</sub> lines with M<sub>h</sub>, M<sub>s</sub>, ψ, α<sub>s</sub> and the Table B.3 tag | Same (standard mode) / different (eigen mode, C<sub>m</sub> scope) | The eigen route has no C<sub>1</sub> in M<sub>cr</sub>; its printed C<sub>1</sub> is the eigenvalue ratio and is labelled so. C<sub>m</sub> = 1.0 for arbitrary diagrams and C<sub>mz</sub> = 1.0 (conservative; MasterSeries derives per portion); the canonical cases (full-span UDL, central point load, linear end moments) print the same Table B.3 values (UB 52: C<sub>my</sub> = C<sub>mLT</sub> = 0.95, C<sub>mz</sub> = 1) |
+| 6 Lateral Buckling Check M<sub>.b.Rd</sub>: L<sub>e</sub> = kL, M<sub>cr</sub> = Fn(C1, L<sub>e</sub>, I<sub>z</sub>, I<sub>t</sub>, I<sub>w</sub>, E), λ̄<sub>LT</sub> = √(Wf<sub>y</sub>/M<sub>cr</sub>), χ<sub>LT</sub> = Fn(λ̄<sub>LT</sub>, λ<sub>LT5950</sub>) "Curve c", χ<sub>LT.mod</sub> = Fn(χ<sub>LT</sub>, λ̄<sub>LT</sub>, k<sub>c</sub>, f) "6.3.2.3", M<sub>b.Rd</sub> = χW<sub>pl.y</sub>f<sub>y</sub> ≤ M<sub>c.y.Rd</sub>, M<sub>y.Ed</sub>/M<sub>b.Rd</sub>; fully restrained: "M<sub>b.Rd</sub> = M<sub>c.y.Rd</sub>  Fully Restrained" | Standard mode: the same seven lines in the same order; χ<sub>LT</sub> = Fn(λ̄<sub>LT</sub>, Φ<sub>LT</sub>, α<sub>LT</sub>) instead of the λ<sub>LT5950</sub> argument; z<sub>g</sub> row always printed; k<sub>c</sub> floor tag when it bites. Cantilever: M<sub>cr0</sub>, C = Fn(κ<sub>wt</sub>, η, warping), M<sub>cr</sub> = C·M<sub>cr0</sub> (SN006a). Channel: the κ-chain lines and the back-calculated M<sub>cr</sub>. Hollow: "M<sub>cr</sub> (information, I<sub>w</sub> = 0)" and the exemption line when λ̄<sub>LT</sub> ≤ 0.4. Eigen mode: "L<sub>e</sub> = portion between restraints", "M<sub>cr</sub> = FE eigenvalue (n elements, mesh error, solve counts)", "Governing span". Fully restrained line identical | Same (standard mode, I/H) / different (eigen mode, cantilever, channel) | λ<sub>LT5950</sub> is a BS 5950 quantity not computed on the EC3 path (NOT AVAILABLE register). MasterSeries handles a cantilever with the L<sub>e</sub> = 1.0L + 2D style drop list; beam-v03 prints the NCCI SN006a chain. The P362 Expn 6.55 simplified slenderness is printed as a comparison line (addition). Numerical parity on the MasterSeries example (section 3.1 below) |
+| (Beam-Portion briefs) | **Lateral Restraint Portions** table after the LTB block (span by span, fork ends: M<sub>Ed</sub>, M<sub>cr</sub>, λ̄<sub>LT</sub>, χ<sub>LT</sub>, M<sub>b,Rd</sub> per portion) plus the restraint design forces table | Different | MasterSeries prints one Beam-Portion brief per portion; beam-v03 prints the governing portion in full and the others in a table (`docs/BRIEF_MAPPING.md` section 7). Restraint forces are a beam-v03 addition (advisory) |
+| 7 Buckling Resistance: UN.y, UN.z, UM.y, UM.z, k<sub>yy</sub>, k<sub>zz</sub>, k<sub>yz</sub>, k<sub>zy</sub> (Table B.1 form printed), 6.61 and 6.62 lines with substituted numbers | Same ten lines, Table B.1 form when χ<sub>LT</sub> = 1 (restrained, closed section, M<sub>b,Rd</sub> ≥ M<sub>c,Rd</sub>), Table B.2 form otherwise, Class 3 rows, Table B.1 RHS row, Table 6.7 Class-4 column row | Same / different (documented) | k<sub>zy</sub> in beam-v03 applies the Table B.2 floor min(λ̄<sub>z</sub>, 1); the UB 161 evidence implies MasterSeries does not (k<sub>zy</sub> 0.928 vs the capped 0.971), so beam-v03 prints a slightly higher k<sub>zy</sub> on very slender minor axes (code-conformant, `docs/BRIEF_MAPPING.md` section 1 item 3). The "More Exact" Annex A variant is not available (Method 2 only). The block is printed when N > 0 or M<sub>z</sub> ≠ 0; MasterSeries prints it in every Axial-with-Moments brief |
+| 8 Torsion Design: "J, H, a, Q<sub>f</sub>, Q<sub>w</sub>", "W<sub>n0</sub>, S<sub>w1</sub>", "Torsion Bending Design @ x" | Same two constants lines (Q<sub>f</sub>, Q<sub>w</sub> as em dashes: not in the P385 tables carried; hollow sections print W<sub>t</sub>); then T<sub>Ed</sub> (max), "Torsion analysis" (P385 App C closed forms or the warping FE with its boundary conditions, reasons and mesh error), φ<sub>max</sub>, B<sub>Ed</sub>, M<sub>w.Ed</sub>, M<sub>z.Ed</sub> = φM<sub>y.Ed</sub>, V<sub>Ed</sub>/V<sub>pl.T.Rd</sub>, the Annex A interaction line, End torques, θ<sub>ser</sub> ≤ θ<sub>limit</sub> | Same header / different body | MasterSeries' "Torsion Bending Design @ x" content is not documented (`docs/MASTERSERIES_STEEL_BEAM_LOGIC.md` 5.8: cut off in every screenshot); beam-v03 prints the P385 chain it verifies. Section constants agree with the MasterSeries UB 89 example to table rounding (J 90.71 / 90.7, H 1.035 / 1.04, a 1723 / 1724, W<sub>n0</sub> 213.8 / 214, S<sub>w1</sub> 1816 / 1820) |
+| 9 Deflection Check - Load Case m: "In-span δ ≤ Span/360 : value ≤ span/360 → value mm OK/Warning" | Same line for each segment with its own limit (span/n, cantilever L/180 [verify], absolute cap when entered), the governing SLS case named | Same / different | Per-segment rows are a beam-v03 addition; MasterSeries' Def Limit pattern rows (live / super + live / dead + super + live), Def Limit Sway and precamber are not available |
+| 10 Unity bar: `N_Ed/N_pl.Rd \| Local \| UNyz \| UMyz \| Ax+M_6.61 \| Ax+M_6.62 \| Deflection \| Max` (Max excludes deflection); Beam-Portion: `MA/Mc \| M_y.Ed/M_b.Rd \| Deflection \| Max` | Same cells in the same order for both variants, Max excludes deflection, red Warning on any ratio > 1, light-blue panel on a failing brief | Same + additions | Appended cells for every further verdict entry: V/V<sub>pl</sub>, LTB (axial variant), M-V, M-V-N, N<sub>b.T</sub>, F/F<sub>Rd</sub>, Web 7.2, Torsion, V+T, LTB+T; a NOT VERIFIED footer lists every blocking message (MasterSeries has no third verdict state) |
+
+Not available at all (from the NOT AVAILABLE register of `docs/BRIEF_MAPPING.md` section 9): member / node numbers, automatic detection of the design load cases, λ<sub>LT5950</sub>, the "Lambda Limit" slenderness check, the Annex BB.3 brief (L<sub>m</sub>, N<sub>cr,T</sub> with i<sub>s</sub>, M<sub>cr0</sub>), "Print both Simplified & More Exact", End-1 / End-2 averaged effective-length factors, bolt-hole deductions other than A<sub>net</sub>, the BS 5950 drop lists.
+
+### 3.1 Numerical parity with the MasterSeries examples
+
+The three MasterSeries cases that can be modelled (`docs/BRIEF_MAPPING.md` section 10) were re-run for this report through `tests/harness.cjs` on both M<sub>cr</sub> routes (values as the engine holds them; the brief prints them rounded).
+
+| Quantity (Manual 2070 UB 457×191×89 S355, 7.5 m, UDL 14.13 G + 12 Q, 1.25G + 1.5Q) | MasterSeries | beam-v03 standard | beam-v03 eigen |
+|---|---|---|---|
+| V<sub>y.Ed</sub> end, M<sub>y.Ed</sub> @ x, δ | 137.84, 258.446 @ 3.75, 12.91 | 137.841, 258.451 @ 3.75, 12.92 | same |
+| V<sub>pl.y.Rd</sub>, M<sub>c.y.Rd</sub>, M<sub>y.Ed</sub>/M<sub>c.y.Rd</sub> | 1021.758, 694.692, 0.372 | 1026.538, 693.450, 0.373 | same |
+| C<sub>1</sub> | 1.127 Uniform | 1.127 (SN003a row) | 1.131 (eigen ratio, for k<sub>c</sub>) |
+| M<sub>cr</sub> | 330.292 | 330.668 | 331.837 |
+| λ̄<sub>LT</sub>, χ<sub>LT</sub> (curve c) | 1.450, 0.409 | 1.448, 0.409 | 1.446, 0.410 |
+| k<sub>c</sub>, f, χ<sub>LT.mod</sub> | 0.942, 0.996, 0.410 | 0.942, 0.995, 0.411 | 0.940, 0.995, 0.413 |
+| M<sub>b.Rd</sub>, M<sub>y.Ed</sub>/M<sub>b.Rd</sub> | 285.104, 0.906 | 285.235, 0.906 | 286.049, 0.904 |
+| Deflection ratio | 0.620 | 0.620 | 0.620 |
+
+The 0.1 % on M<sub>cr</sub> and 0.5 % on V<sub>pl,Rd</sub> are section-table rounding (MasterSeries `OPENLIBUK0.db` against the P363 values in `js/sections/ub-section-data.js`: I<sub>w</sub> 1.035 vs 1.04 dm⁶, A<sub>v</sub> from the tabulated r), not method differences. On the T01-1 UB 457×152×52 case MasterSeries applied the UDL table value C<sub>1</sub> = 1.127 to a mixed UDL + central point-load diagram (M<sub>cr</sub> 128.931); beam-v03's standard route recognises the mixed diagram and takes Serna's C<sub>1</sub> = 1.176 (M<sub>cr</sub> 134.517), the eigen route 136.136; UMyz 2.800 (MasterSeries) / 2.709 (standard) / 2.682 (eigen), the same FAIL. T04-1 UB 305×165×40 (restrained, mixed loads): R<sub>1</sub>/R<sub>2</sub> 151.25/165.41 vs 151.23/165.39, M<sub>y.Ed</sub> 190.043 vs 190.030 @ 2.1 m, MA/Mc 1.109 vs 1.109, deflection 15.57/12.5 vs 15.58/12.50.
+
+---
+
+## 4. The verification campaign
+
+Files: `tests/batch/cases.cjs` (library), `tests/batch/run-batch.cjs` (runner + cross-checks), `tests/batch/results.md` / `results.json` (last run, committed at `42565d7`), `tests/batch/hand-checks.md` + `hand-checks.cjs`, `tests/batch/mcr-method-comparison.md`, `tests/batch/README.md` (method, case coverage, current-run commentary), `tests/campaign.test.cjs` (pins the figures below as regression values).
+
+### 4.1 Size
+
+170 cases: UB 91, UC 16, PFC 29, SHS 12, RHS 22. 126 cases are not fully restrained and are run with both M<sub>cr</sub> methods, 44 are fully restrained and run once: **296 runs**. Layouts: 121 simply supported, 16 two-span, 5 three-span, 10 cantilevers, 4 propped cantilevers (+1 with a hinge), 7 fixed-fixed (+1 fixed-pinned-fixed), 6 overhangs, 2 Gerber beams; full / partial / trapezoidal loads, single and multiple point loads incl. loads over supports, end and in-span couples, wind uplift, unbalanced patterns; eccentricity (torsion) in 38 cases, load height through `za` and per-load z<sub>g</sub>, axial compression in 20 cases (up to ~0.55 N<sub>c,Rd</sub>), tension in 3, M<sub>z</sub> in 13, intermediate restraints in 13. The 48 campaign cases (WEB, PAT, UPL, TFB, HSV, TOR, AEF, BIX, UB-52) exercise every gap-closure check in a passing and a failing / blocked direction (`tests/batch/README.md`, "19 Sep 2026 campaign groups").
+
+### 4.2 Verdicts
+
+Run of 19 Sep 2026 after the review fixes (Node v24.14.1, 48 s; reproduced for this report with identical counts): **PASS 202 | FAIL 74 | NOT VERIFIED 20 | ERROR 0**. FAIL is a legitimate design verdict (the library deliberately overloads members); NOT VERIFIED is a refused PASS with the reason printed (section 5).
+
+Per family and per M<sub>cr</sub> method (from `results.json`):
+
+| Family | Method | Runs | PASS | FAIL | NOT VERIFIED |
+|---|---|---|---|---|---|
+| UB | eigen | 69 | 53 | 11 | 5 |
+| UB | standard | 69 | 40 | 23 | 6 |
+| UB | restrained | 22 | 11 | 10 | 1 |
+| UC | eigen | 14 | 11 | 2 | 1 |
+| UC | standard | 14 | 11 | 2 | 1 |
+| UC | restrained | 2 | 2 | 0 | 0 |
+| PFC | eigen | 20 | 18 | 2 | 0 |
+| PFC | standard | 20 | 7 | 13 | 0 |
+| PFC | restrained | 9 | 7 | 1 | 1 |
+| SHS | eigen | 7 | 5 | 1 | 1 |
+| SHS | standard | 7 | 5 | 1 | 1 |
+| SHS | restrained | 5 | 5 | 0 | 0 |
+| RHS | eigen | 16 | 12 | 3 | 1 |
+| RHS | standard | 16 | 12 | 3 | 1 |
+| RHS | restrained | 6 | 3 | 2 | 1 |
+| **Total** | eigen | 126 | 99 | 19 | 8 |
+| | standard | 126 | 75 | 42 | 9 |
+| | restrained | 44 | 28 | 13 | 3 |
+| | all | 296 | 202 | 74 | 20 |
+
+Verdict agreement between the two M<sub>cr</sub> methods on the 126 paired cases: 101 identical, 25 different. **Every difference is the standard route being stricter**: 24 cases PASS on the eigen route and FAIL (22) or NOT VERIFIED (2: UB-44, MIX-08, both the unpublished-C<sub>2</sub> block) on the standard route, and UB-40 is NOT VERIFIED on the eigen route and FAIL on the standard route. There is no case in the library that the standard route passes and the eigen route fails or refuses. The 22 standard-route FAILs are the whole-member L<sub>E</sub> = kL treatment of multi-span and intermediately restrained members (UB-06/08/13/39/41, MIX-04, PAT-01/02/05, AEF-05, PFC-10/18/21), the channel κ chain (PFC-08/09/12/14/16/17/20, MIX-10) and the overhang layout TOR-06, see 4.4.
+
+### 4.3 Cross-checks and hand checks
+
+Seventeen cross-checks are computed in the runner from the raw section tables and the case inputs, never from the engine's intermediate values (`tests/batch/README.md`, "Cross-checks"). Result of the run: **0 mismatches** in every check that has a pass / fail meaning:
+
+| Check | Runs | OK |
+|---|---|---|
+| i-Mmax, i-dmax (closed-form M and δ of SS / cantilever single-load cases) | 161 | 161 |
+| ii-equilibrium (ΣR + Σloads = 0) | 296 | 296 |
+| iii-McrStd (closed-form M<sub>cr</sub> recomputed with C<sub>1</sub>/C<sub>2</sub>/z<sub>g</sub>/L<sub>E</sub> derived independently) | 212 | 212 |
+| iii-zgBlock (destabilising z<sub>g</sub> without a published C<sub>2</sub> must block) | 101 | 101 |
+| iv-McrRatio (eigen / standard, flagged outside 0.85-1.25: information, not a defect) | 126 | 114 in band, 12 flagged |
+| v-MbRd ≤ McRd | 252 | 252 |
+| vi-governing (reported governing = max of the printed utilisations) | 296 | 296 |
+| vii-uplift (every lifting support reported and, without a hold-down, blocking) | 296 | 296 |
+| viii-FRd (web F<sub>Rd</sub> at the governing station, rolled I/H, PFC, RHS) | 292 | 292 |
+| ix-Aeff | 16 | 16 |
+| x-NbT (PFC N<sub>cr,T</sub>, N<sub>cr,TF</sub>, N<sub>b,T,Rd</sub> with L<sub>T</sub> from the twist restraints) | 9 | 9 |
+| xi-kcFloor | 99 | 99 |
+| xii-MVN (cl 6.2.10 at the worst high-shear station) | 4 | 4 |
+| xiii-torsionFE (Vlasov closed forms: cantilever tip torque, cantilever uniform torque, warping-fixed ends) | 6 | 6 |
+| xiv-pattern (three-moment support moments and reactions of every pattern combination) | 32 | 32 |
+| xv-MvRd (high-shear M<sub>v,Rd</sub> of every family) | 8 | 8 |
+
+Trigger mismatches (case `expect` against the observed triggers): 0. Errors (a case throwing): 0.
+
+**Hand checks** (`tests/batch/hand-checks.md`, arithmetic reproduced by `node tests/batch/hand-checks.cjs`): 16 cases, 29 quantities, every step written out from the quoted section-table rows, E = 210 000, G = 81 000 N/mm², UK NA factors. **Largest difference 0.001 %** (the engine's grid station nearest x<sub>max</sub>); no case or engine value was adjusted on account of a hand check.
+
+| # | Case, quantity | Hand | Engine | Diff % |
+|---|---|---|---|---|
+| HC-01 | WEB-01 F<sub>Rd</sub> type (a), s<sub>s</sub> = 0 (610×229×101) | 636.914 kN | 636.914 | 0.000 |
+| HC-02 / 02b | WEB-04 F<sub>Rd</sub> type (c), s<sub>s</sub> = 40 / end reaction | 301.001 kN / 305.159 kN | 301.001 / 305.159 | 0.000 / 0.000 |
+| HC-03 / 03b | WEB-07 F<sub>Rd</sub> type (b) over the interior support / R<sub>2</sub> | 230.150 kN / 477.314 kN | 230.150 / 477.314 | 0.000 / 0.000 |
+| HC-04 | WEB-06 RHS two-web F<sub>Rd</sub> with the lever-rule share | 258.362 kN | 258.362 | 0.000 |
+| HC-05 / 05b / 05c | PAT-01 M<sub>B</sub>, M<sub>max</sub>, R<sub>C</sub>, "Q on span 1 only" (Clapeyron) | −133.137 / 139.590 / 21.568 | −133.137 / 139.589 / 21.568 | 0.000 / −0.001 / 0.000 |
+| HC-06 / 06b | PAT-03 M<sub>C</sub>, M<sub>B</sub>, "Q on spans 2+3 only" | −152.924 / −74.799 kN·m | −152.924 / −74.799 | 0.000 |
+| HC-07 | UB-04 SN003a M<sub>cr</sub>, SS UDL, C<sub>1</sub> 1.127 / C<sub>2</sub> 0.454, z<sub>g</sub> +152 | 80.235 kN·m | 80.235 | 0.000 |
+| HC-08 | UB-45 SN003a M<sub>cr</sub>, fixed-ended central point load, 1.683 / 1.645, z<sub>g</sub> +105 | 189.461 kN·m | 189.461 | 0.000 |
+| HC-16 | UB-43 SN003a M<sub>cr</sub>, fixed-ended UDL, 2.578 / 1.554, z<sub>g</sub> +203 | 46.089 kN·m | 46.089 | 0.000 |
+| HC-09 / 09b | UB-19 SN006a M<sub>cr</sub> = C·M<sub>cr0</sub> with Eq (7) / M<sub>cr0</sub> | 78.653 / 30.351 kN·m | 78.653 / 30.351 | 0.000 |
+| HC-10 / 10b / 10c | TFB-01 N<sub>cr,T</sub> / N<sub>cr,TF</sub> / N<sub>b,T,Rd</sub> (curve c) | 1561.01 / 1274.26 / 622.363 kN | 1561.01 / 1274.26 / 622.363 | 0.000 |
+| HC-11 / 11b / 11c | HSV-04 RHS M<sub>v,y,Rd</sub> / V<sub>pl,Rd</sub> / M/M<sub>v,y,Rd</sub> | 170.320 kN·m / 891.898 kN / 1.05668 | 170.320 / 891.898 / 1.05668 | 0.000 |
+| HC-12 / 12b | AEF-01 A<sub>eff</sub> / N<sub>Ed</sub>/N<sub>c,Rd</sub> | 25127.3 mm² / 0.22527 | 25127.3 / 0.22527 | 0.000 |
+| HC-13 / 13b | UB-49 cantilever tip twist / root bimoment (Vlasov) | 0.093812 rad / 4.3417 kN·m² | 0.093812 / 4.3417 | 0.000 |
+| HC-14 / 14b | TOR-05 cantilever tip twist under uniform torque / root torque | 0.125587 rad / 2.772 kN·m | 0.125587 / 2.772 | 0.000 |
+| HC-15 | UB-51 mid-span twist, warping-fixed ends | 0.070713 rad | 0.070713 | 0.000 |
+
+What the hand checks do not cover: they are first-principles arithmetic against the code expressions, not a digit-for-digit comparison with a published SCI P363/P364 or MasterSeries worked example of the clause-6 web chain (none with matching inputs was at hand). The MasterSeries LTB example of section 3.1 is the one published-software benchmark.
+
+### 4.4 Eigen against standard: the outliers
+
+Definition (`tests/batch/mcr-method-comparison.md`): ratio = M<sub>cr,eigen</sub> / M<sub>cr,standard</sub> as the engine prints it (`ltb.McrRatio`). *Same segment* = the closed form evaluated for the segment and combination of the eigen design value (the engine's own comparison inside the eigen run); *across the two runs* = the eigen design value against the standard run's own design value (whole member, L<sub>E</sub> = kL). **Ratio < 1 means the closed form gives the higher M<sub>cr</sub>, i.e. the standard method is unconservative there.**
+
+Same-segment statistics over the 126 eigen runs: median 1.006; 91 within 0.97-1.03, 96 within 0.95-1.05; 33 below 1.00, of which 7 below 0.99 and one below 0.97. The 12 flagged (outside 0.85-1.25), all above 1 except UB-44:
+
+| Case | Ratio | Closed-form route | M<sub>cr</sub> eigen / standard (kN·m) | Layout | Engineering reason | Closed form unconservative? |
+|---|---|---|---|---|---|---|
+| UB-44 | **0.679** | Serna, C<sub>2</sub> unpublished | 120.5 / 177.4 | 406×178×54, 7 m SS, point load at 0.35L on the top flange (z<sub>g</sub> = +201) | SN003a publishes C<sub>2</sub> only for its four Table 3.2 rows; for an off-centre point load the closed form can only be evaluated with the load at the shear centre, the eigenvalue carries the destabilising height exactly | **Yes, on the printed value (the closed form is 47 % high)**; the standard route refuses PASS for this input (NOT VERIFIED, cross-check iii-zgBlock 101/101). Campaign finding F4 |
+| UB-40 | 1.657 | SN003a uniform, L<sub>E</sub> ×1.2 ×1.2 | 335.1 / 202.3 | 533×210×92, 8 m SS UDL, L<sub>E</sub> factor 1.2 + destabilising switch, every z<sub>g</sub> = 0 | The closed form applies the ×1.2 L<sub>E</sub> device; the eigen route ignores the L<sub>E</sub> factor and solved the load at the shear centre, silently dropping the switch | No. The eigen route was: fixed (F2), it now blocks this contradictory input; UB-52 (z<sub>g</sub> = +266 entered) fails at 1.06 on the eigen route |
+| UB-52 | 1.573 | SN003a uniform with C<sub>2</sub>z<sub>g</sub> and ×1.2 | 248.1 / 157.8 | as UB-40 with the top-flange height entered | The standard route counts the load height twice (C<sub>2</sub>z<sub>g</sub> term and ×1.2 L<sub>E</sub>), an advisory says so | No (conservative) |
+| UB-23, TOR-06 | 1.362 | Serna, whole member L<sub>E</sub> = 9 m | 236.3 / 173.4 | 457×191×67, 7 m span + 2 m overhang | The SN003a form assumes fork supports at both ends of L<sub>E</sub>; the overhang has a free end at 9 m and the hogging over support 2 feeds a sign-changing quarter-point diagram (C<sub>1</sub> 1.30). The eigenvalue solves the real member | No (conservative by 26 %), but the fork-end assumption is not the code's: recommendation R1 |
+| PAT-04 | 1.527 | Serna, L<sub>E</sub> = 7 m | 259.4 / 169.9 | 406×178×54, 5 m back span + 2 m overhang, governing pattern "Q on the overhang only" | As UB-23; hogging-dominated whole-member diagram, Serna C<sub>1</sub> = 1.99 | No on M<sub>cr</sub>; see 4.5 for the M<sub>b,Rd</sub> effect. R1 |
+| UPL-01, UPL-02 | 2.529 | Serna, L<sub>E</sub> = 6 m | 624.6 / 246.9 | 406×178×54, 4 m back span + 2 m overhang, 30 kN tip load | Pure hogging diagram (ψ = 1) treated as one segment between forks; the real layout (bottom flange in compression on the back span, held at both supports) is 2.5 × stiffer | No (very conservative). R1 |
+| MIX-06 | 1.724 | Serna, L<sub>E</sub> = 6 m | 345.8 / 200.6 | 254×146×31, fixed - hinge (3 m) - pinned, UDL | SN003a has no row for an internal hinge; Serna sees M = 0 at the hinge and a fixed-end hogging peak (C<sub>1</sub> 3.81, k<sub>c</sub> floored); the hinge is not a lateral restraint in the eigen model | No (conservative) |
+| PFC-09 | 1.996 | channel comparison (C<sub>1</sub> = 1, L<sub>E</sub> = L) | 300.6 / 150.5 | PFC 300×90×41, 3.5 m cantilever, UDL | The printed comparison for a channel cantilever is the doubly-symmetric form with C<sub>1</sub> = 1 (SN006a is I/H only); the standard design basis for the channel is the κ chain (M<sub>cr</sub> back-calculated 90.2: standard FAIL 1.45, eigen PASS 0.79) | No (conservative twice over) |
+| SHS-06, RHS-07 | 1.397, 1.690 | box cantilever, C<sub>1</sub> = 1, I<sub>w</sub> = 0 | 28511 / 20405; 892 / 528 | SHS 300×300×10 4 m and RHS 160×80×5 3 m cantilevers | No published cantilever C for hollow sections; the closed form keeps C<sub>1</sub> = 1 with fork ends over L; both are LTB-exempt (λ̄<sub>LT</sub> ≤ 0.4) on both routes | No (conservative; verdicts coincide) |
+
+Across the two runs 52 of 126 pairs are outside the band; every one belongs to one of four families (`tests/batch/mcr-method-comparison.md` section 2): (i) multi-span and intermediately restrained members, where the standard route treats the whole member as one segment L<sub>E</sub> = kL with C<sub>1</sub> from the whole-member diagram (an advisory says so) while the eigen route finds the governing bay: ratios 1.35 to 37.4, same-segment ratios of the same runs all 0.97-1.07; (ii) the channel κ chain as the design basis (ratios 1.65 to 6.42); (iii) the overhang layouts above; (iv) the single-span limitations above. None is unconservative on the closed-form side except UB-44.
+
+Before the campaign fix F1, **UB-27** (8 m SS, UDL + 72 kN·m couple at mid-span + point load) had a same-segment ratio of 0.830: the quarter-point / mid-span sample of the Serna expression landed exactly on the couple's moment jump and took the far-side ordinate (118.5 instead of 226.5 kN·m), so C<sub>1</sub> = 1.676 and the closed-form M<sub>cr</sub> was **20 % above** the eigenvalue (LTB 0.74 printed for a beam the FE puts at 0.87). `mAtStation()` now reads 1 µm either side of a station and keeps the larger ordinate; UB-27 is now 1.155 (C<sub>1</sub> 1.206, LTB 0.98 PASS) and MIX-01 (couple at 3L/4) 1.005. This was an engine defect on the closed-form route and is the only unconservative closed-form value the campaign found that was not already blocked.
+
+### 4.5 Where the standard closed-form method is unconservative relative to the FE M<sub>cr</sub>
+
+This is the finding for the question the branch was opened on (does the closed-form C<sub>1</sub>/M<sub>cr</sub> route that MasterSeries-type software prints stay on the safe side of an eigenvalue solution?). Three levels, all from `tests/batch/results.json` at `42565d7`.
+
+**(a) On M<sub>cr</sub> itself, same segment and same combination** (the direct test of the closed form): one case beyond 3 %, **UB-44** (ratio 0.679, C<sub>2</sub> unpublished, PASS refused). The six others below 0.99 are within the approximation of the C<sub>1</sub> expressions themselves: UC-13 0.970 (equal and opposite end couples, ψ = −1: the SCI end-moment curve (1.33 + 0.33)² = 2.756 against the eigen 2.674), MIX-04 0.972 and UB-39 0.976 (single spans with intermediate restraints at the loads / quarter points: the bay's end-moment or uniform row against the isolated-bay eigenvalue), RHS-09 0.980 and UB-41 0.988 (bays of continuous members, Serna), UB-50 0.989 (Serna on a partial UDL). Before F1: UB-27 at 0.830 (fixed).
+
+**(b) On the design M<sub>b,Rd</sub> each route hands to the verdict** (what the engineer gets from each method for the same beam): the standard route's M<sub>b,Rd</sub> exceeds the eigen route's in 13 of 126 cases; in eight of them by 0.1-0.9 % (UB-09, UB-10, UB-12, UB-50, UC-09, MIX-05, TOR-03, TOR-04: the same C<sub>1</sub> approximation as (a)). The five that matter:
+
+| Case | Layout | M<sub>cr</sub> eigen / standard (design) | M<sub>b,Rd</sub> eigen / standard | Standard higher by | LTB utilisation eigen / standard | Why |
+|---|---|---|---|---|---|---|
+| UB-44 | 7 m SS, point load at 0.35L, top flange | 120.5 / 177.4 | 107.2 / 147.1 | **+37 %** | 0.861 / 0.628 | C<sub>2</sub> unpublished (load taken at the shear centre by the closed form). **Blocked**: the standard run is NOT VERIFIED, the number is printed with the block |
+| MIX-02 | 533×210×92, 12 m Gerber beam on four supports, hinges at 2.5 and 9.5 m | 1168.6 / 783.9 | 517.8 / 559.6 | **+8.1 %** | 0.841 / 0.779 (both FAIL on the web check) | M<sub>cr</sub> is lower on the standard route (whole member), but Serna's C<sub>1</sub> on the whole-member hinged diagram is 4.60, k<sub>c</sub> is floored at 0.60 and f = 0.805 lifts χ<sub>LT,mod</sub> to 0.862 against the eigen bay chain's 0.798 (the isolated-bay chain applies no f). The f-factor is calibrated on the Table 6.6 shapes; a Serna C<sub>1</sub> from a diagram with internal hinges is an extrapolation |
+| UB-45 | UC 203×203×60, 6 m fixed-fixed, central point load on the top flange (z<sub>g</sub> = +105) | 220.6 / 189.5 | 136.6 / 144.4 | **+5.7 %** | 0.898 / 0.850 | Standard: SN003a fixed-ended row C<sub>1</sub> = 1.683, C<sub>2</sub> = 1.645, k<sub>c</sub> = 1/√1.683 = 0.77 (= the Table 6.6 value for this shape), f = 0.892. Eigen: a **fixed** support is laterally clamped (v′ = 0, `ltbRestraintsFor`, `S.fixedLateral` default) so the uniform-moment reference is 532.9 and the generalised C<sub>1</sub> = 0.874, hence k<sub>c</sub> = 1 and f = 1. Reproduced for this report with `fixedLateral: false` (fork ends, like the closed form): eigen M<sub>cr</sub> 211.6, C<sub>1</sub> 1.729, k<sub>c</sub> 0.76, M<sub>b,Rd</sub> 152.3, utilisation 0.806 - i.e. against the like-for-like fork-ended FE the standard route is **5 % conservative**; the reversal in the library comes from the eigen route forfeiting the Table 6.6 k<sub>c</sub> when its reference solve is clamped |
+| UC-12 | UC 203×203×86, 6 m fixed-fixed, central point load + 800 kN | 933.9 / 812.3 | 245.7 / 258.9 | **+5.4 %** | 0.316 / 0.300 | Same mechanism as UB-45 (eigen C<sub>1</sub> 0.894 → k<sub>c</sub> = 1; standard k<sub>c</sub> = 0.77, χ<sub>LT,mod</sub> = 1.0) |
+| PAT-04 | 406×178×54, 5 m back span + 2 m overhang | 259.4 / 245.3 (different governing patterns) | 185.3 / 193.5 | **+4.4 %** | 0.438 / 0.538 | Serna C<sub>1</sub> = 1.99 on the whole-member overhang diagram → k<sub>c</sub> 0.71, f 0.85; the eigen whole-member C<sub>1</sub> 1.31 → k<sub>c</sub> 0.87. The standard route's verdict quantity is nevertheless higher (its governing pattern carries the larger M<sub>Ed</sub>). Overhang layout: R1 |
+
+So: on M<sub>b,Rd</sub> the standard route is above the FE by more than 1 % in four cases (plus the blocked UB-44), through the k<sub>c</sub>/f modification of 6.3.2.3 rather than through M<sub>cr</sub>; two of the four (UB-45, UC-12) are an artefact of the eigen route's k<sub>c</sub> basis at clamped supports and reverse against a fork-ended FE; the other two (MIX-02, PAT-04) are layouts the closed-form C<sub>1</sub> expressions were not derived for (internal hinges, overhang), which recommendation R1 proposes to block or segment on the standard route.
+
+**(c) On the verdict**: no case in the 170 where the standard route passes a beam the eigen route fails or refuses (4.2). The closed-form route as implemented is conservative on verdicts across the library; its unconservative values are confined to (i) the unpublished-C<sub>2</sub> case, which is blocked, (ii) the 4-8 % k<sub>c</sub>/f effect on hinged and overhang layouts (R1, open), and (iii) the ≤ 3 % scatter of the C<sub>1</sub> approximations on smooth diagrams. The MasterSeries printout itself (section 3.1) applies the UDL table C<sub>1</sub> = 1.127 to a mixed UDL + point-load diagram where beam-v03's standard route takes Serna's 1.176 and the eigenvalue gives 1.190 (T01-1: M<sub>cr</sub> 128.9 / 134.5 / 136.1), conservative in that direction.
+
+Open items arising (also in section 5): R1 (overhang and hinged layouts on the closed-form route); the eigen route's k<sub>c</sub> when a fixed support is laterally clamped (k<sub>c</sub> = 1 forfeits the Table 6.6 benefit, conservative; a k<sub>c</sub> taken from a fork-ended bay solve of the same diagram, or from Table 6.6 by moment shape, would remove the 10 % gap between the eigen values 136.6 and 152.3 of UB-45); the Table B.3 M<sub>s</sub> sample of `cmTableB3` at a mid-span moment jump (N<sub>Ed</sub> ≠ 0 with a couple exactly at mid-span, no library case).
+
+---
+
+## 5. Known limitations and NOT VERIFIED cases
+
+### 5.1 NOT VERIFIED messages the tool prints, and what to do
+
+Every NOT VERIFIED verdict carries its reason in the brief (red row in the block concerned, repeated in the footer) and in the report. The 20 NOT VERIFIED runs of the library fall into these messages:
+
+| Message (start) | Library runs | What the user must do |
+|---|---|---|
+| "Hold-down required: R = −x kN at support n (combination ...)" | UB-26, UB-36, UB-37, UC-13, RHS-16, UPL-01 (both routes), UPL-05 | Design the hold-down connection and the supporting structure for the printed force (the γ<sub>G,inf</sub> = 0.9 EQU companion or the wind combination, whichever prints), then tick "hold-down provided" on that support: the message becomes an advisory carrying the design force. A support that lifts only in the Q-only SLS combination is an advisory, not a block |
+| "Destabilising loading is ticked but every load height z<sub>g</sub> is 0" (eigen route) | UB-40 | Enter the load height of the destabilising load (e.g. z<sub>g</sub> = +h/2 for a top-flange load, with the eccentricity / height inputs on) or untick the switch. The closed-form route applies the ×1.2 L<sub>E</sub> device instead (advisory) |
+| "Standard (closed-form) M<sub>cr</sub>: a destabilising load height z<sub>g</sub> = +x mm is entered, but SN003a publishes C<sub>2</sub> only for ..." | UB-44, MIX-08 (standard) | Use the eigen method (the load height is carried exactly), or tick the destabilising switch (×1.2 L<sub>E</sub>, advisory), or confirm the load acts at the shear centre and set z<sub>g</sub> = 0 |
+| "Torsional constants are computed with hot-finished (EN 10210-2) corner geometry; cold-formed ..." | SHS-07 | For a cold-formed SHS/RHS with an eccentric load, compute I<sub>T</sub> and W<sub>t</sub> for the EN 10219-2 corner radii by hand (P385 Appendix A) or select the hot-finished section |
+| "Combined torsion with direct axial force or imposed minor-axis bending is not implemented as one interaction" | TFB-04 | Check by hand: elastic stress summation with σ<sub>w</sub> and τ<sub>w</sub> (P385 section 6 / EN 1993-1-1 6.2.1(5)) and 6.3.3 with the torsion-induced M<sub>z</sub> = φM<sub>y</sub> added to the applied M<sub>z</sub> |
+| "EC3 Class 4 (slender) section (web classified for combined bending + compression ...)" | AEF-04 | Effective section by hand (EN 1993-1-5 4.4 with the ψ-dependent k<sub>σ</sub> and the e<sub>N</sub> shift), or a stockier section, or lower N<sub>Ed</sub> |
+| "Web transverse force at x = ... : s<sub>s</sub> not entered, F<sub>Ed</sub>/F<sub>Rd</sub> = ... at s<sub>s</sub> = 0" | none in the library (every library support declares 100 mm) | Enter the stiff bearing length of the seating (EN 1993-1-5 6.3(1), ≤ h<sub>w</sub>) on the support or point load; a station that passes at s<sub>s</sub> = 0 needs no entry |
+| "Warping-torsion FE mesh has not converged" | none (largest mesh error in the library 3.1×10⁻⁴) | Report the case: the mesh is doubled once from 120 subdivisions; exceeding 0.5 % indicates a layout the element cannot resolve |
+| Flange Class 4 in compression; channel web Class 4 in compression (S460); channel without tabulated e<sub>sc</sub> / I<sub>w</sub>; I<sub>T</sub> zero or undefined | none | Section outside the effective-width implementation or the P385 tables: choose a tabulated / stockier section or check by hand |
+
+A FAIL with a utilisation of 99.000 (PFC-16, MIX-10 on the standard route) is the sentinel for an unbounded check, here the EN 1993-6 Annex A amplifier 1/(1 − M<sub>y</sub>/M<sub>cr</sub>) with M<sub>y,Ed</sub> ≥ M<sub>cr</sub>: the member fails LTB before the interaction is meaningful.
+
+### 5.2 Limitations of the implemented checks (printed where they apply)
+
+- **Analysis**: linear Euler-Bernoulli bending with constant EI and ideal supports; no shear deformation, settlement or second-order effects; N<sub>Ed</sub> and M<sub>z</sub> are constant design inputs that must already include frame effects; loads are vertical only.
+- **Combinations**: automatic patterns are Q-only (no W / E patterns); the γ<sub>G,inf</sub> companions are solved for the support reactions only (uplift, hold-down, web bearing) - the moment / shear envelopes keep the entered γ<sub>G</sub>, so where a relieving permanent action could increase a span moment the reduced-G combination must be added by hand (the brief says so); EN 1990 6.10a/b alternatives are the user's combinations.
+- **LTB, eigen route**: supports are forks; a **fixed** in-plane support is additionally laterally clamped (v′ = 0) by default (`S.fixedLateral`) and warping-fixed only when `S.rootWarp` or the per-support box says so - untick `fixedLateral` if the connection does not restrain the flanges' lateral rotation; restraint height is not modelled (a declared v-restraint holds the shear centre); the back-calculated C<sub>1</sub> is used for k<sub>c</sub> only and gives k<sub>c</sub> = 1 when the reference solve is clamped (conservative, section 4.5); every pattern combination is solved (memoised).
+- **LTB, standard route**: one segment L<sub>E</sub> = L<sub>E</sub>-factor × L over the whole member with C<sub>1</sub> from the whole-member diagram (multi-span members must be entered span by span to get the bay value - advisory printed); SN003a C<sub>2</sub> only for its four rows, otherwise a destabilising z<sub>g</sub> blocks; overhang and hinged layouts are evaluated with fork ends (R1, conservative in the library but not the code's assumption); the ×1.2 L<sub>E</sub> destabilising device and C<sub>2</sub>z<sub>g</sub> can overlap (advisory); channel design basis is the P385/P362 κ chain, a lower bound independent of the moment shape.
+- **Cross-section**: Class 4 only for a web in uniform compression (A<sub>eff</sub>); the 6.2.10 a<sub>V</sub> parameter and the minor-axis web deductions are engineering interpretations of "(1 − ρ)f<sub>y</sub> on the shear area" (printed); the Class-3 I/H high-shear form is conservative; the existing 6.2.9 "Local" entry keeps MasterSeries' squared form for the uniaxial case (verdict unaffected, the 6.2.10 entry uses the plain ratio).
+- **Web transverse forces**: point loads and reactions only (distributed loads, hangers, 6.3(3), section 8, and the stiffener design 9.4 are printed as not evaluated); f<sub>yw</sub> = f<sub>yf</sub> = the flange-thickness f<sub>y</sub> (conservative); a = L without a declared stiffener (conservative); the 7.2(2) tension-flange case is screened with the 7.2 expression [verify]; W<sub>pl</sub> in η<sub>1</sub> for Class 1/2 [verify]; the RHS flange share B/2 per web and the lever-rule load share are interpretations; the blank-s<sub>s</sub> lower bound 0 applies to end and interior supports alike.
+- **Torsion**: linear elastic (no second-order growth of the eccentricity, no plastic redistribution); every support prevents twist; the LTB-side "warping φ′ fixed" and the torsion-side "warping restrained for torsion" checkboxes are separate inputs (tick both for the same detail); the T<sub>Ed</sub> line of the Torsion Design block comes from the St Venant diagram (the FE's own end torques are on the End torques row); torsion + N / M<sub>z</sub> blocks; C<sub>mz</sub> = 1.0 in Annex A.
+- **Members**: PFC χ<sub>T</sub> on curve c (Table 6.2 U-sections) [verify]; the lower of χ<sub>T</sub> and χ in both axial terms of 6.61/6.62 is a conservative extension of the doubly-symmetric Annex B forms; intermediate supports are not used to shorten L<sub>cr,y</sub> / L<sub>cr,z</sub>; restraint forces use h = overall depth (5.3.3(3) notation) and are advisory; restraint stiffness is not checked.
+- **Serviceability**: cantilever L/180 default [verify against the project NA row]; no precamber; no vibration; twist limit advisory (2°).
+- **Not designed here**: the seating itself, connections, welds, hold-downs, stiffeners, the welded plate (geometry and self-weight only), fire, fatigue, global frame stability.
+- **BS 5950 path**: untouched by the branch except uplift; web bearing / buckling advisory only; no torsion; any M<sub>z</sub> blocks.
+- **Section tables**: P363 / P385 values as transcribed; the section-data test checks consistency identities (mass/area, W<sub>el</sub>, radii), not every transcribed torsional constant; MasterSeries' library differs at the fourth figure (section 3.1).
+- **Legacy code**: `checksEC3()` at the top of `js/checks/eurocode-checks.js` and the non-SCI EC3 branch of `render()` remain unreachable and untouched.
+
+### 5.3 Open recommendations, ranked
+
+1. R1: block, or segment, overhang and internal-hinge layouts on the closed-form route (section 4.5; verdict-affecting design decision; the eigen route covers them).
+2. Shear buckling χ<sub>w</sub> (2.5) and the Class-4 stress-gradient effective section (1.9): the two remaining BLOCKING checks a rolled-section beam can hit (S460 / deep sections with high N).
+3. k<sub>c</sub> on the eigen route with clamped supports (section 4.5): conservative today.
+4. A digit-for-digit check of the clause-6 web chain against a published worked example.
+5. W / E patterns and γ<sub>G,inf</sub> in the envelopes; restraint height in the eigen model; flange holes; torsion + N / M<sub>z</sub> interaction; CF SHS torsion constants; the BS 5950 web and torsion checks.
+
+---
+
+## 6. How to run everything
+
+From the repository root (`E:/FINAL AI SOFTWARES/beam-v03`, branch `ms-brief-standard-mcr`, Node 22+; the campaign was run on v24.14.1):
+
+```text
+node --test tests/*.test.cjs            # regression suite, 113 tests, ~13 s; includes the dist parity test
+node tests/batch/run-batch.cjs          # campaign: 170 cases / 296 runs, ~50 s; rewrites tests/batch/results.json and results.md
+node tests/batch/run-batch.cjs PFC PAT  # subset: ids containing any of the substrings
+node tests/batch/hand-checks.cjs        # the 29 hand-check chains step by step; exit 1 above 1 %
+pwsh ./build-single-html.ps1            # regenerates dist/beam-design-single.html from index.html + css + js (run before the suite after any source edit)
+```
+
+- The batch exits 1 only when a run throws (`ERROR`); FAIL verdicts and cross-check mismatches are reported, not fatal. Compare `tests/batch/results.md` with the committed version after a change: the summary tables, the outlier table and the per-run rows (id, verdict, governing check, M<sub>cr</sub>, C<sub>1</sub>, λ̄<sub>LT</sub>, χ<sub>LT</sub>, M<sub>b,Rd</sub>, M<sub>c,Rd</sub>, V<sub>pl,Rd</sub>, δ/δ<sub>lim</sub>, blocking messages) should be identical apart from the timestamp and the ms column.
+- To reproduce a single case in Node without the browser: `const {app} = require('./tests/harness.cjs'); const c = app(); c.reset(overrides); c.run('analyse()')` then `checks(a)`; `overrides` is merged over `DEMO` (`js/03-state-ui.js`), the batch case objects in `tests/batch/cases.cjs` are ready-made overrides (`mcrMethod: 'eigen' | 'standard'`).
+- To see the brief for a case: `renderMasterSeriesBrief(a, checks(a), a.sec)` returns the HTML string (`tests/brief.test.cjs` shows the pattern).
+- In the browser: open `index.html` (modular) or `dist/beam-design-single.html` (the deployable single file); the `M<sub>cr</sub> method` select under *Axial & lateral-torsional buckling* switches routes; the brief prints above the collapsible "Detailed derivation".
+- Adding a case: use the builders in `tests/batch/cases.cjs` (`mk`, `UB`, `PFC`, `SS`, `CANT`, `PINS`, `UDL`, `P`, `GQ`, ...); ids must be unique; every library support carries `LIB_SS` = 100 mm unless the case sets its own `ss`.
+
+Documents to read with this report: `AUDIT.md` (every change with its numerical evidence), `docs/COVERAGE_MATRIX.md` (file:line evidence of the coverage), `docs/BRIEF_MAPPING.md` (the brief contract), `tests/batch/README.md`, `tests/batch/hand-checks.md`, `tests/batch/mcr-method-comparison.md`.
