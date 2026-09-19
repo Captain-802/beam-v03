@@ -599,8 +599,14 @@
         C1c = S.C1o;
         trusted = true;
       }
-      var kcc = 1.0;
-      if (trusted) kcc = Math.min(1 / Math.sqrt(Math.max(C1c, 1e-6)), 1.0);
+      /* k_c = 1/sqrt(C1) floored at 1/sqrt(2.76) = 0.60, the Table 6.6 lower
+         bound (psi = -1); the back-calculated eigen C1 is unbounded (19 Sep
+         2026 gap closure, item 3.5). kcFromC1() in eurocode-checks.js. */
+      var kcc = 1.0, kcRaw = 1.0, kcFloored = false;
+      if (trusted) {
+        var kcr = kcFromC1(C1c);   // eurocode-checks.js is loaded before this patch (asserted above)
+        kcc = kcr.kc; kcRaw = kcr.kcRaw; kcFloored = kcr.floored;
+      }
       var Phi0 = null, chi0 = 1, f0 = 1, chiMod0 = 1, ign0 = true;
       if (lam > 0.4) {
         Phi0 = 0.5 * (1 + curve.alphaLT * (lam - 0.4) + 0.75 * lam * lam);
@@ -610,7 +616,7 @@
         ign0 = false;
       }
       var MbRd0 = Math.min(chiMod0 * Wy * fy / gM1 / 1e6, b.McRd);
-      return { lamLT: lam, C1: C1c, c1label: c1lbl, c1Trusted: trusted, kc: kcc,
+      return { lamLT: lam, C1: C1c, c1label: c1lbl, c1Trusted: trusted, kc: kcc, kcRaw: kcRaw, kcFloored: kcFloored,
                Phi: Phi0, chi: chi0, f: f0, chiMod: chiMod0, ign: ign0,
                MbRd: MbRd0, util: MbRd0 > 0 ? MxC / MbRd0 : 99, MxC: MxC };
     }
@@ -626,7 +632,8 @@
     var sol = govEv.sol, chn = govEv.chain;
     var Mcr = sol.Mcr / 1e6;                     // kN.m
     var lamLT = chn.lamLT;
-    var C1 = chn.C1, c1label = chn.c1label, c1Trusted = chn.c1Trusted, kc = chn.kc;
+    var C1 = chn.C1, c1label = chn.c1label, c1Trusted = chn.c1Trusted, kc = chn.kc, kcRaw = chn.kcRaw, kcFloored = chn.kcFloored;
+    if (kcFloored) warn.push('C<sub>1</sub> = ' + C1.toFixed(3) + ' exceeds 2.76: k<sub>c</sub> = 1/&radic;C<sub>1</sub> = ' + kcRaw.toFixed(3) + ' is floored at 1/&radic;2.76 = ' + kc.toFixed(3) + ', the Table 6.6 lower bound (&psi; = &minus;1 end-moment case), so the f-factor is not extrapolated beyond its calibrated range.');
     if (!c1Trusted) warn.push('The reference solves used to back-calculate C<sub>1</sub> did not converge; k<sub>c</sub> = 1.0 has been used, which is the conservative value (f = 1.0, hence the lower M<sub>b,Rd</sub>). M<sub>cr</sub> itself is unaffected.');
 
     var Phi = chn.Phi, chi = chn.chi, f = chn.f, chiMod = chn.chiMod, ign = chn.ign;
@@ -645,7 +652,7 @@
 
     ltb = { eigen: true, na: false, cant: isCant, channel: sec.kind === 'channel', box: !!sec.isBox,
             Mcr: Mcr, McrRev: sol.McrRev / 1e6, McrUniform: sol.McrUniform / 1e6, McrShape: sol.McrShape / 1e6,
-            C1: C1, c1label: c1label, kc: kc, lamLT: lamLT, lamLTmcr: lamLT,
+            C1: C1, c1label: c1label, kc: kc, kcRaw: kcRaw, kcFloored: kcFloored, lamLT: lamLT, lamLTmcr: lamLT,
             curve: curve, Phi: Phi, chi: chi, f: f, chiMod: chiMod, ign: ign, ignM: ign,
             chiM: chi, chiModM: chiMod, fM: f, PhiM: Phi,           // aliases: Annex A block reads chiM
              MbRd: MbRd, MbMcr: MbRd, MbSimp: MbRd, McrBack: Mcr,    // aliases: Annex A reads Mcr / McrBack
@@ -823,7 +830,9 @@
     var memberMb = Math.min.apply(null, evals.map(function(ev){ return ev.chain.MbRd; }));
     if (spanGov) memberMb = Math.min(memberMb, spanGov.Mb);
     useB1u = sec.isBox || (memberMb >= b.McRd * 0.9999);
-    var buck = (b.ax && !b.ax.tension) ? annexB2(a, sec, fy, b.cl, memberMb, useB1u, isCant) : null;
+    var buck = (b.ax && !b.ax.tension) ? annexB2(a, sec, fy, b.cl, memberMb, useB1u, isCant, b.aeff) : null;
+    if (buck && buck.tfb && !buck.tfb.ok) unsupported.push('PFC under axial compression: ' + buck.tfb.reason + '; torsional / torsional-flexural buckling (cl 6.3.1.4) cannot be verified, PASS is blocked.');
+    var restraintF = restraintForces(a, sec);
     if (buck && buck.lczFromRestraints)
       warn.push('Minor-axis strut buckling length L<sub>cr,z</sub> = ' + (buck.LcrZ / 1000).toFixed(2) + ' m, taken as the largest spacing between adjacent lateral restraint points (SCI P360 6.2: secondary members act as bracing points; k = 1.0 between restraints). ' +
         'Ensure each restraint really is an effective bracing point - adequate stiffness, strength and anchorage. The major axis keeps L<sub>cr,y</sub> = L<sub>E</sub>&times;L = ' + (buck.LcrY / 1000).toFixed(2) + ' m.');
@@ -835,19 +844,21 @@
       { name: 'Deflection', val: b.dmax / b.dlimit }
     ];
     if (b.ax) {
-      utils.push({ name: b.ax.tension ? 'Tension  N_Ed/N_t,Rd' : 'Compression  N_Ed/N_pl,Rd', val: b.ax.nUtil });
+      utils.push({ name: b.ax.tension ? 'Tension  N_Ed/N_t,Rd' : ((b.ax.aeff && b.ax.aeff.active) ? 'Compression  N_Ed/N_c,Rd (A_eff)' : 'Compression  N_Ed/N_pl,Rd'), val: b.ax.nUtil });
       utils.push({ name: b.ax.biax ? ('Biaxial bending' + ((S.axial || 0) !== 0 ? ' + axial' : '') + ' (6.2.9.1)') : 'Bending+axial cross-section (6.2.9)', val: b.ax.mUtil });
       /* Eq 6.61/6.62 are needed with axial compression AND for biaxial bending
          on an LTB-susceptible member with N_Ed = 0: Eq 6.62 then reads
          kzy*My/Mb,Rd + kzz*Mz/Mcz,Rd, which the separate LTB and cross-section
          checks do not cover. */
       if (!b.ax.tension && buck && (buck.Fc > 1e-9 || buck.biax)) {
+        if (buck.tfb && buck.tfb.ok) utils.push({ name: TFB_UTIL_NAME, val: buck.tfb.util });
         utils.push({ name: 'Member buckling y-y (Eq 6.61)', val: buck.u1 });
         utils.push({ name: 'Member buckling z-z (Eq 6.62)', val: buck.u2 });
       }
     }
     if (annex) utils.push({ name: 'LTB+torsion (EN 1993-6 Annex A)', val: annex.u });
     if (b.coex) utils.push({ name: b.coex.pureShearFail ? 'Pure shear failure at M-V check point (6.2.6)' : 'Bending+shear coexistent (6.2.8)', val: b.coex.u });
+    if (b.mvn) utils.push({ name: mvnUtilName(b.mvn), val: b.mvn.u });
     if (b.web && b.web.checked) {
       utils.push({ name: WEB_UTIL_NAMES[0], val: b.web.util2 });
       utils.push({ name: WEB_UTIL_NAMES[1], val: b.web.util72 });
@@ -865,7 +876,7 @@
 
     return Object.assign({}, b, { sci: false, sciU: true, mcrMethod: 'eigen', unsupported: unsupported, ltb: ltb,
       ltbUtil: ltbUtil, ltbBasis: ltbBasis, C1: C1, c1label: c1label, LE: a.L,
-      utils: utils, gov: gov, pass: pass, annex: annex, buck: buck });
+      utils: utils, gov: gov, pass: pass, annex: annex, buck: buck, restraintForces: restraintF });
   };
 
   /* ================================================================
@@ -940,7 +951,7 @@
       rows += '<div>&Phi;<sub>LT</sub>; &chi;<sub>LT</sub></div><div class="formula">&lambda;&#772;<sub>LT,0</sub> = 0.4, &beta; = 0.75 (NA 2.17); &Phi; = ' + g(LT.Phi, 3) + '</div><div class="value">&chi;<sub>LT</sub> = ' + g(LT.chi, 3) + '</div><div></div>';
       rows += '<div>C<sub>1</sub> (for k<sub>c</sub> only)</div><div class="formula">' + LT.c1label + '</div><div class="value">C<sub>1</sub> = ' + g(LT.C1, 3) + '</div><div></div>';
       if (LT.cant) rows += '<div>k<sub>c</sub> / f</div><div class="formula">not applied to cantilevers (no published k<sub>c</sub>)</div><div class="value">f = 1.000</div><div></div>';
-      else rows += '<div>k<sub>c</sub> = 1/&radic;C<sub>1</sub>; f = 1&minus;0.5(1&minus;k<sub>c</sub>)[1&minus;2(&lambda;&#772;<sub>LT</sub>&minus;0.8)&sup2;] &le; 1</div><div class="formula">k<sub>c</sub> = ' + g(LT.kc, 3) + ' (NA 2.18)</div><div class="value">f = ' + g(LT.f, 3) + '</div><div></div>';
+      else rows += '<div>k<sub>c</sub> = 1/&radic;C<sub>1</sub> &ge; 1/&radic;2.76; f = 1&minus;0.5(1&minus;k<sub>c</sub>)[1&minus;2(&lambda;&#772;<sub>LT</sub>&minus;0.8)&sup2;] &le; 1</div><div class="formula">' + (LT.kcFloored ? '1/&radic;' + g(LT.C1, 3) + ' = ' + g(LT.kcRaw, 3) + ' &rarr; floored at 1/&radic;2.76 = ' + g(LT.kc, 3) + ' (Table 6.6 lower bound, &psi; = &minus;1)' : 'k<sub>c</sub> = ' + g(LT.kc, 3) + ' (NA 2.18; floor 0.60 not reached)') + '</div><div class="value">f = ' + g(LT.f, 3) + '</div><div></div>';
       rows += '<div>&chi;<sub>LT,mod</sub> = &chi;<sub>LT</sub>/f &le; min(1, 1/&lambda;&#772;&sup2;)</div><div class="formula">' + g(LT.chi, 3) + '/' + g(LT.f, 3) + '</div><div class="value">' + g(LT.chiMod, 3) + '</div><div></div>';
     }
     rows += '<div>M<sub>b,Rd</sub> = &chi;<sub>LT,mod</sub>W<sub>' + (c.cl.cls <= 2 ? 'pl' : 'el') + ',y</sub>f<sub>y</sub>/&gamma;<sub>M1</sub> &le; M<sub>c,Rd</sub></div>' +

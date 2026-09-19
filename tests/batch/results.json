@@ -1,22 +1,22 @@
 {
  "summary": {
-  "generated": "2026-09-19T06:48:18.640Z",
+  "generated": "2026-09-19T07:53:39.678Z",
   "node": "v24.14.1",
-  "cases": 114,
-  "runs": 208,
+  "cases": 118,
+  "runs": 214,
   "verdicts": {
-   "PASS": 149,
-   "FAIL": 43,
-   "NOT VERIFIED": 16
+   "PASS": 155,
+   "FAIL": 44,
+   "NOT VERIFIED": 15
   },
   "byFamily": {
    "ub": {
-    "PASS": 62,
+    "PASS": 66,
     "FAIL": 24,
     "NOT VERIFIED": 8,
     "ERROR": 0,
-    "runs": 94,
-    "cases": 51
+    "runs": 98,
+    "cases": 54
    },
    "uc": {
     "PASS": 24,
@@ -27,12 +27,12 @@
     "cases": 15
    },
    "pfc": {
-    "PASS": 23,
-    "FAIL": 9,
-    "NOT VERIFIED": 2,
+    "PASS": 25,
+    "FAIL": 10,
+    "NOT VERIFIED": 1,
     "ERROR": 0,
-    "runs": 34,
-    "cases": 19
+    "runs": 36,
+    "cases": 20
    },
    "shs": {
     "PASS": 14,
@@ -53,76 +53,96 @@
   },
   "byMethod": {
    "eigen": {
-    "PASS": 75,
-    "FAIL": 12,
+    "PASS": 78,
+    "FAIL": 11,
     "NOT VERIFIED": 7,
     "ERROR": 0,
-    "runs": 94
+    "runs": 96
    },
    "standard": {
-    "PASS": 57,
+    "PASS": 59,
     "FAIL": 29,
     "NOT VERIFIED": 8,
     "ERROR": 0,
-    "runs": 94
+    "runs": 96
    },
    "n/a (restrained)": {
-    "PASS": 17,
-    "FAIL": 2,
-    "NOT VERIFIED": 1,
+    "PASS": 18,
+    "FAIL": 4,
+    "NOT VERIFIED": 0,
     "ERROR": 0,
-    "runs": 20
+    "runs": 22
    }
   },
   "checkTotals": {
    "i-Mmax": {
-    "run": 115,
-    "ok": 115,
+    "run": 120,
+    "ok": 120,
     "fail": 0
    },
    "i-dmax": {
-    "run": 115,
-    "ok": 115,
+    "run": 120,
+    "ok": 120,
     "fail": 0
    },
    "ii-equilibrium": {
-    "run": 208,
-    "ok": 208,
+    "run": 214,
+    "ok": 214,
     "fail": 0
    },
    "vii-uplift": {
-    "run": 208,
-    "ok": 208,
+    "run": 214,
+    "ok": 214,
     "fail": 0
    },
    "viii-FRd": {
-    "run": 122,
-    "ok": 122,
+    "run": 126,
+    "ok": 126,
     "fail": 0
    },
    "vi-governing": {
-    "run": 208,
-    "ok": 208,
+    "run": 214,
+    "ok": 214,
     "fail": 0
    },
    "iii-McrStd": {
-    "run": 158,
-    "ok": 158,
+    "run": 160,
+    "ok": 160,
+    "fail": 0
+   },
+   "xi-kcFloor": {
+    "run": 75,
+    "ok": 75,
     "fail": 0
    },
    "iv-McrRatio": {
-    "run": 94,
-    "ok": 86,
+    "run": 96,
+    "ok": 88,
     "fail": 8
    },
    "v-MbRd<=McRd": {
-    "run": 188,
-    "ok": 188,
+    "run": 192,
+    "ok": 192,
     "fail": 0
    },
    "iii-zgBlock": {
-    "run": 76,
-    "ok": 76,
+    "run": 77,
+    "ok": 77,
+    "fail": 0
+   },
+   "ix-Aeff": {
+    "run": 4,
+    "ok": 4,
+    "fail": 0
+   },
+   "xii-MVN": {
+    "run": 1,
+    "ok": 1,
+    "fail": 0
+   },
+   "x-NbT": {
+    "run": 3,
+    "ok": 3,
     "fail": 0
    }
   },
@@ -338,7 +358,7 @@
     "extra": []
    }
   ],
-  "totalMs": 241275
+  "totalMs": 159122
  },
  "runs": [
   {
@@ -360,7 +380,7 @@
    "tags": [
     "demo"
    ],
-   "ms": 146.2811,
+   "ms": 146.4658,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -497,7 +517,7 @@
     "demo",
     "heavy"
    ],
-   "ms": 1337.2392,
+   "ms": 1378.2985,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -607,6 +627,12 @@
      "detail": "station x = 8.00 m (support 2, type (c), s_s 191.3 mm): independent F_Rd 622.8 vs engine 622.8 kN; F_Ed 229.5 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.369 = max station ratio 0.369"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.131: k_c 0.9403 vs engine 0.9403"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -671,7 +697,7 @@
     "demo",
     "heavy"
    ],
-   "ms": 160.5959,
+   "ms": 126.3521,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -842,7 +868,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1326.5837,
+   "ms": 1263.8936,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -952,6 +978,12 @@
      "detail": "station x = 0.00 m (support 1, type (c), s_s 165.0 mm): independent F_Rd 275.4 vs engine 275.4 kN; F_Ed 48.9 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.177 = max station ratio 0.177"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.131: k_c 0.9402 vs engine 0.9402"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -1013,7 +1045,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 186.0217,
+   "ms": 111.9804,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -1187,7 +1219,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 1520.9741,
+   "ms": 1504.1506,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -1297,6 +1329,12 @@
      "detail": "station x = 0.00 m (support 1, type (c), s_s 165.0 mm): independent F_Rd 275.4 vs engine 275.4 kN; F_Ed 48.9 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.177 = max station ratio 0.177"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.131: k_c 0.9402 vs engine 0.9402"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -1361,7 +1399,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 146.7406,
+   "ms": 133.1193,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -1535,7 +1573,7 @@
    "tags": [
     "zg-bottom"
    ],
-   "ms": 1464.834,
+   "ms": 1399.8986,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -1645,6 +1683,12 @@
      "detail": "station x = 0.00 m (support 1, type (c), s_s 165.0 mm): independent F_Rd 275.4 vs engine 275.4 kN; F_Ed 61.9 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.225 = max station ratio 0.225"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.131: k_c 0.9402 vs engine 0.9402"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -1709,7 +1753,7 @@
    "tags": [
     "zg-bottom"
    ],
-   "ms": 131.1677,
+   "ms": 103.5147,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -1882,7 +1926,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 2968.2111,
+   "ms": 2878.4522,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -1980,6 +2024,12 @@
      "detail": "station x = 3.50 m (point load 1+2, type (a), s_s 0.0 mm): independent F_Rd 352.0 vs engine 352.0 kN; F_Ed 117.0 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.332 = max station ratio 0.332"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.837: k_c 0.7379 vs engine 0.7379"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -2044,7 +2094,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 129.3043,
+   "ms": 146.0221,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -2206,7 +2256,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1443.0004,
+   "ms": 1549.5628,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -2304,6 +2354,12 @@
      "detail": "station x = 3.50 m (point load 1+2, type (a), s_s 0.0 mm): independent F_Rd 352.0 vs engine 352.0 kN; F_Ed 64.2 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.182 = max station ratio 0.182"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.352: k_c 0.8599 vs engine 0.8599"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -2366,7 +2422,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 153.5842,
+   "ms": 94.5417,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -2527,7 +2583,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 3276.0923,
+   "ms": 3029.9069,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -2625,6 +2681,12 @@
      "detail": "station x = 10.00 m (support 2, type (c), s_s 209.3 mm): independent F_Rd 612.9 vs engine 612.9 kN; F_Ed 141.8 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.231 = max station ratio 0.231"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.004: k_c 0.9982 vs engine 0.9982"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -2689,7 +2751,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 124.637,
+   "ms": 122.0798,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -2850,7 +2912,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1315.8789,
+   "ms": 1501.7816,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -2948,6 +3010,12 @@
      "detail": "station x = 0.00 m (support 1, type (c), s_s 146.1 mm): independent F_Rd 287.3 vs engine 287.3 kN; F_Ed 35.9 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.125 = max station ratio 0.125"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.149: k_c 0.9330 vs engine 0.9330"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -3009,7 +3077,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 111.6396,
+   "ms": 78.4105,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -3168,7 +3236,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1313.8575,
+   "ms": 1334.3112,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -3266,6 +3334,12 @@
      "detail": "station x = 7.00 m (support 2, type (c), s_s 171.1 mm): independent F_Rd 337.6 vs engine 337.6 kN; F_Ed 54.8 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.162 = max station ratio 0.162"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.141: k_c 0.9362 vs engine 0.9362"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -3327,7 +3401,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 96.3244,
+   "ms": 87.683,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -3482,7 +3556,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 100.2044,
+   "ms": 77.0905,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -3604,7 +3678,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1333.5893,
+   "ms": 1277.956,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -3702,6 +3776,12 @@
      "detail": "station x = 6.00 m (support 2, type (c), s_s 152.4 mm): independent F_Rd 310.5 vs engine 310.5 kN; F_Ed 75.3 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.242 = max station ratio 0.242"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.134: k_c 0.9390 vs engine 0.9390"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -3763,7 +3843,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 126.5281,
+   "ms": 102.6594,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -3923,7 +4003,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 3102.6741,
+   "ms": 3021.6697,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -4033,6 +4113,12 @@
      "detail": "station x = 0.00 m (support 1, type (c), s_s 229.0 mm): independent F_Rd 817.9 vs engine 817.9 kN; F_Ed 216.9 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.265 = max station ratio 0.265"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.015: k_c 0.9928 vs engine 0.9928"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -4096,7 +4182,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 91.8196,
+   "ms": 93.732,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -4270,7 +4356,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 5540.1796,
+   "ms": 5376.8035,
    "nCombos": 3,
    "patterns": {
     "active": true,
@@ -4382,6 +4468,12 @@
      "detail": "station x = 6.00 m (support 2, type (a), s_s 253.7 mm): independent F_Rd 1222.3 vs engine 1222.3 kN; F_Ed 1144.5 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.936 = max station ratio 0.936"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 2.261: k_c 0.6651 vs engine 0.6651"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -4444,7 +4536,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 368.995,
+   "ms": 361.117,
    "nCombos": 3,
    "patterns": {
     "active": true,
@@ -4622,7 +4714,7 @@
    "tags": [
     "1.2"
    ],
-   "ms": 6804.558,
+   "ms": 6504.1906,
    "nCombos": 3,
    "patterns": {
     "active": true,
@@ -4734,6 +4826,12 @@
      "detail": "station x = 5.00 m (support 2, type (a), s_s 265.2 mm): independent F_Rd 1252.1 vs engine 1252.1 kN; F_Ed 820.7 kN (ULS: 1.35G + 1.5Q (Eq 6.10) (Q on span 1 only)); util 0.655 = max station ratio 0.655"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.190: k_c 0.9166 vs engine 0.9166"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -4799,7 +4897,7 @@
    "tags": [
     "1.2"
    ],
-   "ms": 391.2137,
+   "ms": 313.5225,
    "nCombos": 3,
    "patterns": {
     "active": true,
@@ -4969,7 +5067,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 109.7399,
+   "ms": 82.2139,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -5105,7 +5203,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 12669.8265,
+   "ms": 11943.1795,
    "nCombos": 3,
    "patterns": {
     "active": true,
@@ -5218,6 +5316,12 @@
      "detail": "station x = 9.00 m (support 2, type (a), s_s 300.0 mm): independent F_Rd 2100.3 vs engine 2100.3 kN; F_Ed 2301.8 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 1.096 = max station ratio 1.096"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.421: k_c 0.8390 vs engine 0.8390"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -5282,7 +5386,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 317.4069,
+   "ms": 265.5041,
    "nCombos": 3,
    "patterns": {
     "active": true,
@@ -5460,7 +5564,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1446.7897,
+   "ms": 1375.0728,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -5511,7 +5615,9 @@
    "advisory": [
     "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4."
    ],
-   "warn": [],
+   "warn": [
+    "C1 = 4.023 exceeds 2.76: kc = 1/sqrtC1 = 0.499 is floored at 1/sqrt2.76 = 0.602, the Table 6.6 lower bound (psi = -1 end-moment case), so the f-factor is not extrapolated beyond its calibrated range."
+   ],
    "mcrMethodReported": "eigen",
    "Mcr": 92.29730886120385,
    "McrStd": 90.4468657298356,
@@ -5633,7 +5739,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 129.2596,
+   "ms": 75.8654,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -5800,7 +5906,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1376.733,
+   "ms": 1290.4772,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -5851,7 +5957,9 @@
    "advisory": [
     "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4."
    ],
-   "warn": [],
+   "warn": [
+    "C1 = 3.475 exceeds 2.76: kc = 1/sqrtC1 = 0.536 is floored at 1/sqrt2.76 = 0.602, the Table 6.6 lower bound (psi = -1 end-moment case), so the f-factor is not extrapolated beyond its calibrated range."
+   ],
    "mcrMethodReported": "eigen",
    "Mcr": 79.2025473442936,
    "McrStd": 78.65265821349061,
@@ -5973,7 +6081,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 145.0509,
+   "ms": 82.8368,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -6139,7 +6247,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1434.3931,
+   "ms": 1438.7601,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -6237,6 +6345,12 @@
      "detail": "station x = 0.00 m (support 1, type (c), s_s 123.4 mm): independent F_Rd 314.2 vs engine 314.2 kN; F_Ed 71.6 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.228 = max station ratio 0.228"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.615: k_c 0.7868 vs engine 0.7868"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -6299,7 +6413,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 103.224,
+   "ms": 80.5633,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -6459,7 +6573,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1343.7539,
+   "ms": 1368.326,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -6557,6 +6671,12 @@
      "detail": "station x = 8.00 m (support 2, type (c), s_s 141.8 mm): independent F_Rd 225.2 vs engine 225.2 kN; F_Ed 65.1 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.289 = max station ratio 0.289"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.360: k_c 0.8574 vs engine 0.8574"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -6619,7 +6739,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 88.5289,
+   "ms": 85.8804,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -6780,7 +6900,7 @@
    "tags": [
     "heavy"
    ],
-   "ms": 1318.8047,
+   "ms": 1289.9832,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -6890,6 +7010,12 @@
      "detail": "station x = 0.00 m (support 1, type (c), s_s 177.9 mm): independent F_Rd 491.0 vs engine 491.0 kN; F_Ed 107.5 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.219 = max station ratio 0.219"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.131: k_c 0.9402 vs engine 0.9402"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -6953,7 +7079,7 @@
    "tags": [
     "heavy"
    ],
-   "ms": 87.9741,
+   "ms": 80.0172,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -7126,7 +7252,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 3341.6723,
+   "ms": 3172.8792,
    "nCombos": 3,
    "patterns": {
     "active": true,
@@ -7232,6 +7358,12 @@
      "detail": "station x = 7.00 m (support 2, type (a), s_s 189.9 mm): independent F_Rd 605.9 vs engine 605.9 kN; F_Ed 277.3 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.458 = max station ratio 0.458"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.181: k_c 0.9203 vs engine 0.9203"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": false,
      "kind": "flag",
@@ -7295,7 +7427,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 399.1751,
+   "ms": 333.3465,
    "nCombos": 3,
    "patterns": {
     "active": true,
@@ -7465,7 +7597,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 13936.7062,
+   "ms": 12860.772,
    "nCombos": 7,
    "patterns": {
     "active": true,
@@ -7589,6 +7721,12 @@
      "detail": "station x = 8.00 m (support 3, type (a), s_s 165.1 mm): independent F_Rd 592.9 vs engine 592.9 kN; F_Ed 561.2 kN (ULS: 1.35G + 1.5Q (Eq 6.10) (Q on spans 2+3 only)); util 0.946 = max station ratio 0.946"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.165: k_c 0.9266 vs engine 0.9266"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -7653,7 +7791,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 705.264,
+   "ms": 586.9386,
    "nCombos": 7,
    "patterns": {
     "active": true,
@@ -7686,7 +7824,7 @@
    "verdict": "FAIL",
    "gov": {
     "name": "LTB  M_Ed/M_b,Rd",
-    "val": 1.2322058877400852
+    "val": 1.2922890522224857
    },
    "utils": [
     {
@@ -7699,7 +7837,7 @@
     },
     {
      "name": "LTB  M_Ed/M_b,Rd",
-     "val": 1.2322058877400852
+     "val": 1.2922890522224857
     },
     {
      "name": "Deflection",
@@ -7738,8 +7876,8 @@
    "McrRatio": null,
    "C1": 4.419923529577469,
    "lamLT": 1.222930697561933,
-   "chiLT": 0.5348683651676124,
-   "MbRd": 229.4585286569057,
+   "chiLT": 0.5100004117437792,
+   "MbRd": 218.79017663808128,
    "c1route": "serna",
    "ltbBasis": "Mcr method (SN003a closed form, k = kw = 1, G = 81000 N/mm&sup2;): lambdaLT = sqrt(Wyfy/Mcr) = 1.223, chiLT,mod from cl 6.3.2.3 curve d with kc = 1/sqrtC1 (NA 2.18); Mb,Rd = chiLT,modWyfy/M1 <= Mc,Rd. The P362 Expn 6.55 simplified slenderness (lambdaLT = 1.849, Mb,Rd = 106.5 kN.m) is printed for comparison only",
    "c1in": {
@@ -7788,13 +7926,13 @@
      "id": "v-MbRd<=McRd",
      "ok": true,
      "kind": "check",
-     "detail": "Mb,Rd 229.46 <= Mc,Rd 429.00 kN.m"
+     "detail": "Mb,Rd 218.79 <= Mc,Rd 429.00 kN.m"
     },
     {
      "id": "vi-governing",
      "ok": true,
      "kind": "check",
-     "detail": "gov LTB  M_Ed/M_b,Rd = 1.2322, max(utils) = 1.2322"
+     "detail": "gov LTB  M_Ed/M_b,Rd = 1.2923, max(utils) = 1.2923"
     }
    ],
    "checkFailures": [],
@@ -7839,7 +7977,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1382.5017,
+   "ms": 1337.0855,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -7937,6 +8075,12 @@
      "detail": "station x = 6.00 m (support 2, type (c), s_s 125.4 mm): independent F_Rd 200.8 vs engine 200.8 kN; F_Ed 1.3 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.007 = max station ratio 0.007"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.050: k_c 0.9759 vs engine 0.9759"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -7998,7 +8142,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 85.1208,
+   "ms": 98.8211,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -8157,7 +8301,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1337.4521,
+   "ms": 1362.943,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -8263,6 +8407,12 @@
      "detail": "station x = 0.00 m (support 1, type (c), s_s 125.4 mm): independent F_Rd 200.8 vs engine 200.8 kN; F_Ed 11.3 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.056 = max station ratio 0.056"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.926: k_c 0.7206 vs engine 0.7206"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -8324,7 +8474,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 87.2223,
+   "ms": 93.7651,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -8492,7 +8642,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1370.824,
+   "ms": 1353.6057,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -8590,6 +8740,12 @@
      "detail": "station x = 0.00 m (support 1, type (c), s_s 191.3 mm): independent F_Rd 622.8 vs engine 622.8 kN; F_Ed 106.5 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.171 = max station ratio 0.171"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.392: k_c 0.8476 vs engine 0.8476"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": false,
      "kind": "flag",
@@ -8652,7 +8808,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 83.0165,
+   "ms": 69.7816,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -8814,7 +8970,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1298.524,
+   "ms": 1406.3757,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -8940,6 +9096,12 @@
      "detail": "station x = 0.00 m (support 1, type (c), s_s 179.5 mm): independent F_Rd 599.1 vs engine 599.1 kN; F_Ed 63.2 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.106 = max station ratio 0.106"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.131: k_c 0.9402 vs engine 0.9402"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -9007,7 +9169,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 98.9514,
+   "ms": 89.8974,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -9195,7 +9357,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 99.2857,
+   "ms": 72.2731,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -9337,7 +9499,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 84.5085,
+   "ms": 77.3934,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -9349,7 +9511,7 @@
    "verdict": "PASS",
    "gov": {
     "name": "Biaxial bending (6.2.9.1)",
-    "val": 0.9759546156005757
+    "val": 0.5096781081485684
    },
    "utils": [
     {
@@ -9358,7 +9520,7 @@
     },
     {
      "name": "Bending  M_Ed/M_c,Rd",
-     "val": 0.5013883987831355
+     "val": 0.4478049057834111
     },
     {
      "name": "Deflection",
@@ -9370,7 +9532,7 @@
     },
     {
      "name": "Biaxial bending (6.2.9.1)",
-     "val": 0.9759546156005757
+     "val": 0.5096781081485684
     },
     {
      "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
@@ -9378,19 +9540,18 @@
     },
     {
      "name": "Web transverse force + bending (EN 1993-1-5 7.2)",
-     "val": 0.09624774377936456
+     "val": 0.09624774323215626
     }
    ],
-   "cls": "Class 3",
+   "cls": "Class 1",
    "Mmax": 48.396515192542154,
    "Vmax": 38.71721232701686,
    "dmax": -5.272446248174628,
-   "McRd": 96.525,
+   "McRd": 108.075,
    "VplRd": 260.2897086101051,
    "deflRatio": 0.3796161298685732,
    "unsupported": [],
    "advisory": [
-    "For biaxial bending, each web is conservatively classified using the uniform-compression limits in Table 5.2; no favourable biaxial stress distribution is assumed.",
     "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4."
    ],
    "warn": [],
@@ -9439,7 +9600,7 @@
      "id": "vi-governing",
      "ok": true,
      "kind": "check",
-     "detail": "gov Biaxial bending (6.2.9.1) = 0.9760, max(utils) = 0.9760"
+     "detail": "gov Biaxial bending (6.2.9.1) = 0.5097, max(utils) = 0.5097"
     }
    ],
    "checkFailures": [],
@@ -9485,7 +9646,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 1596.5425,
+   "ms": 1325.0286,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -9494,10 +9655,10 @@
    },
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
-   "verdict": "FAIL",
+   "verdict": "PASS",
    "gov": {
     "name": "Member buckling z-z (Eq 6.62)",
-    "val": 1.0750578279801926
+    "val": 0.8823868818707841
    },
    "utils": [
     {
@@ -9506,11 +9667,11 @@
     },
     {
      "name": "Bending  M_Ed/M_c,Rd",
-     "val": 0.38483828327727126
+     "val": 0.3437105278125247
     },
     {
      "name": "LTB  M_Ed/M_b,Rd",
-     "val": 0.6004916111627523
+     "val": 0.5732380073659054
     },
     {
      "name": "Deflection",
@@ -9522,15 +9683,15 @@
     },
     {
      "name": "Biaxial bending (6.2.9.1)",
-     "val": 0.8594045000947115
+     "val": 0.4272858014340431
     },
     {
      "name": "Member buckling y-y (Eq 6.61)",
-     "val": 1.045033247422055
+     "val": 0.7300654317005373
     },
     {
      "name": "Member buckling z-z (Eq 6.62)",
-     "val": 1.0750578279801926
+     "val": 0.8823868818707841
     },
     {
      "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
@@ -9538,19 +9699,18 @@
     },
     {
      "name": "Web transverse force + bending (EN 1993-1-5 7.2)",
-     "val": 0.07387449843929597
+     "val": 0.07387449801962996
     }
    ],
-   "cls": "Class 3",
+   "cls": "Class 1",
    "Mmax": 37.14651529333861,
    "Vmax": 29.717212367335446,
    "dmax": -3.954334686130967,
-   "McRd": 96.525,
+   "McRd": 108.075,
    "VplRd": 260.2897086101051,
    "deflRatio": 0.2847120974014296,
    "unsupported": [],
    "advisory": [
-    "For biaxial bending, each web is conservatively classified using the uniform-compression limits in Table 5.2; no favourable biaxial stress distribution is assumed.",
     "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4."
    ],
    "warn": [],
@@ -9559,9 +9719,9 @@
    "McrStd": 76.47410352066285,
    "McrRatio": 1.003769564902838,
    "C1": 1.1312482996171465,
-   "lamLT": 1.1213616417026964,
-   "chiLT": 0.6408720390482988,
-   "MbRd": 61.86017356913705,
+   "lamLT": 1.1865564736512935,
+   "chiLT": 0.5995947990118699,
+   "MbRd": 64.80120790320782,
    "c1route": "uniform",
    "ltbBasis": "elastic critical moment from the finite-element eigenvalue solution (4 DOF/node: v, v', , '; zg and zj included; 64 elements, Richardson-extrapolated)",
    "c1in": {
@@ -9612,6 +9772,12 @@
      "detail": "station x = 0.00 m (support 1, type (c), s_s 146.1 mm): independent F_Rd 287.3 vs engine 287.3 kN; F_Ed 29.7 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.103 = max station ratio 0.103"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.131: k_c 0.9402 vs engine 0.9402"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -9621,13 +9787,13 @@
      "id": "v-MbRd<=McRd",
      "ok": true,
      "kind": "check",
-     "detail": "Mb,Rd 61.86 <= Mc,Rd 96.53 kN.m"
+     "detail": "Mb,Rd 64.80 <= Mc,Rd 108.08 kN.m"
     },
     {
      "id": "vi-governing",
      "ok": true,
      "kind": "check",
-     "detail": "gov Member buckling z-z (Eq 6.62) = 1.0751, max(utils) = 1.0751"
+     "detail": "gov Member buckling z-z (Eq 6.62) = 0.8824, max(utils) = 0.8824"
     }
    ],
    "checkFailures": [],
@@ -9679,7 +9845,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 79.7354,
+   "ms": 76.7844,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -9688,10 +9854,10 @@
    },
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
-   "verdict": "FAIL",
+   "verdict": "PASS",
    "gov": {
     "name": "Member buckling z-z (Eq 6.62)",
-    "val": 1.0767608322070545
+    "val": 0.8840826257709111
    },
    "utils": [
     {
@@ -9700,11 +9866,11 @@
     },
     {
      "name": "Bending  M_Ed/M_c,Rd",
-     "val": 0.38483828327727126
+     "val": 0.3437105278125247
     },
     {
      "name": "LTB  M_Ed/M_b,Rd",
-     "val": 0.6021946153896144
+     "val": 0.5749337512660323
     },
     {
      "name": "Deflection",
@@ -9716,15 +9882,15 @@
     },
     {
      "name": "Biaxial bending (6.2.9.1)",
-     "val": 0.8594045000947115
+     "val": 0.4272858014340431
     },
     {
      "name": "Member buckling y-y (Eq 6.61)",
-     "val": 1.046651101437574
+     "val": 0.7316763884056579
     },
     {
      "name": "Member buckling z-z (Eq 6.62)",
-     "val": 1.0767608322070545
+     "val": 0.8840826257709111
     },
     {
      "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
@@ -9732,19 +9898,18 @@
     },
     {
      "name": "Web transverse force + bending (EN 1993-1-5 7.2)",
-     "val": 0.07387449843929597
+     "val": 0.07387449801962996
     }
    ],
-   "cls": "Class 3",
+   "cls": "Class 1",
    "Mmax": 37.14651529333861,
    "Vmax": 29.717212367335446,
    "dmax": -3.954334686130967,
-   "McRd": 96.525,
+   "McRd": 108.075,
    "VplRd": 260.2897086101051,
    "deflRatio": 0.2847120974014296,
    "unsupported": [],
    "advisory": [
-    "For biaxial bending, each web is conservatively classified using the uniform-compression limits in Table 5.2; no favourable biaxial stress distribution is assumed.",
     "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4."
    ],
    "warn": [],
@@ -9753,11 +9918,11 @@
    "McrStd": 76.47410352066285,
    "McrRatio": null,
    "C1": 1.127,
-   "lamLT": 1.123473176426606,
-   "chiLT": 0.6390596552051274,
-   "MbRd": 61.685233218674924,
+   "lamLT": 1.1887907708689067,
+   "chiLT": 0.5978263183465178,
+   "MbRd": 64.61007935529992,
    "c1route": "uniform",
-   "ltbBasis": "Mcr method (SN003a closed form, k = kw = 1, G = 81000 N/mm&sup2;): lambdaLT = sqrt(Wyfy/Mcr) = 1.123, chiLT,mod from cl 6.3.2.3 curve b with kc = 1/sqrtC1 (NA 2.18); Mb,Rd = chiLT,modWyfy/M1 <= Mc,Rd. The P362 Expn 6.55 simplified slenderness (lambdaLT = 1.373, Mb,Rd = 47.4 kN.m) is printed for comparison only",
+   "ltbBasis": "Mcr method (SN003a closed form, k = kw = 1, G = 81000 N/mm&sup2;): lambdaLT = sqrt(Wyfy/Mcr) = 1.189, chiLT,mod from cl 6.3.2.3 curve b with kc = 1/sqrtC1 (NA 2.18); Mb,Rd = chiLT,modWyfy/M1 <= Mc,Rd. The P362 Expn 6.55 simplified slenderness (lambdaLT = 1.453, Mb,Rd = 48.6 kN.m) is printed for comparison only",
    "c1in": {
     "M1": 0,
     "M2": 0,
@@ -9816,13 +9981,13 @@
      "id": "v-MbRd<=McRd",
      "ok": true,
      "kind": "check",
-     "detail": "Mb,Rd 61.69 <= Mc,Rd 96.53 kN.m"
+     "detail": "Mb,Rd 64.61 <= Mc,Rd 108.08 kN.m"
     },
     {
      "id": "vi-governing",
      "ok": true,
      "kind": "check",
-     "detail": "gov Member buckling z-z (Eq 6.62) = 1.0768, max(utils) = 1.0768"
+     "detail": "gov Member buckling z-z (Eq 6.62) = 0.8841, max(utils) = 0.8841"
     }
    ],
    "checkFailures": [],
@@ -9878,7 +10043,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 1342.488,
+   "ms": 1327.0492,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -10001,6 +10166,12 @@
      "detail": "station x = 8.00 m (support 2, type (c), s_s 191.3 mm): independent F_Rd 622.8 vs engine 622.8 kN; F_Ed 55.9 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.090 = max station ratio 0.090"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.131: k_c 0.9403 vs engine 0.9403"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -10076,7 +10247,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 157.5446,
+   "ms": 135.4883,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -10269,7 +10440,7 @@
    "tags": [
     "ecc-small"
    ],
-   "ms": 151.1884,
+   "ms": 151.714,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -10418,7 +10589,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1422.3164,
+   "ms": 1297.1996,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -10516,6 +10687,12 @@
      "detail": "station x = 0.30 m (point load 1, type (a), s_s 0.0 mm): independent F_Rd 147.5 vs engine 147.5 kN; F_Ed 96.0 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.651 = max station ratio 0.651"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.004: k_c 0.9981 vs engine 0.9981"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -10578,7 +10755,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 79.6915,
+   "ms": 68.7655,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -10736,7 +10913,7 @@
    "tags": [
     "2.10"
    ],
-   "ms": 86.8451,
+   "ms": 92.9084,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -10874,7 +11051,7 @@
    "tags": [
     "uplift"
    ],
-   "ms": 3336.3376,
+   "ms": 3131.1193,
    "nCombos": 3,
    "patterns": {
     "active": false,
@@ -10998,6 +11175,12 @@
      "detail": "station x = 4.00 m (support 2, type (c), s_s 101.2 mm): independent F_Rd 187.8 vs engine 187.8 kN; F_Ed 23.8 kN (ULS: 1.35G + 1.5Q); util 0.126 = max station ratio 0.126"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.131: k_c 0.9404 vs engine 0.9404"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -11061,7 +11244,7 @@
    "tags": [
     "uplift"
    ],
-   "ms": 346.2247,
+   "ms": 277.715,
    "nCombos": 3,
    "patterns": {
     "active": false,
@@ -11248,7 +11431,7 @@
    "tags": [
     "uplift"
    ],
-   "ms": 2357.2507,
+   "ms": 2410.7605,
    "nCombos": 2,
    "patterns": {
     "active": false,
@@ -11372,6 +11555,12 @@
      "detail": "station x = 3.50 m (support 2, type (c), s_s 88.7 mm): independent F_Rd 152.1 vs engine 152.1 kN; F_Ed 20.7 kN (ULS: 1.35G + 1.5Q); util 0.136 = max station ratio 0.136"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.130: k_c 0.9405 vs engine 0.9405"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -11435,7 +11624,7 @@
    "tags": [
     "uplift"
    ],
-   "ms": 193.9221,
+   "ms": 196.6952,
    "nCombos": 2,
    "patterns": {
     "active": false,
@@ -11617,7 +11806,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 123.0383,
+   "ms": 97.8095,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -11755,7 +11944,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 4210.9005,
+   "ms": 4013.0278,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -11865,6 +12054,12 @@
      "detail": "station x = 14.00 m (support 2, type (c), s_s 291.7 mm): independent F_Rd 1047.3 vs engine 1047.3 kN; F_Ed 467.8 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.447 = max station ratio 0.447"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.074: k_c 0.9648 vs engine 0.9648"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -11931,7 +12126,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 88.3406,
+   "ms": 71.0087,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -12104,7 +12299,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1305.6028,
+   "ms": 1286.0603,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -12216,6 +12411,12 @@
      "detail": "station x = 0.00 m (support 1, type (c), s_s 209.3 mm): independent F_Rd 612.9 vs engine 612.9 kN; F_Ed 119.5 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.195 = max station ratio 0.195"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.131: k_c 0.9402 vs engine 0.9402"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": false,
      "kind": "flag",
@@ -12277,7 +12478,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 97.2918,
+   "ms": 88.8725,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -12452,7 +12653,7 @@
    "tags": [
     "1.2"
    ],
-   "ms": 2638.5146,
+   "ms": 2410.3561,
    "nCombos": 1,
    "patterns": {
     "active": true,
@@ -12558,6 +12759,12 @@
      "detail": "station x = 5.00 m (support 2, type (a), s_s 229.0 mm): independent F_Rd 1152.3 vs engine 1152.3 kN; F_Ed 811.9 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.705 = max station ratio 0.705"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.210: k_c 0.9091 vs engine 0.9091"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -12623,7 +12830,7 @@
    "tags": [
     "1.2"
    ],
-   "ms": 82.6137,
+   "ms": 94.9928,
    "nCombos": 1,
    "patterns": {
     "active": true,
@@ -12791,7 +12998,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1358.2398,
+   "ms": 1294.5356,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -12901,6 +13108,12 @@
      "detail": "station x = 8.00 m (support 2, type (c), s_s 171.1 mm): independent F_Rd 383.6 vs engine 383.6 kN; F_Ed 35.1 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.091 = max station ratio 0.091"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.131: k_c 0.9403 vs engine 0.9403"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -12962,7 +13175,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 72.5888,
+   "ms": 67.2835,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -13137,7 +13350,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 1504.1484,
+   "ms": 1385.382,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -13235,6 +13448,12 @@
      "detail": "station x = 8.00 m (support 2, type (c), s_s 141.8 mm): independent F_Rd 225.2 vs engine 225.2 kN; F_Ed 32.4 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.144 = max station ratio 0.144"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.360: k_c 0.8574 vs engine 0.8574"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -13300,7 +13519,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 103.1031,
+   "ms": 91.8856,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -13463,7 +13682,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 1411.0395,
+   "ms": 1306.3342,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -13561,6 +13780,12 @@
      "detail": "station x = 2.45 m (point load 1+2, type (a), s_s 0.0 mm): independent F_Rd 352.0 vs engine 352.0 kN; F_Ed 55.5 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.158 = max station ratio 0.158"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.382: k_c 0.8508 vs engine 0.8508"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": false,
      "kind": "flag",
@@ -13626,7 +13851,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 75.3437,
+   "ms": 87.4873,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -13791,7 +14016,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 1482.1555,
+   "ms": 1439.5244,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -13889,6 +14114,12 @@
      "detail": "station x = 3.00 m (point load 1+2, type (a), s_s 0.0 mm): independent F_Rd 416.9 vs engine 416.9 kN; F_Ed 160.5 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.385 = max station ratio 0.385"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 0.874: k_c 1.0000 vs engine 1.0000"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -13954,7 +14185,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 90.4263,
+   "ms": 66.9968,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -14093,6 +14324,739 @@
    }
   },
   {
+   "id": "UB-46",
+   "title": "UB 1016x305x249, 12 m SS, full UDL + axial compression 3000 kN, fully restrained (web Class 4 in uniform compression: A_eff, G3 item 6)",
+   "section": "UB 1016x305x249",
+   "family": "ub",
+   "restraint": "full",
+   "method": "n/a (restrained)",
+   "expect": [
+    "1.3",
+    "1.9",
+    "2.1",
+    "2.3",
+    "2.11",
+    "2.16",
+    "3.1",
+    "3.9",
+    "3.12",
+    "3.19"
+   ],
+   "tags": [
+    "aeff"
+   ],
+   "ms": 84.2454,
+   "nCombos": 1,
+   "patterns": {
+    "active": false,
+    "nUls": 0,
+    "nSls": 0
+   },
+   "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
+   "uplift": [],
+   "verdict": "FAIL",
+   "gov": {
+    "name": "Member buckling z-z (Eq 6.62)",
+    "val": 2.428918213374769
+   },
+   "utils": [
+    {
+     "name": "Shear  V_Ed/V_c,Rd",
+     "val": 0.12918574404436256
+    },
+    {
+     "name": "Bending  M_Ed/M_c,Rd",
+     "val": 0.4121718138151964
+    },
+    {
+     "name": "Deflection",
+     "val": 0.15877635886061803
+    },
+    {
+     "name": "Compression  N_Ed/N_c,Rd (A_eff)",
+     "val": 0.39468008353689216
+    },
+    {
+     "name": "Bending+axial cross-section (6.2.9)",
+     "val": 0.769293413719964
+    },
+    {
+     "name": "Member buckling y-y (Eq 6.61)",
+     "val": 0.8300193566866647
+    },
+    {
+     "name": "Member buckling z-z (Eq 6.62)",
+     "val": 2.428918213374769
+    },
+    {
+     "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
+     "val": 0.2622523546168012
+    },
+    {
+     "name": "Web transverse force + bending (EN 1993-1-5 7.2)",
+     "val": 0.3913925965020039
+    }
+   ],
+   "cls": "Class 3",
+   "Mmax": 1072.5947110912857,
+   "Vmax": 357.53157018188097,
+   "dmax": -5.292545295353935,
+   "McRd": 2602.3,
+   "VplRd": 2767.5775901333523,
+   "deflRatio": 0.15877635886061803,
+   "unsupported": [],
+   "advisory": [
+    "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4."
+   ],
+   "warn": [],
+   "mcrMethodReported": null,
+   "Mcr": null,
+   "McrStd": null,
+   "McrRatio": null,
+   "C1": null,
+   "lamLT": null,
+   "chiLT": null,
+   "MbRd": null,
+   "c1route": null,
+   "ltbBasis": null,
+   "checks": [
+    {
+     "id": "i-Mmax",
+     "ok": true,
+     "kind": "check",
+     "detail": "ss: closed form 1072.59 vs engine 1072.59 kN.m"
+    },
+    {
+     "id": "i-dmax",
+     "ok": true,
+     "kind": "check",
+     "detail": "ss: closed form 5.293 vs engine 5.293 mm"
+    },
+    {
+     "id": "ii-equilibrium",
+     "ok": true,
+     "kind": "check",
+     "detail": "sum R = 715.063 kN, sum loads = -715.063 kN, residual 0.0000 kN"
+    },
+    {
+     "id": "vii-uplift",
+     "ok": true,
+     "kind": "check",
+     "detail": "no uplift in the governing combination; engine reports none (0 hold-down message(s))"
+    },
+    {
+     "id": "viii-FRd",
+     "ok": true,
+     "kind": "check",
+     "detail": "station x = 0.00 m (support 1, type (c), s_s 300.0 mm): independent F_Rd 1363.3 vs engine 1363.3 kN; F_Ed 357.5 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.262 = max station ratio 0.262"
+    },
+    {
+     "id": "ix-Aeff",
+     "ok": true,
+     "kind": "check",
+     "detail": "d/t 52.60 > 42 eps 39.55: lambda_p 0.9834, rho 0.7894, A_eff 28683.4 vs engine 28683.4 mm2 (0.9048 A)"
+    },
+    {
+     "id": "vi-governing",
+     "ok": true,
+     "kind": "check",
+     "detail": "gov Member buckling z-z (Eq 6.62) = 2.4289, max(utils) = 2.4289"
+    }
+   ],
+   "checkFailures": [],
+   "outlier": false,
+   "observed": [
+    "1.3",
+    "1.9",
+    "2.1",
+    "2.3",
+    "2.16",
+    "3.19",
+    "2.11",
+    "3.9",
+    "3.12",
+    "3.1",
+    "2.18"
+   ],
+   "triggerMismatch": {
+    "missing": [],
+    "extra": []
+   }
+  },
+  {
+   "id": "UB-47",
+   "title": "UB 457x191x82, 6 m SS, full UDL + axial compression 600 kN, unrestrained (Class 2 under N + M, A_eff for the compression terms, G3 item 6)",
+   "section": "UB 457x191x82",
+   "family": "ub",
+   "restraint": "ltb",
+   "method": "eigen",
+   "expect": [
+    "1.3",
+    "1.9",
+    "2.1",
+    "2.3",
+    "2.11",
+    "2.16",
+    "3.1",
+    "3.2",
+    "3.3",
+    "3.5",
+    "3.6",
+    "3.9",
+    "3.12",
+    "3.19"
+   ],
+   "tags": [
+    "aeff"
+   ],
+   "ms": 1238.781,
+   "nCombos": 1,
+   "patterns": {
+    "active": false,
+    "nUls": 0,
+    "nSls": 0
+   },
+   "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
+   "uplift": [],
+   "verdict": "PASS",
+   "gov": {
+    "name": "Member buckling z-z (Eq 6.62)",
+    "val": 0.9938801947725084
+   },
+   "utils": [
+    {
+     "name": "Shear  V_Ed/V_c,Rd",
+     "val": 0.06678635479184229
+    },
+    {
+     "name": "Bending  M_Ed/M_c,Rd",
+     "val": 0.15054491801624895
+    },
+    {
+     "name": "LTB  M_Ed/M_b,Rd",
+     "val": 0.2636373590457155
+    },
+    {
+     "name": "Deflection",
+     "val": 0.07797458607668703
+    },
+    {
+     "name": "Compression  N_Ed/N_c,Rd (A_eff)",
+     "val": 0.21676112321510205
+    },
+    {
+     "name": "Bending+axial cross-section (6.2.9)",
+     "val": 0.022899443262475085
+    },
+    {
+     "name": "Member buckling y-y (Eq 6.61)",
+     "val": 0.5237695213110769
+    },
+    {
+     "name": "Member buckling z-z (Eq 6.62)",
+     "val": 0.9938801947725084
+    },
+    {
+     "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
+     "val": 0.08109755578403847
+    },
+    {
+     "name": "Web transverse force + bending (EN 1993-1-5 7.2)",
+     "val": 0.17780694545904788
+    }
+   ],
+   "cls": "Class 2",
+   "Mmax": 75.76172999167729,
+   "Vmax": 50.507819997225766,
+   "dmax": -1.2995764346114507,
+   "McRd": 503.25,
+   "VplRd": 756.259570606107,
+   "deflRatio": 0.07797458607668703,
+   "unsupported": [],
+   "advisory": [
+    "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4."
+   ],
+   "warn": [],
+   "mcrMethodReported": "eigen",
+   "Mcr": 387.7952073978113,
+   "McrStd": 386.30743794086396,
+   "McrRatio": 1.0038512576016594,
+   "C1": 1.1313403673482962,
+   "lamLT": 1.139175596817032,
+   "chiLT": 0.5710302916141108,
+   "MbRd": 287.37099425480125,
+   "c1route": "uniform",
+   "ltbBasis": "elastic critical moment from the finite-element eigenvalue solution (4 DOF/node: v, v', , '; zg and zj included; 64 elements, Richardson-extrapolated)",
+   "c1in": {
+    "M1": 0,
+    "M2": 0,
+    "Mo": 75.76172494921805,
+    "psi": 1,
+    "mu": 300
+   },
+   "McrWhole": 387.7952073978113,
+   "spanGoverns": false,
+   "zg": 0,
+   "checks": [
+    {
+     "id": "i-Mmax",
+     "ok": true,
+     "kind": "check",
+     "detail": "ss: closed form 75.76 vs engine 75.76 kN.m"
+    },
+    {
+     "id": "i-dmax",
+     "ok": true,
+     "kind": "check",
+     "detail": "ss: closed form 1.300 vs engine 1.300 mm"
+    },
+    {
+     "id": "ii-equilibrium",
+     "ok": true,
+     "kind": "check",
+     "detail": "sum R = 101.016 kN, sum loads = -101.016 kN, residual 0.0000 kN"
+    },
+    {
+     "id": "iii-McrStd",
+     "ok": true,
+     "kind": "check",
+     "detail": "SN003a (comparison, independent uniform, segment 0.00-6.00 m, ULS: 1.35G + 1.5Q (Eq 6.10)): C1 1.127, C2 0.454, zg 0 mm, LE 6.00 m -> 386.31 vs engine 386.31 kN.m"
+    },
+    {
+     "id": "vii-uplift",
+     "ok": true,
+     "kind": "check",
+     "detail": "no uplift in the governing combination; engine reports none (0 hold-down message(s))"
+    },
+    {
+     "id": "viii-FRd",
+     "ok": true,
+     "kind": "check",
+     "detail": "station x = 6.00 m (support 2, type (c), s_s 191.3 mm): independent F_Rd 622.8 vs engine 622.8 kN; F_Ed 50.5 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.081 = max station ratio 0.081"
+    },
+    {
+     "id": "ix-Aeff",
+     "ok": true,
+     "kind": "check",
+     "detail": "d/t 41.20 > 42 eps 38.83: lambda_p 0.7847, rho 0.9171, A_eff 10065.5 vs engine 10065.5 mm2 (0.9678 A)"
+    },
+    {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.131: k_c 0.9402 vs engine 0.9402"
+    },
+    {
+     "id": "iv-McrRatio",
+     "ok": true,
+     "kind": "flag",
+     "detail": "Mcr eigen / standard = 1.004 (387.8 / 386.3 kN.m, route uniform)"
+    },
+    {
+     "id": "v-MbRd<=McRd",
+     "ok": true,
+     "kind": "check",
+     "detail": "Mb,Rd 287.37 <= Mc,Rd 503.25 kN.m"
+    },
+    {
+     "id": "vi-governing",
+     "ok": true,
+     "kind": "check",
+     "detail": "gov Member buckling z-z (Eq 6.62) = 0.9939, max(utils) = 0.9939"
+    }
+   ],
+   "checkFailures": [],
+   "outlier": false,
+   "observed": [
+    "1.3",
+    "1.9",
+    "2.1",
+    "2.3",
+    "2.16",
+    "3.19",
+    "2.11",
+    "3.9",
+    "3.12",
+    "3.1",
+    "3.2",
+    "3.3",
+    "3.6",
+    "3.5",
+    "2.18"
+   ],
+   "triggerMismatch": {
+    "missing": [],
+    "extra": []
+   },
+   "McrRatioRuns": 1.0038512576016594
+  },
+  {
+   "id": "UB-47",
+   "title": "UB 457x191x82, 6 m SS, full UDL + axial compression 600 kN, unrestrained (Class 2 under N + M, A_eff for the compression terms, G3 item 6)",
+   "section": "UB 457x191x82",
+   "family": "ub",
+   "restraint": "ltb",
+   "method": "standard",
+   "expect": [
+    "1.3",
+    "1.9",
+    "2.1",
+    "2.3",
+    "2.11",
+    "2.16",
+    "3.1",
+    "3.2",
+    "3.3",
+    "3.5",
+    "3.6",
+    "3.9",
+    "3.12",
+    "3.19"
+   ],
+   "tags": [
+    "aeff"
+   ],
+   "ms": 82.4536,
+   "nCombos": 1,
+   "patterns": {
+    "active": false,
+    "nUls": 0,
+    "nSls": 0
+   },
+   "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
+   "uplift": [],
+   "verdict": "PASS",
+   "gov": {
+    "name": "Member buckling z-z (Eq 6.62)",
+    "val": 0.9947308658551168
+   },
+   "utils": [
+    {
+     "name": "Shear  V_Ed/V_c,Rd",
+     "val": 0.06678635479184229
+    },
+    {
+     "name": "Bending  M_Ed/M_c,Rd",
+     "val": 0.15054491801624895
+    },
+    {
+     "name": "LTB  M_Ed/M_b,Rd",
+     "val": 0.2644257106884166
+    },
+    {
+     "name": "Deflection",
+     "val": 0.07797458607668703
+    },
+    {
+     "name": "Compression  N_Ed/N_c,Rd (A_eff)",
+     "val": 0.21676112321510205
+    },
+    {
+     "name": "Bending+axial cross-section (6.2.9)",
+     "val": 0.022899443262475085
+    },
+    {
+     "name": "Member buckling y-y (Eq 6.61)",
+     "val": 0.5246623902146446
+    },
+    {
+     "name": "Member buckling z-z (Eq 6.62)",
+     "val": 0.9947308658551168
+    },
+    {
+     "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
+     "val": 0.08109755578403847
+    },
+    {
+     "name": "Web transverse force + bending (EN 1993-1-5 7.2)",
+     "val": 0.17780694545904788
+    }
+   ],
+   "cls": "Class 2",
+   "Mmax": 75.76172999167729,
+   "Vmax": 50.507819997225766,
+   "dmax": -1.2995764346114507,
+   "McRd": 503.25,
+   "VplRd": 756.259570606107,
+   "deflRatio": 0.07797458607668703,
+   "unsupported": [],
+   "advisory": [
+    "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4."
+   ],
+   "warn": [],
+   "mcrMethodReported": "standard",
+   "Mcr": 386.30743794086396,
+   "McrStd": 386.30743794086396,
+   "McrRatio": null,
+   "C1": 1.127,
+   "lamLT": 1.1413671181548255,
+   "chiLT": 0.5693278373888615,
+   "MbRd": 286.5142341659445,
+   "c1route": "uniform",
+   "ltbBasis": "Mcr method (SN003a closed form, k = kw = 1, G = 81000 N/mm&sup2;): lambdaLT = sqrt(Wyfy/Mcr) = 1.141, chiLT,mod from cl 6.3.2.3 curve c with kc = 1/sqrtC1 (NA 2.18); Mb,Rd = chiLT,modWyfy/M1 <= Mc,Rd. The P362 Expn 6.55 simplified slenderness (lambdaLT = 1.385, Mb,Rd = 221.3 kN.m) is printed for comparison only",
+   "c1in": {
+    "M1": 0,
+    "M2": 0,
+    "Mo": 75.76172494921805,
+    "psi": 1,
+    "mu": 300
+   },
+   "stdBasis": "Mcr route",
+   "zg": 0,
+   "zgUsed": false,
+   "zgBlocked": false,
+   "checks": [
+    {
+     "id": "i-Mmax",
+     "ok": true,
+     "kind": "check",
+     "detail": "ss: closed form 75.76 vs engine 75.76 kN.m"
+    },
+    {
+     "id": "i-dmax",
+     "ok": true,
+     "kind": "check",
+     "detail": "ss: closed form 1.300 vs engine 1.300 mm"
+    },
+    {
+     "id": "ii-equilibrium",
+     "ok": true,
+     "kind": "check",
+     "detail": "sum R = 101.016 kN, sum loads = -101.016 kN, residual 0.0000 kN"
+    },
+    {
+     "id": "iii-McrStd",
+     "ok": true,
+     "kind": "check",
+     "detail": "SN003a (independent uniform): C1 1.127, C2 0.454, zg 0 mm, LE 6.00 m -> 386.31 vs engine 386.31 kN.m (engine route uniform)"
+    },
+    {
+     "id": "iii-zgBlock",
+     "ok": true,
+     "kind": "check",
+     "detail": "destabilising zg on a non-tabulated diagram: block expected false, engine blocked false"
+    },
+    {
+     "id": "vii-uplift",
+     "ok": true,
+     "kind": "check",
+     "detail": "no uplift in the governing combination; engine reports none (0 hold-down message(s))"
+    },
+    {
+     "id": "viii-FRd",
+     "ok": true,
+     "kind": "check",
+     "detail": "station x = 6.00 m (support 2, type (c), s_s 191.3 mm): independent F_Rd 622.8 vs engine 622.8 kN; F_Ed 50.5 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.081 = max station ratio 0.081"
+    },
+    {
+     "id": "ix-Aeff",
+     "ok": true,
+     "kind": "check",
+     "detail": "d/t 41.20 > 42 eps 38.83: lambda_p 0.7847, rho 0.9171, A_eff 10065.5 vs engine 10065.5 mm2 (0.9678 A)"
+    },
+    {
+     "id": "v-MbRd<=McRd",
+     "ok": true,
+     "kind": "check",
+     "detail": "Mb,Rd 286.51 <= Mc,Rd 503.25 kN.m"
+    },
+    {
+     "id": "vi-governing",
+     "ok": true,
+     "kind": "check",
+     "detail": "gov Member buckling z-z (Eq 6.62) = 0.9947, max(utils) = 0.9947"
+    }
+   ],
+   "checkFailures": [],
+   "outlier": false,
+   "observed": [
+    "1.3",
+    "1.9",
+    "2.1",
+    "2.3",
+    "2.16",
+    "3.19",
+    "2.11",
+    "3.9",
+    "3.12",
+    "3.1",
+    "3.2",
+    "3.3",
+    "3.6",
+    "3.5",
+    "2.18"
+   ],
+   "triggerMismatch": {
+    "missing": [],
+    "extra": []
+   }
+  },
+  {
+   "id": "UB-48",
+   "title": "UB 457x191x82, 2 m SS, 400 kN point load 0.3 m from the support + axial compression 600 kN, fully restrained (high shear with N: cl 6.2.10, G3 item 7)",
+   "section": "UB 457x191x82",
+   "family": "ub",
+   "restraint": "full",
+   "method": "n/a (restrained)",
+   "expect": [
+    "1.3",
+    "1.9",
+    "2.1",
+    "2.3",
+    "2.10",
+    "2.11",
+    "2.16",
+    "3.1",
+    "3.9",
+    "3.12",
+    "3.19"
+   ],
+   "tags": [
+    "mvn"
+   ],
+   "ms": 90.4929,
+   "nCombos": 1,
+   "patterns": {
+    "active": false,
+    "nUls": 0,
+    "nSls": 0
+   },
+   "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
+   "uplift": [],
+   "verdict": "FAIL",
+   "gov": {
+    "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
+    "val": 1.2763680976077174
+   },
+   "utils": [
+    {
+     "name": "Shear  V_Ed/V_c,Rd",
+     "val": 0.6758075658634992
+    },
+    {
+     "name": "Bending  M_Ed/M_c,Rd",
+     "val": 0.3045740975095608
+    },
+    {
+     "name": "Deflection",
+     "val": 0.06874770016790013
+    },
+    {
+     "name": "Compression  N_Ed/N_c,Rd (A_eff)",
+     "val": 0.21676112321510205
+    },
+    {
+     "name": "Bending+axial cross-section (6.2.9)",
+     "val": 0.09373000858479241
+    },
+    {
+     "name": "Member buckling y-y (Eq 6.61)",
+     "val": 0.5683819398833294
+    },
+    {
+     "name": "Member buckling z-z (Eq 6.62)",
+     "val": 0.5310188123774515
+    },
+    {
+     "name": "Bending+shear coexistent (6.2.8)",
+     "val": 0.31677531824203997
+    },
+    {
+     "name": "Bending+shear+axial (6.2.10)",
+     "val": 0.3307053863602625
+    },
+    {
+     "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
+     "val": 1.2763680976077174
+    },
+    {
+     "name": "Web transverse force + bending (EN 1993-1-5 7.2)",
+     "val": 1.2056139596053814
+    }
+   ],
+   "cls": "Class 2",
+   "Mmax": 153.2769145716865,
+   "Vmax": 511.0859395722883,
+   "dmax": -0.38193166759944513,
+   "McRd": 503.25,
+   "VplRd": 756.259570606107,
+   "deflRatio": 0.06874770016790013,
+   "unsupported": [],
+   "advisory": [
+    "Bearing stiffener required at x = 0.3 m (point load 1): FEd = 600 kN exceeds FRd = 470.1 kN (EN 1993-1-5 6.2, type (a)); tick \"bearing stiffener provided\" once a stiffener is designed to EN 1993-1-5 9.4, or increase the stiff bearing length ss.",
+    "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4."
+   ],
+   "warn": [],
+   "mcrMethodReported": null,
+   "Mcr": null,
+   "McrStd": null,
+   "McrRatio": null,
+   "C1": null,
+   "lamLT": null,
+   "chiLT": null,
+   "MbRd": null,
+   "c1route": null,
+   "ltbBasis": null,
+   "checks": [
+    {
+     "id": "ii-equilibrium",
+     "ok": true,
+     "kind": "check",
+     "detail": "sum R = 602.172 kN, sum loads = -602.172 kN, residual 0.0000 kN"
+    },
+    {
+     "id": "vii-uplift",
+     "ok": true,
+     "kind": "check",
+     "detail": "no uplift in the governing combination; engine reports none (0 hold-down message(s))"
+    },
+    {
+     "id": "viii-FRd",
+     "ok": true,
+     "kind": "check",
+     "detail": "station x = 0.30 m (point load 1, type (a), s_s 0.0 mm): independent F_Rd 470.1 vs engine 470.1 kN; F_Ed 600.0 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 1.276 = max station ratio 1.276"
+    },
+    {
+     "id": "ix-Aeff",
+     "ok": true,
+     "kind": "check",
+     "detail": "d/t 41.20 > 42 eps 38.83: lambda_p 0.7847, rho 0.9171, A_eff 10065.5 vs engine 10065.5 mm2 (0.9678 A)"
+    },
+    {
+     "id": "xii-MVN",
+     "ok": true,
+     "kind": "check",
+     "detail": "x = 0.30 m: V 510.8 kN, rho 0.1230, N_V,Rd 2698.8, M_v,Rd 483.9, a_V 0.376, M_N,V,Rd 463.5 kN.m: M/M_N,V,Rd 0.3307 vs engine 0.3307"
+    },
+    {
+     "id": "vi-governing",
+     "ok": true,
+     "kind": "check",
+     "detail": "gov Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2) = 1.2764, max(utils) = 1.2764"
+    }
+   ],
+   "checkFailures": [],
+   "outlier": false,
+   "observed": [
+    "1.3",
+    "1.9",
+    "2.1",
+    "2.3",
+    "2.16",
+    "3.19",
+    "2.11",
+    "3.9",
+    "3.12",
+    "3.1",
+    "2.18",
+    "2.10"
+   ],
+   "triggerMismatch": {
+    "missing": [],
+    "extra": []
+   }
+  },
+  {
    "id": "UC-01",
    "title": "UC 203x203x46, 5 m SS, full UDL, fully restrained",
    "section": "UC 203x203x46",
@@ -14109,7 +15073,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 71.6223,
+   "ms": 65.4444,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -14243,7 +15207,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1322.8702,
+   "ms": 1294.5087,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -14353,6 +15317,12 @@
      "detail": "station x = 0.00 m (support 1, type (a), s_s 181.2 mm): independent F_Rd 618.7 vs engine 618.7 kN; F_Ed 77.3 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.125 = max station ratio 0.125"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.131: k_c 0.9402 vs engine 0.9402"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -14414,7 +15384,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 76.3629,
+   "ms": 75.1755,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -14589,7 +15559,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 1362.6163,
+   "ms": 1251.0196,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -14699,6 +15669,12 @@
      "detail": "station x = 2.00 m (point load 1, type (a), s_s 0.0 mm): independent F_Rd 132.8 vs engine 132.8 kN; F_Ed 27.8 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.209 = max station ratio 0.209"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.356: k_c 0.8587 vs engine 0.8587"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -14764,7 +15740,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 69.2682,
+   "ms": 65.596,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -14937,7 +15913,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1307.5091,
+   "ms": 1293.5033,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -14988,7 +15964,9 @@
    "advisory": [
     "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4."
    ],
-   "warn": [],
+   "warn": [
+    "C1 = 4.770 exceeds 2.76: kc = 1/sqrtC1 = 0.458 is floored at 1/sqrt2.76 = 0.602, the Table 6.6 lower bound (psi = -1 end-moment case), so the f-factor is not extrapolated beyond its calibrated range."
+   ],
    "mcrMethodReported": "eigen",
    "Mcr": 261.5345021706017,
    "McrStd": 260.2461248132898,
@@ -15110,7 +16088,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 87.1275,
+   "ms": 128.4457,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -15278,7 +16256,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1208.0567,
+   "ms": 1335.6549,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -15404,6 +16382,12 @@
      "detail": "station x = 0.00 m (support 1, type (a), s_s 225.7 mm): independent F_Rd 892.4 vs engine 892.4 kN; F_Ed 80.8 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.090 = max station ratio 0.090"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.131: k_c 0.9402 vs engine 0.9402"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -15471,7 +16455,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 73.5363,
+   "ms": 100.7062,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -15664,7 +16648,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 1305.5482,
+   "ms": 1300.5567,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -15729,7 +16713,6 @@
    "deflRatio": 0.6424825184077715,
    "unsupported": [],
    "advisory": [
-    "For biaxial bending, each web is conservatively classified using the uniform-compression limits in Table 5.2; no favourable biaxial stress distribution is assumed.",
     "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4."
    ],
    "warn": [],
@@ -15789,6 +16772,12 @@
      "ok": true,
      "kind": "check",
      "detail": "station x = 0.00 m (support 1, type (a), s_s 225.7 mm): independent F_Rd 1181.6 vs engine 1181.6 kN; F_Ed 114.4 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.097 = max station ratio 0.097"
+    },
+    {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.131: k_c 0.9404 vs engine 0.9404"
     },
     {
      "id": "iv-McrRatio",
@@ -15858,7 +16847,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 90.6457,
+   "ms": 89.0796,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -15923,7 +16912,6 @@
    "deflRatio": 0.6424825184077715,
    "unsupported": [],
    "advisory": [
-    "For biaxial bending, each web is conservatively classified using the uniform-compression limits in Table 5.2; no favourable biaxial stress distribution is assumed.",
     "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4."
    ],
    "warn": [],
@@ -16050,7 +17038,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 5368.9324,
+   "ms": 5217.3448,
    "nCombos": 3,
    "patterns": {
     "active": true,
@@ -16162,6 +17150,12 @@
      "detail": "station x = 4.00 m (support 2, type (a), s_s 277.1 mm): independent F_Rd 1158.1 vs engine 1158.1 kN; F_Ed 868.9 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.750 = max station ratio 0.750"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 2.261: k_c 0.6650 vs engine 0.6650"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -16225,7 +17219,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 306.3513,
+   "ms": 281.7863,
    "nCombos": 3,
    "patterns": {
     "active": true,
@@ -16401,7 +17395,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 3127.1845,
+   "ms": 2936.8862,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -16511,6 +17505,12 @@
      "detail": "station x = 0.00 m (support 1, type (a), s_s 277.1 mm): independent F_Rd 1602.1 vs engine 1602.1 kN; F_Ed 168.4 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.105 = max station ratio 0.105"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.015: k_c 0.9928 vs engine 0.9928"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -16574,7 +17574,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 83.9076,
+   "ms": 87.2793,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -16747,7 +17747,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1400.5581,
+   "ms": 1295.1527,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -16845,6 +17845,12 @@
      "detail": "station x = 10.00 m (support 2, type (a), s_s 320.6 mm): independent F_Rd 1264.3 vs engine 1264.3 kN; F_Ed 226.0 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.179 = max station ratio 0.179"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.140: k_c 0.9367 vs engine 0.9367"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -16906,7 +17912,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 153.3382,
+   "ms": 79.7135,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -17062,7 +18068,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 87.9529,
+   "ms": 69.5452,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -17187,7 +18193,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1454.7834,
+   "ms": 1301.6124,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -17293,6 +18299,12 @@
      "detail": "station x = 0.00 m (support 1, type (a), s_s 181.2 mm): independent F_Rd 885.3 vs engine 885.3 kN; F_Ed 126.7 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.143 = max station ratio 0.143"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.619: k_c 0.7858 vs engine 0.7858"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -17359,7 +18371,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 100.6765,
+   "ms": 86.5139,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -17532,7 +18544,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1479.0345,
+   "ms": 1257.8932,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -17646,6 +18658,12 @@
      "detail": "station x = 3.00 m (point load 1, type (a), s_s 0.0 mm): independent F_Rd 697.9 vs engine 697.9 kN; F_Ed 99.0 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.142 = max station ratio 0.142"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 0.894: k_c 1.0000 vs engine 1.0000"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -17714,7 +18732,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 96.862,
+   "ms": 170.4494,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -17892,7 +18910,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1493.883,
+   "ms": 1467.7873,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -17998,6 +19016,12 @@
      "detail": "station x = 0.00 m (support 1, type (a), s_s 138.8 mm): independent F_Rd 578.3 vs engine 578.3 kN; F_Ed 30.0 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.052 = max station ratio 0.052"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 2.674: k_c 0.6115 vs engine 0.6115"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -18059,7 +19083,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 93.7508,
+   "ms": 90.9431,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -18222,7 +19246,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 80.2552,
+   "ms": 83.1412,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -18350,7 +19374,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1334.041,
+   "ms": 1207.0207,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -18509,7 +19533,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 97.1445,
+   "ms": 96.806,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -18670,7 +19694,7 @@
    "tags": [
     "ecc-zero"
    ],
-   "ms": 1569.1947,
+   "ms": 1358.7875,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -18855,7 +19879,7 @@
    "tags": [
     "ecc-zero"
    ],
-   "ms": 156.58,
+   "ms": 127.2221,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -19034,7 +20058,7 @@
    "tags": [
     "ecc-small"
    ],
-   "ms": 1442.7772,
+   "ms": 1407.6187,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -19219,7 +20243,7 @@
    "tags": [
     "ecc-small"
    ],
-   "ms": 167.0143,
+   "ms": 154.5268,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -19398,7 +20422,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 1432.6727,
+   "ms": 1340.9416,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -19583,7 +20607,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 253.3744,
+   "ms": 149.3134,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -19758,7 +20782,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 170.5359,
+   "ms": 152.9553,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -19908,7 +20932,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 1655.7843,
+   "ms": 1444.3595,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -20093,7 +21117,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 182.9886,
+   "ms": 150.7752,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -20272,7 +21296,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 1438.9729,
+   "ms": 1451.4137,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -20445,7 +21469,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 128.9107,
+   "ms": 143.5996,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -20606,7 +21630,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1265.8315,
+   "ms": 1287.376,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -20657,7 +21681,9 @@
    "advisory": [
     "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4."
    ],
-   "warn": [],
+   "warn": [
+    "C1 = 4.528 exceeds 2.76: kc = 1/sqrtC1 = 0.470 is floored at 1/sqrt2.76 = 0.602, the Table 6.6 lower bound (psi = -1 end-moment case), so the f-factor is not extrapolated beyond its calibrated range."
+   ],
    "mcrMethodReported": "eigen",
    "Mcr": 300.5636170872469,
    "McrStd": 150.54874756794348,
@@ -20767,7 +21793,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 76.2777,
+   "ms": 82.7932,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -20921,7 +21947,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 5618.9703,
+   "ms": 5330.3051,
    "nCombos": 3,
    "patterns": {
     "active": true,
@@ -21083,7 +22109,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 247.0144,
+   "ms": 275.3495,
    "nCombos": 3,
    "patterns": {
     "active": true,
@@ -21240,7 +22266,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 65.9039,
+   "ms": 85.8496,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -21249,10 +22275,10 @@
    },
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
-   "verdict": "NOT VERIFIED",
+   "verdict": "PASS",
    "gov": {
     "name": "Member buckling z-z (Eq 6.62)",
-    "val": 0.32409396101946203
+    "val": 0.3248083854721752
    },
    "utils": [
     {
@@ -21276,12 +22302,16 @@
      "val": 0.19856402854049965
     },
     {
+     "name": "Torsional-flexural buckling  N_Ed/N_b,T,Rd (6.3.1.4)",
+     "val": 0.1153314550424526
+    },
+    {
      "name": "Member buckling y-y (Eq 6.61)",
-     "val": 0.19638114622021213
+     "val": 0.24083405036332114
     },
     {
      "name": "Member buckling z-z (Eq 6.62)",
-     "val": 0.32409396101946203
+     "val": 0.3248083854721752
     },
     {
      "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
@@ -21299,9 +22329,7 @@
    "McRd": 323.3,
    "VplRd": 750.3013158280701,
    "deflRatio": 0.05218525769815718,
-   "unsupported": [
-    "PFC under axial compression: torsional and torsional-flexural buckling (cl 6.3.1.4) are not implemented. Flexural buckling alone cannot establish adequacy; PASS is blocked."
-   ],
+   "unsupported": [],
    "advisory": [
     "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4."
    ],
@@ -21342,10 +22370,16 @@
      "detail": "no uplift in the governing combination; engine reports none (0 hold-down message(s))"
     },
     {
+     "id": "x-NbT",
+     "ok": true,
+     "kind": "check",
+     "detail": "y0 53.4 mm, N_cr,T 2692.4, N_cr,TF 2666.3 kN, lambda_T 0.903, curve c chi 0.598: N_b,T,Rd 1300.6 vs engine 1300.6 kN; verdict entry 0.115"
+    },
+    {
      "id": "vi-governing",
      "ok": true,
      "kind": "check",
-     "detail": "gov Member buckling z-z (Eq 6.62) = 0.3241, max(utils) = 0.3241"
+     "detail": "gov Member buckling z-z (Eq 6.62) = 0.3248, max(utils) = 0.3248"
     }
    ],
    "checkFailures": [],
@@ -21399,7 +22433,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 1535.8202,
+   "ms": 1394.5709,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -21586,7 +22620,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 148.9012,
+   "ms": 236.697,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -21761,7 +22795,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 1355.6647,
+   "ms": 480.8653,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -21826,7 +22860,7 @@
    "deflRatio": 0.4991126888374575,
    "unsupported": [],
    "advisory": [
-    "For biaxial bending, each web is conservatively classified using the uniform-compression limits in Table 5.2; no favourable biaxial stress distribution is assumed.",
+    "For biaxial bending of this section family each wall parallel to the web is conservatively classified using the uniform-compression limits in Table 5.2; no favourable biaxial stress distribution is assumed.",
     "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4."
    ],
    "warn": [],
@@ -21943,7 +22977,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 75.0597,
+   "ms": 39.2486,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -22008,7 +23042,7 @@
    "deflRatio": 0.4991126888374575,
    "unsupported": [],
    "advisory": [
-    "For biaxial bending, each web is conservatively classified using the uniform-compression limits in Table 5.2; no favourable biaxial stress distribution is assumed.",
+    "For biaxial bending of this section family each wall parallel to the web is conservatively classified using the uniform-compression limits in Table 5.2; no favourable biaxial stress distribution is assumed.",
     "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4."
    ],
    "warn": [],
@@ -22125,7 +23159,7 @@
    "tags": [
     "ecc-small"
    ],
-   "ms": 1440.1106,
+   "ms": 323.2151,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -22299,7 +23333,7 @@
    "tags": [
     "ecc-small"
    ],
-   "ms": 153.7598,
+   "ms": 50.6026,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -22454,7 +23488,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 81.4491,
+   "ms": 18.3033,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -22591,7 +23625,7 @@
    "tags": [
     "ecc-small"
    ],
-   "ms": 1453.4656,
+   "ms": 343.3037,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -22766,7 +23800,7 @@
    "tags": [
     "ecc-small"
    ],
-   "ms": 159.1548,
+   "ms": 46.5862,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -22936,7 +23970,7 @@
    "tags": [
     "ecc-small"
    ],
-   "ms": 1493.8176,
+   "ms": 384.4292,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -23101,7 +24135,7 @@
    "tags": [
     "ecc-small"
    ],
-   "ms": 123.405,
+   "ms": 29.289,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -23252,7 +24286,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 3083.2301,
+   "ms": 725.5612,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -23413,7 +24447,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 80.154,
+   "ms": 28.3353,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -23564,7 +24598,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 80.2836,
+   "ms": 20.3075,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -23692,7 +24726,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1525.8932,
+   "ms": 315.4948,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -23796,6 +24830,12 @@
      "detail": "no uplift in the governing combination; engine reports none (0 hold-down message(s))"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.127: k_c 0.9421 vs engine 0.9421"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -23857,7 +24897,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 78.9698,
+   "ms": 17.4473,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -24023,7 +25063,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1389.3637,
+   "ms": 305.1618,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -24127,6 +25167,12 @@
      "detail": "no uplift in the governing combination; engine reports none (0 hold-down message(s))"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.335: k_c 0.8655 vs engine 0.8655"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -24189,7 +25235,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 76.9583,
+   "ms": 19.6481,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -24357,7 +25403,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1335.678,
+   "ms": 322.1369,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -24477,6 +25523,12 @@
      "detail": "no uplift in the governing combination; engine reports none (0 hold-down message(s))"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.127: k_c 0.9421 vs engine 0.9421"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -24544,7 +25596,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 74.085,
+   "ms": 16.0488,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -24729,7 +25781,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 5812.9265,
+   "ms": 1021.1631,
    "nCombos": 3,
    "patterns": {
     "active": true,
@@ -24837,6 +25889,12 @@
      "detail": "no uplift in the governing combination; engine reports 1, 3 (2 hold-down message(s))"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 2.217: k_c 0.6716 vs engine 0.6716"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -24899,7 +25957,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 248.7611,
+   "ms": 46.5366,
    "nCombos": 3,
    "patterns": {
     "active": true,
@@ -25069,7 +26127,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1400.8155,
+   "ms": 214.737,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -25120,7 +26178,9 @@
    "advisory": [
     "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4."
    ],
-   "warn": [],
+   "warn": [
+    "C1 = 2.795 exceeds 2.76: kc = 1/sqrtC1 = 0.598 is floored at 1/sqrt2.76 = 0.602, the Table 6.6 lower bound (psi = -1 end-moment case), so the f-factor is not extrapolated beyond its calibrated range."
+   ],
    "mcrMethodReported": "eigen",
    "Mcr": 28510.76231151943,
    "McrStd": 20404.58986941601,
@@ -25236,7 +26296,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 106.5629,
+   "ms": 15.5125,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -25409,7 +26469,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 1473.0561,
+   "ms": 246.0569,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -25523,6 +26583,12 @@
      "detail": "no uplift in the governing combination; engine reports none (0 hold-down message(s))"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.127: k_c 0.9421 vs engine 0.9421"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -25597,7 +26663,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 133.3604,
+   "ms": 23.5803,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -25774,7 +26840,7 @@
     "3.27"
    ],
    "tags": [],
-   "ms": 66.0092,
+   "ms": 13.8617,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -25902,7 +26968,7 @@
     "3.27"
    ],
    "tags": [],
-   "ms": 63.9418,
+   "ms": 12.1056,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -25955,7 +27021,7 @@
    "deflRatio": 0.8514218412722935,
    "unsupported": [],
    "advisory": [
-    "For biaxial bending, each web is conservatively classified using the uniform-compression limits in Table 5.2; no favourable biaxial stress distribution is assumed.",
+    "For biaxial bending of this section family each wall parallel to the web is conservatively classified using the uniform-compression limits in Table 5.2; no favourable biaxial stress distribution is assumed.",
     "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4."
    ],
    "warn": [],
@@ -26031,7 +27097,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1452.5122,
+   "ms": 202.3379,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -26143,6 +27209,12 @@
      "detail": "no uplift in the governing combination; engine reports none (0 hold-down message(s))"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.127: k_c 0.9421 vs engine 0.9421"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -26208,7 +27280,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 90.1199,
+   "ms": 15.3092,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -26386,7 +27458,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 139.5259,
+   "ms": 24.0465,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -26523,7 +27595,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 68.981,
+   "ms": 14.8416,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -26651,7 +27723,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1312.7653,
+   "ms": 238.415,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -26755,6 +27827,12 @@
      "detail": "no uplift in the governing combination; engine reports none (0 hold-down message(s))"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.127: k_c 0.9421 vs engine 0.9421"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -26816,7 +27894,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 83.1751,
+   "ms": 21.2505,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -26981,7 +28059,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1405.6689,
+   "ms": 287.9299,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -27085,6 +28163,12 @@
      "detail": "no uplift in the governing combination; engine reports none (0 hold-down message(s))"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.127: k_c 0.9421 vs engine 0.9421"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -27146,7 +28230,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 100.1223,
+   "ms": 19.7317,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -27311,7 +28395,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1519.629,
+   "ms": 239.681,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -27415,6 +28499,12 @@
      "detail": "no uplift in the governing combination; engine reports none (0 hold-down message(s))"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.127: k_c 0.9421 vs engine 0.9421"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -27476,7 +28566,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 98.5119,
+   "ms": 27.0313,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -27642,7 +28732,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1389.6345,
+   "ms": 298.1045,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -27746,6 +28836,12 @@
      "detail": "no uplift in the governing combination; engine reports none (0 hold-down message(s))"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.273: k_c 0.8862 vs engine 0.8862"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -27808,7 +28904,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 85.0594,
+   "ms": 16.8483,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -27976,7 +29072,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1408.9561,
+   "ms": 326.4533,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -28096,6 +29192,12 @@
      "detail": "no uplift in the governing combination; engine reports none (0 hold-down message(s))"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.127: k_c 0.9421 vs engine 0.9421"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -28163,7 +29265,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 129.9466,
+   "ms": 22.6445,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -28349,7 +29451,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1494.5305,
+   "ms": 322.2409,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -28400,7 +29502,9 @@
    "advisory": [
     "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4."
    ],
-   "warn": [],
+   "warn": [
+    "C1 = 3.380 exceeds 2.76: kc = 1/sqrtC1 = 0.544 is floored at 1/sqrt2.76 = 0.602, the Table 6.6 lower bound (psi = -1 end-moment case), so the f-factor is not extrapolated beyond its calibrated range."
+   ],
    "mcrMethodReported": "eigen",
    "Mcr": 892.1421250803802,
    "McrStd": 527.9053623821221,
@@ -28516,7 +29620,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 78.0278,
+   "ms": 16.1204,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -28682,7 +29786,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 5747.8988,
+   "ms": 1026.7435,
    "nCombos": 3,
    "patterns": {
     "active": true,
@@ -28790,6 +29894,12 @@
      "detail": "no uplift in the governing combination; engine reports 1, 3 (2 hold-down message(s))"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 2.217: k_c 0.6716 vs engine 0.6716"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -28852,7 +29962,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 215.3043,
+   "ms": 48.7575,
    "nCombos": 3,
    "patterns": {
     "active": true,
@@ -29024,7 +30134,7 @@
    "tags": [
     "1.2"
    ],
-   "ms": 6704.8122,
+   "ms": 1158.4218,
    "nCombos": 3,
    "patterns": {
     "active": true,
@@ -29132,6 +30242,12 @@
      "detail": "no uplift in the governing combination; engine reports 2, 3 (2 hold-down message(s))"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.264: k_c 0.8895 vs engine 0.8895"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -29197,7 +30313,7 @@
    "tags": [
     "1.2"
    ],
-   "ms": 249.0949,
+   "ms": 43.5056,
    "nCombos": 3,
    "patterns": {
     "active": true,
@@ -29368,7 +30484,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 1379.1493,
+   "ms": 207.2206,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -29409,7 +30525,7 @@
     },
     {
      "name": "Member buckling y-y (Eq 6.61)",
-     "val": 0.7079983642537201
+     "val": 0.7450411177650644
     },
     {
      "name": "Member buckling z-z (Eq 6.62)",
@@ -29433,7 +30549,7 @@
    "deflRatio": 0.7890766631510828,
    "unsupported": [],
    "advisory": [
-    "For biaxial bending, each web is conservatively classified using the uniform-compression limits in Table 5.2; no favourable biaxial stress distribution is assumed.",
+    "For biaxial bending of this section family each wall parallel to the web is conservatively classified using the uniform-compression limits in Table 5.2; no favourable biaxial stress distribution is assumed.",
     "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4."
    ],
    "warn": [],
@@ -29475,6 +30591,12 @@
      "ok": true,
      "kind": "check",
      "detail": "no uplift in the governing combination; engine reports none (0 hold-down message(s))"
+    },
+    {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.136: k_c 0.9383 vs engine 0.9383"
     },
     {
      "id": "iv-McrRatio",
@@ -29544,7 +30666,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 66.2873,
+   "ms": 13.3601,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -29585,7 +30707,7 @@
     },
     {
      "name": "Member buckling y-y (Eq 6.61)",
-     "val": 0.7079983642537201
+     "val": 0.7450411177650644
     },
     {
      "name": "Member buckling z-z (Eq 6.62)",
@@ -29609,7 +30731,7 @@
    "deflRatio": 0.7890766631510828,
    "unsupported": [],
    "advisory": [
-    "For biaxial bending, each web is conservatively classified using the uniform-compression limits in Table 5.2; no favourable biaxial stress distribution is assumed.",
+    "For biaxial bending of this section family each wall parallel to the web is conservatively classified using the uniform-compression limits in Table 5.2; no favourable biaxial stress distribution is assumed.",
     "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4."
    ],
    "warn": [],
@@ -29720,7 +30842,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 127.7247,
+   "ms": 26.9783,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -29869,7 +30991,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 1442.6925,
+   "ms": 222.7843,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -29981,6 +31103,12 @@
      "detail": "no uplift in the governing combination; engine reports none (0 hold-down message(s))"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.342: k_c 0.8631 vs engine 0.8631"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -30055,7 +31183,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 148.7446,
+   "ms": 20.3475,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -30234,7 +31362,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1467.6696,
+   "ms": 244.6133,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -30326,6 +31454,12 @@
      "detail": "no uplift in the governing combination; engine reports none (0 hold-down message(s))"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.490: k_c 0.8192 vs engine 0.8192"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -30388,7 +31522,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 78.7762,
+   "ms": 14.7121,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -30542,7 +31676,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 3041.0599,
+   "ms": 517.5756,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -30646,6 +31780,12 @@
      "detail": "no uplift in the governing combination; engine reports none (0 hold-down message(s))"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.253: k_c 0.8932 vs engine 0.8932"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -30709,7 +31849,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 97.0913,
+   "ms": 13.1557,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -30877,7 +32017,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1647.8697,
+   "ms": 212.3127,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -30969,6 +32109,12 @@
      "detail": "no uplift in the governing combination; engine reports none (0 hold-down message(s))"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.681: k_c 0.7712 vs engine 0.7712"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -31031,7 +32177,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 80.0384,
+   "ms": 13.5729,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -31186,7 +32332,7 @@
    "tags": [
     "uplift"
    ],
-   "ms": 3131.312,
+   "ms": 553.9032,
    "nCombos": 3,
    "patterns": {
     "active": false,
@@ -31304,6 +32450,12 @@
      "detail": "no uplift in the governing combination; engine reports 1, 2 (2 hold-down message(s))"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.127: k_c 0.9421 vs engine 0.9421"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -31367,7 +32519,7 @@
    "tags": [
     "uplift"
    ],
-   "ms": 205.1705,
+   "ms": 41.2803,
    "nCombos": 3,
    "patterns": {
     "active": false,
@@ -31548,7 +32700,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 3686.1585,
+   "ms": 619.0771,
    "nCombos": 3,
    "patterns": {
     "active": true,
@@ -31650,6 +32802,12 @@
      "detail": "no uplift in the governing combination; engine reports 1 (1 hold-down message(s))"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.136: k_c 0.9383 vs engine 0.9383"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -31713,7 +32871,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 225.566,
+   "ms": 40.4871,
    "nCombos": 3,
    "patterns": {
     "active": true,
@@ -31877,7 +33035,7 @@
    "tags": [
     "uplift"
    ],
-   "ms": 3356.4703,
+   "ms": 542.1859,
    "nCombos": 3,
    "patterns": {
     "active": false,
@@ -31988,6 +33146,12 @@
      "detail": "station x = 0.00 m (support 1, type (c), s_s 191.3 mm): independent F_Rd 622.8 vs engine 622.8 kN; F_Ed 75.8 kN (ULS: 1.35G + 1.5Q); util 0.122 = max station ratio 0.122"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.134: k_c 0.9391 vs engine 0.9391"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -32052,7 +33216,7 @@
    "tags": [
     "uplift"
    ],
-   "ms": 193.9457,
+   "ms": 34.3555,
    "nCombos": 3,
    "patterns": {
     "active": false,
@@ -32227,7 +33391,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 11615.9514,
+   "ms": 1840.2584,
    "nCombos": 7,
    "patterns": {
     "active": true,
@@ -32339,6 +33503,12 @@
      "detail": "station x = 8.00 m (support 3, type (a), s_s 209.3 mm): independent F_Rd 844.8 vs engine 844.8 kN; F_Ed 757.3 kN (ULS: 1.35G + 1.5Q (Eq 6.10) (Q on spans 2+3 only)); util 0.896 = max station ratio 0.896"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.281: k_c 0.8836 vs engine 0.8836"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -32403,7 +33573,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 599.6173,
+   "ms": 93.8338,
    "nCombos": 7,
    "patterns": {
     "active": true,
@@ -32439,7 +33609,7 @@
     },
     {
      "name": "LTB  M_Ed/M_b,Rd",
-     "val": 0.7145587309849889
+     "val": 0.778571041283376
     },
     {
      "name": "Deflection",
@@ -32476,10 +33646,10 @@
    "McrRatio": null,
    "C1": 4.6019870590991685,
    "lamLT": 0.9099024149615936,
-   "chiLT": 0.9394295952450837,
-   "MbRd": 609.6898073140594,
+   "chiLT": 0.8621918666812376,
+   "MbRd": 559.5625214761233,
    "c1route": "serna",
-   "ltbBasis": "Mcr method (SN003a closed form, k = kw = 1, G = 81000 N/mm&sup2;): lambdaLT = sqrt(Wyfy/Mcr) = 0.910, chiLT,mod from cl 6.3.2.3 curve c with kc = 1/sqrtC1 (NA 2.18); Mb,Rd = chiLT,modWyfy/M1 <= Mc,Rd. The P362 Expn 6.55 simplified slenderness (lambdaLT = 1.286, Mb,Rd = 363.7 kN.m) is printed for comparison only",
+   "ltbBasis": "Mcr method (SN003a closed form, k = kw = 1, G = 81000 N/mm&sup2;): lambdaLT = sqrt(Wyfy/Mcr) = 0.910, chiLT,mod from cl 6.3.2.3 curve c with kc = 1/sqrtC1 (NA 2.18); Mb,Rd = chiLT,modWyfy/M1 <= Mc,Rd. The P362 Expn 6.55 simplified slenderness (lambdaLT = 1.286, Mb,Rd = 349.2 kN.m) is printed for comparison only",
    "c1in": {
     "M1": 0,
     "M2": 0.000018184645146131515,
@@ -32526,7 +33696,7 @@
      "id": "v-MbRd<=McRd",
      "ok": true,
      "kind": "check",
-     "detail": "Mb,Rd 609.69 <= Mc,Rd 649.00 kN.m"
+     "detail": "Mb,Rd 559.56 <= Mc,Rd 649.00 kN.m"
     },
     {
      "id": "vi-governing",
@@ -32582,7 +33752,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 1246.9583,
+   "ms": 246.826,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -32647,7 +33817,6 @@
    "deflRatio": 0.3383458648254355,
    "unsupported": [],
    "advisory": [
-    "For biaxial bending, each web is conservatively classified using the uniform-compression limits in Table 5.2; no favourable biaxial stress distribution is assumed.",
     "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4."
    ],
    "warn": [],
@@ -32707,6 +33876,12 @@
      "ok": true,
      "kind": "check",
      "detail": "station x = 0.00 m (support 1, type (a), s_s 225.7 mm): independent F_Rd 892.4 vs engine 892.4 kN; F_Ed 65.2 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.073 = max station ratio 0.073"
+    },
+    {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.131: k_c 0.9402 vs engine 0.9402"
     },
     {
      "id": "iv-McrRatio",
@@ -32780,7 +33955,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 81.8486,
+   "ms": 12.7977,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -32845,7 +34020,6 @@
    "deflRatio": 0.3383458648254355,
    "unsupported": [],
    "advisory": [
-    "For biaxial bending, each web is conservatively classified using the uniform-compression limits in Table 5.2; no favourable biaxial stress distribution is assumed.",
     "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4."
    ],
    "warn": [],
@@ -32978,7 +34152,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 3694.7331,
+   "ms": 554.134,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -33076,6 +34250,12 @@
      "detail": "station x = 8.00 m (support 2, type (c), s_s 177.7 mm): independent F_Rd 381.5 vs engine 381.5 kN; F_Ed 70.4 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.184 = max station ratio 0.184"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.139: k_c 0.9371 vs engine 0.9371"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -33143,7 +34323,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 99.4652,
+   "ms": 19.5542,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -33309,7 +34489,7 @@
    "tags": [
     "2.10"
    ],
-   "ms": 1274.2661,
+   "ms": 196.0775,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -33407,6 +34587,12 @@
      "detail": "station x = 0.25 m (point load 2, type (a), s_s 0.0 mm): independent F_Rd 234.6 vs engine 234.6 kN; F_Ed 180.0 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.767 = max station ratio 0.767"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.135: k_c 0.9388 vs engine 0.9388"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -33471,7 +34657,7 @@
    "tags": [
     "2.10"
    ],
-   "ms": 75.2813,
+   "ms": 11.752,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -33633,7 +34819,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1310.6951,
+   "ms": 256.3254,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -33684,7 +34870,9 @@
    "advisory": [
     "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4."
    ],
-   "warn": [],
+   "warn": [
+    "C1 = 4.309 exceeds 2.76: kc = 1/sqrtC1 = 0.482 is floored at 1/sqrt2.76 = 0.602, the Table 6.6 lower bound (psi = -1 end-moment case), so the f-factor is not extrapolated beyond its calibrated range."
+   ],
    "mcrMethodReported": "eigen",
    "Mcr": 345.7600822315794,
    "McrStd": 200.5929213775837,
@@ -33729,6 +34917,12 @@
      "ok": true,
      "kind": "check",
      "detail": "station x = 0.00 m (support 1, type (c), s_s 146.1 mm): independent F_Rd 287.3 vs engine 287.3 kN; F_Ed 46.5 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.162 = max station ratio 0.162"
+    },
+    {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 4.309: k_c 0.6019 vs engine 0.6019 (floored at 0.602)"
     },
     {
      "id": "iv-McrRatio",
@@ -33795,7 +34989,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 90.6796,
+   "ms": 18.4401,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -33856,7 +35050,7 @@
    "chiLT": 1,
    "MbRd": 108.075,
    "c1route": "serna",
-   "ltbBasis": "Mcr method (SN003a closed form, k = kw = 1, G = 81000 N/mm&sup2;): lambdaLT = sqrt(Wyfy/Mcr) = 0.734, chiLT,mod from cl 6.3.2.3 curve b with kc = 1/sqrtC1 (NA 2.18); Mb,Rd = chiLT,modWyfy/M1 <= Mc,Rd. The P362 Expn 6.55 simplified slenderness (lambdaLT = 0.948, Mb,Rd = 103.1 kN.m) is printed for comparison only",
+   "ltbBasis": "Mcr method (SN003a closed form, k = kw = 1, G = 81000 N/mm&sup2;): lambdaLT = sqrt(Wyfy/Mcr) = 0.734, chiLT,mod from cl 6.3.2.3 curve b with kc = 1/sqrtC1 (NA 2.18); Mb,Rd = chiLT,modWyfy/M1 <= Mc,Rd. The P362 Expn 6.55 simplified slenderness (lambdaLT = 0.948, Mb,Rd = 97.6 kN.m) is printed for comparison only",
    "c1in": {
     "M1": 0,
     "M2": -93.07696021303298,
@@ -33958,7 +35152,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1495.1966,
+   "ms": 283.2003,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -34066,6 +35260,12 @@
      "detail": "no uplift in the governing combination; engine reports none (0 hold-down message(s))"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.310: k_c 0.8737 vs engine 0.8737"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -34134,7 +35334,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 104.9344,
+   "ms": 12.7599,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -34310,7 +35510,7 @@
    "tags": [
     "zg-mixed"
    ],
-   "ms": 1429.3548,
+   "ms": 200.4099,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -34420,6 +35620,12 @@
      "detail": "station x = 7.00 m (support 2, type (c), s_s 152.4 mm): independent F_Rd 310.5 vs engine 310.5 kN; F_Ed 35.7 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.115 = max station ratio 0.115"
     },
     {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 1.191: k_c 0.9163 vs engine 0.9163"
+    },
+    {
      "id": "iv-McrRatio",
      "ok": true,
      "kind": "flag",
@@ -34485,7 +35691,7 @@
    "tags": [
     "zg-mixed"
    ],
-   "ms": 76.4084,
+   "ms": 12.8508,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -34658,7 +35864,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1412.1218,
+   "ms": 238.0022,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -34709,7 +35915,9 @@
    "advisory": [
     "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4."
    ],
-   "warn": [],
+   "warn": [
+    "C1 = 4.562 exceeds 2.76: kc = 1/sqrtC1 = 0.468 is floored at 1/sqrt2.76 = 0.602, the Table 6.6 lower bound (psi = -1 end-moment case), so the f-factor is not extrapolated beyond its calibrated range."
+   ],
    "mcrMethodReported": "eigen",
    "Mcr": 2389.0458483832954,
    "McrStd": 2059.3864614499416,
@@ -34754,6 +35962,12 @@
      "ok": true,
      "kind": "check",
      "detail": "station x = 0.00 m (support 1, type (c), s_s 253.7 mm): independent F_Rd 870.4 vs engine 870.4 kN; F_Ed 294.3 kN (ULS: 1.35G + 1.5Q (Eq 6.10)); util 0.338 = max station ratio 0.338"
+    },
+    {
+     "id": "xi-kcFloor",
+     "ok": true,
+     "kind": "check",
+     "detail": "C1 4.562: k_c 0.6019 vs engine 0.6019 (floored at 0.602)"
     },
     {
      "id": "iv-McrRatio",
@@ -34817,7 +36031,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 93.1094,
+   "ms": 12.6235,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -34828,8 +36042,8 @@
    "uplift": [],
    "verdict": "PASS",
    "gov": {
-    "name": "Bending  M_Ed/M_c,Rd",
-    "val": 0.6206554121151936
+    "name": "LTB  M_Ed/M_b,Rd",
+    "val": 0.633695217449444
    },
    "utils": [
     {
@@ -34842,7 +36056,7 @@
     },
     {
      "name": "LTB  M_Ed/M_b,Rd",
-     "val": 0.6206554121151936
+     "val": 0.633695217449444
     },
     {
      "name": "Deflection",
@@ -34875,10 +36089,10 @@
    "McrRatio": null,
    "C1": 3.9324740502299065,
    "lamLT": 0.7660135142056583,
-   "chiLT": 1,
-   "MbRd": 1208.4,
+   "chiLT": 0.9794225915310926,
+   "MbRd": 1183.534259606172,
    "c1route": "serna",
-   "ltbBasis": "Mcr method (SN003a closed form, k = kw = 1, G = 81000 N/mm&sup2;): lambdaLT = sqrt(Wyfy/Mcr) = 0.766, chiLT,mod from cl 6.3.2.3 curve c with kc = 1/sqrtC1 (NA 2.18); Mb,Rd = chiLT,modWyfy/M1 <= Mc,Rd. The P362 Expn 6.55 simplified slenderness (lambdaLT = 0.952, Mb,Rd = 1057.9 kN.m) is printed for comparison only",
+   "ltbBasis": "Mcr method (SN003a closed form, k = kw = 1, G = 81000 N/mm&sup2;): lambdaLT = sqrt(Wyfy/Mcr) = 0.766, chiLT,mod from cl 6.3.2.3 curve c with kc = 1/sqrtC1 (NA 2.18); Mb,Rd = chiLT,modWyfy/M1 <= Mc,Rd. The P362 Expn 6.55 simplified slenderness (lambdaLT = 0.952, Mb,Rd = 997.1 kN.m) is printed for comparison only",
    "c1in": {
     "M1": -749.9999701006958,
     "M2": -749.9999705722803,
@@ -34925,13 +36139,13 @@
      "id": "v-MbRd<=McRd",
      "ok": true,
      "kind": "check",
-     "detail": "Mb,Rd 1208.40 <= Mc,Rd 1208.40 kN.m"
+     "detail": "Mb,Rd 1183.53 <= Mc,Rd 1208.40 kN.m"
     },
     {
      "id": "vi-governing",
      "ok": true,
      "kind": "check",
-     "detail": "gov Bending  M_Ed/M_c,Rd = 0.6207, max(utils) = 0.6207"
+     "detail": "gov LTB  M_Ed/M_b,Rd = 0.6337, max(utils) = 0.6337"
     }
    ],
    "checkFailures": [],
@@ -34985,7 +36199,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 1390.8229,
+   "ms": 211.0693,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -35172,7 +36386,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 122.759,
+   "ms": 21.7037,
    "nCombos": 1,
    "patterns": {
     "active": false,
@@ -35313,6 +36527,392 @@
     "2.8",
     "3.21",
     "3.8",
+    "3.1",
+    "3.2",
+    "3.3",
+    "3.6",
+    "3.4",
+    "2.18"
+   ],
+   "triggerMismatch": {
+    "missing": [],
+    "extra": []
+   }
+  },
+  {
+   "id": "PFC-20",
+   "title": "PFC 180x75x20, 4 m SS, full UDL + axial compression 50 kN, unrestrained (torsional-flexural buckling cl 6.3.1.4, G3 item 10)",
+   "section": "PFC 180x75x20",
+   "family": "pfc",
+   "restraint": "ltb",
+   "method": "eigen",
+   "expect": [
+    "1.3",
+    "1.9",
+    "2.1",
+    "2.3",
+    "2.11",
+    "2.15",
+    "2.16",
+    "3.1",
+    "3.2",
+    "3.3",
+    "3.4",
+    "3.6",
+    "3.9",
+    "3.10",
+    "3.12",
+    "3.19"
+   ],
+   "tags": [
+    "tfb"
+   ],
+   "ms": 228.1366,
+   "nCombos": 1,
+   "patterns": {
+    "active": false,
+    "nUls": 0,
+    "nSls": 0
+   },
+   "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
+   "uplift": [],
+   "verdict": "PASS",
+   "gov": {
+    "name": "Member buckling z-z (Eq 6.62)",
+    "val": 0.6908983193006526
+   },
+   "utils": [
+    {
+     "name": "Shear  V_Ed/V_c,Rd",
+     "val": 0.04832358983375493
+    },
+    {
+     "name": "Bending  M_Ed/M_c,Rd",
+     "val": 0.19085888466688705
+    },
+    {
+     "name": "LTB  M_Ed/M_b,Rd",
+     "val": 0.36119208137693604
+    },
+    {
+     "name": "Deflection",
+     "val": 0.20855057379723144
+    },
+    {
+     "name": "Compression  N_Ed/N_pl,Rd",
+     "val": 0.0702000702000702
+    },
+    {
+     "name": "Bending+axial cross-section (6.2.9)",
+     "val": 0.26105895486695724
+    },
+    {
+     "name": "Torsional-flexural buckling  N_Ed/N_b,T,Rd (6.3.1.4)",
+     "val": 0.129724456937219
+    },
+    {
+     "name": "Member buckling y-y (Eq 6.61)",
+     "val": 0.4897834412289304
+    },
+    {
+     "name": "Member buckling z-z (Eq 6.62)",
+     "val": 0.6908983193006526
+    },
+    {
+     "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
+     "val": 0.04993196745063161
+    },
+    {
+     "name": "Web transverse force + bending (EN 1993-1-5 7.2)",
+     "val": 0.07578001728691
+    }
+   ],
+   "cls": "Class 1",
+   "Mmax": 9.237570017877333,
+   "Vmax": 9.237570008938667,
+   "dmax": -2.317228597747016,
+   "McRd": 48.4,
+   "VplRd": 191.1606741286851,
+   "deflRatio": 0.20855057379723144,
+   "unsupported": [],
+   "advisory": [
+    "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4."
+   ],
+   "warn": [],
+   "mcrMethodReported": "eigen",
+   "Mcr": 41.49484690997905,
+   "McrStd": 40.77739305111439,
+   "McrRatio": 1.0175944023190826,
+   "C1": 1.129771461370724,
+   "lamLT": 1.080004580704106,
+   "chiLT": 0.528413812227818,
+   "MbRd": 25.575228511826392,
+   "c1route": "channel",
+   "ltbBasis": "elastic critical moment from the finite-element eigenvalue solution (4 DOF/node: v, v', , '; zg and zj included; 64 elements, Richardson-extrapolated)",
+   "c1in": {
+    "M1": 0,
+    "M2": 0,
+    "Mo": 9.237569076243023,
+    "psi": 1,
+    "mu": 300
+   },
+   "McrWhole": 41.49484690997905,
+   "spanGoverns": false,
+   "zg": 0,
+   "checks": [
+    {
+     "id": "i-Mmax",
+     "ok": true,
+     "kind": "check",
+     "detail": "ss: closed form 9.24 vs engine 9.24 kN.m"
+    },
+    {
+     "id": "i-dmax",
+     "ok": true,
+     "kind": "check",
+     "detail": "ss: closed form 2.317 vs engine 2.317 mm"
+    },
+    {
+     "id": "ii-equilibrium",
+     "ok": true,
+     "kind": "check",
+     "detail": "sum R = 18.475 kN, sum loads = -18.475 kN, residual 0.0000 kN"
+    },
+    {
+     "id": "vii-uplift",
+     "ok": true,
+     "kind": "check",
+     "detail": "no uplift in the governing combination; engine reports none (0 hold-down message(s))"
+    },
+    {
+     "id": "x-NbT",
+     "ok": true,
+     "kind": "check",
+     "detail": "y0 49.6 mm, N_cr,T 858.1, N_cr,TF 715.2 kN, lambda_T 0.998, curve c chi 0.541: N_b,T,Rd 385.4 vs engine 385.4 kN; verdict entry 0.130"
+    },
+    {
+     "id": "iv-McrRatio",
+     "ok": true,
+     "kind": "flag",
+     "detail": "Mcr eigen / standard = 1.018 (41.5 / 40.8 kN.m, route channel)"
+    },
+    {
+     "id": "v-MbRd<=McRd",
+     "ok": true,
+     "kind": "check",
+     "detail": "Mb,Rd 25.58 <= Mc,Rd 48.40 kN.m"
+    },
+    {
+     "id": "vi-governing",
+     "ok": true,
+     "kind": "check",
+     "detail": "gov Member buckling z-z (Eq 6.62) = 0.6909, max(utils) = 0.6909"
+    }
+   ],
+   "checkFailures": [],
+   "outlier": false,
+   "observed": [
+    "1.3",
+    "1.9",
+    "2.1",
+    "2.3",
+    "2.16",
+    "3.19",
+    "2.11",
+    "3.9",
+    "3.12",
+    "3.10",
+    "3.1",
+    "3.2",
+    "3.3",
+    "3.6",
+    "3.4",
+    "2.18"
+   ],
+   "triggerMismatch": {
+    "missing": [],
+    "extra": []
+   },
+   "McrRatioRuns": 1.0175944023190826
+  },
+  {
+   "id": "PFC-20",
+   "title": "PFC 180x75x20, 4 m SS, full UDL + axial compression 50 kN, unrestrained (torsional-flexural buckling cl 6.3.1.4, G3 item 10)",
+   "section": "PFC 180x75x20",
+   "family": "pfc",
+   "restraint": "ltb",
+   "method": "standard",
+   "expect": [
+    "1.3",
+    "1.9",
+    "2.1",
+    "2.3",
+    "2.11",
+    "2.15",
+    "2.16",
+    "3.1",
+    "3.2",
+    "3.3",
+    "3.4",
+    "3.6",
+    "3.9",
+    "3.10",
+    "3.12",
+    "3.19"
+   ],
+   "tags": [
+    "tfb"
+   ],
+   "ms": 20.7793,
+   "nCombos": 1,
+   "patterns": {
+    "active": false,
+    "nUls": 0,
+    "nSls": 0
+   },
+   "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
+   "uplift": [],
+   "verdict": "FAIL",
+   "gov": {
+    "name": "Member buckling z-z (Eq 6.62)",
+    "val": 1.0284331682833527
+   },
+   "utils": [
+    {
+     "name": "Shear  V_Ed/V_c,Rd",
+     "val": 0.04832358983375493
+    },
+    {
+     "name": "Bending  M_Ed/M_c,Rd",
+     "val": 0.19085888466688705
+    },
+    {
+     "name": "LTB  M_Ed/M_b,Rd",
+     "val": 0.7070886776733277
+    },
+    {
+     "name": "Deflection",
+     "val": 0.20855057379723144
+    },
+    {
+     "name": "Compression  N_Ed/N_pl,Rd",
+     "val": 0.0702000702000702
+    },
+    {
+     "name": "Bending+axial cross-section (6.2.9)",
+     "val": 0.26105895486695724
+    },
+    {
+     "name": "Torsional-flexural buckling  N_Ed/N_b,T,Rd (6.3.1.4)",
+     "val": 0.129724456937219
+    },
+    {
+     "name": "Member buckling y-y (Eq 6.61)",
+     "val": 0.8345949239659151
+    },
+    {
+     "name": "Member buckling z-z (Eq 6.62)",
+     "val": 1.0284331682833527
+    },
+    {
+     "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
+     "val": 0.04993196745063161
+    },
+    {
+     "name": "Web transverse force + bending (EN 1993-1-5 7.2)",
+     "val": 0.07578001728691
+    }
+   ],
+   "cls": "Class 1",
+   "Mmax": 9.237570017877333,
+   "Vmax": 9.237570008938667,
+   "dmax": -2.317228597747016,
+   "McRd": 48.4,
+   "VplRd": 191.1606741286851,
+   "deflRatio": 0.20855057379723144,
+   "unsupported": [],
+   "advisory": [
+    "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4."
+   ],
+   "warn": [],
+   "mcrMethodReported": "standard",
+   "Mcr": 40.77739305111439,
+   "McrStd": 40.77739305111439,
+   "McrRatio": null,
+   "C1": 1.127,
+   "lamLT": 1.750700280112045,
+   "chiLT": 0.2699221338049244,
+   "MbRd": 13.064231276158342,
+   "c1route": "channel",
+   "ltbBasis": "P385/P362 channel  chain, lambdaLT = (LE/iz)/, curve d, no f-factor; Mb,Rd = chiLTWyfy/M1 <= Mc,Rd",
+   "c1in": {
+    "M1": 0,
+    "M2": 0,
+    "Mo": 9.237569076243023,
+    "psi": 1,
+    "mu": 300
+   },
+   "stdBasis": "channel kappa chain",
+   "zg": 0,
+   "zgUsed": false,
+   "zgBlocked": false,
+   "checks": [
+    {
+     "id": "i-Mmax",
+     "ok": true,
+     "kind": "check",
+     "detail": "ss: closed form 9.24 vs engine 9.24 kN.m"
+    },
+    {
+     "id": "i-dmax",
+     "ok": true,
+     "kind": "check",
+     "detail": "ss: closed form 2.317 vs engine 2.317 mm"
+    },
+    {
+     "id": "ii-equilibrium",
+     "ok": true,
+     "kind": "check",
+     "detail": "sum R = 18.475 kN, sum loads = -18.475 kN, residual 0.0000 kN"
+    },
+    {
+     "id": "vii-uplift",
+     "ok": true,
+     "kind": "check",
+     "detail": "no uplift in the governing combination; engine reports none (0 hold-down message(s))"
+    },
+    {
+     "id": "x-NbT",
+     "ok": true,
+     "kind": "check",
+     "detail": "y0 49.6 mm, N_cr,T 858.1, N_cr,TF 715.2 kN, lambda_T 0.998, curve c chi 0.541: N_b,T,Rd 385.4 vs engine 385.4 kN; verdict entry 0.130"
+    },
+    {
+     "id": "v-MbRd<=McRd",
+     "ok": true,
+     "kind": "check",
+     "detail": "Mb,Rd 13.06 <= Mc,Rd 48.40 kN.m"
+    },
+    {
+     "id": "vi-governing",
+     "ok": true,
+     "kind": "check",
+     "detail": "gov Member buckling z-z (Eq 6.62) = 1.0284, max(utils) = 1.0284"
+    }
+   ],
+   "checkFailures": [],
+   "outlier": false,
+   "observed": [
+    "1.3",
+    "1.9",
+    "2.1",
+    "2.3",
+    "2.16",
+    "3.19",
+    "2.11",
+    "3.9",
+    "3.12",
+    "3.10",
     "3.1",
     "3.2",
     "3.3",

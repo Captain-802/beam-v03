@@ -95,7 +95,7 @@ function msbNcr(E,I_cm4,L_mm){ return Math.PI*Math.PI*E*I_cm4*1e4/(L_mm*L_mm)/10
 // characteristic resistances used by the cl 6.3.3 ratios
 function msbNRk(sec,fy){ return sec.A*100*fy/1000; }           // kN
 function msbMyRk(Wy,fy){ return Wy*fy/1e6; }                   // kN.m (Wy mm3)
-function msbKc(C1){ return Math.min(1/Math.sqrt(Math.max(C1,1e-6)),1); }
+function msbKc(C1){ return (typeof kcFromC1==='function')? kcFromC1(C1).kc : Math.max(Math.min(1/Math.sqrt(Math.max(C1,1e-6)),1),1/Math.sqrt(2.76)); }   // NA 2.18 with the Table 6.6 floor 0.60
 // cl 6.2.8(3) shear reduction factor
 function msbRhoShear(V,Vpl){ return Math.min(Math.pow(2*V/Math.max(Vpl,1e-9)-1,2),1); }
 // reduced plastic modulus back-substituted from M_N,Rd, cm3
@@ -316,12 +316,24 @@ function renderMasterSeriesBrief(a,c,sec){
   h+=msbRow('Class = Fn(c/t, d/t, f<sub>y</sub>, N, M<sub>y</sub>, M<sub>z</sub>)',
     f1(sec.bT,2)+', '+f1(sec.dt,2)+', '+msbInt(c.fy)+', '+f1(Math.abs(N),2)+', '+f1(c.Mx,2)+', '+f1(Math.abs(S.Mz||0),2)+'<span class="ms-inline-tag">'+msbAxialTag(sec,c.eps)+'</span>',
     '', clsTag);
-  if(c.cl.webCase && c.cl.webCase!=='bending'){
+  if((c.cl.webCase && c.cl.webCase!=='bending') || c.cl.mzStress){
     const wl=c.cl.wlim||[];
+    const mzWeb = c.cl.mzStress? ' (M<sub>z</sub> does not stress the web of an I/H section: it lies on the z-z axis)' : '';
     h+=msbRow('Web classified for', c.cl.webCase==='bending+compression'
-      ? 'bending + compression: &alpha; = '+f1(c.cl.alphaW,3)+', &psi; = '+f1(c.cl.psiW,3)+'; limits '+g(wl[0],1)+'&epsilon; / '+g(wl[1],1)+'&epsilon; / '+g(wl[2],1)+'&epsilon;'
+      ? 'bending + compression: &alpha; = '+f1(c.cl.alphaW,3)+', &psi; = '+f1(c.cl.psiW,3)+'; limits '+g(wl[0],1)+'&epsilon; / '+g(wl[1],1)+'&epsilon; / '+g(wl[2],1)+'&epsilon;'+mzWeb
+      : c.cl.webCase==='bending'? 'y-y bending: limits 72&epsilon; / 83&epsilon; / 124&epsilon;'+mzWeb
       : 'biaxial: uniform-compression web bound; limits '+g(wl[0],1)+'&epsilon; / '+g(wl[1],1)+'&epsilon; / '+g(wl[2],1)+'&epsilon;',
       'Class '+c.cl.wc, 'Table 5.2');
+  }
+  // [beam-v03 addition, 19 Sep 2026 G3] I/H flange outstands under M_y + M_z: the outstand compressed by M_z is wholly in compression (alpha = 1)
+  if(c.cl.mzStress){
+    const ms=c.cl.mzStress;
+    h+=msbRow('Flange outstands under M<sub>y</sub> + M<sub>z</sub> (+N)', '&sigma; = N/A + M<sub>y</sub>/W<sub>el.y</sub> &plusmn; M<sub>z</sub>y/I<sub>z</sub>: outstand compressed by M<sub>z</sub>: root '+f1(ms.compRoot,1)+', tip '+f1(ms.compTip,1)+' N/mm&sup2; (both compressive, &alpha; = 1 &rarr; 9&epsilon;/&alpha;, 10&epsilon;/&alpha;, 21&epsilon;&radic;k<sub>&sigma;</sub> &ge; 9&epsilon;/10&epsilon;/14&epsilon; bound kept); opposite outstand: root '+f1(ms.relRoot,1)+', tip '+f1(ms.relTip,1)+' N/mm&sup2; ('+ms.relState+', laxer limits, does not govern)', 'Class '+c.cl.fc, 'Table 5.2 sheet 2');
+  }
+  // [beam-v03 addition, 19 Sep 2026 G3] effective area of a Class-4 web in uniform compression (EN 1993-1-5 4.4)
+  if(c.aeff && c.aeff.active){
+    const ae=c.aeff;
+    h+=msbRow('A<sub>eff</sub> = A &minus; '+(ae.nWebs>1? '2':'')+'(1 &minus; &rho;)b&#772;t<sub>w</sub>', 'web Class 4 in uniform compression: d/t = '+f1(ae.dt,2)+' &gt; 42&epsilon; = '+f1(ae.limit,2)+'; &lambda;&#772;<sub>p</sub> = (b&#772;/t)/(28.4&epsilon;&radic;k<sub>&sigma;</sub>) = '+f1(ae.dt,2)+'/(28.4 x '+f1(ae.eps,3)+' x &radic;4) = '+msbR(ae.lamP)+'; &rho; = (&lambda;&#772;<sub>p</sub> &minus; 0.055(3+&psi;))/&lambda;&#772;<sub>p</sub>&sup2; = '+msbR(ae.rho)+' (&psi; = 1); b<sub>eff</sub> = '+msbMM(ae.beff)+' mm = b<sub>e1</sub> + b<sub>e2</sub> = 2 x '+msbMM(ae.be1)+'; '+f1(ae.A/100,2)+' &minus; '+(ae.nWebs>1? '2 x ':'')+f1(ae.bineff*ae.tw/100,2)+' cm&sup2; (e<sub>N</sub> = 0, symmetric)', f1(ae.Aeff/100,2)+' cm&sup2;', 'EN 1993-1-5 4.4');
   }
   const ulsIdx=a.ulsResults.map((r,i)=>i+1), slsIdx=a.slsResults.map((r,i)=>i+1);
   h+=msbRow('Auto Design Load Cases', msbCaseRanges(ulsIdx)+(slsIdx.length? '; SLS '+msbCaseRanges(slsIdx) : '')+(a.patterns&&a.patterns.active? ' (incl. '+a.patterns.nUls+' + '+a.patterns.nSls+' automatic patterns)' : ''),'','');
@@ -338,15 +350,25 @@ function renderMasterSeriesBrief(a,c,sec){
     h+=msbRow('&rho; = (2V<sub>y.Ed</sub>/V<sub>pl'+(T&&T.VplTRd!=null?'.T':'')+'.Rd</sub> &minus; 1)&sup2;', '(2 x '+msbKN(c.VatM)+'/'+msbKN(VplMoment)+' &minus; 1)&sup2;', msbR(msbRhoShear(c.VatM,VplMoment)), '6.2.8(3)');
   }
   const Wlbl= cls<=2? 'W<sub>pl.y</sub>' : 'W<sub>el.y</sub>';
-  h+=msbRow(hsReduced? 'M<sub>v.y.Rd</sub> = (W<sub>pl.y</sub> &minus; &rho;A<sub>v</sub>&sup2;/4t<sub>w</sub>)f<sub>y</sub>/&gamma;<sub>M0</sub>' : 'M<sub>c.y.Rd</sub> = f<sub>y</sub>.'+Wlbl+'/&gamma;<sub>M0</sub>',
-    msbInt(c.fy)+' x '+f1(Wy_cm3,1)+'/1', msbKNm(c.McRd)+' kN.m', hsReduced? '6.2.8' : '');
+  h+=msbRow(hsReduced? 'M<sub>v.y.Rd</sub> = '+(c.mvForm||'(W<sub>pl.y</sub> &minus; &rho;A<sub>v</sub>&sup2;/4t<sub>w</sub>)f<sub>y</sub>/&gamma;<sub>M0</sub>') : 'M<sub>c.y.Rd</sub> = f<sub>y</sub>.'+Wlbl+'/&gamma;<sub>M0</sub>',
+    msbInt(c.fy)+' x '+f1(Wy_cm3,1)+'/1'+(hsReduced&&c.rhoAtM!=null? ' with &rho; = '+msbR(c.rhoAtM) : ''), msbKNm(c.McRd)+' kN.m', hsReduced? '6.2.8' : '');
   h+=msbRow('M<sub>y.Ed</sub>/M<sub>c.y.Rd</sub>', msbKNm(c.Mx)+' / '+msbKNm(c.McRd)+' =', msbR(c.momUtil), msbWarn(c.momUtil<=1.0001));
   if(c.coex){
     const cx=c.coex;
     h+=msbRow('M<sub>y.Ed</sub>/M<sub>v.y.Rd</sub> @ x', cx.pureShearFail
       ? '@ x = '+msbM(cx.x/1000)+' m: V<sub>Ed</sub> = '+msbKN(cx.V)+' &gt; V<sub>pl.Rd</sub> = '+msbKN(cx.VplRd)+': pure shear governs'
-      : '@ x = '+msbM(cx.x/1000)+' m: M = '+msbKNm(cx.M)+', V = '+msbKN(cx.V)+' &gt; 0.5V<sub>pl.Rd</sub>; M<sub>v.y.Rd</sub> = '+msbKNm(cx.MvRd),
+      : '@ x = '+msbM(cx.x/1000)+' m: M = '+msbKNm(cx.M)+', V = '+msbKN(cx.V)+' &gt; 0.5V<sub>pl.Rd</sub>; &rho; = '+msbR(cx.rho||0)+'; M<sub>v.y.Rd</sub> = '+(cx.form||'')+' = '+msbKNm(cx.MvRd),
       msbR(cx.u), msbWarn(cx.u<=1.0001));
+  }
+  // [beam-v03 addition, 19 Sep 2026 G3] cl 6.2.10: bending + shear + axial / minor-axis at the worst high-shear station
+  if(c.mvn){
+    const m=c.mvn;
+    const lbl= m.plastic? (m.biax? '(M<sub>y.Ed</sub>/M<sub>N.V.y.Rd</sub>)<sup>&alpha;</sup>+(M<sub>z.Ed</sub>/M<sub>N.V.z.Rd</sub>)<sup>&beta;</sup> @ x' : 'M<sub>y.Ed</sub>/M<sub>N.V.y.Rd</sub> @ x')
+                        : 'N<sub>Ed</sub>/N<sub>V.Rd</sub> + M<sub>y.Ed</sub>/M<sub>v.y.Rd</sub>'+(m.biax? ' + M<sub>z.Ed</sub>/M<sub>v.z.Rd</sub>' : '')+' @ x';
+    const vals='@ x = '+msbM(m.x/1000)+' m ('+msbEsc(m.combo)+'): V = '+msbKN(m.V)+', &rho; = '+msbR(m.rho)+'; N<sub>V.Rd</sub> = (A &minus; &rho;A<sub>v</sub>)f<sub>y</sub> = '+msbKN(m.NV)+', n<sub>V</sub> = '+msbR(m.nV)+'; M<sub>v.y.Rd</sub> = '+msbEsc(m.formY)+' = '+msbKNm(m.MvY)+(m.biax? '; M<sub>v.z.Rd</sub> = '+msbEsc(m.formZ)+' = '+msbKNm(m.MvZ) : '')+
+      (m.plastic? '; a<sub>V</sub> = '+msbR(m.aV)+(m.afV!=null? ', a<sub>f.V</sub> = '+msbR(m.afV) : '')+(m.waiver? '; 6.2.9.1(4): no reduction (N &le; 0.25N<sub>V.Rd</sub>, N &le; 0.5h<sub>w</sub>t<sub>w</sub>(1&minus;&rho;)f<sub>y</sub>)' : '')+'; M<sub>N.V.y.Rd</sub> = '+msbKNm(m.MNVy)+(m.biax? ', M<sub>N.V.z.Rd</sub> = '+msbKNm(m.MNVz)+', &alpha; = '+g(m.alpha,2)+', &beta; = '+g(m.beta,2) : '') : '')+
+      '; M<sub>y</sub> = '+msbKNm(m.M)+(m.biax? ', M<sub>z</sub> = '+msbKNm(m.Mz) : '')+', N = '+msbKN(m.N)+' ('+msbEsc(m.form)+')';
+    h+=msbRow(lbl, vals, msbR(m.u), msbWarn(m.u<=1.0001)+' 6.2.10');
   }
   if(AX){
     // V_pl.z.Rd, A_v,z and M_c.z.Rd are engine values (c.ax, cl 6.2.6(3) / 6.2.5)
@@ -355,9 +377,13 @@ function renderMasterSeriesBrief(a,c,sec){
     if(AX.Mcz!=null) h+=msbRow('M<sub>c.z.Rd</sub> = f<sub>y</sub>.'+(cls<=2? 'W<sub>pl.z</sub>':'W<sub>el.z</sub>')+'/&gamma;<sub>M0</sub>', msbInt(c.fy)+' x '+f1(cls<=2? sec.Sy : sec.Zy,1)+'/1', msbKNm(AX.Mcz)+' kN.m', '');
     else h+=msbRow('M<sub>c.z.Rd</sub>', 'not evaluated by the engine', '&mdash;', 'not evaluated');
     h+=msbRow('N<sub>pl.Rd</sub> = A<sub>g</sub>.f<sub>y</sub>/&gamma;<sub>M0</sub>', f1(sec.A,2)+' x '+msbInt(c.fy)+'/1 = (No bearing / block tearing design)', msbKN(AX.NplRd)+' kN', '');
+    if(AX.aeff && AX.aeff.active) h+=msbRow('N<sub>c.Rd</sub> = A<sub>eff</sub>.f<sub>y</sub>/&gamma;<sub>M0</sub>', f1(AX.aeff.Aeff/100,2)+' x '+msbInt(c.fy)+'/1 (Class-4 web in uniform compression, cl 6.2.4(2))', msbKN(AX.NcRd)+' kN', '6.2.4');
     if(AX.tension && S.anet!=null) h+=msbRow('N<sub>u.Rd</sub> = 0.9A<sub>net</sub>f<sub>u</sub>/&gamma;<sub>M2</sub>', '0.9 x '+f1(S.anet,2)+' x '+msbInt(fuFromGrade(S.grade))+'/1.10', msbKN(AX.NuRd)+' kN', '&gamma;<sub>M2</sub> = 1.10 (UK NA)');
     if(AX.tension) h+=msbRow('n = N<sub>Ed</sub>/N<sub>t.Rd</sub>', f1(-Math.abs(N),3)+' / '+msbKN(AX.NtRd)+' =', msbR(AX.nUtil), msbWarn(AX.nUtil<=1.0001));
-    else h+=msbRow('n = N<sub>Ed</sub>/N<sub>pl.Rd</sub>', f1(N,3)+' / '+msbKN(AX.NplRd)+' =', msbR(AX.n), msbWarn(AX.nUtil<=1.0001));
+    else if(AX.aeff && AX.aeff.active){
+      h+=msbRow('n = N<sub>Ed</sub>/N<sub>pl.Rd</sub>', f1(N,3)+' / '+msbKN(AX.NplRd)+' = (parameter of the 6.2.9 interaction)', msbR(AX.n), '');
+      h+=msbRow('N<sub>Ed</sub>/N<sub>c.Rd</sub>', f1(N,3)+' / '+msbKN(AX.NcRd)+' =', msbR(AX.nUtil), msbWarn(AX.nUtil<=1.0001));
+    } else h+=msbRow('n = N<sub>Ed</sub>/N<sub>pl.Rd</sub>', f1(N,3)+' / '+msbKN(AX.NplRd)+' =', msbR(AX.n), msbWarn(AX.nUtil<=1.0001));
     if(AX.cls3){
       h+=msbRow('W<sub>el.y</sub>', 'Class 3: elastic (cl 6.2.9.2)', f1(sec.Zx,1)+' cm&sup3;', '');
       h+=msbRow('M<sub>el.y.Rd</sub> = W<sub>el.y</sub>.f<sub>y</sub>/&gamma;<sub>M0</sub>', f1(sec.Zx,1)+' x '+msbInt(c.fy)+'/1', msbKNm(AX.MN)+' kN.m', '');
@@ -390,11 +416,23 @@ function renderMasterSeriesBrief(a,c,sec){
     const NcrY=msbNcr(a.E,sec.Ix,B.LcrY), NcrZ=msbNcr(a.E,sec.Iy,B.LcrZ);
     const Ky=(B.Ky!=null? B.Ky : S.leFactor);
     h+=msbRow('L<sub>ey</sub> = K<sub>y</sub>.L<sub>y</sub>', g(Ky,2)+' x '+msbM(S.L)+' ='+(B.cantStrut? ' ('+msbEsc(B.lcrBasis)+')' : ''), msbM(B.LcrY/1000)+' m', B.cantStrut? (B.leOverride? 'user L<sub>E</sub>' : 'cantilever 2.0L') : '');
-    h+=msbRow('&lambda;&#772;<sub>y</sub> = &radic;A.f<sub>y</sub>/N<sub>cr</sub>', '&radic;'+f1(sec.A,2)+'x'+msbInt(c.fy)+'/'+f1(NcrY,2)+' (N<sub>cr,y</sub> = &pi;&sup2;EI<sub>y</sub>/L<sub>ey</sub>&sup2;)', msbR(B.lamY), '');
-    h+=msbRow('N<sub>b.y.Rd</sub> = Area.&chi;.f<sub>y</sub>/&gamma;<sub>M1</sub>', f1(sec.A,2)+'x'+msbR(B.chiY)+'x'+msbInt(c.fy)+'/10/1 =', msbKN(B.NbY)+' kN', 'Curve '+B.cvY.curve);
+    const Acm=(B.aeffOn? B.Aeff : sec.A*100)/100, Albl=B.aeffOn? 'A<sub>eff</sub>' : 'A';
+    if(B.aeffOn) h+=msbRow('A<sub>eff</sub> (Class-4 web in uniform compression)', 'N<sub>Rk</sub> = A<sub>eff</sub>f<sub>y</sub>; &lambda;&#772; = &radic;(A<sub>eff</sub>f<sub>y</sub>/N<sub>cr</sub>) (6.3.1.3(1)); Table 6.7 Class-4 column with W<sub>eff.y</sub> = W<sub>el.y</sub> (flanges Class &le; 3; web Class 4 only in uniform compression, e<sub>N</sub> = 0) [assumption printed]', f1(Acm,2)+' cm&sup2;', 'EN 1993-1-5 4.4');
+    h+=msbRow('&lambda;&#772;<sub>y</sub> = &radic;'+Albl+'.f<sub>y</sub>/N<sub>cr</sub>', '&radic;'+f1(Acm,2)+'x'+msbInt(c.fy)+'/'+f1(NcrY,2)+' (N<sub>cr,y</sub> = &pi;&sup2;EI<sub>y</sub>/L<sub>ey</sub>&sup2;)', msbR(B.lamY), '');
+    h+=msbRow('N<sub>b.y.Rd</sub> = '+(B.aeffOn? 'A<sub>eff</sub>' : 'Area')+'.&chi;.f<sub>y</sub>/&gamma;<sub>M1</sub>', f1(Acm,2)+'x'+msbR(B.chiY)+'x'+msbInt(c.fy)+'/10/1 =', msbKN(B.NbY)+' kN', 'Curve '+B.cvY.curve);
     h+=msbRow('L<sub>ez</sub> = K<sub>z</sub>.L<sub>z</sub>', B.lczFromRestraints? 'largest lateral-restraint spacing =' : g(Ky,2)+' x '+msbM(S.L)+' =', msbM(B.LcrZ/1000)+' m', B.lczFromRestraints? 'P360 6.2' : (B.cantStrut? (B.leOverride? 'user L<sub>E</sub>' : 'cantilever 2.0L') : ''));
-    h+=msbRow('&lambda;&#772;<sub>z</sub> = &radic;A.f<sub>y</sub>/N<sub>crz</sub>', '&radic;'+f1(sec.A,2)+'x'+msbInt(c.fy)+'/'+f1(NcrZ,2)+' (N<sub>cr,z</sub> = &pi;&sup2;EI<sub>z</sub>/L<sub>ez</sub>&sup2;)', msbR(B.lamZ), '');
-    h+=msbRow('N<sub>b.z.Rd</sub> = Area.&chi;.f<sub>y</sub>/&gamma;<sub>M1</sub>', f1(sec.A,2)+'x'+msbR(B.chiZ)+'x'+msbInt(c.fy)+'/10/1 =', msbKN(B.NbZ)+' kN', 'Curve '+B.cvZ.curve);
+    h+=msbRow('&lambda;&#772;<sub>z</sub> = &radic;'+Albl+'.f<sub>y</sub>/N<sub>crz</sub>', '&radic;'+f1(Acm,2)+'x'+msbInt(c.fy)+'/'+f1(NcrZ,2)+' (N<sub>cr,z</sub> = &pi;&sup2;EI<sub>z</sub>/L<sub>ez</sub>&sup2;)', msbR(B.lamZ), '');
+    h+=msbRow('N<sub>b.z.Rd</sub> = '+(B.aeffOn? 'A<sub>eff</sub>' : 'Area')+'.&chi;.f<sub>y</sub>/&gamma;<sub>M1</sub>', f1(Acm,2)+'x'+msbR(B.chiZ)+'x'+msbInt(c.fy)+'/10/1 =', msbKN(B.NbZ)+' kN', 'Curve '+B.cvZ.curve);
+    // [beam-v03 addition, 19 Sep 2026 G3] channel: torsional / torsional-flexural buckling (cl 6.3.1.4)
+    if(B.tfb && B.tfb.ok){
+      const t=B.tfb;
+      h+=msbRow('i<sub>0</sub>&sup2; = i<sub>y</sub>&sup2; + i<sub>z</sub>&sup2; + y<sub>0</sub>&sup2;', f1(t.iy,2)+'&sup2; + '+f1(t.iz,2)+'&sup2; + '+f1(t.y0,2)+'&sup2; (y<sub>0</sub> = '+msbEsc(t.y0Src)+')', f1(t.i0sq,1)+' mm&sup2;', '6.3.1.4');
+      h+=msbRow('N<sub>cr.T</sub> = (GI<sub>T</sub> + &pi;&sup2;EI<sub>w</sub>/L<sub>T</sub>&sup2;)/i<sub>0</sub>&sup2;', '(81000 x '+g(t.IT/1e4,2)+'e4 + &pi;&sup2; x '+msbInt(a.E)+' x '+g(t.Iw/1e12,5)+'e12/'+g(t.LT,0)+'&sup2;)/'+f1(t.i0sq,1)+' (I<sub>T</sub>, I<sub>w</sub>: '+msbEsc(t.ITSrc)+'; L<sub>T</sub> = '+msbM(t.LT/1000)+' m = '+msbEsc(t.LTSrc)+')', msbKN(t.NcrT)+' kN', '6.3.1.4');
+      h+=msbRow('N<sub>cr.TF</sub> = (N<sub>cr.y</sub> + N<sub>cr.T</sub>)/2&beta; [1 &minus; &radic;(1 &minus; 4&beta;N<sub>cr.y</sub>N<sub>cr.T</sub>/(N<sub>cr.y</sub> + N<sub>cr.T</sub>)&sup2;)]', 'N<sub>cr.y</sub> = '+msbKN(t.NcrY)+' (flexure about the axis of symmetry y-y, L<sub>ey</sub>), &beta; = 1 &minus; (y<sub>0</sub>/i<sub>0</sub>)&sup2; = '+msbR(t.beta)+'; N<sub>cr</sub> = min(N<sub>cr.T</sub>, N<sub>cr.TF</sub>) = '+msbKN(t.Ncr)+' ('+t.mode+' mode)', msbKN(t.NcrTF)+' kN', '6.3.1.4');
+      h+=msbRow('&lambda;&#772;<sub>T</sub> = &radic;A.f<sub>y</sub>/N<sub>cr</sub>', '&radic;'+f1(sec.A,2)+'x'+msbInt(c.fy)+'/'+msbKN(t.Ncr), msbR(t.lamT), '');
+      h+=msbRow('N<sub>b.T.Rd</sub> = Area.&chi;<sub>T</sub>.f<sub>y</sub>/&gamma;<sub>M1</sub>', f1(sec.A,2)+'x'+msbR(t.chiT)+'x'+msbInt(c.fy)+'/10/1 = (curve related to z-z: Table 6.2 U-sections, any axis [verify])', msbKN(t.NbT)+' kN', 'Curve '+t.cvT.curve);
+      h+=msbRow('N<sub>Ed</sub>/N<sub>b.T.Rd</sub>', msbKN(B.Fc)+' / '+msbKN(t.NbT)+' = (the lower of &chi;<sub>T</sub> and the flexural &chi; feeds U<sub>N.y</sub>, U<sub>N.z</sub>)', msbR(t.util), msbWarn(t.util<=1.0001));
+    }
     h+=msbNotVerifiedRows(nv.compression);
   }
 
@@ -486,7 +524,7 @@ function renderMasterSeriesBrief(a,c,sec){
       } else {
         if(LT.ign) h+=ignLine(lam);
         else h+=chiLine(lam,LT.Phi,LT.curve.alphaLT,LT.chi,LT.curve.curve);
-        h+=chiModLine(LT.chi,lam,LT.kc,LT.f,LT.chiMod,isCant? 'f = 1 (cantilever)' : '6.3.2.3');
+        h+=chiModLine(LT.chi,lam,LT.kc,LT.f,LT.chiMod,isCant? 'f = 1 (cantilever)' : (LT.kcFloored? '6.3.2.3; k<sub>c</sub> floored at 0.60 (Table 6.6)' : '6.3.2.3'));
         h+=mbLine(LT.chiMod,LT.MbRd);
         h+=ratioLine(LT.MxGov!=null? LT.MxGov : c.Mx, LT.MbRd);
       }
@@ -522,7 +560,7 @@ function renderMasterSeriesBrief(a,c,sec){
     h+=msbRow('M<sub>cr</sub> = Fn(C<sub>1</sub>, L<sub>e</sub>, I<sub>z</sub>, I<sub>t</sub>, I<sub>w</sub>, E)', msbR(c.C1)+', '+f1(c.LE/1000,3)+', '+g(sec.Iy,2)+', '+g(sec.J,2)+', '+g(sec.Iw||0,4)+', '+msbInt(a.E)+(LT.zgUsed? ', C<sub>2</sub>z<sub>g</sub> = '+g(LT.C2*LT.zg,1)+' mm' : '')+'; '+msbEsc(LT.zgNote||''), msbKNm(LT.Mcr)+' kN.m', LT.zgBlocked? '<span class="ms-warn">BLOCKED</span>' : 'SN003a');
     h+=lamLine(LT.lamLTmcr,LT.Mcr);
     if(LT.ignM) h+=ignLine(LT.lamLTmcr); else h+=chiLine(LT.lamLTmcr,LT.PhiM,LT.curve.alphaLT,LT.chiM,LT.curve.curve);
-    h+=chiModLine(LT.chiM,LT.lamLTmcr,LT.kc,LT.fM,LT.chiModM,'6.3.2.3');
+    h+=chiModLine(LT.chiM,LT.lamLTmcr,LT.kc,LT.fM,LT.chiModM,LT.kcFloored? '6.3.2.3; k<sub>c</sub> floored at 0.60 (Table 6.6)' : '6.3.2.3');
     h+=mbLine(LT.chiModM,LT.MbRd);
     // [beam-v03 addition] the P362 Expn 6.55 simplified slenderness, comparison only (never the design basis)
     h+=msbRow('&lambda;&#772;<sub>LT</sub> (P362 6.55 simplified) ; M<sub>b.Rd</sub> (comparison only)', '(1/&radic;C<sub>1</sub>)0.9&lambda;&#772;<sub>z</sub>&radic;&beta;<sub>w</sub> = '+msbR(LT.lamLTsimp)+'; &chi;<sub>LT.mod</sub> = '+msbR(LT.chiModS)+'; M<sub>y.Ed</sub>/M<sub>b.Rd,simp</sub> = '+msbR(c.Mx/Math.max(LT.MbSimp,1e-9)), msbKNm(LT.MbSimp)+' kN.m', 'P362 6.55 comparison');
@@ -531,29 +569,48 @@ function renderMasterSeriesBrief(a,c,sec){
   h+=msbNotVerifiedRows(nv.ltb);
 
   /* ---- 7.2 portion table ---- */
-  if(LT && LT.segments && LT.segments.length){
-    let worst=null; LT.segments.forEach(s2=>{ if(s2.ok && (!worst||s2.util>worst.util)) worst=s2; });
-    h+=msbHead('Lateral Restraint Portions (span by span, fork ends)');
-    h+='<table class="ms-combos"><thead><tr><th>Portion</th><th>From &ndash; To (m)</th><th>L<sub>e</sub> (m)</th><th>M<sub>y.Ed</sub> (kN.m)</th><th>M<sub>cr</sub> (kN.m)</th><th>&lambda;&#772;<sub>LT</sub></th><th>&chi;<sub>LT</sub></th><th>M<sub>b.Rd</sub> (kN.m)</th><th>M<sub>y.Ed</sub>/M<sub>b.Rd</sub></th><th></th></tr></thead><tbody>'+
-       LT.segments.map((s2,i)=>'<tr><td class="num">'+(i+1)+'</td><td class="num">'+msbM(s2.a/1000)+' &ndash; '+msbM(s2.b/1000)+'</td><td class="num">'+msbM((s2.b-s2.a)/1000)+'</td>'+
-         (s2.ok? '<td class="num">'+msbKNm(s2.Ms)+'</td><td class="num">'+msbKNm(s2.Mcr)+'</td><td class="num">'+msbR(s2.lam)+'</td><td class="num">'+msbR(s2.chi)+'</td><td class="num">'+msbKNm(s2.Mb)+'</td><td class="num">'+msbR(s2.util)+'</td><td>'+(s2===worst? (LT.spanGoverns? 'governs' : 'worst segment') : '')+'</td>'
-                : '<td colspan="7">not solved: '+msbEsc(s2.err)+'</td>')+'</tr>').join('')+
-       '</tbody></table><div class="ms-note">&chi;<sub>LT</sub> per portion without the f-factor. Whole-member M<sub>cr</sub> = '+msbKNm(LT.Mcr)+' kN.m. '+msbEsc(c.ltbBasis)+'</div>';
+  const RF=c.restraintForces||null;
+  if((LT && LT.segments && LT.segments.length) || (RF && RF.rows && RF.rows.length)){
+    const hasSeg=!!(LT && LT.segments && LT.segments.length);
+    h+=msbHead(hasSeg? 'Lateral Restraint Portions (span by span, fork ends)' : 'Lateral Restraint Portions (restraint design forces)');
+    if(hasSeg){
+      let worst=null; LT.segments.forEach(s2=>{ if(s2.ok && (!worst||s2.util>worst.util)) worst=s2; });
+      h+='<table class="ms-combos"><thead><tr><th>Portion</th><th>From &ndash; To (m)</th><th>L<sub>e</sub> (m)</th><th>M<sub>y.Ed</sub> (kN.m)</th><th>M<sub>cr</sub> (kN.m)</th><th>&lambda;&#772;<sub>LT</sub></th><th>&chi;<sub>LT</sub></th><th>M<sub>b.Rd</sub> (kN.m)</th><th>M<sub>y.Ed</sub>/M<sub>b.Rd</sub></th><th></th></tr></thead><tbody>'+
+         LT.segments.map((s2,i)=>'<tr><td class="num">'+(i+1)+'</td><td class="num">'+msbM(s2.a/1000)+' &ndash; '+msbM(s2.b/1000)+'</td><td class="num">'+msbM((s2.b-s2.a)/1000)+'</td>'+
+           (s2.ok? '<td class="num">'+msbKNm(s2.Ms)+'</td><td class="num">'+msbKNm(s2.Mcr)+'</td><td class="num">'+msbR(s2.lam)+'</td><td class="num">'+msbR(s2.chi)+'</td><td class="num">'+msbKNm(s2.Mb)+'</td><td class="num">'+msbR(s2.util)+'</td><td>'+(s2===worst? (LT.spanGoverns? 'governs' : 'worst segment') : '')+'</td>'
+                  : '<td colspan="7">not solved: '+msbEsc(s2.err)+'</td>')+'</tr>').join('')+
+         '</tbody></table><div class="ms-note">&chi;<sub>LT</sub> per portion without the f-factor. Whole-member M<sub>cr</sub> = '+msbKNm(LT.Mcr)+' kN.m. '+msbEsc(c.ltbBasis)+'</div>';
+    }
+    // [beam-v03 addition, 19 Sep 2026 G3] restraint design forces (advisory): 2.5 % of N_f,Ed = M_Ed/h at every restraint station
+    if(RF && RF.rows && RF.rows.length){
+      h+='<table class="ms-combos ms-restraint"><thead><tr><th>x (m)</th><th>Restraint</th><th>M<sub>Ed</sub> (kN.m)</th><th>Load case</th><th>N<sub>f.Ed</sub> = M<sub>Ed</sub>/h (kN)</th><th>2.5 % N<sub>f.Ed</sub> (kN)</th><th></th></tr></thead><tbody>'+
+        RF.rows.map(r=>'<tr><td class="num">'+msbM(r.x/1000)+'</td><td>'+msbEsc(r.label)+'</td><td class="num">'+msbKNm(r.MEd)+'</td><td>'+msbEsc(r.combo)+'</td><td class="num">'+msbKN(r.NfEd)+'</td><td class="num">'+msbKN(r.F)+'</td><td>restraint design force, advisory</td></tr>').join('')+
+        '</tbody></table><div class="ms-note">h = '+msbMM(RF.h)+' mm. '+RF.basis+'</div>';
+    }
   }
 
   /* ---- 5.7 Buckling Resistance ---- */
   if(B && (B.Fc>1e-9 || B.biax)){
     h+=msbHead('Buckling Resistance');
-    const UMy=B.Mx/Math.max(B.MbRdI,1e-9);
+    const MbEff=(B.MbRdEff!=null? B.MbRdEff : B.MbRdI);
+    const UMy=B.Mx/Math.max(MbEff,1e-9);
     const nTag=(u)=> B.Fc>1e-9? msbWarn(u<=1.0001) : 'N<sub>Ed</sub> = 0';
-    h+=msbRow('U<sub>N.y</sub> = N<sub>Ed</sub>/(&chi;<sub>y</sub>.N<sub>Rk</sub>/&gamma;<sub>M1</sub>)', msbKN(B.Fc)+' / '+msbKN(B.NbY)+' (N<sub>Rk</sub> = '+msbKN(msbNRk(sec,c.fy))+')', msbR(B.ny), nTag(B.ny));
-    h+=msbRow('U<sub>N.z</sub> = N<sub>Ed</sub>/(&chi;<sub>z</sub>.N<sub>Rk</sub>/&gamma;<sub>M1</sub>)', msbKN(B.Fc)+' / '+msbKN(B.NbZ), msbR(B.nz), nTag(B.nz));
-    h+=msbRow('U<sub>M.y</sub> = M<sub>y.Ed</sub>/(&chi;<sub>LT</sub>.M<sub>y.Rk</sub>/&gamma;<sub>M1</sub>)', msbKNm(B.Mx)+' / '+msbKNm(B.MbRdI)+' (M<sub>y.Rk</sub> = '+msbKNm(msbMyRk(c.Wy,c.fy))+')', msbR(UMy), msbWarn(UMy<=1.0001));
+    const NRk= B.aeffOn? B.Aeff*c.fy/1000 : msbNRk(sec,c.fy);
+    const tfT=(B.tfb&&B.tfb.ok)? '; min with N<sub>b.T.Rd</sub> = '+msbKN(B.tfb.NbT)+' (6.3.1.4)' : '';
+    if(B.aeffOn) h+=msbRow('Table 6.7 Class-4 column', 'N<sub>Rk</sub> = A<sub>eff</sub>f<sub>y</sub> = '+msbKN(NRk)+' kN; M<sub>y.Rk</sub> = W<sub>eff.y</sub>f<sub>y</sub> with W<sub>eff.y</sub> = W<sub>el.y</sub> = '+f1(sec.Zx,1)+' cm&sup3; (flanges Class &le; 3, web Class 4 only in uniform compression, &Delta;M = 0) [assumption]; k<sub>ij</sub> from the Class 3/4 rows', '', '6.3.3');
+    h+=msbRow('U<sub>N.y</sub> = N<sub>Ed</sub>/(&chi;<sub>y</sub>.N<sub>Rk</sub>/&gamma;<sub>M1</sub>)', msbKN(B.Fc)+' / '+msbKN(B.NbYeff!=null? B.NbYeff : B.NbY)+' (N<sub>Rk</sub> = '+msbKN(NRk)+tfT+')', msbR(B.ny), nTag(B.ny));
+    h+=msbRow('U<sub>N.z</sub> = N<sub>Ed</sub>/(&chi;<sub>z</sub>.N<sub>Rk</sub>/&gamma;<sub>M1</sub>)', msbKN(B.Fc)+' / '+msbKN(B.NbZeff!=null? B.NbZeff : B.NbZ)+(tfT? ' ('+tfT.slice(2)+')' : ''), msbR(B.nz), nTag(B.nz));
+    h+=msbRow('U<sub>M.y</sub> = M<sub>y.Ed</sub>/(&chi;<sub>LT</sub>.M<sub>y.Rk</sub>/&gamma;<sub>M1</sub>)', msbKNm(B.Mx)+' / '+msbKNm(MbEff)+' (M<sub>y.Rk</sub> = '+msbKNm(B.aeffOn? sec.Zx*1e3*c.fy/1e6 : msbMyRk(c.Wy,c.fy))+(B.aeffOn&&B.wFac!==1? '; W<sub>el.y</sub>/W<sub>pl.y</sub> = '+msbR(B.wFac)+' applied to M<sub>b.Rd</sub>' : '')+')', msbR(UMy), msbWarn(UMy<=1.0001));
     h+=msbRow('U<sub>M.z</sub> = M<sub>z.Ed</sub>/(M<sub>z.Rk</sub>/&gamma;<sub>M1</sub>)', msbKNm(B.MzEd)+' / '+msbKNm(B.Mcz), msbR(B.mzTerm), msbWarn(B.mzTerm<=1.0001));
     if(B.c12){
       h+=msbRow('k<sub>yy</sub> = C<sub>my</sub>{1+(&lambda;&#772;<sub>y</sub>&minus;0.2)U<sub>N.y</sub>}', msbR(B.Cmy)+'{1+('+msbR(B.lamY)+'&minus;0.2)x'+msbR(B.ny)+'} &le; '+msbR(B.Cmy)+'(1+0.8x'+msbR(B.ny)+')', msbR(B.kyy), 'Table B.1');
-      h+=msbRow('k<sub>zz</sub> = C<sub>mz</sub>{1+(2&lambda;&#772;<sub>z</sub>&minus;0.6)U<sub>N.z</sub>}', msbR(B.Cmz)+'{1+(2x'+msbR(B.lamZ)+'&minus;0.6)x'+msbR(B.nz)+'} &le; '+msbR(B.Cmz)+'(1+1.4x'+msbR(B.nz)+')', msbR(B.kzz), '');
-      h+=msbRow('k<sub>yz</sub> = 0.6k<sub>zz</sub>', '0.6 x '+msbR(B.kzz), msbR(B.kyz), '');
+      if(B.rhsRow){
+        h+=msbRow('k<sub>zz</sub> = C<sub>mz</sub>{1+(&lambda;&#772;<sub>z</sub>&minus;0.2)U<sub>N.z</sub>}', msbR(B.Cmz)+'{1+('+msbR(B.lamZ)+'&minus;0.2)x'+msbR(B.nz)+'} &le; '+msbR(B.Cmz)+'(1+0.8x'+msbR(B.nz)+')', msbR(B.kzz), 'Table B.1 (RHS)');
+        h+=msbRow('k<sub>yz</sub> = k<sub>zz</sub>', 'rectangular hollow section', msbR(B.kyz), 'Table B.1 (RHS)');
+      } else {
+        h+=msbRow('k<sub>zz</sub> = C<sub>mz</sub>{1+(2&lambda;&#772;<sub>z</sub>&minus;0.6)U<sub>N.z</sub>}', msbR(B.Cmz)+'{1+(2x'+msbR(B.lamZ)+'&minus;0.6)x'+msbR(B.nz)+'} &le; '+msbR(B.Cmz)+'(1+1.4x'+msbR(B.nz)+')', msbR(B.kzz), '');
+        h+=msbRow('k<sub>yz</sub> = 0.6k<sub>zz</sub>', '0.6 x '+msbR(B.kzz), msbR(B.kyz), '');
+      }
     } else {
       h+=msbRow('k<sub>yy</sub> = C<sub>my</sub>{1+0.6&lambda;&#772;<sub>y</sub>U<sub>N.y</sub>}', msbR(B.Cmy)+'{1+0.6x'+msbR(B.lamY)+'x'+msbR(B.ny)+'} &le; '+msbR(B.Cmy)+'(1+0.6x'+msbR(B.ny)+')', msbR(B.kyy), 'Table B.1 (Class 3)');
       h+=msbRow('k<sub>zz</sub> = C<sub>mz</sub>{1+0.6&lambda;&#772;<sub>z</sub>U<sub>N.z</sub>}', msbR(B.Cmz)+'{1+0.6x'+msbR(B.lamZ)+'x'+msbR(B.nz)+'} &le; '+msbR(B.Cmz)+'(1+0.6x'+msbR(B.nz)+')', msbR(B.kzz), '');
@@ -655,7 +712,10 @@ function renderMasterSeriesBrief(a,c,sec){
   }
   const coexU=findU(/6\.2\.8|Pure shear failure/), torU=findU(/^Torsion|Bending\+torsion cross-section/), vtU=findU(/Shear\+torsion/), anU=findU(/LTB\+torsion/);
   const webU=findU(/^Web transverse force  F_Ed/), web72U=findU(/^Web transverse force \+ bending/);
+  const mvnU=findU(/6\.2\.10/), tfU=findU(/6\.3\.1\.4/);
   if(coexU!=null) push('M-V', coexU);
+  if(mvnU!=null) push('M-V-N', mvnU);
+  if(tfU!=null) push('N_b.T', tfU);
   if(webU!=null) push('F/F_Rd', webU);
   if(web72U!=null) push('Web 7.2', web72U);
   if(torU!=null) push('Torsion', torU);

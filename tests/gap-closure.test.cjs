@@ -17,7 +17,7 @@ const analyseAll = () => run(`(()=>{ const a=analyse(); const ch=checks(a); retu
   Mmax:a.Mmax, Vmax:a.Vmax, dmax:a.dmax, R:a.reactions.map(r=>r.V), gov:a.governM.combo.label, uplift:a.uplift, patterns:a.patterns, deflection:a.deflection, segs:a.deflSegments,
   torsN:a.tors? a.tors.uls.length : null},
   c:{utils:ch.utils.map(u=>u.val), names:ch.utils.map(u=>u.name), unsupported:ch.unsupported, advisory:ch.advisory||[], pass:ch.pass, dlimit:ch.dlimit, divisor:ch.divisor, deflCant:ch.deflCant,
-     deflAbsGoverns:ch.deflAbsGoverns, holdDown:ch.holdDown, buck:ch.buck? {Ky:ch.buck.Ky, Kz:ch.buck.Kz, LcrY:ch.buck.LcrY, LcrZ:ch.buck.LcrZ, lamY:ch.buck.lamY, lamZ:ch.buck.lamZ, basis:ch.buck.lcrBasis, cantStrut:ch.buck.cantStrut, leOverride:ch.buck.leOverride} : null,
+     deflAbsGoverns:ch.deflAbsGoverns, holdDown:ch.holdDown, buck:ch.buck? {Ky:ch.buck.Ky, Kz:ch.buck.Kz, LcrY:ch.buck.LcrY, LcrZ:ch.buck.LcrZ, lamY:ch.buck.lamY, lamZ:ch.buck.lamZ, basis:ch.buck.lcrBasis, cantStrut:ch.buck.cantStrut, leOverride:ch.buck.leOverride, aeffOn:ch.buck.aeffOn, Aeff:ch.buck.Aeff} : null,
      ltb:ch.ltb? {Mcr:ch.ltb.Mcr, MbRd:ch.ltb.MbRd, nCombos:ch.ltb.nCombos, governCombo:ch.ltb.governCombo} : null}}; })()`);
 
 // ---- 1. automatic pattern loading (item 1.3) ----
@@ -87,7 +87,8 @@ test('pattern loading off reproduces the previous engine figures exactly (two-sp
     overhangLtb:  {over:{L:8,restraint:'ltb',supports:[{pos:0,type:'pinned'},{pos:6,type:'pinned'}],loads:[{type:'udl',x1:0,x2:8,w:15,case:'Q'},{type:'point',pos:8,P:20,case:'Q'}]},
                    Mmax:-107.17188008608848, Vmax:-88.61979765575408, dmax:-1.2847092739990043, utils:[0.11718172053641507,0.212959523270916,0.2259872551046497,0.21563342335626468], R:[52895.83998565192,165791.6800113414], Mcr:833.5938959425747, MbRd:474.2386026878354},
     threeSpanStd: {over:{L:12,restraint:'ltb',mcrMethod:'standard',supports:[{pos:0,type:'pinned'},{pos:4,type:'pinned'},{pos:8,type:'pinned'},{pos:12,type:'pinned'}],loads:[{type:'trap',x1:0,x2:12,w1:5,w2:15,case:'Q'}],eccOn:true,za:0},
-                   Mmax:-32.404166948376066, Vmax:48.606254141162886, dmax:-0.31315338210286303, utils:[0.06427191936520846,0.0643898001954815,0.07283169391870875,0.028183804389257675], R:[15737.504000043244,55778.13600018919,85778.13599952446,35737.50399959248], Mcr:558.9358761558486, MbRd:444.91848541301323},
+                   // LTB util / MbRd re-baselined 19 Sep 2026 (G3 item 8): the Serna C1 = 4.09 of this diagram now floors k_c at 1/sqrt(2.76) = 0.602 (Table 6.6), f = 0.810, chi_mod = 0.828, MbRd = 416.68 (was 0.07283 / 444.92 with the unbounded k_c = 0.494); Mcr, forces and reactions unchanged
+                   Mmax:-32.404166948376066, Vmax:48.606254141162886, dmax:-0.31315338210286303, utils:[0.06427191936520846,0.0643898001954815,0.07776827074164548,0.028183804389257675], R:[15737.504000043244,55778.13600018919,85778.13599952446,35737.50399959248], Mcr:558.9358761558486, MbRd:416.6759353056232},
   };
   for (const [k, r] of Object.entries(ref)) {
     c.reset(Object.assign({}, r.over, {autoPattern:false, divisorCant:360}));
@@ -168,7 +169,12 @@ test('cantilever strut: L_cr defaults to 2.0 L about both axes with N_Ed > 0 (la
   assert.equal(d.Ky, 2); near(d.LcrY, 8000, 1e-12); near(d.LcrZ, 8000, 1e-12); assert.ok(d.cantStrut && !d.leOverride);
   assert.match(d.basis, /2\.0 L about both axes by default/);
   const sec = run('activeSection()'), fy = run('checks(analyse()).fy'), lam1 = Math.PI * Math.sqrt(210000 / fy);
-  near(d.lamY, 8000 / (sec.rx * 10) / lam1, 1e-9); near(d.lamZ, 8000 / (sec.ry * 10) / lam1, 1e-9);   // = 2 x the previous L_cr = L value
+  // 19 Sep 2026 (G3 item 6): the 457x191x82 web is Class 4 in uniform compression (d/t = 41.2 > 42 eps = 38.8), so lambda-bar
+  // carries sqrt(A_eff/A) (6.3.1.3(1)); lambda_p = 41.2/(28.4 x 0.9244 x 2) = 0.7847, rho = (0.7847 - 0.22)/0.7847^2 = 0.9171,
+  // A_eff = 10400 - (1 - 0.9171) x 407.6 x 9.9 = 10065.6 mm2, sqrt(A_eff/A) = 0.9838 [hand-derived]
+  assert.ok(d.aeffOn && Math.abs(d.Aeff - 10065.6) < 1, 'A_eff ' + d.Aeff);
+  const af = Math.sqrt(d.Aeff / (sec.A * 100));
+  near(d.lamY, 8000 / (sec.rx * 10) / lam1 * af, 1e-9); near(d.lamZ, 8000 / (sec.ry * 10) / lam1 * af, 1e-9);   // = 2 x the previous L_cr = L value
   c.reset(Object.assign({}, lay, {leFactor:1.5}));
   const o = analyseAll().c.buck;
   assert.equal(o.Ky, 1.5); near(o.LcrY, 6000, 1e-12); assert.ok(o.leOverride); assert.match(o.basis, /user L<sub>E<\/sub>\/L factor 1\.5 kept/);

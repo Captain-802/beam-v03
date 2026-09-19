@@ -197,7 +197,7 @@ function observedTriggers(a, c, o) {
   if (c.annex) t.add('3.8');
   if (c.buck && c.buck.Fc > 1e-9) t.add('3.9');
   if ((c.utils || []).some(u => /Member buckling/.test(u.name))) t.add('3.12');
-  if ((c.unsupported || []).some(s => /torsional-flexural/i.test(s))) t.add('3.10');
+  if ((c.unsupported || []).some(s => /torsional-flexural/i.test(s)) || (c.buck && c.buck.tfb && c.buck.tfb.ok)) t.add('3.10');   // G3: evaluated (cl 6.3.1.4) or blocked
   if (c.ltb) { ['3.1', '3.2', '3.3', '3.6'].forEach(x => t.add(x)); if (o.family === 'ub' || o.family === 'uc') t.add('3.5'); else t.add('3.4'); }
   else t.add('3.1');
   if ((o.ltbRestraints || []).length) t.add('3.17');
@@ -406,6 +406,47 @@ function runOne(cs, method) {
       add('viii-FRd', rel(exp, s.FRdTot) <= TOL && Math.abs(W.util2 - maxEta) <= 1e-9 && !s.stiff,
         `station x = ${fmt(s.x / 1000, 2)} m (${s.label}, type (${s.type}), s_s ${fmt(ss, 1)} mm): independent F_Rd ${fmt(exp, 1)} vs engine ${fmt(s.FRdTot, 1)} kN; F_Ed ${fmt(s.F, 1)} kN (${s.combo}); util ${fmt(W.util2, 3)} = max station ratio ${fmt(maxEta, 3)}`);
     }
+  }
+
+  // (ix) G3 item 6: A_eff of a Class-4 web in uniform compression recomputed from the raw table (EN 1993-1-5 4.4, psi = 1, k_sigma = 4)
+  if (c.aeff && c.aeff.active) {
+    const eps = Math.sqrt(235 / py), nW = sec.isBox ? 2 : 1;
+    const lamP = sec.dt / (28.4 * eps * 2), rho = lamP <= 0.673 ? 1 : Math.min((lamP - 0.22) / (lamP * lamP), 1);
+    const Aeff = sec.A * 100 - nW * (1 - rho) * sec.d * sec.tw;
+    const nName = utils.find(u => /^Compression/.test(u.name));
+    add('ix-Aeff', rel(Aeff, c.aeff.Aeff) <= 1e-9 && sec.dt > 42 * eps && !!nName && /A_eff/.test(nName.name) && (!c.buck || rel(c.buck.Aeff, Aeff) <= 1e-9),
+      `d/t ${fmt(sec.dt, 2)} > 42 eps ${fmt(42 * eps, 2)}: lambda_p ${fmt(lamP, 4)}, rho ${fmt(rho, 4)}, A_eff ${fmt(Aeff, 1)} vs engine ${fmt(c.aeff.Aeff, 1)} mm2 (${fmt(c.aeff.ratio, 4)} A)`);
+  }
+  // (x) G3 item 10: channel torsional-flexural buckling N_b,T,Rd recomputed from the raw PFC table and P385 constants
+  if (c.buck && c.buck.tfb && c.buck.tfb.ok) {
+    const tp = sec.tp, G = 81000, Ag = sec.A * 100;
+    const IT = (tp && tp.IT ? tp.IT : sec.J) * 1e4, Iw = ((tp && tp.Iw != null ? tp.Iw : sec.Iw) || 0) * 1e12, y0 = tp.esc;
+    const iy = sec.rx * 10, iz = sec.ry * 10, i0sq = iy * iy + iz * iz + y0 * y0;
+    const LcrY = c.buck.LcrY, LT = (cs.overrides.LT > 0) ? cs.overrides.LT * 1000 : c.buck.LcrZ;
+    const NcrT = (G * IT + Math.PI ** 2 * E * Iw / (LT * LT)) / i0sq, NcrY = Math.PI ** 2 * E * sec.Ix * 1e4 / (LcrY * LcrY);
+    const beta = 1 - y0 * y0 / i0sq;
+    const NcrTF = (NcrY + NcrT) / (2 * beta) * (1 - Math.sqrt(1 - 4 * beta * NcrY * NcrT / (NcrY + NcrT) ** 2));
+    const lamT = Math.sqrt(Ag * py / Math.min(NcrT, NcrTF));
+    const Phi = 0.5 * (1 + 0.49 * (lamT - 0.2) + lamT * lamT), chiT = Math.min(1 / (Phi + Math.sqrt(Phi * Phi - lamT * lamT)), 1);
+    const NbT = chiT * Ag * py / 1000, uT = utils.find(u => /6\.3\.1\.4/.test(u.name));
+    add('x-NbT', rel(NbT, c.buck.tfb.NbT) <= 1e-6 && !!uT && Math.abs(uT.val - (c.buck.Fc / NbT)) <= 1e-6 && c.buck.ny >= c.buck.Fc / Math.max(c.buck.NbY, 1e-9) - 1e-12 && c.buck.nz >= c.buck.Fc / Math.max(c.buck.NbZ, 1e-9) - 1e-12,
+      `y0 ${fmt(y0, 1)} mm, N_cr,T ${fmt(NcrT / 1000, 1)}, N_cr,TF ${fmt(NcrTF / 1000, 1)} kN, lambda_T ${fmt(lamT, 3)}, curve c chi ${fmt(chiT, 3)}: N_b,T,Rd ${fmt(NbT, 1)} vs engine ${fmt(c.buck.tfb.NbT, 1)} kN; verdict entry ${uT ? fmt(uT.val, 3) : 'missing'}`);
+  }
+  // (xii) G3 item 7: cl 6.2.10 at the engine's worst high-shear station, rolled I/H Class 1/2, uniaxial: chain recomputed from the station V, M and the raw table
+  if (c.mvn && c.mvn.plastic && !c.mvn.biax && sec.kind === 'I') {
+    const m = c.mvn, A = sec.A * 100, Av = c.Av, Vpl = (c.tor && c.tor.VplTRd != null) ? c.tor.VplTRd : c.VcRd;
+    const rho = Math.pow(2 * m.V / Vpl - 1, 2), NV = (A - rho * Av) * py / 1000, MvY = Math.min((sec.Sx * 1e3 - rho * Av * Av / (4 * sec.tw)) * py / 1e6, sec.Sx * 1e3 * py / 1e6);
+    const aV = Math.min(Math.max(((A - 2 * sec.B * sec.tf) - rho * Av) / (A - rho * Av), 0), 0.5), nV = m.N / NV, hw = sec.D - 2 * sec.tf;
+    const waiver = m.N <= 0.25 * NV && m.N * 1000 <= 0.5 * hw * sec.tw * (1 - rho) * py;
+    const MNVy = waiver ? MvY : Math.min(MvY * (1 - nV) / (1 - 0.5 * aV), MvY), u = m.M / MNVy;
+    const uE = utils.find(x => /6\.2\.10/.test(x.name));
+    add('xii-MVN', rel(u, m.u) <= 1e-9 && !!uE && Math.abs(uE.val - m.u) <= 1e-12 && m.V > 0.5 * Vpl,
+      `x = ${fmt(m.x / 1000, 2)} m: V ${fmt(m.V, 1)} kN, rho ${fmt(rho, 4)}, N_V,Rd ${fmt(NV, 1)}, M_v,Rd ${fmt(MvY, 1)}, a_V ${fmt(aV, 3)}${waiver ? ', 6.2.9.1(4) waiver' : ''}, M_N,V,Rd ${fmt(MNVy, 1)} kN.m: M/M_N,V,Rd ${fmt(u, 4)} vs engine ${fmt(m.u, 4)}`);
+  }
+  // (xi) G3 item 8: k_c floor - printed k_c = max(1/sqrt(C1), 1/sqrt(2.76)) on both routes
+  if (L && !L.failed && L.kc != null && L.C1 != null && !L.cant && !L.channel && (method === 'standard' ? true : L.c1Trusted !== false) && cs.overrides.C1o == null) {
+    const C1 = method === 'standard' ? c.C1 : L.C1, kcExp = Math.max(Math.min(1 / Math.sqrt(C1), 1), 1 / Math.sqrt(2.76));
+    add('xi-kcFloor', Math.abs(kcExp - L.kc) <= 1e-9 && (!!L.kcFloored === (C1 > 2.76 + 1e-9)), `C1 ${fmt(C1, 3)}: k_c ${fmt(kcExp, 4)} vs engine ${fmt(L.kc, 4)}${L.kcFloored ? ' (floored at 0.602)' : ''}`);
   }
 
   // (iv) eigen / standard ratio (same segment) - outlier flag, not an error

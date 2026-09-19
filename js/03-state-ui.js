@@ -16,6 +16,7 @@ const DEMO={
   loads:[{type:'udl',x1:0,x2:8.0,w:19.7,case:'G'},{type:'udl',x1:0,x2:8.0,w:19.8,case:'Q'}],
   combos:JSON.parse(JSON.stringify(DEFAULT_COMBOS)),
   axial:0, Mz:0, leFactor:1.0, destab:false, mLTo:null, mxo:null, C1o:null,
+  LT:null,             // torsional buckling length L_T (m) for a channel under N (cl 6.3.1.4); blank = L_cr,z
   divisor:360, divisorCant:180, deflAbs:null,   // span/360 between supports; L/180 for cantilever segments (UK NA Table NA.2 [verify]); absolute mm cap (null = none)
   autoPattern:true,                             // automatic span-wise Q patterns for multi-span / cantilevered members (expandPatternCombos)
   E:210000, Ke:null, robX:null, robY:null,
@@ -318,6 +319,7 @@ function syncInputs(){
   $("length").value=S.L; $("axial").value=S.axial; if($("Mz")) $("Mz").value=S.Mz; $("leFactor").value=S.leFactor;
   $("destab").checked=S.destab; $("mLTo").value=S.mLTo??""; $("mxo").value=S.mxo??"";
   $("C1o").value=S.C1o??"";
+  if($("LT")){ $("LT").value=S.LT??""; $("LTRow").style.display=(S.code==='EC3' && S.family==='pfc')? '' : 'none'; }
   $("divisor").value=S.divisor; $("E").value=S.E; $("Ke").value=S.Ke??"";
   if($("divisorCant")) $("divisorCant").value=S.divisorCant??180;
   if($("deflAbs")) $("deflAbs").value=S.deflAbs??"";

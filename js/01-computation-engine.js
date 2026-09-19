@@ -234,13 +234,28 @@ function classifyEC3(sec,eps,opt){
     const l3 = psiW>-1? 42/(0.67+0.33*psiW) : 62*(1-psiW)*Math.sqrt(-psiW);
     wlim=[l1,l2,l3]; webCase='bending+compression';
   }
+  let mzFlange=null;
   if(opt&&opt.minorBending){
-    // Conservative bound for webs compressed by minor-axis bending.
-    wlim=[33,38,42]; webCase='biaxial: uniform-compression web bound';
+    if(sec.kind==='I'){
+      // I/H under M_z (19 Sep 2026 gap closure, item 1.9(b)): the web lies on the
+      // z-z axis, so an applied M_z does not stress it - the web keeps its y-y
+      // bending (+N) limits above. The flanges are outstands under the combined
+      // stress: the outstand compressed by M_z has both its root and its tip in
+      // compression (alpha = 1), for which Table 5.2 sheet 2 gives 9e/alpha,
+      // 10e/alpha and 21e sqrt(k_sigma) with k_sigma >= 0.43 (EN 1993-1-5 Table
+      // 4.2), i.e. never stricter than the uniform-compression bound 9e/10e/14e
+      // already applied to flim; the opposite outstand (tip relieved by M_z) has
+      // laxer limits and never governs. The uniform-compression bound is kept.
+      mzFlange='outstand';
+    } else {
+      // Channels and hollow sections: a wall parallel to the web is compressed
+      // over its full width by M_z - conservative uniform-compression bound.
+      wlim=[33,38,42]; webCase='biaxial: uniform-compression web bound'; mzFlange='uniform-bound';
+    }
   }
   const fc = sec.bT<=flim[0]*eps?1:sec.bT<=flim[1]*eps?2:sec.bT<=flim[2]*eps?3:4;
   const wc = sec.dt<=wlim[0]*eps?1:sec.dt<=wlim[1]*eps?2:sec.dt<=wlim[2]*eps?3:4;
-  return {cls:Math.max(fc,wc),fc,wc,flim,wlim,webCase,alphaW,psiW};
+  return {cls:Math.max(fc,wc),fc,wc,flim,wlim,webCase,alphaW,psiW,mzFlange};
 }
 
 function avEC3(sec){

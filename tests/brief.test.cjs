@@ -21,7 +21,7 @@ const CASES = {
            supports:[{pos:0,type:'pinned'},{pos:4,type:'pinned'}], loads:[{type:'udl',x1:0,x2:4,w:10,case:'Q'}]},
   twoSpan:{restraint:'ltb', L:12, supports:[{pos:0,type:'pinned'},{pos:7,type:'pinned'},{pos:12,type:'pinned'}],
            ltbRestraints:[{pos:3.5}], loads:[{type:'udl',x1:0,x2:12,w:15,case:'Q'}]},
-  class4: {restraint:'ltb', Mz:5},                                // UB 82 web is Class 4 under the uniform-compression bound -> blocked
+  class4: {family:'rhs', rhsKey:'400 x 200 x 8.0', restraint:'ltb', Mz:5},   // RHS wall d/t = 47 > 42 eps under the uniform-compression bound kept for hollow sections with M_z -> Class 4, blocked (the UB 82 case of the earlier suite is Class 1 since G3 item 5)
 };
 function render(over, method) {
   c.reset(Object.assign({}, over, method ? {mcrMethod: method} : {}));
@@ -142,6 +142,7 @@ test('UB with axial compression and Mz: Axial with Moments brief with every bloc
     assert.ok(html.includes('Axial with Moments (Member)'));
     assert.deepEqual(hs, ['Member Loading and Member Forces', 'Classification and Effective Area (EN 1993: 2006)', 'Local Capacity Check',
       'Web Transverse Forces (EN 1993-1-5 cl 6)', 'Compression Resistance N.b.Rd', 'Equivalent Uniform Moment Factors C1, C.mLT, C.mz, and C.my', 'Lateral Buckling Check M.b.Rd',
+      'Lateral Restraint Portions (restraint design forces)',   // [G3 item 15] restraint design forces at the two support torsional restraints
       'Buckling Resistance', 'Deflection Check - Load Case 1 (SLS: Variable actions only (NA 2.23))']);
     ['V<sub>z\\.Ed</sub>/V<sub>pl\\.z\\.Rd</sub>', 'M<sub>c\\.z\\.Rd</sub> = ', 'N<sub>pl\\.Rd</sub> = A<sub>g</sub>', 'n = N<sub>Ed</sub>/N<sub>pl\\.Rd</sub>',
      'W<sub>pl\\.N\\.y</sub> = Fn', 'M<sub>N\\.y\\.Rd</sub> = ', 'W<sub>pl\\.N\\.z</sub> = Fn', 'M<sub>N\\.z\\.Rd</sub> = ',
@@ -278,6 +279,7 @@ test('pure helpers: case ranges, unity max, minor-axis shear area, W_pl.N back-s
   assert.ok(Math.abs(run('msbWplN(503.25,275)') - 1830) < 1e-9);
   assert.ok(Math.abs(run('msbNcr(210000,1870,8000)') - Math.PI ** 2 * 210000 * 1870e4 / 8000 ** 2 / 1000) < 1e-9);
   assert.ok(Math.abs(run('msbKc(1.127)') - 1 / Math.sqrt(1.127)) < 1e-12 && run('msbKc(0.5)') === 1);
+  assert.ok(Math.abs(run('msbKc(5)') - 1 / Math.sqrt(2.76)) < 1e-12, 'k_c floored at 1/sqrt(2.76) (G3 item 8)');
   const pm = run('msbPortionMoments({xs:[0,1000,2000,3000,4000],M:[0,30e6,40e6,30e6,0],V:[0,0,0,0,0]},0,4000)');
   assert.ok(Math.abs(pm.Mo - 40) < 0.05 && pm.mu === 300 && Math.abs(pm.Mmax - 40) < 1e-9 && pm.xmax === 2000);
   assert.equal(run('msbCmB3Form("uniform load diagram, &alpha;<sub>h</sub> = 0.000, M<sub>h</sub> = 0.0")'), '0.95+0.05&alpha;<sub>h</sub>');

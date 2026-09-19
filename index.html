@@ -147,6 +147,8 @@
       <div class="hint">Coincident ULS design moment about the <b>minor (z&ndash;z)</b> axis, entered directly (this solver bends in one plane). Forms the full EC3 biaxial interaction (M<sub>y</sub>/M<sub>N,y</sub>)<sup>&alpha;</sup> + (M<sub>z</sub>/M<sub>N,z</sub>)<sup>&beta;</sup> &le; 1 (cl 6.2.9.1). Leave 0 for uniaxial bending.</div>
       <label id="leRow"><span>L<sub>E</sub> / L factor</span> <input id="leFactor" type="number" step="0.01"></label>
       <div class="hint">Strut buckling length L<sub>cr</sub> = factor &times; L about both axes (minor axis shortened to the lateral-restraint spacing where restraints are modelled). <b>Cantilever with axial compression:</b> the fixed-free sway length L<sub>cr</sub> = 2.0 L is taken by default while this factor is left at 1.0; any other value is kept as an explicit override.</div>
+      <label id="LTRow" style="display:none"><span>Torsional buckling length L<sub>T</sub>, m</span> <input id="LT" type="number" step="0.01" placeholder="blank = L_cr,z"></label>
+      <div class="hint">PFC under axial compression: torsional and torsional-flexural buckling (EN 1993-1-1 cl 6.3.1.4) are checked with N<sub>cr,T</sub> = (GI<sub>T</sub> + &pi;&sup2;EI<sub>w</sub>/L<sub>T</sub>&sup2;)/i<sub>0</sub>&sup2; and the torsional-flexural coupling with the major-axis flexural mode through the shear-centre offset e<sub>sc</sub> (SCI P385 Table A.3). L<sub>T</sub> is the length between points where twist is prevented; blank takes the minor-axis strut length L<sub>cr,z</sub>.</div>
       <label id="zaRow"><span>Default z<sub>g</sub>, mm</span> <input id="za" type="number" step="1" placeholder="0"></label>
       <div class="hint live-hint" id="zaHint"></div>
       <label id="warpRow"><span>Root warping</span>

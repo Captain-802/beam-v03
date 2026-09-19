@@ -34,18 +34,25 @@ test('signed dead factor applies to automatic self weight', () => {
   reset(); const r=run(`comboLoads({factors:{G:-1,Q:0,W:0,E:0}})`);
   assert.ok(r.some(l=>l.isAutoSelfWeight&&l.w1>0));
 });
-test('EC channel compression cannot pass with unverified torsional buckling', () => {
-  reset({family:'pfc',axial:1}); assert.equal(run('checks(analyse()).pass'),false);
+test('EC channel compression evaluates torsional-flexural buckling (cl 6.3.1.4) instead of blocking (19 Sep 2026, G3 item 10)', () => {
+  reset({family:'pfc',axial:1});
+  const r=run('(()=>{ const c=checks(analyse()); return {pass:c.pass, uns:c.unsupported, tfb:c.buck&&c.buck.tfb, names:c.utils.map(u=>u.name)}; })()');
+  assert.ok(!r.uns.some(s=>/torsional-flexural/i.test(s)), 'no 6.3.1.4 block'); assert.ok(r.tfb && r.tfb.ok && r.tfb.NbT>0);
+  assert.ok(r.names.some(n=>/6\.3\.1\.4/.test(n)), 'verdict entry');
 });
-test('EC high shear plus axial force away from peak moment is not omitted', () => {
+test('EC high shear plus axial force away from peak moment enters the verdict through cl 6.2.10 (19 Sep 2026, G3 item 7)', () => {
   reset({axial:1});
   const r=run(`(()=>{ const a=analyse(), res=a.ulsResults[0]; res.fb={xs:[0,500,1000],V:[0,500000,0],M:[10e6,5e6,0]}; res.Mpos=0; res.Mmax=10e6; a.Mmax=10;a.Mpos=0;a.Vmax=500; return checks(a); })()`);
-  assert.equal(r.pass,false); assert.ok(r.unsupported.some(s=>/6.2.10/.test(s)));
+  assert.ok(!r.unsupported.some(s=>/6.2.10/.test(s)), 'no 6.2.10 block'); assert.ok(r.mvn && r.mvn.x===500 && r.mvn.rho>0);
+  assert.ok(r.utils.some(u=>/6\.2\.10/.test(u.name)), 'verdict entry');
 });
-test('EC hollow high shear away from peak moment needs a covered interaction', () => {
+test('EC hollow high shear away from peak moment is checked with the two-web M_v,Rd (19 Sep 2026, G3 item 12)', () => {
   reset({family:'rhs'});
-  const r=run(`(()=>{ const a=analyse(), v=avEC3(a.sec)*a.py/Math.sqrt(3); const res=a.ulsResults[0]; res.fb={xs:[0,500,1000],V:[0,0.8*v,0],M:[1e6,0.5e6,0]}; res.Mpos=0;res.Mmax=1e6;a.Mmax=1;a.Mpos=0;a.Vmax=0.8*v/1000;return checks(a); })()`);
-  assert.equal(r.pass,false); assert.ok(r.unsupported.some(s=>/shear/i.test(s)));
+  const r=run(`(()=>{ const a=analyse(), v=avEC3(a.sec)*a.py/Math.sqrt(3); const res=a.ulsResults[0]; res.fb={xs:[0,500,1000],V:[0,0.8*v,0],M:[1e6,0.95e6,0]}; res.Mpos=0;res.Mmax=1e6;a.Mmax=1;a.Mpos=0;a.Vmax=0.8*v/1000;const c=checks(a); return {c,sec:a.sec,fy:a.py}; })()`);
+  const c2=r.c, sec=r.sec;
+  assert.ok(!c2.unsupported.some(s=>/shear/i.test(s)), 'no high-shear block'); assert.ok(c2.coex && c2.coex.x===500 && /two webs/.test(c2.coex.form), JSON.stringify(c2.coex));
+  // rho = (2 x 0.8 - 1)^2 = 0.36; M_v,Rd = (W_pl,y - rho t (h - 2t)^2/2) f_y [hand-derived, RHS 200 x 100 x 8]
+  near(c2.coex.rho,0.36,1e-9); near(c2.coex.MvRd,(sec.Sx*1e3-0.36*sec.tf*Math.pow(sec.D-2*sec.tf,2)/2)*r.fy/1e6,1e-9);
 });
 test('EC imposed minor bending is combined with torsion or explicitly blocked', () => {
   reset({eccOn:true,Mz:0.1,loads:[{type:'udl',x1:0,x2:1,w:0.1,case:'Q',e:10}]});
@@ -82,8 +89,9 @@ test('arbitrary reversing diagram is not classified as linear from its midpoint'
   reset({loads:[{type:'point',pos:0.25,P:10,case:'Q'},{type:'point',pos:0.75,P:-10,case:'Q'}]}); const r=run(`(()=>{const a=analyse();a.Mmax=10;a.governM.fb={xs:[0,250,500,750,1000],M:[0,10e6,0,-10e6,0]};return cmTableB3(a)})()`);
   near(r.Cm,1);
 });
-test('biaxial web classification does not use pure major-axis bending limits', () => {
+test('biaxial web classification: uniform-compression bound kept for hollow sections, I/H web unstressed by M_z (19 Sep 2026, G3 item 5)', () => {
   const r=run(`classifyEC3({isBox:true,bT:20,dt:50},1,{minorBending:true})`); assert.equal(r.cls,4);
+  const i=run(`classifyEC3({kind:'I',bT:5,dt:50},1,{minorBending:true})`); assert.equal(i.cls,1); assert.equal(i.mzFlange,'outstand'); assert.equal(i.webCase,'bending');
 });
 test('section tables satisfy mass, elastic modulus and radius identities', () => {
   const rows=run('[...UB,...UC,...PFC,...RHS]');

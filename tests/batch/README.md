@@ -1,10 +1,10 @@
 # 100-beam verification campaign - headless batch runner
 
-Runs the EC3 beam checker over a library of 114 distinct beams without a
+Runs the EC3 beam checker over a library of 118 distinct beams without a
 browser, records every printed design quantity, and cross-checks the engine
 against independent closed forms computed in the runner. LTB cases are run
 with BOTH Mcr methods (`eigen` FE eigensolver and `standard` closed form), so
-the 114 cases give 208 runs.
+the 118 cases give 214 runs.
 
 ## Files
 
@@ -57,6 +57,10 @@ engine's intermediate results. Tolerance 0.5 % relative unless stated.
 | vi-governing | the reported governing utilisation equals the max of the printed utilisations | every run |
 | vii-uplift | every support whose reaction is negative in the governing-moment combination is reported by the engine's uplift record and, unless the case declares `holdDown` for it, carries a blocking "Hold-down required" message; every reported lifting support has a hold-down message | every run |
 | viii-FRd | Web transverse-force resistance (EN 1993-1-5 clause 6, G2): F_Rd at the engine's governing station recomputed from the raw section table (h_w = h - 2t_f, t_w, t_f, b_f <= t_w + 30 eps t_f, m1, m2 with the m2 = 0 second pass, k_F of type (a) with a = L or type (c) with c = max(d - s_s/2, 0), the (a)/(c) pair in the end zone), s_s from the case (support default = B, load default = 0); the printed utilisation must equal the largest station ratio and a stiffened station must never govern | rolled I/H runs without a declared stiffener (122 runs) |
+| ix-Aeff | Effective area of a Class-4 web in uniform compression (EN 1993-1-5 4.4, G3): lambda_p = (d/t)/(28.4 eps x 2), rho = (lambda_p - 0.22)/lambda_p^2, A_eff = A - n_webs (1 - rho) d t_w from the raw table; must equal the engine's A_eff, feed the "Compression N_Ed/N_c,Rd (A_eff)" entry and the strut block | runs with N > 0 and d/t > 42 eps (UB-46, UB-47, UB-48) |
+| x-NbT | Channel torsional-flexural buckling (cl 6.3.1.4, G3): i_0^2, N_cr,T (P385 I_T, I_w, y0 = e_sc, L_T = L_cr,z or the case L_T), N_cr,TF coupled with the y-y mode, lambda_T, chi_T on curve c, N_b,T,Rd recomputed from the raw PFC table; the verdict entry must equal N_Ed/N_b,T,Rd and the 6.61/6.62 axial terms must not be below N_Ed/N_b,y,Rd, N_Ed/N_b,z,Rd | PFC runs with N > 0 (PFC-20, both routes) |
+| xi-kcFloor | k_c floor (G3): the printed k_c must equal max(1/sqrt(C1), 1/sqrt(2.76)) on both routes and be flagged floored exactly when C1 > 2.76 | I/H LTB runs with a trusted C1 and no user override (74 runs) |
+| xii-MVN | cl 6.2.10 (G3): at the engine's worst high-shear station of a rolled I/H Class 1/2 uniaxial case, rho, N_V,Rd, M_v,Rd, a_V, the 6.2.9.1(4) waiver and M_N,V,Rd recomputed from the station V, M, N and the raw table; M/M_N,V,Rd must equal the engine's value and the verdict entry | UB-48 |
 
 Since the 19 Sep 2026 gap closure the analysed combination list of a multi-span,
 overhang or Gerber case includes the automatic Q patterns (`a.patterns`, column
@@ -71,13 +75,13 @@ observe from the check output (axial / biaxial / tension / torsion / Annex A /
 flexural buckling / interaction / torsional-flexural gap / restraints / shear
 buckling) and lists the differences.
 
-## Case coverage (114 cases, 208 runs)
+## Case coverage (118 cases, 214 runs)
 
 | Family | Cases | LTB (x2 runs) | Fully restrained | Notes |
 |---|---|---|---|---|
-| UB | 51 | 43 | 8 | 127x76x13 to 1016x305x272, incl. curve-c / curve-d shapes, deep 914 and 1016 sections, S355 |
+| UB | 54 | 44 | 10 | 127x76x13 to 1016x305x272, incl. curve-c / curve-d shapes, deep 914 and 1016 sections, S355; G3: 1016x305x249 + 3000 kN (A_eff), 457x191x82 + 600 kN unrestrained (A_eff, Class 2 combined), 457x191x82 2 m point load 0.3 m + 600 kN (6.2.10) |
 | UC | 15 | 13 | 2 | 152x152x23 to 356x406x235 |
-| PFC | 19 | 15 | 4 | 100x50x10 to 430x100x64, e = 0 / small / flange half-width, web-side e < 0 |
+| PFC | 20 | 16 | 4 | 100x50x10 to 430x100x64, e = 0 / small / flange half-width, web-side e < 0; G3: 180x75x20 + 50 kN (torsional-flexural buckling) |
 | SHS | 11 | 7 | 4 | hot-finished and cold-formed |
 | RHS | 18 | 16 | 2 | h/b up to 3 (300x100), 500x300, 450x250 |
 
@@ -105,12 +109,28 @@ Loads are sized so the governing eigen utilisation mostly lies in 0.6-0.95.
 Deliberately heavy cases (tag `heavy`: UB-02 demo unrestrained, UB-22 curve d)
 exercise the FAIL path.
 
-## Results of the current run (2026-09-19, Node v24.14.1, after the G2 gap closure)
+## Results of the current run (2026-09-19, Node v24.14.1, after the G3 gap closure)
 
-Verdicts: PASS 149 | FAIL 43 | NOT VERIFIED 16 | ERROR 0. Cross-check
-mismatches: 0 runs (viii-FRd: 122 of 122 rolled I/H runs agree with the
-independent F_Rd). Trigger mismatches: 1 case (PFC-17, see below).
-Changes against the post-G1 run (PASS 154 | FAIL 38 | NOT VERIFIED 16): five
+Verdicts: PASS 155 | FAIL 44 | NOT VERIFIED 15 | ERROR 0 (118 cases, 214 runs).
+Cross-check mismatches: 0 runs (viii-FRd 126/126, ix-Aeff 4/4, x-NbT 3/3,
+xi-kcFloor 75/75, xii-MVN 1/1). Trigger mismatches: 1 case (PFC-17, see
+below). Changes against the post-G2 run (PASS 149 | FAIL 43 | NOT VERIFIED
+16): UB-31 (254x146x31 with Mz = 8 kN.m, unrestrained) is Class 1 instead of
+Class 3 under the former uniform-compression web bound and PASSes Eq 6.62 at
+0.88 (was FAIL 1.08); UB-30 (same, restrained) keeps PASS with the plastic
+biaxial form 0.51 (was the elastic 0.98); PFC-11 (430x100x64 + 150 kN) is
+PASS instead of NOT VERIFIED, the cl 6.3.1.4 torsional-flexural check giving
+N_Ed/N_b,T,Rd = 0.07; UB-24 standard (Gerber, Serna C1 > 2.76) and MIX-09
+standard move with the k_c floor 0.60 (LTB 1.232 -> 1.292 FAIL, 0.621 ->
+0.634 PASS). New cases: UB-46 (1016x305x249 + 3000 kN, 12 m restrained:
+evaluates with A_eff = 0.905 A, FAIL Eq 6.62 = 2.43 about z-z), UB-47
+(457x191x82 + 600 kN, unrestrained: PASS 0.99 with A_eff and the Class-4
+column), UB-48 (2 m, 400 kN at 0.3 m + 600 kN: cl 6.2.10 = 0.32 at x = 0.3 m,
+FAIL on the web transverse force as UB-35-type cases), PFC-20 (180x75x20 +
+50 kN: N_b,T,Rd = 385.4 kN, PASS eigen 0.69, FAIL standard 1.03 on the
+conservative channel kappa chain). Every other verdict is unchanged.
+
+Changes of the post-G2 run against the post-G1 run (PASS 154 | FAIL 38 | NOT VERIFIED 16): five
 runs now FAIL the new web transverse-force check (EN 1993-1-5 clause 6 / 7.2),
 all with the default s_s = B [verify] at the supports and s_s = 0 at the point
 loads: UB-35 (914x419x388, 3 m, central 4500 kN ULS point load on an
@@ -138,9 +158,9 @@ not blocking (see AUDIT.md).
 
 | Family | Cases | Runs | PASS | FAIL | NOT VERIFIED | ERROR |
 |---|---|---|---|---|---|---|
-| UB | 51 | 94 | 62 | 24 | 8 | 0 |
+| UB | 54 | 98 | 66 | 24 | 8 | 0 |
 | UC | 15 | 28 | 24 | 2 | 2 | 0 |
-| PFC | 19 | 34 | 23 | 9 | 2 | 0 |
+| PFC | 20 | 36 | 25 | 10 | 1 | 0 |
 | SHS | 11 | 18 | 14 | 2 | 2 | 0 |
 | RHS | 18 | 34 | 26 | 6 | 2 | 0 |
 
@@ -148,24 +168,28 @@ not blocking (see AUDIT.md).
 
 | Method | Runs | PASS | FAIL | NOT VERIFIED | ERROR |
 |---|---|---|---|---|---|
-| eigen | 94 | 75 | 12 | 7 | 0 |
-| standard | 94 | 57 | 29 | 8 | 0 |
-| n/a (restrained) | 20 | 17 | 2 | 1 | 0 |
+| eigen | 96 | 78 | 11 | 7 | 0 |
+| standard | 96 | 59 | 29 | 8 | 0 |
+| n/a (restrained) | 22 | 18 | 4 | 0 | 0 |
 
 ### Cross-check totals
 
 | Check | Runs | OK | Mismatch |
 |---|---|---|---|
-| i-Mmax | 115 | 115 | 0 |
-| i-dmax | 115 | 115 | 0 |
-| ii-equilibrium | 208 | 208 | 0 |
-| iii-McrStd | 158 | 158 | 0 |
-| iii-zgBlock | 76 | 76 | 0 |
-| iv-McrRatio | 94 | 86 | 8 flagged |
-| v-MbRd<=McRd | 188 | 188 | 0 |
-| vi-governing | 208 | 208 | 0 |
-| vii-uplift | 208 | 208 | 0 |
-| viii-FRd | 122 | 122 | 0 |
+| i-Mmax | 120 | 120 | 0 |
+| i-dmax | 120 | 120 | 0 |
+| ii-equilibrium | 214 | 214 | 0 |
+| iii-McrStd | 160 | 160 | 0 |
+| iii-zgBlock | 77 | 77 | 0 |
+| iv-McrRatio | 96 | 88 | 8 flagged |
+| v-MbRd<=McRd | 192 | 192 | 0 |
+| vi-governing | 214 | 214 | 0 |
+| vii-uplift | 214 | 214 | 0 |
+| ix-Aeff | 4 | 4 | 0 |
+| x-NbT | 3 | 3 | 0 |
+| xi-kcFloor | 75 | 75 | 0 |
+| xii-MVN | 1 | 1 | 0 |
+| viii-FRd | 126 | 126 | 0 |
 
 ### Eigen / standard Mcr outliers
 

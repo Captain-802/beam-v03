@@ -213,14 +213,102 @@ function lcrZFromRestraints(a){
   gmax=Math.max(gmax, 2*pts[0], 2*(a.L-pts[pts.length-1]));
   return gmax>1e-6? gmax : null;
 }
-function annexB2(a,sec,fy,cl,MbRdI,useB1,isCant){
+/* ---- k_c floor (19 Sep 2026 gap closure, item 3.5) ----
+   NA 2.18 allows k_c = 1/sqrt(C1). Table 6.6 lists k_c down to 0.60 (the
+   psi = -1 end-moment case, C1 = 2.76), so a back-calculated or Serna C1 above
+   2.76 is capped at that lower bound: k_c >= 1/sqrt(2.76) = 0.602. */
+const KC_FLOOR_C1=2.76, KC_FLOOR=1/Math.sqrt(KC_FLOOR_C1);
+function kcFromC1(C1){
+  const raw=Math.min(1/Math.sqrt(Math.max(C1,1e-6)),1);
+  return {kc:Math.max(raw,KC_FLOOR), kcRaw:raw, floored:raw<KC_FLOOR-1e-12};
+}
+/* ---- Effective area of a Class-4 web in uniform compression (item 1.9(c) /
+   3.9(c)), EN 1993-1-5 4.4: internal compression element, psi = 1, k_sigma = 4,
+   lambda_p = (b/t)/(28.4 eps sqrt(k_sigma)), rho = (lambda_p - 0.055(3 + psi))/
+   lambda_p^2 <= 1 (lambda_p > 0.673; = 1 otherwise), b_eff = rho b split
+   b_e1 = b_e2 = 0.5 b_eff. b = the flat web depth of Table 5.2 (sec.d: I/H
+   h - 2t_f - 2r, hollow h - 3t); a hollow section has two such walls. The
+   reduction is symmetric, so the centroid does not move (e_N = 0). Applies
+   when the web is Class 4 in uniform compression (d/t > 42 eps); the flanges
+   must stay Class <= 3 in compression (outstand 14 eps / internal 42 eps) -
+   the caller blocks otherwise. Pure. */
+function aeffWebCompression(sec,eps){
+  const A=sec.A*1e2, tw=sec.tw, bbar=sec.d, ratio=sec.dt, nWebs=sec.isBox? 2 : 1;
+  const out={applies:false,A,Aeff:A,ratio:1,nWebs,bbar,tw,eps,limit:42*eps,dt:ratio,ksig:4,psi:1,lamP:null,rho:1,beff:bbar,be1:bbar/2,be2:bbar/2,bineff:0,eN:0};
+  if(!(ratio>42*eps) || !(bbar>0&&tw>0)) return out;
+  const lamP=ratio/(28.4*eps*Math.sqrt(4));
+  const rho= lamP<=0.673? 1 : Math.min((lamP-0.055*(3+1))/(lamP*lamP),1);
+  const beff=rho*bbar, bineff=(1-rho)*bbar;
+  const Aeff=A-nWebs*bineff*tw;
+  return Object.assign(out,{applies:true,lamP,rho,beff,be1:beff/2,be2:beff/2,bineff,Aeff,ratio:Aeff/A});
+}
+/* ---- Flange outstand stresses of an I/H section under N + M_y + M_z (item
+   1.9(b), printed with the classification): elastic extreme-fibre values,
+   compression positive. The outstand of the compression flange on the side
+   compressed by M_z has root stress sN + sMy + sMz(root) and tip stress sN +
+   sMy + sMz(tip): both compressive -> alpha = 1 -> the uniform-compression
+   bound 9e/10e/14e governs. The opposite outstand is relieved at its tip
+   (tip in tension when sMz(tip) > sN + sMy) and takes the laxer stress-
+   gradient limits of Table 5.2 sheet 2, so it never governs. Pure. */
+function mzFlangeStress(sec,F,My,Mz){
+  const A=sec.A*1e2, Zx=sec.Zx*1e3, Zy=sec.Zy*1e3;
+  const sN=Math.max(F,0)*1000/A, sMy=Math.abs(My)*1e6/Zx, sMzTip=Math.abs(Mz)*1e6/Zy;
+  const yRoot=sec.tw/2+sec.r, yTip=sec.B/2;
+  const sMzRoot=sMzTip*yRoot/yTip;
+  const compRoot=sN+sMy+sMzRoot, compTip=sN+sMy+sMzTip;
+  const relRoot=sN+sMy-sMzRoot, relTip=sN+sMy-sMzTip;
+  return {sN,sMy,sMzTip,sMzRoot,yRoot,yTip,compRoot,compTip,relRoot,relTip,
+    compAlpha:(compRoot>=0&&compTip>=0)? 1 : null, relState: relTip<0? 'tip in tension' : 'wholly in compression'};
+}
+/* ---- Torsional and torsional-flexural buckling of a channel under N (item
+   3.10, EN 1993-1-1 6.3.1.4). Monosymmetric about y-y (the major axis, the
+   axis of symmetry); the shear centre lies on it at y0 = e_sc from the
+   centroid (SCI P385 Table A.3 / Blue Book, sec.tp.esc, mm). i0^2 = i_y^2 +
+   i_z^2 + y0^2; N_cr,T = (G I_T + pi^2 E I_w/L_T^2)/i0^2 with L_T = L_cr,z
+   unless the user enters S.LT (m); the torsional mode couples with flexure
+   about the axis of symmetry (the y-y flexural mode, N_cr,y) through the
+   standard cubic, which for one axis of symmetry reduces to
+   N_cr,TF = (N_cr,y + N_cr,T)/(2 beta) [1 - sqrt(1 - 4 beta N_cr,y N_cr,T/
+   (N_cr,y + N_cr,T)^2)], beta = 1 - (y0/i0)^2 (EN 1993-1-3 6.2.3(6) form).
+   N_cr = min(N_cr,T, N_cr,TF); lambda_T = sqrt(A f_y/N_cr); chi from the curve
+   related to the z-z axis (6.3.1.4(3)): Table 6.2 "U-sections: any axis ->
+   curve c" [verify]; N_b,T,Rd = chi A f_y/gamma_M1. Pure. */
+function torsionalFlexuralBuckling(sec,fy,E,LcrY,LcrZ,Ag,gM1){
+  const G=81000;
+  const IT=((sec.tp&&sec.tp.IT)? sec.tp.IT : sec.J)*1e4, ITSrc=(sec.tp&&sec.tp.IT)? 'SCI P385 Table A.3' : 'section table';
+  const Iw=(((sec.tp&&sec.tp.Iw!=null)? sec.tp.Iw : sec.Iw)||0)*1e12;
+  const y0=(sec.tp&&sec.tp.esc!=null&&isFinite(+sec.tp.esc))? +sec.tp.esc : null;
+  if(y0==null || !(IT>0)) return {ok:false,reason:'the shear-centre offset e<sub>sc</sub> (SCI P385 Table A.3) or I<sub>T</sub> is not tabulated for this section, so N<sub>cr,T</sub> / N<sub>cr,TF</sub> cannot be formed'};
+  const iy=sec.rx*10, iz=sec.ry*10;
+  const i0sq=iy*iy+iz*iz+y0*y0, i0=Math.sqrt(i0sq);
+  const LTin=(S.LT!=null && S.LT!=='' && isFinite(+S.LT) && +S.LT>0)? (+S.LT)*1000 : null;
+  const LT= LTin!=null? LTin : LcrZ;
+  const NcrT=(G*IT+Math.PI*Math.PI*E*Iw/(LT*LT))/i0sq;            // N
+  const NcrY=Math.PI*Math.PI*E*sec.Ix*1e4/(LcrY*LcrY);           // N, flexural about the axis of symmetry (y-y, major)
+  const beta=1-(y0*y0)/i0sq;
+  const NcrTF=(NcrY+NcrT)/(2*beta)*(1-Math.sqrt(Math.max(1-4*beta*NcrY*NcrT/Math.pow(NcrY+NcrT,2),0)));
+  const Ncr=Math.min(NcrT,NcrTF), mode= NcrTF<NcrT? 'TF' : 'T';
+  const lamT=Math.sqrt(Ag*fy/Ncr);
+  const cvT=strutCurveEC3(sec,'z');
+  const chiT=chiStrutEC3(lamT,cvT.alpha);
+  const NbT=chiT*Ag*fy/gM1/1000;                                 // kN
+  return {ok:true,y0,y0Src:'e<sub>sc</sub> = shear centre to centroid, SCI P385 Table A.3 (Blue Book e<sub>0</sub> + c<sub>y</sub>)',iy,iz,i0,i0sq,IT,ITSrc,Iw,G,LT,LTSrc:(LTin!=null? 'user L<sub>T</sub>' : 'L<sub>cr,z</sub>'),
+    NcrT:NcrT/1000,NcrY:NcrY/1000,beta,NcrTF:NcrTF/1000,Ncr:Ncr/1000,mode,lamT,cvT,chiT,NbT};
+}
+function annexB2(a,sec,fy,cl,MbRdI,useB1,isCant,aeff){
   if(a.ulsResults&&a.ulsResults.length>1){
-    const rows=a.ulsResults.map(res=>({...annexB2(analysisForCombination(a,res),sec,fy,cl,MbRdI,useB1,isCant),combo:res.combo.label}));
+    const rows=a.ulsResults.map(res=>({...annexB2(analysisForCombination(a,res),sec,fy,cl,MbRdI,useB1,isCant,aeff),combo:res.combo.label}));
     return rows.reduce((p,r)=>Math.max(r.u1,r.u2)>Math.max(p.u1,p.u2)?r:p);
   }
   const gM1=1.0, E=a.E;
   const Fc=Math.max(S.axial||0,0);
   const Ag=sec.A*1e2;
+  // Class-4 web in uniform compression (item 1.9(c)): A_eff replaces A in
+  // N_Rk, in lambda-bar (6.3.1.3(1): lambda = sqrt(A_eff f_y/N_cr)) and in the
+  // Table 6.7 Class-4 column of Eq 6.61/6.62 (W_eff,y = W_el,y, e_N = 0).
+  const aeffOn=!!(aeff&&aeff.applies&&Fc>1e-9);
+  const Aeff= aeffOn? aeff.Aeff : Ag;
+  const aeffFac= aeffOn? Math.sqrt(Aeff/Ag) : 1;
   // Strut lengths per axis (destabilising x1.2 is an LTB concept, not applied).
   // Major axis: LE factor x L (end conditions are the user's judgement, cf.
   // P360 Table 6.2). Minor axis: reduced to the largest spacing between
@@ -245,21 +333,35 @@ function annexB2(a,sec,fy,cl,MbRdI,useB1,isCant){
   const Lcr=LcrY;                                 // kept for report compatibility
   const lam1=Math.PI*Math.sqrt(E/fy);
   const rx=sec.rx*10, ry=sec.ry*10;
-  const lamY=(LcrY/rx)/lam1, lamZ=(LcrZ/ry)/lam1;
+  const lamY=(LcrY/rx)/lam1*aeffFac, lamZ=(LcrZ/ry)/lam1*aeffFac;
   const cvY=strutCurveEC3(sec,'y'), cvZ=strutCurveEC3(sec,'z');
   const chiY=chiStrutEC3(lamY,cvY.alpha), chiZ=chiStrutEC3(lamZ,cvZ.alpha);
-  const NbY=chiY*Ag*fy/gM1/1000, NbZ=chiZ*Ag*fy/gM1/1000;   // kN
-  const ny=Fc/Math.max(NbY,1e-9), nz=Fc/Math.max(NbZ,1e-9);
+  const NbY=chiY*Aeff*fy/gM1/1000, NbZ=chiZ*Aeff*fy/gM1/1000;   // kN
+  // channel under compression: torsional / torsional-flexural buckling (6.3.1.4);
+  // the lower of chi_T and the flexural chi feeds both axial terms of 6.61/6.62
+  let tfb=null;
+  if(sec.kind==='channel' && Fc>1e-9){
+    tfb=torsionalFlexuralBuckling(sec,fy,E,LcrY,LcrZ,Aeff,gM1);
+    if(tfb.ok) tfb.util=Fc/Math.max(tfb.NbT,1e-9);
+  }
+  const NbYeff= (tfb&&tfb.ok)? Math.min(NbY,tfb.NbT) : NbY;
+  const NbZeff= (tfb&&tfb.ok)? Math.min(NbZ,tfb.NbT) : NbZ;
+  const ny=Fc/Math.max(NbYeff,1e-9), nz=Fc/Math.max(NbZeff,1e-9);
   const cm=cmTableB3(a);
   let Cmy=cm.Cm, CmLT=cm.Cm, swayNote=false;
   if(isCant && Fc>1e-6 && Cmy<0.9){ Cmy=0.9; CmLT=0.9; swayNote=true; } // Table B.3 note: sway buckling mode -> Cm = 0.9
   const Cmz=1.0;                                   // Mz = 0 in this single-plane solver
-  const c12=cl.cls<=2 && sec.kind!=='channel'; // channels: elastic (Class 3/4) k-factor column, conservative (matches the verified commercial-software basis)
+  // k_ij column: Class 1/2 plastic forms only for a Class 1/2 section that is not
+  // a channel (elastic column, conservative) and has no Class-4 web in
+  // compression (Table 6.7 Class-4 column -> the Class 3/4 rows of Table B.1/B.2)
+  const c12=cl.cls<=2 && sec.kind!=='channel' && !aeffOn;
+  const rhsRow=!!sec.isBox;                        // Table B.1 "rectangular hollow sections" row for k_zz (item 3.12(a))
   const kyy = c12? Math.min(Cmy*(1+(lamY-0.2)*ny), Cmy*(1+0.8*ny))
                  : Math.min(Cmy*(1+0.6*lamY*ny),   Cmy*(1+0.6*ny));
-  const kzz = c12? Math.min(Cmz*(1+(2*lamZ-0.6)*nz), Cmz*(1+1.4*nz))
+  const kzz = c12? (rhsRow? Math.min(Cmz*(1+(lamZ-0.2)*nz), Cmz*(1+0.8*nz))       // RHS row: same form as k_yy
+                          : Math.min(Cmz*(1+(2*lamZ-0.6)*nz), Cmz*(1+1.4*nz)))    // I-section row
                  : Math.min(Cmz*(1+0.6*lamZ*nz),     Cmz*(1+0.6*nz));
-  const kyz = c12? 0.6*kzz : kzz;                  // Table B.1 (shared by B.2)
+  const kyz = (c12&&!rhsRow)? 0.6*kzz : kzz;      // Table B.1: I-sections Class 1/2 0.6k_zz; RHS and the Class 3 column k_zz (shared by B.2)
   let kzy, kzyLbl;
   if(useB1){ kzy=(c12?0.6:0.8)*kyy; kzyLbl='Table B.1: '+(c12?'0.6':'0.8')+'k<sub>yy</sub>'; }
   else {
@@ -269,7 +371,12 @@ function annexB2(a,sec,fy,cl,MbRdI,useB1,isCant){
     if(c12 && lamZ<0.4) e1=Math.min(0.6+lamZ,e1);
     kzy=Math.max(e1,0); kzyLbl='Table B.2 (susceptible): 1&minus;'+coef+'&middot;min(&lambda;&#772;<sub>z</sub>,1)&middot;n<sub>z</sub>/(C<sub>mLT</sub>&minus;0.25)';
   }
-  const Mrd=Math.max(MbRdI,1e-9), Mx=Math.abs(a.Mmax);
+  // Table 6.7 Class-4 column (A_eff case): M_y,Rk = W_eff,y f_y with W_eff,y =
+  // W_el,y (flanges Class <= 3 in compression, web Class 4 only in uniform
+  // compression, so the section under bending keeps its elastic modulus), so a
+  // Class 1/2 M_b,Rd handed in (plastic W_y) is scaled by W_el,y/W_pl,y.
+  const wFac= (aeffOn && cl.cls<=2)? sec.Zx/sec.Sx : 1;
+  const Mrd=Math.max(MbRdI*wFac,1e-9), Mx=Math.abs(a.Mmax);
   // Minor-axis moment terms (fully biaxial 6.61/6.62). Mz,Ed is the direct design
   // input; its resistance Mc,z,Rd carries no LTB reduction (chi_LT is major-axis only).
   const MzEd=Math.abs(S.Mz||0);
@@ -277,8 +384,9 @@ function annexB2(a,sec,fy,cl,MbRdI,useB1,isCant){
   const mzTerm = MzEd>1e-9 ? MzEd/Mcz : 0;                            // Mz,Ed / Mc,z,Rd
   const u1=ny + kyy*Mx/Mrd + kyz*mzTerm;           // Eq 6.61
   const u2=nz + kzy*Mx/Mrd + kzz*mzTerm;           // Eq 6.62
-  return {Fc,Mx,Lcr,LcrY,LcrZ,Ky,Kz,cantStrut,leOverride,lcrBasis,lczFromRestraints,lam1,lamY,lamZ,cvY,cvZ,chiY,chiZ,NbY,NbZ,ny,nz,
-    Cmy,Cmz,CmLT,cmLabel:cm.label,swayNote,useB1,c12,kyy,kzz,kyz,kzy,kzyLbl,MbRdI,Mcz,MzEd,mzTerm,biax:MzEd>1e-9,u1,u2};
+  return {Fc,Mx,Lcr,LcrY,LcrZ,Ky,Kz,cantStrut,leOverride,lcrBasis,lczFromRestraints,lam1,lamY,lamZ,cvY,cvZ,chiY,chiZ,NbY,NbZ,NbYeff,NbZeff,ny,nz,
+    Cmy,Cmz,CmLT,cmLabel:cm.label,swayNote,useB1,c12,rhsRow,kyy,kzz,kyz,kzy,kzyLbl,MbRdI,MbRdEff:Mrd,wFac,Mcz,MzEd,mzTerm,biax:MzEd>1e-9,u1,u2,
+    aeffOn,Aeff,Ag,aeffFac,tfb};
 }
 /* ---------------------------------------------------------------------------
    EN 1993-1-5 clause 6: resistance of the web to transverse forces, with the
@@ -325,6 +433,8 @@ function annexB2(a,sec,fy,cl,MbRdI,useB1,isCant){
    9.4)" as an advisory. Returns {checked, stations, util2, util72, ...}.
    --------------------------------------------------------------------------- */
 const WEB_UTIL_NAMES=["Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)","Web transverse force + bending (EN 1993-1-5 7.2)"];
+const TFB_UTIL_NAME="Torsional-flexural buckling  N_Ed/N_b,T,Rd (6.3.1.4)";
+function mvnUtilName(m){ return "Bending+shear+"+(m.N>1e-9? (m.biax? "axial+biaxial" : "axial") : "biaxial")+" (6.2.10)"; }
 function webTransverseCheck(a,sec,fy,eps,cl){
   const gM0=1.0, gM1=1.0, E=a.E, L=a.L;
   const isBox=!!sec.isBox, chan=sec.kind==='channel';
@@ -446,6 +556,78 @@ function webTransverseCheck(a,sec,fy,eps,cl){
   }
   return out;
 }
+/* ---- Shear-reduced cross-section resistances (19 Sep 2026 gap closure, items
+   2.10 and 2.13): the yield strength of the shear area is reduced to
+   (1 - rho) f_y with rho = (2V_Ed/V_pl(,T),Rd - 1)^2 (cl 6.2.8(3), 6.2.10(3)).
+   Returns, in kN.m / kN, the resistances of the section with that reduction:
+     MvY   major-axis moment resistance M_v,y,Rd
+             I/H Class 1/2 : (W_pl,y - rho A_v^2/(4 t_w)) f_y             (6.2.8(5), Eq 6.30 with A_v for A_w: conservative)
+             I/H Class 3   : (W_el,y - rho I_web/(h/2)) f_y                (elastic: web fibre stress limited to (1 - rho) f_y, conservative)
+             channel       : (W_pl,y or W_el,y - rho t_w h_w^2/4) f_y     (plastic web modulus; conservative for Class 3)
+             RHS/SHS       : (W_pl,y or W_el,y - rho t (h - 2t)^2/2) f_y  (two webs, plastic web modulus; conservative for Class 3)
+     MvZ   minor-axis resistance with the web contribution reduced
+             I/H           : (W_pl,z - rho A_v t_w/4) f_y (Class 1/2), (W_el,z - rho A_v t_w/6) f_y (Class 3)
+             channel       : M_c,z,Rd (1 - rho A_v/A)  (web share of W_z bounded by its area share: conservative)
+             RHS/SHS       : (W_pl,z or W_el,z - rho t (h - 2t)(b - t)) f_y (two webs, plastic web modulus about z)
+     NV    axial resistance N_V,Rd = (A - rho A_v) f_y/gamma_M0
+     aV    the 6.2.9.1 parameter a evaluated on the reduced-yield section:
+           ((A - 2 b t_f) - rho A_v)/(A - rho A_v) <= 0.5 (I/H, RHS a_w); a_f,V = (A - 2 h t)/(A - rho A_v) <= 0.5 (RHS)
+   Every value is capped at its unreduced counterpart and floored at 0. Pure. */
+function shearReducedResistances(sec,cl,fy,Av,rho,gM0){
+  gM0=gM0||1.0;
+  const A=sec.A*1e2, tw=sec.tw, tf=sec.tf, D=sec.D, B=sec.B, hw=D-2*tf;
+  const cls12=cl.cls<=2;
+  const Wy=(cls12? sec.Sx : sec.Zx)*1e3, Wz=(cls12? sec.Sy : sec.Zy)*1e3;
+  const Mc=Wy*fy/gM0/1e6, Mcz=Wz*fy/gM0/1e6;
+  const NV=Math.max(A-rho*Av,0)*fy/gM0/1000;
+  let dWy, dWz, form, formZ;
+  if(sec.kind==='I'){
+    if(cls12){ dWy=rho*Av*Av/(4*tw); dWz=rho*Av*tw/4; form='(W<sub>pl,y</sub> &minus; &rho;A<sub>v</sub>&sup2;/4t<sub>w</sub>)f<sub>y</sub>/&gamma;<sub>M0</sub>'; formZ='(W<sub>pl,z</sub> &minus; &rho;A<sub>v</sub>t<sub>w</sub>/4)f<sub>y</sub>/&gamma;<sub>M0</sub>'; }
+    else { const Iweb=tw*Math.pow(hw,3)/12; dWy=rho*Iweb/(D/2); dWz=rho*Av*tw/6; form='(W<sub>el,y</sub> &minus; &rho;I<sub>web</sub>/(h/2))f<sub>y</sub>/&gamma;<sub>M0</sub> [elastic, conservative]'; formZ='(W<sub>el,z</sub> &minus; &rho;A<sub>v</sub>t<sub>w</sub>/6)f<sub>y</sub>/&gamma;<sub>M0</sub>'; }
+  } else if(sec.kind==='channel'){
+    dWy=rho*tw*hw*hw/4; dWz=rho*Av/A*Wz;
+    form='('+(cls12? 'W<sub>pl,y</sub>' : 'W<sub>el,y</sub>')+' &minus; &rho;t<sub>w</sub>h<sub>w</sub>&sup2;/4)f<sub>y</sub>/&gamma;<sub>M0</sub>'+(cls12? '' : ' [plastic web modulus, conservative]');
+    formZ='M<sub>c,z,Rd</sub>(1 &minus; &rho;A<sub>v</sub>/A) [web share bounded by its area share, conservative]';
+  } else {
+    const t=tf, hi=D-2*t;
+    dWy=rho*t*hi*hi/2; dWz=rho*t*hi*(B-t);
+    form='('+(cls12? 'W<sub>pl,y</sub>' : 'W<sub>el,y</sub>')+' &minus; &rho;t(h &minus; 2t)&sup2;/2)f<sub>y</sub>/&gamma;<sub>M0</sub> [two webs'+(cls12? '' : '; plastic web modulus, conservative')+']';
+    formZ='('+(cls12? 'W<sub>pl,z</sub>' : 'W<sub>el,z</sub>')+' &minus; &rho;t(h &minus; 2t)(b &minus; t))f<sub>y</sub>/&gamma;<sub>M0</sub> [two webs]';
+  }
+  const MvY=Math.min(Math.max((Wy-dWy)*fy/gM0/1e6,0),Mc);
+  const MvZ=Math.min(Math.max((Wz-dWz)*fy/gM0/1e6,0),Mcz);
+  const Ared=Math.max(A-rho*Av,1e-9);
+  const aV=Math.min(Math.max(((A-2*B*tf)-rho*Av)/Ared,0),0.5);              // sec.tf = t for a hollow section
+  const afV= sec.isBox? Math.min(Math.max((A-2*D*tf)/Ared,0),0.5) : null;
+  return {rho,MvY,MvZ,NV,Mc,Mcz,dWy,dWz,form,formZ,aV,afV,cls12};
+}
+/* ---- Restraint design forces (19 Sep 2026 gap closure, items 1.7 / 3.17),
+   advisory: for every intermediate lateral restraint and every support's
+   torsional (fork) restraint, N_f,Ed = M_Ed/h with M_Ed the largest moment at
+   the restraint station over the ULS combinations and h the overall depth
+   (EN 1993-1-1 5.3.3(3) notation), and the design force 2.5 % N_f,Ed
+   (6.3.5.2(5)(b) / SCI practice). Only on the not-fully-restrained path (a
+   fully restrained flange has no discrete restraints). Pure. */
+function restraintForces(a,sec){
+  if((S.restraint||'full')==='full') return null;
+  const h=sec.D;
+  const pts=[];
+  S.supports.forEach((s,i)=>pts.push({x:(+s.pos)*1000,kind:'support',n:i+1,label:'support '+(i+1)+' (torsional restraint)'}));
+  (S.ltbRestraints||[]).forEach((r,i)=>{ const x=(+r.pos)*1000; if(!isFinite(x)||x<-1e-6||x>a.L+1e-6) return; if(r.v===false&&r.phi===false) return;
+    pts.push({x,kind:'lateral',n:i+1,label:'lateral restraint '+(i+1)+(r.v===false? ' (twist only)' : '')}); });
+  pts.sort((p,q)=>p.x-q.x || (p.kind==='support'? -1 : 1));
+  const rows=pts.map(p=>{
+    let MEd=0, combo='';
+    (a.ulsResults||[]).forEach(res=>{
+      const m=Math.max(Math.abs(interpAt(res.fb.xs,res.fb.M,Math.max(p.x-1e-4,0))),Math.abs(interpAt(res.fb.xs,res.fb.M,Math.min(p.x+1e-4,a.L))))/1e6;
+      if(m>MEd){ MEd=m; combo=res.combo.label; }
+    });
+    const NfEd=MEd*1000/h;             // kN: kN.m x 1000 / mm
+    return Object.assign({},p,{MEd,combo,NfEd,F:0.025*NfEd});
+  });
+  const Fmax=rows.reduce((m,r)=>Math.max(m,r.F),0);
+  return {h,rows,Fmax,basis:'N<sub>f,Ed</sub> = M<sub>Ed</sub>/h at the restraint station (h = overall depth, EN 1993-1-1 5.3.3(3)); restraint design force 2.5 % N<sub>f,Ed</sub> (6.3.5.2(5)(b), SCI practice) &mdash; advisory, not part of the member verdict; the bracing system must also satisfy the 5.3.3 stiffness/imperfection requirements. A station with M<sub>Ed</sub> = 0 (simply supported end) gets no flange force from this rule; its fork restraint must still prevent twist.'};
+}
 function checksEC3Restrained(a){
   // SCI worked-example procedure: fully laterally restrained beam to BS EN 1993-1-1 (UK NA).
   // Sequence: classification -> shear (6.2.6) -> shear buckling screen (6.2.6(6)) ->
@@ -463,10 +645,25 @@ function checksEC3Restrained(a){
   // Class 3 or 4 under combined actions, which changes W_y and can invalidate
   // the plastic M_N,Rd expressions.
   const cl=classifyEC3(sec,eps,{NEd:Math.max(F,0)*1000, fy,minorBending:Math.abs(S.Mz||0)>1e-9});
-  if(Math.abs(S.Mz||0)>1e-9) advisory.push('For biaxial bending, each web is conservatively classified using the uniform-compression limits in Table 5.2; no favourable biaxial stress distribution is assumed.');
-  if(F>0&&sec.dt>42*eps) unsupported.push('The web is Class 4 in uniform compression. Effective-area compression buckling resistance is not implemented; gross-area member buckling cannot establish PASS.');
+  // I/H under M_z (item 1.9(b)): the web is unstressed by M_z and keeps its y-y
+  // (+N) limits; the flange outstands are classified under the combined stress
+  // (the outstand compressed by M_z is wholly in compression, alpha = 1, so the
+  // 9e/10e/14e bound governs). Printed with the classification.
+  cl.mzStress = (Math.abs(S.Mz||0)>1e-9 && sec.kind==='I')? mzFlangeStress(sec,F,a.Mmax,S.Mz) : null;
+  if(Math.abs(S.Mz||0)>1e-9 && sec.kind!=='I') advisory.push('For biaxial bending of this section family each wall parallel to the web is conservatively classified using the uniform-compression limits in Table 5.2; no favourable biaxial stress distribution is assumed.');
+  // Class-4 web in uniform compression (item 1.9(c) / 3.9(c)): effective area
+  // per EN 1993-1-5 4.4 (aeffWebCompression) instead of blocking; used in
+  // N_c,Rd, N_b,Rd and the Table 6.7 Class-4 column of Eq 6.61/6.62. The
+  // flanges must stay Class <= 3 in uniform compression and the section must
+  // be doubly symmetric (e_N = 0); a channel web reduction would shift the
+  // centroid (N e_N), which is not modelled.
+  const aeff=aeffWebCompression(sec,eps);
+  aeff.active = F>0 && aeff.applies;
+  const flangeCompLimit = sec.isBox? 42*eps : 14*eps;
+  if(F>0 && sec.bT>flangeCompLimit) unsupported.push('The flange is Class 4 in uniform compression (c/t = '+g(sec.bT,2)+' > '+g(flangeCompLimit,2)+'): an effective flange width per EN 1993-1-5 4.4 is not implemented; PASS is blocked.');
+  if(aeff.active && sec.kind==='channel') unsupported.push('PFC web Class 4 in uniform compression (d/t = '+g(sec.dt,2)+' > 42&epsilon; = '+g(42*eps,2)+'): the effective web shifts the centroid of a channel (N<sub>Ed</sub>e<sub>N</sub> minor-axis moment, EN 1993-1-1 6.2.9.3), which is not implemented; PASS is blocked.');
   const clsName=["","Class 1","Class 2","Class 3","Class 4"][cl.cls];
-  if(cl.cls>=4) unsupported.push("EC3 Class 4 (slender) section"+(cl.webCase==='bending+compression'?" (web classified for combined bending + compression)":"")+": effective-section properties per EN 1993-1-5 are required; not covered by the restrained-beam procedure.");
+  if(cl.cls>=4) unsupported.push("EC3 Class 4 (slender) section"+(cl.webCase==='bending+compression'?" (web classified for combined bending + compression: the effective section under the actual stress gradient, with its e_N shift, is not implemented)":"")+": effective-section properties per EN 1993-1-5 are required; not covered by the restrained-beam procedure.");
   // web transverse forces at every point load and every support reaction
   // (EN 1993-1-5 clause 6 + 7.2; webTransverseCheck above); its utilisations
   // enter the verdict below, a declared stiffener prints an advisory
@@ -474,7 +671,6 @@ function checksEC3Restrained(a){
   web.unsupported.forEach(m=>unsupported.push(m));
   web.advisory.forEach(m=>advisory.push(m));
   advisory.push("Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4.");
-  if(sec.kind==='channel' && F>0) unsupported.push("PFC under axial compression: torsional and torsional-flexural buckling (cl 6.3.1.4) are not implemented. Flexural buckling alone cannot establish adequacy; PASS is blocked.");
   const MzEd=Math.abs(S.Mz||0);   // applied minor-axis design moment (kN.m), single-value input
   // ---- axial + biaxial bending cross-section resistance, cl 6.2.9.1
   // Forms (My/MN,y)^alpha + (Mz/MN,z)^beta <= 1. (validated against the
@@ -482,6 +678,7 @@ function checksEC3Restrained(a){
   const AgAx=sec.A*1e2, AnetAx=(S.anet!=null? S.anet*1e2 : AgAx);
   const fuAx=fuFromGrade(S.grade);
   const NplRd=AgAx*fy/gM0/1000;                              // kN
+  const NcRd= aeff.active? aeff.Aeff*fy/gM0/1000 : NplRd;    // kN, cl 6.2.4(2): A_eff for a Class-4 web in uniform compression
   const NuRd=0.9*AnetAx*fuAx/1.10/1000;                      // kN, gammaM2 = 1.10 (UK NA Table NA.1: resistance of cross-sections in tension to fracture; 1.25 is the EN recommended value)
   const NtRd=Math.min(NplRd,NuRd);
   let ax=null;
@@ -505,7 +702,7 @@ function checksEC3Restrained(a){
       ax={cls3:false,chan:true,n:nAx,NplRd,NuRd,NtRd,MN:McChan,MNz:McChanZ,alpha:1,beta:1,biax,Mz:MzEd,Avz,VplZ,Mcz,
         mnLbl:'channel: linear interaction (cl 6.2.1(7); &alpha; = &beta; = 1, conservative &mdash; verified commercial-software basis)',
         mUtil:nAx + My/Math.max(McChan,1e-9) + (biax? MzEd/Math.max(McChanZ,1e-9):0),
-        nUtil: F>0? Math.abs(F)/NplRd : (F<0? Math.abs(F)/NtRd : 0), tension:F<0};
+        nUtil: F>0? Math.abs(F)/NcRd : (F<0? Math.abs(F)/NtRd : 0), tension:F<0, NcRd, aeff};
     } else if(cl.cls>=4){
       /* Class 4 already blocked above */
     } else {
@@ -529,11 +726,11 @@ function checksEC3Restrained(a){
         }
         ax={cls3:false,n:nAx,NplRd,NuRd,NtRd,MN,MNz,alpha,beta,mnLbl,biax,Mz:MzEd,Avz,VplZ,Mcz,
           mUtil:Math.pow(My/Math.max(MN,1e-9),alpha) + (biax? Math.pow(MzEd/Math.max(MNz,1e-9),beta):0),
-          nUtil: F>0? Math.abs(F)/NplRd : (F<0? Math.abs(F)/NtRd : 0), tension:F<0};
+          nUtil: F>0? Math.abs(F)/NcRd : (F<0? Math.abs(F)/NtRd : 0), tension:F<0, NcRd, aeff};
       } else {
         ax={cls3:true,n:nAx,NplRd,NuRd,NtRd,MN:Mel,MNz:Melz,alpha:1,beta:1,mnLbl:'Class 3: elastic, cl 6.2.9.2',biax,Mz:MzEd,Avz,VplZ,Mcz,
           mUtil:Math.abs(F)/NplRd + My/Math.max(Mel,1e-9) + (biax? MzEd/Math.max(Melz,1e-9):0),
-          nUtil: F>0? Math.abs(F)/NplRd : (F<0? Math.abs(F)/NtRd : 0), tension:F<0};
+          nUtil: F>0? Math.abs(F)/NcRd : (F<0? Math.abs(F)/NtRd : 0), tension:F<0, NcRd, aeff};
       }
     }
   }
@@ -686,53 +883,90 @@ function checksEC3Restrained(a){
   const VplMoment=(tor&&tor.VplTRd!=null)? tor.VplTRd : VcRd;
   const halfVpl=0.5*VplMoment; // cl 6.2.8(4): use Vpl,T,Rd when torsion is present
   const lowShearAtM = VatM<=halfVpl+1e-9;
-  let hsNote=null;
+  let hsNote=null, mvForm=null, rhoAtM=null;
   if(!lowShearAtM){
     if(VatM>VplMoment+1e-9){
       hsNote="V<sub>Ed</sub> at the point of maximum moment exceeds V<sub>pl,Rd</sub>: the member has already failed the pure shear resistance check, so the cl 6.2.8 reduced moment formula is not valid";
-    } else if(cl.cls<=2 && sec.kind==='I'){
-      const rho=Math.min(Math.pow(2*VatM/VplMoment-1,2),1);
-      const Sv=Av*Av/(4*sec.tw);
-      McRd=Math.min(McRd,Math.max((Sx-rho*Sv)*fy/gM0/1e6,0));
-      hsNote="V<sub>Ed</sub> at the point of maximum moment exceeds 0.5V<sub>pl,Rd</sub>: moment resistance reduced per cl 6.2.8(3) with &rho;=(2V<sub>Ed</sub>/V<sub>pl,Rd</sub>&minus;1)&sup2;";
-    } else {
-      unsupported.push("High shear coincident with the maximum moment: the cl 6.2.8 reduced moment resistance for this section family/class is not implemented.");
+    } else if(cl.cls<=3){
+      // cl 6.2.8(3): (1 - rho) f_y on the shear area, every family and class
+      // (shearReducedResistances): rolled I/H Eq 6.30 form, elastic I/H Class 3,
+      // channel and hollow-section web moduli
+      rhoAtM=Math.min(Math.pow(2*VatM/VplMoment-1,2),1);
+      const R=shearReducedResistances(sec,cl,fy,Av,rhoAtM,gM0);
+      McRd=Math.min(McRd,R.MvY); mvForm=R.form;
+      hsNote="V<sub>Ed</sub> at the point of maximum moment exceeds 0.5V<sub>pl,Rd</sub>: moment resistance reduced per cl 6.2.8(3) with &rho;=(2V<sub>Ed</sub>/V<sub>pl,Rd</sub>&minus;1)&sup2; = "+g(rhoAtM,3)+", M<sub>v,Rd</sub> = "+R.form;
     }
   }
-  const highShearAnywhere=a.ulsResults.some(res=>res.fb.V.some(v=>Math.abs(v)/1000>halfVpl+1e-9));
-  const highShearWithMoment=a.ulsResults.some(res=>res.fb.V.some((v,i)=>Math.abs(v)/1000>halfVpl+1e-9 && Math.abs(res.fb.M[i])>1e-3));
-  if(ax && Math.abs(F)>1e-9 && highShearAnywhere) unsupported.push("High shear coincident with axial force anywhere along the member: the combined cl 6.2.10 reduction is not implemented; PASS is blocked.");
-  if(MzEd>1e-9 && highShearAnywhere) unsupported.push('High shear with minor-axis/biaxial bending requires a combined resistance check not implemented here; PASS is blocked.');
-  if(highShearWithMoment && !(sec.kind==='I' && cl.cls<=2)) unsupported.push('High shear and bending coexist away from or at the maximum moment. The span-wise cl 6.2.8 interaction for this section family/class is not implemented; PASS is blocked.');
   const Mx=Math.abs(a.Mmax);
   const momUtil=McRd>0? Mx/McRd : 0;
-  // span-wise coexistent M-V check (cl 6.2.8): rolled I/H Class 1/2 only; at
-  // every x with V > 0.5*Vpl(,T),Rd the moment is checked against the reduced
-  // Mv,Rd = (Wpl - rho*Av^2/(4tw))*fy. Other families keep the at-max-moment check.
-  let coex=null;
-  if(sec.kind==='I' && cl.cls<=2){
+  // ---- span-wise coexistent M-V (cl 6.2.8) and M-V-N / M-V-Mz (cl 6.2.10) sweep ----
+  // Every station of every enabled ULS combination's own (V, M) fields (the
+  // interaction is nonlinear, so the envelopes of V and M do not bound it).
+  // Where V > 0.5 V_pl(,T),Rd: rho = (2V/V_pl - 1)^2 and the resistances of
+  // shearReducedResistances() apply at that station - all families, Class 1-3:
+  //   coex : M/M_v,Rd (6.2.8), worst station;
+  //   mvn  : with N_Ed != 0 or M_z != 0 (6.2.10(3)): the 6.2.9 interaction
+  //          re-evaluated with N_V,Rd, M_v,y,Rd, M_v,z,Rd and a_V -
+  //          I/H and RHS Class 1/2: M_N,V,y,Rd = M_v,y,Rd (1 - n_V)/(1 - 0.5 a_V)
+  //          <= M_v,y,Rd with the 6.2.9.1(4) waiver (N <= 0.25 N_V,Rd and N <=
+  //          0.5 h_w t_w (1 - rho) f_y), M_N,V,z,Rd per 6.2.9.1(5) / Eq 6.40;
+  //          uniaxial: M_y/M_N,V,y,Rd; biaxial: (M_y/M_N,V,y)^alpha + (M_z/M_N,V,z)^beta;
+  //          Class 3 and channels: n_V + M_y/M_v,y,Rd + M_z/M_v,z,Rd (6.2.9.2 / 6.2.1(7)).
+  // V > V_pl,Rd at a station is a pure shear failure (the reduced-moment forms
+  // are not valid there) and is reported as such.
+  let coex=null, mvn=null;
+  if(cl.cls<=3){
     const VplB=(tor&&tor.VplTRd!=null)? tor.VplTRd : VcRd;
-    const Sv=Av*Av/(4*sec.tw);
+    const NEdAbs=Math.abs(F), hasN=NEdAbs>1e-9, hasMz=MzEd>1e-9;
+    const hw62=sec.D-2*sec.tf;
     let worst={u:momUtil,x:a.Mpos*1000,red:false};
-    // sweep every enabled ULS combination's own coincident (V, M) fields, not
-    // only the governing-moment combo's - the M-V interaction is nonlinear, so
-    // the envelope of pure V and pure M does not bound it.
+    let worstN={u:-1};
     a.ulsResults.forEach(res=>{ const cfb=res.fb;
     cfb.xs.forEach((x,i)=>{
       const Vx=Math.abs(cfb.V[i])/1e3, Mxx=Math.abs(cfb.M[i])/1e6;
-      if(Mxx<1e-9) return;
-      let MvRd=McRd;
+      if(Mxx<1e-9 && !hasN && !hasMz) return;
       if(Vx>VplB+1e-9){
         const u=Vx/Math.max(VplB,1e-9);
         if(!worst.pureShearFail || Mxx>worst.M+1e-9 || (Math.abs(Mxx-worst.M)<=1e-9 && u>worst.u))
           worst={u,x,red:true,pureShearFail:true,V:Vx,M:Mxx,VplRd:VplB,MvRd:null,combo:res.combo.label};
         return;
-      } else if(Vx>0.5*VplB){
-        const rho=Math.min(Math.pow(2*Vx/VplB-1,2),1);
-        MvRd=Math.min(McRd,Math.max((Sx-rho*Sv)*fy/gM0/1e6,0));
       }
-      const u=Mxx/Math.max(MvRd,1e-9);
-      if(!worst.pureShearFail && u>worst.u) worst={u,x,red:true,V:Vx,M:Mxx,MvRd,combo:res.combo.label};
+      if(!(Vx>0.5*VplB)) return;          // low shear: M/M_c,Rd <= momUtil already (M_c,Rd carries the peak-station reduction)
+      const rho=Math.min(Math.pow(2*Vx/VplB-1,2),1);
+      const R=shearReducedResistances(sec,cl,fy,Av,rho,gM0);
+      const MvRd=Math.min(McRd,R.MvY);
+      if(Mxx>1e-9){
+        const u=Mxx/Math.max(MvRd,1e-9);
+        if(!worst.pureShearFail && u>worst.u) worst={u,x,red:true,V:Vx,M:Mxx,MvRd,rho,form:R.form,combo:res.combo.label};
+      }
+      if(hasN||hasMz){
+        const nV=NEdAbs/Math.max(R.NV,1e-9);
+        let MNVy, MNVz, alpha=1, beta=1, form, waiver=false, aV=R.aV;
+        if(cl.cls<=2 && sec.kind==='I'){
+          MNVy=Math.max(0,Math.min(R.MvY*(1-nV)/(1-0.5*aV),R.MvY));
+          if(NEdAbs<=0.25*R.NV && NEdAbs*1000<=0.5*hw62*sec.tw*(1-rho)*fy/gM0){ MNVy=R.MvY; waiver=true; }
+          alpha=2; beta=Math.max(5*nV,1);
+          MNVz= nV<=aV? R.MvZ : R.MvZ*(1-Math.pow((nV-aV)/(1-aV),2));
+          form='plastic, 6.2.9.1 with (1 &minus; &rho;)f<sub>y</sub> on A<sub>v</sub>';
+        } else if(cl.cls<=2 && sec.isBox){
+          const afV=R.afV;
+          MNVy=Math.max(0,Math.min(R.MvY*(1-nV)/(1-0.5*aV),R.MvY));
+          MNVz=Math.max(0,Math.min(R.MvZ*(1-nV)/(1-0.5*afV),R.MvZ));
+          alpha= nV<=0.8? 1.66/(1-1.13*nV*nV) : 6; beta=alpha;
+          form='plastic, Eq 6.39/6.40 with (1 &minus; &rho;)f<sub>y</sub> on A<sub>v</sub>';
+        } else {
+          MNVy=R.MvY; MNVz=R.MvZ;
+          form= sec.kind==='channel'? 'linear, cl 6.2.1(7) with N<sub>V,Rd</sub>, M<sub>v,y,Rd</sub>, M<sub>v,z,Rd</sub>' : 'elastic, cl 6.2.9.2 with N<sub>V,Rd</sub>, M<sub>v,y,Rd</sub>, M<sub>v,z,Rd</sub>';
+        }
+        let u;
+        if(cl.cls<=2 && sec.kind!=='channel'){
+          u= hasMz? Math.pow(Mxx/Math.max(MNVy,1e-9),alpha)+Math.pow(MzEd/Math.max(MNVz,1e-9),beta) : Mxx/Math.max(MNVy,1e-9);
+        } else {
+          u= nV + Mxx/Math.max(MNVy,1e-9) + (hasMz? MzEd/Math.max(MNVz,1e-9) : 0);
+        }
+        if(u>worstN.u) worstN={u,x,V:Vx,M:Mxx,Mz:MzEd,N:NEdAbs,rho,NV:R.NV,nV,MvY:R.MvY,MvZ:R.MvZ,MNVy,MNVz,alpha,beta,aV,afV:R.afV,waiver,form,formY:R.form,formZ:R.formZ,combo:res.combo.label,
+          biax:hasMz,plastic:(cl.cls<=2 && sec.kind!=='channel')};
+      }
     });
     });
     if(worst.red){
@@ -741,6 +975,7 @@ function checksEC3Restrained(a){
         ? "Coexistent shear and moment (cl 6.2.8): at x = "+(worst.x/1000).toFixed(2)+" m, V<sub>Ed</sub> = "+worst.V.toFixed(0)+" kN exceeds V<sub>pl,Rd</sub> = "+worst.VplRd.toFixed(0)+" kN, so pure shear failure governs and the reduced M<sub>v,Rd</sub> formula is not valid"
         : "Coexistent shear and moment (cl 6.2.8): at x = "+(worst.x/1000).toFixed(2)+" m, V<sub>Ed</sub> = "+worst.V.toFixed(0)+" kN &gt; 0.5V<sub>pl,Rd</sub> and the reduced M<sub>v,Rd</sub> = "+worst.MvRd.toFixed(0)+" kN&middot;m governs";
     }
+    if(worstN.u>=0 && !(coex&&coex.pureShearFail)) mvn=worstN;
   }
   // vertical deflection (NA 2.23) - governing enabled SLS combination and segment;
   // the limit is the segment's own (span/divisor, L/divisorCant for a cantilever
@@ -756,21 +991,24 @@ function checksEC3Restrained(a){
   holdDown.advisory.forEach(m=>advisory.push(m));
   if(a.patterns&&a.patterns.note) advisory.push(a.patterns.note);
   const isCantR=(S.supports.length===1 && S.supports[0].type==='fixed');
-  const buck=(ax && !ax.tension)? annexB2(a,sec,fy,cl,McRd,true,isCantR) : null; // fully restrained: not susceptible -> Table B.1; MbRd = Mc,Rd
+  const buck=(ax && !ax.tension)? annexB2(a,sec,fy,cl,McRd,true,isCantR,aeff) : null; // fully restrained: not susceptible -> Table B.1; MbRd = Mc,Rd
+  if(buck && buck.tfb && !buck.tfb.ok) unsupported.push('PFC under axial compression: '+buck.tfb.reason+'; torsional / torsional-flexural buckling (cl 6.3.1.4) cannot be verified, PASS is blocked.');
   const utils=[
     {name:"Shear  V_Ed/V_c,Rd",val:shearUtil},
     {name:"Bending  M_Ed/M_c,Rd",val:momUtil},
     {name:"Deflection",val:dmax/dlimit},
   ];
   if(ax){
-    utils.push({name: ax.tension? "Tension  N_Ed/N_t,Rd" : "Compression  N_Ed/N_pl,Rd", val:ax.nUtil});
+    utils.push({name: ax.tension? "Tension  N_Ed/N_t,Rd" : (ax.aeff&&ax.aeff.active? "Compression  N_Ed/N_c,Rd (A_eff)" : "Compression  N_Ed/N_pl,Rd"), val:ax.nUtil});
     utils.push({name: ax.biax? ("Biaxial bending"+(Math.abs(F)>1e-9?" + axial":"")+" (6.2.9.1)") : "Bending+axial cross-section (6.2.9)",val:ax.mUtil});
     if(!ax.tension && buck && buck.Fc>1e-9){   // cl 6.3.3 applies only with axial compression
+      if(buck.tfb && buck.tfb.ok) utils.push({name:TFB_UTIL_NAME,val:buck.tfb.util});
       utils.push({name:"Member buckling y-y (Eq 6.61)",val:buck.u1});
       utils.push({name:"Member buckling z-z (Eq 6.62)",val:buck.u2});
     }
   }
   if(coex) utils.push({name:coex.pureShearFail? "Pure shear failure at M-V check point (6.2.6)" : "Bending+shear coexistent (6.2.8)",val:coex.u});
+  if(mvn) utils.push({name:mvnUtilName(mvn),val:mvn.u});
   if(web&&web.checked){
     utils.push({name:WEB_UTIL_NAMES[0],val:web.util2});
     utils.push({name:WEB_UTIL_NAMES[1],val:web.util72});
@@ -785,9 +1023,9 @@ function checksEC3Restrained(a){
   }
   let gov=utils[0]; utils.forEach(u=>{ if(u.val>gov.val) gov=u; });
   const pass=unsupported.length===0 && utils.every(u=>u.val<=1.0001);
-  return {sci:true,tor,coex,web,ax,buck,eps,cl,clsName,unsupported,advisory,fy,eta,hw,cOut,Av,AvRaw,avFloor,VcRd,Fv,shearUtil,
-    sbRatio,sbLimit,sbOk,Zx,Sx,Wy,McRd,hsNote,VatM,halfVpl,lowShearAtM,Mx,momUtil,F,
-    span,divisor,dlimit,dmax,defOk,deflCant,deflAbsGoverns,holdDown,utils,gov,pass};
+  return {sci:true,tor,coex,mvn,web,ax,aeff,buck,eps,cl,clsName,unsupported,advisory,fy,eta,hw,cOut,Av,AvRaw,avFloor,VcRd,Fv,shearUtil,
+    sbRatio,sbLimit,sbOk,Zx,Sx,Wy,McRd,hsNote,mvForm,rhoAtM,VatM,halfVpl,lowShearAtM,Mx,momUtil,F,
+    span,divisor,dlimit,dmax,defOk,deflCant,deflAbsGoverns,holdDown,restraintForces:null,utils,gov,pass};
 }
 
 /* ===========================================================================
@@ -1127,7 +1365,7 @@ function checksEC3UnrestrainedSCI(a){
   const LE=S.leFactor*(S.destab?1.2:1)*a.L;
   const gfac=a.governM.combo;     // governing-moment combination (pattern-aware load list)
   const c1r=sn003aC1(a,isCant);   // whole member: the closed form treats the member as one segment
-  const C1=c1r.C1, invSqrtC1=1/Math.sqrt(C1), kc=invSqrtC1;
+  const C1=c1r.C1, kcr=kcFromC1(C1), invSqrtC1=kcr.kcRaw, kc=kcr.kc;   // k_c floored at 1/sqrt(2.76) = 0.60 (Table 6.6 lower bound)
   const zgi=stdZgFor(gfac);       // load height of the governing combination (per-load z_g, most destabilising)
   const zgStd=zgi.zg;
   const segStd=c1Segment(a);
@@ -1159,7 +1397,7 @@ function checksEC3UnrestrainedSCI(a){
     const Mb=Math.min(sB.chiMod*Wy*fy/gM1/1e6,b.McRd);
     zgs=stdZgStatus(zgStd,c1r.C2,cf.zgUsed);
     ltb={na:sB.ign, box:true, T1:cf.T1/1e3, GIt:cf.GIt/1e9, Mcr:Mcr/1e6, lamLTmcr:lamLT, ignM:sB.ign,
-      PhiM:sB.Phi, chiM:sB.chi, fM:sB.f, chiModM:sB.chiMod, curve, kc, invSqrtC1,
+      PhiM:sB.Phi, chiM:sB.chi, fM:sB.f, chiModM:sB.chiMod, curve, kc, kcRaw:kcr.kcRaw, kcFloored:kcr.floored, invSqrtC1,
       zg:zgStd, C2:c1r.C2, zgUsed:cf.zgUsed, MbSimp:Mb, MbMcr:Mb, MbRd:Mb};
   } else if(isCant && sec.kind==='I'){
     // NCCI SN006a-EN-EU cantilever path (doubly symmetric I/H): see mcrSN006aFor().
@@ -1220,7 +1458,7 @@ function checksEC3UnrestrainedSCI(a){
       if(lamC>0.4){
         PhiC=0.5*(1+0.76*(lamC-0.4)+0.75*lamC*lamC);
         chiC=Math.min(1/(PhiC+Math.sqrt(Math.max(PhiC*PhiC-0.75*lamC*lamC,1e-12))),1,1/(lamC*lamC));
-        fC=Math.min(1-0.5*(1-invSqrtC1)*(1-2*Math.pow(lamC-0.8,2)),1);
+        fC=Math.min(1-0.5*(1-kc)*(1-2*Math.pow(lamC-0.8,2)),1);
         chiModC=Math.min(chiC/fC,1,1/(lamC*lamC)); ignC=false;
       }
       MbMcr2=Math.min(chiModC*Wy*fy/gM1/1e6, b.McRd);
@@ -1228,7 +1466,7 @@ function checksEC3UnrestrainedSCI(a){
     }
     zgs={text: Math.abs(zgStd)<1e-9? 'z<sub>g</sub> = 0 (load through the shear centre)' : 'z<sub>g</sub> = '+(zgStd>0?'+':'')+zgStd.toFixed(0)+' mm entered &mdash; not used by the P385/P362 &kappa; chain (load height enters the channel route only through the destabilising L<sub>E</sub> switch); the shear-centre M<sub>cr</sub> route is not offered', block:null, advisory:null};
     ltb={na:false,channel:true,chanMcr,ry,kappa,lamLTsimp:lamLT,lamLTmcr:lamLT,PhiS:Phi,chiS:chi,ignS:ign,
-      PhiM:Phi,chiM:chi,fM:1,chiModM:chi,ignM:ign,curve:{alphaLT:0.76,curve:'d'},kc:invSqrtC1,invSqrtC1,
+      PhiM:Phi,chiM:chi,fM:1,chiModM:chi,ignM:ign,curve:{alphaLT:0.76,curve:'d'},kc,kcRaw:kcr.kcRaw,kcFloored:kcr.floored,invSqrtC1,
       lamZ:LE/ry,lam1:0,lamZbar:0,rootBw:1,hb:sec.D/sec.B,
       MbSimp:Mb,MbMcr:MbMcr2,MbRd:Mb,Mcr:McrBack,McrBack,T1:0,IwIz:0,GIt:0,fS:1,chiModS:chi,zg:zgStd,zgUsed:false};
   } else {
@@ -1251,7 +1489,7 @@ function checksEC3UnrestrainedSCI(a){
     const sA=chiChain(lamLTsimp,false);
     const MbSimp=Math.min(sA.chiMod*Wy*fy/gM1/1e6,b.McRd);
     zgs=stdZgStatus(zgStd,C2,zgUsed);
-    ltb={na:false,ry,lamZ,lam1,lamZbar,rootBw,hb,curve,kc,invSqrtC1,
+    ltb={na:false,ry,lamZ,lam1,lamZbar,rootBw,hb,curve,kc,kcRaw:kcr.kcRaw,kcFloored:kcr.floored,invSqrtC1,
       lamLTsimp,PhiS:sA.Phi,chiS:sA.chi,fS:sA.f,chiModS:sA.chiMod,ignS:sA.ign,MbSimp,
       T1:T1/1e3,IwIz:IwIz/1e2,GIt:GIt/1e9,Mcr:Mcr/1e6,zg:zgStd,C2,zgUsed,
       lamLTmcr,PhiM:sB.Phi,chiM:sB.chi,fM:sB.f,chiModM:sB.chiMod,ignM:sB.ign,MbMcr,
@@ -1332,7 +1570,9 @@ function checksEC3UnrestrainedSCI(a){
   // The Mb,Rd handed to Eq 6.61/6.62 is the design value above (Mcr route).
   const isCantU=(S.supports.length===1 && S.supports[0].type==='fixed');
   const useB1u = sec.isBox || ltb.na || (ltb.MbRd>=b.McRd*0.9999);
-  const buck=(b.ax && !b.ax.tension)? annexB2(a,sec,fy,b.cl,ltb.MbRd>0? ltb.MbRd : b.McRd,useB1u,isCantU) : null;
+  const buck=(b.ax && !b.ax.tension)? annexB2(a,sec,fy,b.cl,ltb.MbRd>0? ltb.MbRd : b.McRd,useB1u,isCantU,b.aeff) : null;
+  if(buck && buck.tfb && !buck.tfb.ok) unsupported.push('PFC under axial compression: '+buck.tfb.reason+'; torsional / torsional-flexural buckling (cl 6.3.1.4) cannot be verified, PASS is blocked.');
+  const restraintF=restraintForces(a,sec);
   const utils=[
     {name:"Shear  V_Ed/V_c,Rd",val:b.shearUtil},
     {name:"Bending  M_Ed/M_c,Rd",val:b.momUtil},
@@ -1340,17 +1580,19 @@ function checksEC3UnrestrainedSCI(a){
     {name:"Deflection",val:b.dmax/b.dlimit},
   ];
   if(b.ax){
-    utils.push({name: b.ax.tension? "Tension  N_Ed/N_t,Rd" : "Compression  N_Ed/N_pl,Rd", val:b.ax.nUtil});
+    utils.push({name: b.ax.tension? "Tension  N_Ed/N_t,Rd" : (b.ax.aeff&&b.ax.aeff.active? "Compression  N_Ed/N_c,Rd (A_eff)" : "Compression  N_Ed/N_pl,Rd"), val:b.ax.nUtil});
     utils.push({name: b.ax.biax? ("Biaxial bending"+((S.axial||0)!==0?" + axial":"")+" (6.2.9.1)") : "Bending+axial cross-section (6.2.9)",val:b.ax.mUtil});
     // Eq 6.61/6.62 are needed with axial compression AND for biaxial bending on
     // an LTB-susceptible member with N_Ed = 0 (kzy*My/MbRd + kzz*Mz/MczRd).
     if(!b.ax.tension && buck && (buck.Fc>1e-9 || buck.biax)){
+      if(buck.tfb && buck.tfb.ok) utils.push({name:TFB_UTIL_NAME,val:buck.tfb.util});
       utils.push({name:"Member buckling y-y (Eq 6.61)",val:buck.u1});
       utils.push({name:"Member buckling z-z (Eq 6.62)",val:buck.u2});
     }
   }
   if(annex) utils.push({name:"LTB+torsion (EN 1993-6 Annex A)",val:annex.u});
   if(b.coex) utils.push({name:b.coex.pureShearFail? "Pure shear failure at M-V check point (6.2.6)" : "Bending+shear coexistent (6.2.8)",val:b.coex.u});
+  if(b.mvn) utils.push({name:mvnUtilName(b.mvn),val:b.mvn.u});
   if(b.web&&b.web.checked){
     utils.push({name:WEB_UTIL_NAMES[0],val:b.web.util2});
     utils.push({name:WEB_UTIL_NAMES[1],val:b.web.util72});
@@ -1365,5 +1607,5 @@ function checksEC3UnrestrainedSCI(a){
   }
   let gov=utils[0]; utils.forEach(u=>{ if(u.val>gov.val) gov=u; });
   const pass=unsupported.length===0 && utils.every(u=>u.val<=1.0001);
-  return Object.assign({},b,{sci:false,sciU:true,mcrMethod:'standard',unsupported,advisory,ltb,ltbUtil,ltbBasis,C1,c1label:c1r.label,LE,utils,gov,pass,annex,buck});
+  return Object.assign({},b,{sci:false,sciU:true,mcrMethod:'standard',unsupported,advisory,ltb,ltbUtil,ltbBasis,C1,c1label:c1r.label,LE,utils,gov,pass,annex,buck,restraintForces:restraintF});
 }

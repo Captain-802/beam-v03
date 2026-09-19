@@ -194,6 +194,13 @@ mk('UB-44', 'UB 406x178x54, 7 m SS, point load at 0.35L, top-flange loading zg =
   { L: 7, supports: SS(7), eccOn: true, za: 201, loads: [P(2.45, 10, 'G', { e: 0, zg: 201 }), P(2.45, 28, 'Q', { e: 0, zg: 201 })] }, ['zg-top']);
 mk('UB-45', 'UC 203x203x60, 6 m fixed-fixed, central point load, top-flange loading zg = +D/2 (SN003a fixed-ended row, C2 = 1.645)', UC('203 x 203 x 60'),
   { L: 6, supports: FIXFIX(6), eccOn: true, za: 105, loads: [P(3, 30, 'G', { e: 0, zg: 105 }), P(3, 80, 'Q', { e: 0, zg: 105 })] }, ['zg-top']);
+// 19 Sep 2026 gap closure G3: Class-4 web in uniform compression (A_eff), cl 6.2.10 M-V-N, channel 6.3.1.4
+mk('UB-46', 'UB 1016x305x249, 12 m SS, full UDL + axial compression 3000 kN, fully restrained (web Class 4 in uniform compression: A_eff, G3 item 6)', UB('1016 x 305 x 249'),
+  { L: 12, supports: SS(12), restraint: 'full', axial: 3000, loads: [UDL(0, 12, 19.7, 'G'), UDL(0, 12, 19.8, 'Q')] }, ['aeff']);
+mk('UB-47', 'UB 457x191x82, 6 m SS, full UDL + axial compression 600 kN, unrestrained (Class 2 under N + M, A_eff for the compression terms, G3 item 6)', UB('457 x 191 x 82'),
+  { L: 6, supports: SS(6), axial: 600, loads: [UDL(0, 6, 5, 'G'), UDL(0, 6, 6, 'Q')] }, ['aeff']);
+mk('UB-48', 'UB 457x191x82, 2 m SS, 400 kN point load 0.3 m from the support + axial compression 600 kN, fully restrained (high shear with N: cl 6.2.10, G3 item 7)', UB('457 x 191 x 82'),
+  { L: 2, supports: SS(2), restraint: 'full', axial: 600, loads: [P(0.3, 400, 'Q')] }, ['mvn']);
 
 /* =========================================================================
    UC - universal columns used as beams
@@ -352,6 +359,8 @@ mk('MIX-09', 'UB 686x254x140, 10 m SS, equal hogging end couples + full UDL (end
   { L: 10, supports: SS(10), loads: [MOM(0, 500, 'Q'), MOM(10, -500, 'Q'), UDL(0, 10, 20, 'G'), UDL(0, 10, 20, 'Q')] });
 mk('MIX-10', 'PFC 300x100x46, 6 m SS, central point load at e = -50 mm (load on the web side)', PFC('300x100x46'),
   { L: 6, supports: SS(6), eccOn: true, loads: [P(3, 21, 'Q', { e: -50 })] }, ['ecc-large']);
+mk('PFC-20', 'PFC 180x75x20, 4 m SS, full UDL + axial compression 50 kN, unrestrained (torsional-flexural buckling cl 6.3.1.4, G3 item 10)', PFC('180x75x20'),
+  { L: 4, supports: SS(4), axial: 50, loads: [UDL(0, 4, 1, 'G'), UDL(0, 4, 2, 'Q')] }, ['tfb']);
 
 // ---- sanity: unique ids ----
 {

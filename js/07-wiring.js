@@ -43,6 +43,7 @@ function readScalarInputs(){
   const mlt=parseFloat($("mLTo").value); S.mLTo=isFinite(mlt)?mlt:null;
   const mxo=parseFloat($("mxo").value); S.mxo=isFinite(mxo)?mxo:null;
   const c1o=parseFloat($("C1o").value); S.C1o=isFinite(c1o)?c1o:null;
+  if($("LT")){ const lt=parseFloat($("LT").value); S.LT=isFinite(lt)?lt:null; }
   S.divisor=parseFloat($("divisor").value);
   if($("divisorCant")){ const dc=parseFloat($("divisorCant").value); S.divisorCant=isFinite(dc)?dc:180; }
   if($("deflAbs")){ const da=parseFloat($("deflAbs").value); S.deflAbs=isFinite(da)?da:null; }
@@ -69,7 +70,7 @@ function wirePlate(){
 }
 
 function wire(){
-  ["grade","py","anet","length","axial","Mz","leFactor","mLTo","mxo","C1o","divisor","divisorCant","deflAbs","E","Ke","robertsonX","robertsonY"]
+  ["grade","py","anet","length","axial","Mz","leFactor","LT","mLTo","mxo","C1o","divisor","divisorCant","deflAbs","E","Ke","robertsonX","robertsonY"]
     .forEach(id=>{ if($(id)) $(id).addEventListener("input",()=>{ readScalarInputs(); recompute(); }); });
   $("za").addEventListener("input",()=>{ readScalarInputs(); renderLoadList(); recompute(); });
   $("destab").addEventListener("change",()=>{ readScalarInputs(); recompute(); });

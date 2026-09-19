@@ -167,6 +167,7 @@ function validateInputs(py,E,ulsCombos,slsCombos){
   const area=activeSection().A;
   if(S.anet!=null && !(finite(S.anet)&&S.anet>0&&S.anet<=area)) errs.push('Net area must be greater than zero and no greater than the gross area.');
   ['Ke','robX','robY','C1o'].forEach(k=>{ if(S[k]!=null && !(finite(S[k])&&S[k]>0)) errs.push(`${k} override must be greater than zero.`); });
+  if(S.LT!=null && S.LT!=='' && !(finite(S.LT) && +S.LT>0)) errs.push('Torsional buckling length L_T must be blank (= L_cr,z) or greater than 0 m.');
   if(S.mcrMethod!=null && S.mcrMethod!=='eigen' && S.mcrMethod!=='standard') errs.push(`Unknown Mcr method "${S.mcrMethod}": use "eigen" (FE eigensolver) or "standard" (closed form).`);
   [['mLTo',0.44],['mxo',0.4]].forEach(([k,min])=>{ if(S[k]!=null && !(finite(S[k])&&S[k]>=min&&S[k]<=1)) errs.push(`${k} override must be between ${min} and 1.`); });
   if(S.mLTo!=null && (S.destab || (S.supports.length===1&&S.supports[0].type==='fixed')) && S.mLTo!==1) errs.push('mLT must be 1 for cantilevers and destabilising loading.');
