@@ -6,3 +6,5 @@ Desktop.ini
 .idea/
 .playwright-cli/
 output/playwright/
+
+.claude/

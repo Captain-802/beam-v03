@@ -516,7 +516,7 @@ function renderMasterSeriesBrief(a,c,sec){
       h+=ratioLine(c.Mx,0);
     } else {
       const sg=LT.spanGoverns? LT.spanGov : null;
-      const endBc=endsList().map(e=>{ const held=[]; if(e.uy) held.push('v'); if(e.rz) held.push('v&prime;'); if(e.rx) held.push('&phi;'); if(e.warp) held.push('&phi;&prime;'); return 'End '+e.n+' '+(held.length? held.join(', ')+' = 0' : 'free'); }).join('; ');
+      const endBc=ltbEndBcText(S, sec, true);
       if(sg) h+=msbRow('Governing bay '+msbM(sg.a/1000)+'&ndash;'+msbM(sg.b/1000)+' m (isolated, fork ends)', 'M<sub>y.Ed</sub> = '+msbKNm(sg.Ms)+', M<sub>cr</sub> = '+msbKNm(sg.Mcr)+', &lambda;&#772; = '+msbR(sg.lam)+', &chi; = '+msbR(sg.chi), msbKNm(sg.Mb)+' kN.m', 'bay by bay');
       h+=msbRow('L<sub>e</sub> = portion between restraints', endBc+((LT.vPoints||[]).length>2? '; lateral restraint points at x = '+(LT.vPoints||[]).map(x=>msbM(x/1000)).join(', ')+' m' : ''), msbM((xb-xa)/1000)+' m', 'FE');
       const zgTxt=(LT.zgValues&&LT.zgValues.length>1)? '; z<sub>g</sub> = '+LT.zgValues.map(z=>g(z,0)).join(', ')+' mm' : (Math.abs(LT.zg||0)>1e-9? '; z<sub>g</sub> = '+g(LT.zg,0)+' mm (load reversed: '+msbKNm(LT.McrRev)+')' : '');

@@ -378,25 +378,19 @@
      S.zj is exposed so a future plated-section path can supply it. */
   function zjFor(sec) { return (S.zj != null && isFinite(S.zj)) ? +S.zj : 0; }
 
-  /* Printed end boundary conditions of the LTB model (pure). */
-  function ltbEndBcText() {
-    return endsList().map(function (e) {
-      var held = [];
-      if (e.uy) held.push('v'); if (e.rz) held.push('v&prime;'); if (e.rx) held.push('&phi;'); if (e.warp) held.push('&phi;&prime;');
-      var kind = (e.uy && e.rx && !e.rz && !e.warp) ? ' (fork)' : (!held.length ? ' (free)' : (e.uy && e.rx && e.rz) ? ' (laterally clamped)' : '');
-      return 'End ' + e.n + ' x = ' + g(e.x, 2) + ' m: ' + (held.length ? held.join(', ') + ' = 0' : 'none') + kind;
-    }).join('; ');
-  }
-
   function ltbRestraintsFor(a) {
     /* End boundary conditions straight from the end degree-of-freedom flags
        (19 Sep 2026 single-span scope): v from U_y, v' from R_z, phi from R_x,
        phi' from warping (ltbEndRestraints, js/03-state-ui.js). A free end
        (cantilever tip) contributes no restraint at x = L. Intermediate lateral
-       restraints follow with their own four flags. */
-    var out = ltbEndRestraints(S).map(function (r) { return { x: r.x, v: r.v, vp: r.vp, phi: r.phi, phip: r.phip }; });
+       restraints follow with their own four flags. A warping flag is applied
+       only where the section has a warping constant (warpingApplies,
+       js/03-state-ui.js): on an I_w = 0 box the twist equation is second
+       order and phi' is not a boundary condition (finding F-E). */
+    var warp = warpingApplies(a.sec);
+    var out = ltbEndRestraints(S).map(function (r) { return { x: r.x, v: r.v, vp: r.vp, phi: r.phi, phip: warp ? r.phip : 0 }; });
     (S.ltbRestraints || []).forEach(function (r) {
-      out.push({ x: (+r.pos) * 1000, v: r.v !== false, vp: !!r.vp, phi: r.phi !== false, phip: !!r.phip });
+      out.push({ x: (+r.pos) * 1000, v: r.v !== false, vp: !!r.vp, phi: r.phi !== false, phip: warp ? !!r.phip : false });
     });
     return out;
   }
@@ -578,6 +572,9 @@
        (L_E x 1.2) refuses - a contradictory input, so PASS is blocked until z_g is entered or the switch cleared. */
     if (!zgAny && S.destab) unsupported.push('Destabilising loading is ticked but every load height z<sub>g</sub> is 0 (load at the shear centre): the eigenvalue M<sub>cr</sub> carries the load height exactly through z<sub>g</sub> and does not apply the &times;1.2 L<sub>E</sub> device of the closed-form route, so this solve would treat the load as non-destabilising. Enter the load height (e.g. z<sub>g</sub> = +h/2 for a top-flange load, with eccentricity/height inputs on) or untick the switch; PASS is blocked.');
     if (S.leFactor != null && S.leFactor !== '' && Math.abs(+S.leFactor - 1) > 1e-9) warn.push('The L<sub>E</sub> factor does not affect EC3 LTB on the eigen route; the buckling length is set by the end restraints and the restraint positions. It overrides the strut lengths of both axes (the end-fixity defaults are printed with them).');
+    var warpFlagged = endsList(S).filter(function (e) { return e.warp; }).map(function (e) { return 'End ' + e.n; })
+      .concat((S.ltbRestraints || []).filter(function (r) { return r.phip; }).map(function (r) { return 'restraint at x = ' + g(+r.pos, 2) + ' m'; }));
+    if (warpFlagged.length && !warpingApplies(sec)) warn.push('Warping flag at ' + warpFlagged.join(', ') + ' not applied: this closed section has I<sub>w</sub> = 0, so its twist equation is the second-order St Venant form and &phi;&prime; is not a boundary condition (EN 1993-1-1 6.2.7(7): warping of closed hollow sections may be neglected). The eigen model holds v, v&prime; and &phi; as flagged.');
 
     var curve = ltbCurve(sec);
 
@@ -937,7 +934,7 @@
     rows += '<div>Section properties</div><div class="formula">I<sub>z</sub> = ' + g(LT.Iz / 1e4, 0) + ' cm<sup>4</sup>; I<sub>T</sub> = ' + g(LT.It / 1e4, 1) +
             ' cm<sup>4</sup>; I<sub>w</sub> = ' + g(LT.Iw / 1e12, 4) + ' dm<sup>6</sup>' + (LT.channel ? ' (about the shear centre)' : '') +
             '; G = 81000 N/mm&sup2;</div><div class="value">z<sub>j</sub> = ' + g(LT.zj, 1) + ' mm</div><div></div>';
-    var endBc = ltbEndBcText();
+    var endBc = ltbEndBcText(S, sec);
     rows += '<div>End boundary conditions</div><div class="formula">' + endBc +
             (restr ? '; ' + restr + ' intermediate restraint(s)' : '') +
             '</div><div class="value">&mdash;</div><div></div>';

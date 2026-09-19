@@ -237,7 +237,7 @@ function outlierReason(rec, o) {
   if (rec.zgStdBlocked) r.push('C2 unpublished for this diagram: closed form at the shear centre, PASS refused on the standard route');
   if ((o.hinges || []).length) r.push('internal hinge: closed form takes the whole member as one fork-ended segment (Serna C1 on the released diagram)');
   if ((e1.rz && e1.uy) || (e2.rz && e2.uy)) r.push('laterally clamped end(s) (R_z held): closed form keeps k = 1');
-  if (e1.warp || e2.warp) r.push('warping-fixed end(s): closed form keeps k_w = 1');
+  if (e1.warp || e2.warp) r.push(o.family === 'shs' || o.family === 'rhs' ? 'warping flag on a box (I_w = 0): not a boundary condition, not applied by either route (F-E)' : 'warping-fixed end(s): closed form keeps k_w = 1');
   if ((e1.ry && !e1.uz) || (e2.ry && !e2.uz)) r.push('guided end: closed form on the whole member (Serna C1) with fork ends');
   if (!isCantCase(o) && ((e1.uy && !e1.rx) || (e2.uy && !e2.rx) || !e1.uy || !e2.uy)) r.push('an end with U_y or R_x released: the closed form assumes fork ends at both ends (unconservative side) - refused on the standard route (NOT VERIFIED) since the 19 Sep 2026 review fix F-C; the printed fork-ended value is the comparison');
   if ((o.ltbRestraints || []).length) r.push('intermediate restraints: the comparison isolates the governing bay with fork ends');

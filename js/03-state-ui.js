@@ -108,6 +108,33 @@ function hasFreeVerticalEnd(st){ const [e1,e2]=endsList(st); return !(e1.uz&&e2.
 function ltbEndRestraints(st){
   return endsList(st).filter(e=>e.uy||e.rz||e.rx||e.warp).map(e=>({x:e.x*1000,v:e.uy?1:0,vp:e.rz?1:0,phi:e.rx?1:0,phip:e.warp?1:0,end:e.n}));
 }
+/* Warping constant the LTB model uses (dm6): the P385 value where the section
+   carries one, else the Blue Book column, else 0 (hollow sections). Pure. */
+function sectionWarpingIw(sec){ const tp=(sec&&sec.tp)||{}; const v=tp.Iw!=null? tp.Iw : (sec? sec.Iw : null); return Number.isFinite(+v)? +v : 0; }
+/* Whether a warping flag (phi' = 0) is a boundary condition of the twist
+   models for this section. A closed (box) section has I_w = 0: its twist
+   equation E I_w phi'''' - G I_T phi'' = m_t reduces to the second-order
+   St Venant form, phi' is not a boundary condition, and warping restraint
+   may be neglected (EN 1993-1-1 6.2.7(7)). Imposing phi' = 0 on the Hermite
+   node of an I_w = 0 model was a spurious constraint whose effect faded with
+   the mesh (finding F-E of the 19 Sep 2026 single-span library: RHS-07
+   0.51 %, SHS-06 0.42 % "mesh error" at the cantilever root). Pure. */
+function warpingApplies(sec){ return sectionWarpingIw(sec)>0; }
+/* Printed end boundary conditions of the LTB eigen model (pure; shared by
+   the brief (compact: "End 1 v, phi = 0; End 2 free") and the report (with
+   the position and the fork / clamped / free label)). With `sec` given, a
+   warping flag on an I_w = 0 section is printed as not applied. */
+function ltbEndBcText(st, sec, compact){
+  const noWarp = sec!=null && !warpingApplies(sec);
+  return endsList(st).map(e=>{
+    const held=[], warpOn = e.warp && !noWarp;
+    if(e.uy) held.push('v'); if(e.rz) held.push('v&prime;'); if(e.rx) held.push('&phi;'); if(warpOn) held.push('&phi;&prime;');
+    const note = (e.warp && noWarp) ? (compact? ' [warping not applied: I<sub>w</sub> = 0]' : ' [warping flag not applied: I<sub>w</sub> = 0, St Venant twist only, EN 1993-1-1 6.2.7(7)]') : '';
+    if(compact) return 'End '+e.n+' '+(held.length? held.join(', ')+' = 0' : 'free')+note;
+    const kind = (e.uy && e.rx && !e.rz && !warpOn) ? ' (fork)' : (!held.length ? ' (free)' : (e.uy && e.rx && e.rz) ? ' (laterally clamped)' : '');
+    return 'End '+e.n+' x = '+g(e.x,2)+' m: '+(held.length? held.join(', ')+' = 0' : 'none')+kind+note;
+  }).join('; ');
+}
 /* Twist-restrained ends for the torsion models: phi = 0 from R_x, phi' = 0
    from warping. Positions in mm. */
 function twistEnds(st){ return endsList(st).filter(e=>e.rx).map(e=>({end:e.n,pos:e.x*1000,warpFix:!!e.warp})); }

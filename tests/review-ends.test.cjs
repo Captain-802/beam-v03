@@ -180,3 +180,42 @@ test('the cantilever-root rule is stated where the user meets it: the End condit
   c.reset({ ends: ENDS('ss', { e1: { uz: 0, uy: 0, rx: 0 }, e2: { ry: 1, rz: 1, ux: 1 } }) });
   assert.throws(() => run('analyse()'), e => /mirror the member/.test(strip(e && e.message ? e.message : e)));
 });
+
+// ---- F-E: a warping flag on an I_w = 0 box is not a boundary condition ----
+test('F-E: on a closed section (I_w = 0) the warping flag is not applied to the eigen model - the cantilever preset\'s root warping no longer imposes a spurious phi\' = 0 on the St Venant twist field, so the box cantilever converges (RHS 160x80x5.0, 3 m: mesh error 0.51 % -> < 1e-5, PASS) and the flag is printed as not applied; a UB cantilever keeps its warping restraint', () => {
+  // RHS-07 of the batch library: 3 m cantilever, 1 G + 1 Q kN/m + 1.5 kN Q at the tip, deflection-governed
+  const RHS07 = { family: 'rhs', rhsKey: '160 x 80 x 5.0', L: 3, restraint: 'ltb', divisor: 180, mcrMethod: 'eigen',
+    loads: [{ type: 'udl', x1: 0, x2: 3, w: 1, case: 'G' }, { type: 'udl', x1: 0, x2: 3, w: 1, case: 'Q' }, { type: 'point', pos: 3, P: 1.5, case: 'Q' }] };
+  c.reset(Object.assign({}, RHS07, { ends: ENDS('cantilever') }));
+  assert.equal(run('JSON.stringify({iw: sectionWarpingIw(activeSection()), applies: warpingApplies(activeSection()), warp: S.ends.e1.warp})'), JSON.stringify({ iw: 0, applies: false, warp: true }));
+  const on = run(`(()=>{ const a=analyse(); const ch=checks(a); return {Mcr:ch.ltb.Mcr, mesh:ch.ltb.meshError, pass:ch.pass, n:ch.ltb.nElem,
+    uns:ch.unsupported.map(m=>m.replace(/<[^>]+>/g,'')), adv:(ch.advisory||[]).map(m=>m.replace(/<[^>]+>/g,'')), warn:(ch.ltb.warn||[]).map(m=>m.replace(/<[^>]+>/g,'')), rep:ltbEigenReport(ch,a,a.sec).replace(/<[^>]+>/g,''), brief:renderMasterSeriesBrief(a,ch,a.sec).replace(/<[^>]+>/g,'')}; })()`);
+  assert.equal(on.pass, true, on.uns.join(' | '));
+  assert.ok(on.mesh < 1e-5, 'mesh error with the flag not applied: ' + on.mesh + ' (was 5.06e-3 with phi\' = 0 imposed at the root)');
+  assert.equal(on.n, 64, 'base pair 32 / 64 elements, no refinement needed');
+  assert.ok(!on.uns.some(m => /mesh convergence/.test(m)) && !on.warn.some(m => /Mesh convergence/.test(m)), 'no mesh message');
+  assert.ok(on.warn.some(m => /Warping flag at End 1 not applied: this closed section has Iw = 0/.test(m)), on.warn.join(' | '));
+  assert.match(on.rep, /End 1 x = 0 m: v, v&prime;, &phi; = 0 \(laterally clamped\) \[warping flag not applied: Iw = 0, St Venant twist only, EN 1993-1-1 6.2.7\(7\)\]; End 2 x = 3 m: none \(free\)/);
+  assert.match(on.brief, /End 1 v, v&prime;, &phi; = 0 \[warping not applied: Iw = 0\]; End 2 free/);
+  // the same member with the root warping unticked: identical M_cr to round-off (the flag is inert on a box)
+  c.reset(Object.assign({}, RHS07, { ends: ENDS('cantilever', { e1: { warp: 0 } }) }));
+  const off = run(`(()=>{ const a=analyse(); const ch=checks(a); return {Mcr:ch.ltb.Mcr, mesh:ch.ltb.meshError, pass:ch.pass, warn:(ch.ltb.warn||[]).map(m=>m.replace(/<[^>]+>/g,''))}; })()`);
+  near(off.Mcr, on.Mcr, 1e-9, 'M_cr with and without the root warping flag');
+  assert.ok(!off.warn.some(m => /Warping flag/.test(m)));
+  assert.ok(on.adv.some(m => /Lateral cantilever: End 1 is the only end holding Uy; it restrains Rz and Rx and its warping is flagged restrained but not applied \(Iw = 0/.test(m)), on.adv.join(' | '));
+  // the standard route on a simply supported box with both ends warping-flagged: the fork-ended chain with the flag noted as not applied (no "warping-fixed end taken as fork" advisory)
+  c.reset(Object.assign({}, RHS07, { mcrMethod: 'standard', ends: ENDS('ss', { e1: { warp: 1 }, e2: { warp: 1 } }) }));
+  const std = run(`(()=>{ const a=analyse(); const ch=checks(a); return {pass:ch.pass, adv:(ch.advisory||[]).map(m=>m.replace(/<[^>]+>/g,''))}; })()`);
+  assert.ok(std.adv.some(m => /Warping flag at End 1 and End 2 not applied: this closed section has Iw = 0/.test(m)) && !std.adv.some(m => /warping-fixed end/.test(m)), std.adv.join(' | '));
+  // an open section keeps the flag: UB 305x165x40, 3 m cantilever - root warping restrained raises M_cr against free
+  const UBC = { family: 'ub', ubKey: '305 x 165 x 40', L: 3, restraint: 'ltb', divisor: 180, mcrMethod: 'eigen',
+    loads: [{ type: 'udl', x1: 0, x2: 3, w: 10, case: 'G' }, { type: 'udl', x1: 0, x2: 3, w: 12, case: 'Q' }] };
+  c.reset(Object.assign({}, UBC, { ends: ENDS('cantilever') }));
+  const ubOn = run(`(()=>{ const a=analyse(); const ch=checks(a); return {Mcr:ch.ltb.Mcr, applies:warpingApplies(a.sec), warn:(ch.ltb.warn||[]).map(m=>m.replace(/<[^>]+>/g,'')), rep:ltbEigenReport(ch,a,a.sec).replace(/<[^>]+>/g,'')}; })()`);
+  c.reset(Object.assign({}, UBC, { ends: ENDS('cantilever', { e1: { warp: 0 } }) }));
+  const ubOff = run(`(()=>{ const a=analyse(); const ch=checks(a); return {Mcr:ch.ltb.Mcr}; })()`);
+  assert.equal(ubOn.applies, true);
+  assert.ok(ubOn.Mcr > 1.1 * ubOff.Mcr, 'UB root warping restrained ' + ubOn.Mcr + ' vs free ' + ubOff.Mcr);
+  assert.ok(!ubOn.warn.some(m => /Warping flag/.test(m)));
+  assert.match(ubOn.rep, /End 1 x = 0 m: v, v&prime;, &phi;, &phi;&prime; = 0 \(laterally clamped\); End 2 x = 3 m: none \(free\)/);
+});

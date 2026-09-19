@@ -1,13 +1,13 @@
 {
  "summary": {
-  "generated": "2026-09-19T16:47:16.001Z",
+  "generated": "2026-09-19T18:43:42.093Z",
   "node": "v24.14.1",
   "cases": 279,
   "runs": 479,
   "verdicts": {
-   "PASS": 348,
+   "PASS": 349,
    "FAIL": 82,
-   "NOT VERIFIED": 35,
+   "NOT VERIFIED": 34,
    "THROWS": 14
   },
   "byFamily": {
@@ -56,9 +56,9 @@
     "cases": 19
    },
    "rhs": {
-    "PASS": 31,
+    "PASS": 32,
     "FAIL": 9,
-    "NOT VERIFIED": 5,
+    "NOT VERIFIED": 4,
     "ERROR": 0,
     "THROWS": 0,
     "WRONG THROW": 0,
@@ -69,9 +69,9 @@
   },
   "byMethod": {
    "eigen": {
-    "PASS": 175,
+    "PASS": 176,
     "FAIL": 15,
-    "NOT VERIFIED": 10,
+    "NOT VERIFIED": 9,
     "ERROR": 0,
     "THROWS": 0,
     "WRONG THROW": 0,
@@ -155,9 +155,9 @@
     "cases": 15
    },
    "RHS": {
-    "PASS": 28,
+    "PASS": 29,
     "FAIL": 3,
-    "NOT VERIFIED": 4,
+    "NOT VERIFIED": 3,
     "ERROR": 0,
     "THROWS": 0,
     "WRONG THROW": 0,
@@ -790,9 +790,9 @@
    },
    {
     "id": "SHS-06",
-    "ratio": 1.4024117535148488,
+    "ratio": 1.3972720105613876,
     "route": "cantilever",
-    "reason": "cantilever of a box / channel: closed form with C1 = 1 (kappa chain for a channel) against the eigenvalue; laterally clamped end(s) (R_z held): closed form keeps k = 1; warping-fixed end(s): closed form keeps k_w = 1"
+    "reason": "cantilever of a box / channel: closed form with C1 = 1 (kappa chain for a channel) against the eigenvalue; laterally clamped end(s) (R_z held): closed form keeps k = 1; warping flag on a box (I_w = 0): not a boundary condition, not applied by either route (F-E)"
    },
    {
     "id": "SHS-14",
@@ -1108,7 +1108,7 @@
    },
    {
     "id": "SHS-06",
-    "ratio": 1.4024117535148488
+    "ratio": 1.3972720105613876
    },
    {
     "id": "SHS-14",
@@ -1120,7 +1120,7 @@
    },
    {
     "id": "RHS-07",
-    "ratio": 1.7455822720138618
+    "ratio": 1.7379010329189521
    },
    {
     "id": "RHS-14",
@@ -1309,7 +1309,7 @@
   ],
   "errors": [],
   "triggerMismatches": [],
-  "totalMs": 53173
+  "totalMs": 73122
  },
  "runs": [
   {
@@ -1331,7 +1331,7 @@
    "tags": [
     "demo"
    ],
-   "ms": 60.4926,
+   "ms": 66.9928,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -1474,7 +1474,7 @@
     "demo",
     "heavy"
    ],
-   "ms": 250.7112,
+   "ms": 338.9216,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -1660,7 +1660,7 @@
     "demo",
     "heavy"
    ],
-   "ms": 38.246,
+   "ms": 62.7656,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -1837,7 +1837,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 209.672,
+   "ms": 257.8894,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -2020,7 +2020,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 51.8406,
+   "ms": 60.6902,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -2200,7 +2200,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 133.7115,
+   "ms": 171.2233,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -2386,7 +2386,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 48.0474,
+   "ms": 61.3335,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -2566,7 +2566,7 @@
    "tags": [
     "zg-bottom"
    ],
-   "ms": 206.8999,
+   "ms": 275.8543,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -2752,7 +2752,7 @@
    "tags": [
     "zg-bottom"
    ],
-   "ms": 34.3931,
+   "ms": 38.6851,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -2931,7 +2931,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 465.4718,
+   "ms": 512.4381,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -3117,7 +3117,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 40.7704,
+   "ms": 47.9064,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -3297,7 +3297,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 188.6255,
+   "ms": 248.9023,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -3481,7 +3481,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 25.9326,
+   "ms": 44.2478,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -3660,7 +3660,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 494.4413,
+   "ms": 611.279,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -3828,7 +3828,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 26.4725,
+   "ms": 52.402,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -3989,7 +3989,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 198.4698,
+   "ms": 295.725,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -4154,7 +4154,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 31.2836,
+   "ms": 43.758,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -4313,7 +4313,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 163.7445,
+   "ms": 269.3125,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -4478,7 +4478,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 28.0812,
+   "ms": 69.9515,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -4633,7 +4633,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 25.8189,
+   "ms": 65.9802,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -4755,7 +4755,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 161.753,
+   "ms": 279.199,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -4920,7 +4920,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 31.4242,
+   "ms": 44.2034,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -5080,7 +5080,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 468.1327,
+   "ms": 660.4488,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -5265,7 +5265,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 48.7993,
+   "ms": 53.8481,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -5440,7 +5440,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 31.3236,
+   "ms": 46.4581,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -5582,7 +5582,7 @@
    "tags": [
     "heavy"
    ],
-   "ms": 220.811,
+   "ms": 231.736,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -5767,7 +5767,7 @@
    "tags": [
     "heavy"
    ],
-   "ms": 34.8167,
+   "ms": 45.9278,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -5945,7 +5945,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 178.0957,
+   "ms": 245.0081,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -6111,7 +6111,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 31.0289,
+   "ms": 45.8417,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -6273,7 +6273,7 @@
    "tags": [
     "uplift"
    ],
-   "ms": 183.0904,
+   "ms": 268.6737,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [
@@ -6449,7 +6449,7 @@
    "tags": [
     "uplift"
    ],
-   "ms": 30.8648,
+   "ms": 36.1672,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [
@@ -6618,7 +6618,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 181.6227,
+   "ms": 272.7465,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -6785,7 +6785,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 32.4271,
+   "ms": 52.7265,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -6947,7 +6947,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 170.7285,
+   "ms": 285.8797,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -7152,7 +7152,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 30.8777,
+   "ms": 55.0486,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -7346,7 +7346,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 26.778,
+   "ms": 42.6896,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -7494,7 +7494,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 27.7908,
+   "ms": 38.8227,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -7647,7 +7647,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 117.945,
+   "ms": 126.9469,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -7852,7 +7852,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 37.547,
+   "ms": 39.4942,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -8056,7 +8056,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 133.1068,
+   "ms": 148.5532,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -8266,7 +8266,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 43.5916,
+   "ms": 76.0247,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -8465,7 +8465,7 @@
    "tags": [
     "ecc-small"
    ],
-   "ms": 47.5732,
+   "ms": 59.6126,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -8620,7 +8620,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 173.165,
+   "ms": 245.0286,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -8786,7 +8786,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 31.6636,
+   "ms": 42.2909,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -8944,7 +8944,7 @@
    "tags": [
     "2.10"
    ],
-   "ms": 29.31,
+   "ms": 47.4836,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -9090,7 +9090,7 @@
    "tags": [
     "uplift"
    ],
-   "ms": 368.4235,
+   "ms": 515.4516,
    "nCombos": 3,
    "governCombo": "ULS: 1.35G + 1.5Q",
    "uplift": [
@@ -9289,7 +9289,7 @@
    "tags": [
     "uplift"
    ],
-   "ms": 61.8656,
+   "ms": 88.0543,
    "nCombos": 3,
    "governCombo": "ULS: 1.35G + 1.5Q",
    "uplift": [
@@ -9482,7 +9482,7 @@
    "tags": [
     "uplift"
    ],
-   "ms": 298.184,
+   "ms": 327.142,
    "nCombos": 2,
    "governCombo": "ULS: 1.35G + 1.5Q",
    "uplift": [
@@ -9681,7 +9681,7 @@
    "tags": [
     "uplift"
    ],
-   "ms": 77.1639,
+   "ms": 65.5803,
    "nCombos": 2,
    "governCombo": "ULS: 1.35G + 1.5Q",
    "uplift": [
@@ -9869,7 +9869,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 26.6305,
+   "ms": 38.4082,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -10013,7 +10013,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 862.7083,
+   "ms": 1506.7839,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -10201,7 +10201,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 36.7635,
+   "ms": 107.0064,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -10380,7 +10380,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 243.5712,
+   "ms": 554.8508,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -10567,7 +10567,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 40.3043,
+   "ms": 80.7345,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -10744,7 +10744,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 243.2655,
+   "ms": 277.1006,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -10927,7 +10927,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 29.3413,
+   "ms": 38.4063,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -11108,7 +11108,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 197.6047,
+   "ms": 285.7286,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -11277,7 +11277,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 23.5123,
+   "ms": 67.1974,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -11442,7 +11442,7 @@
     "zg-top",
     "destab"
    ],
-   "ms": 102.2873,
+   "ms": 146.0939,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -11632,7 +11632,7 @@
     "zg-top",
     "destab"
    ],
-   "ms": 28.9599,
+   "ms": 38.6246,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -11811,7 +11811,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 218.4251,
+   "ms": 267.693,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -12019,7 +12019,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 32.6364,
+   "ms": 55.0529,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -12225,7 +12225,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 241.2408,
+   "ms": 285.2814,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -12436,7 +12436,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 31.7542,
+   "ms": 36.4796,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -12639,7 +12639,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 186.0839,
+   "ms": 232.312,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -12847,7 +12847,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 33.9145,
+   "ms": 35.9045,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -13050,7 +13050,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 219.1538,
+   "ms": 251.4668,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -13228,7 +13228,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 32.366,
+   "ms": 41.1118,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -13401,7 +13401,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 186.4374,
+   "ms": 216.7055,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -13579,7 +13579,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 28.8749,
+   "ms": 37.3462,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -13752,7 +13752,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 184.1886,
+   "ms": 225.3273,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -13932,7 +13932,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 31.9661,
+   "ms": 34.0954,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -14106,7 +14106,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 180.4919,
+   "ms": 233.1191,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -14285,7 +14285,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 35.3035,
+   "ms": 41.7735,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -14454,7 +14454,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 37.0207,
+   "ms": 43.4702,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -14619,7 +14619,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 179.0811,
+   "ms": 270.0507,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -14797,7 +14797,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 28.3798,
+   "ms": 54.1458,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -14970,7 +14970,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 185.6678,
+   "ms": 265.0561,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -15166,7 +15166,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 26.5685,
+   "ms": 50.7828,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -15357,7 +15357,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 158.5657,
+   "ms": 206.7035,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -15553,7 +15553,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 26.5392,
+   "ms": 44.4923,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -15744,7 +15744,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 161.4364,
+   "ms": 221.7838,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -15916,7 +15916,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 28.3113,
+   "ms": 46.7259,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -16079,7 +16079,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 24.1929,
+   "ms": 43.8568,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -16209,7 +16209,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 190.9617,
+   "ms": 226.893,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [
@@ -16389,7 +16389,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 30.4101,
+   "ms": 45.4613,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [
@@ -16564,7 +16564,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 230.3357,
+   "ms": 277.2562,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -16774,7 +16774,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 36.3692,
+   "ms": 44.9328,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -16960,7 +16960,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 192.8934,
+   "ms": 205.5734,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -17170,7 +17170,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 37.8828,
+   "ms": 38.5848,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -17365,7 +17365,7 @@
     "torsion-fe",
     "ecc-small"
    ],
-   "ms": 199.1626,
+   "ms": 296.8214,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -17609,7 +17609,7 @@
     "torsion-fe",
     "ecc-small"
    ],
-   "ms": 31.9325,
+   "ms": 54.717,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -17820,7 +17820,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 163.3204,
+   "ms": 213.2553,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -18030,7 +18030,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 26.1561,
+   "ms": 47.2699,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -18216,7 +18216,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 153.6378,
+   "ms": 240.8032,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -18385,7 +18385,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 24.7235,
+   "ms": 43.19,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -18549,7 +18549,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 182.6329,
+   "ms": 211.8353,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -18716,7 +18716,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 31.6975,
+   "ms": 33.7489,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -18880,7 +18880,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 176.0587,
+   "ms": 216.7052,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -19049,7 +19049,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 28.6462,
+   "ms": 34.1047,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -19216,7 +19216,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 250.8493,
+   "ms": 331.9401,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -19429,7 +19429,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 24.0572,
+   "ms": 36.9118,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -19611,7 +19611,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 28.2999,
+   "ms": 33.7234,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -19763,7 +19763,7 @@
    "tags": [
     "heavy"
    ],
-   "ms": 37.8414,
+   "ms": 56.4484,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -19916,7 +19916,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 111.2723,
+   "ms": 150.9555,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -20118,7 +20118,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 26.0739,
+   "ms": 38.9288,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -20315,7 +20315,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 160.684,
+   "ms": 235.2275,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -20517,7 +20517,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 39.6032,
+   "ms": 38.1788,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -20710,7 +20710,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 33.9333,
+   "ms": 36.5274,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -20869,7 +20869,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 203.57,
+   "ms": 221.69,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -21041,7 +21041,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 33.4473,
+   "ms": 45.0817,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -21208,7 +21208,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 192.1282,
+   "ms": 269.6947,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -21380,7 +21380,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 27.8911,
+   "ms": 36.3162,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -21547,7 +21547,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 164.0254,
+   "ms": 286.8223,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -21737,7 +21737,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 28.1947,
+   "ms": 49.1112,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -21922,7 +21922,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 202.8718,
+   "ms": 239.5141,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -22112,7 +22112,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 27.2175,
+   "ms": 33.5891,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -22293,7 +22293,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 24.6033,
+   "ms": 38.6936,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -22440,7 +22440,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 164.5612,
+   "ms": 235.8846,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -22606,7 +22606,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 25.9534,
+   "ms": 37.614,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -22762,7 +22762,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 30.5568,
+   "ms": 34.313,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -22902,7 +22902,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 166.4403,
+   "ms": 220.2188,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -23085,7 +23085,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 28.1262,
+   "ms": 43.637,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -23266,7 +23266,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 268.7136,
+   "ms": 351.6601,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -23453,7 +23453,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 38.3924,
+   "ms": 38.2633,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -23632,7 +23632,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 192.6699,
+   "ms": 264.8507,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -23842,7 +23842,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 27.098,
+   "ms": 38.323,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -24029,7 +24029,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 191.8632,
+   "ms": 208.8873,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -24234,7 +24234,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 26.6608,
+   "ms": 39.815,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -24433,7 +24433,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 162.8093,
+   "ms": 235.4157,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -24638,7 +24638,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 29.0447,
+   "ms": 66.4716,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -24835,7 +24835,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 483.6877,
+   "ms": 721.7281,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -25020,7 +25020,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 30.2717,
+   "ms": 43.4248,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -25199,7 +25199,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 190.5595,
+   "ms": 251.3158,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -25364,7 +25364,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 33.5018,
+   "ms": 36.2314,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -25520,7 +25520,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 28.6201,
+   "ms": 35.9184,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -25645,7 +25645,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 222.7602,
+   "ms": 241.1661,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -25853,7 +25853,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 27.1856,
+   "ms": 41.9561,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -26057,7 +26057,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 172.5516,
+   "ms": 253.4994,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -26287,7 +26287,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 26.203,
+   "ms": 39.5535,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -26509,7 +26509,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 184.3492,
+   "ms": 268.1334,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [
@@ -26683,7 +26683,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 36.0402,
+   "ms": 36.5837,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [
@@ -26851,7 +26851,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 202.7305,
+   "ms": 219.3982,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -27053,7 +27053,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 25.5844,
+   "ms": 41.036,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -27250,7 +27250,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 180.9426,
+   "ms": 222.8006,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -27440,7 +27440,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 42.4225,
+   "ms": 36.4945,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -27625,7 +27625,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 170.6163,
+   "ms": 228.6402,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -27833,7 +27833,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 31.1017,
+   "ms": 40.2592,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -28033,7 +28033,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 25.9169,
+   "ms": 60.4282,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -28186,7 +28186,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 177.4091,
+   "ms": 212.9576,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -28358,7 +28358,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 26.696,
+   "ms": 36.7343,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -28520,7 +28520,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 28.2698,
+   "ms": 36.4563,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -28660,7 +28660,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 172.3059,
+   "ms": 215.8273,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -28831,7 +28831,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 28.327,
+   "ms": 39.3524,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -29004,7 +29004,7 @@
    "tags": [
     "ecc-zero"
    ],
-   "ms": 224.1038,
+   "ms": 239.8722,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -29201,7 +29201,7 @@
    "tags": [
     "ecc-zero"
    ],
-   "ms": 37.4511,
+   "ms": 53.7656,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -29392,7 +29392,7 @@
    "tags": [
     "ecc-small"
    ],
-   "ms": 40.012,
+   "ms": 56.1724,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -29589,7 +29589,7 @@
    "tags": [
     "ecc-small"
    ],
-   "ms": 61.3829,
+   "ms": 75.4027,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -29780,7 +29780,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 50.3121,
+   "ms": 62.4304,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -29977,7 +29977,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 43.5458,
+   "ms": 60.0857,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -30164,7 +30164,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 44.9536,
+   "ms": 67.3051,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -30326,7 +30326,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 265.185,
+   "ms": 363.2903,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -30523,7 +30523,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 43.2793,
+   "ms": 43.1601,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -30714,7 +30714,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 198.8217,
+   "ms": 287.6087,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -30893,7 +30893,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 41.8323,
+   "ms": 51.6028,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -31060,7 +31060,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 162.3595,
+   "ms": 229.7323,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -31242,7 +31242,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 29.8155,
+   "ms": 34.402,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -31423,7 +31423,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 28.2895,
+   "ms": 35.7139,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -31602,7 +31602,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 247.2214,
+   "ms": 268.2522,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -31801,7 +31801,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 53.2572,
+   "ms": 63.8631,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -31988,7 +31988,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 172.7308,
+   "ms": 212.0445,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -32182,7 +32182,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 28.3299,
+   "ms": 31.9093,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -32376,7 +32376,7 @@
    "tags": [
     "ecc-small"
    ],
-   "ms": 203.0952,
+   "ms": 251.0093,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -32556,7 +32556,7 @@
    "tags": [
     "ecc-small"
    ],
-   "ms": 45.9694,
+   "ms": 52.8977,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -32717,7 +32717,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 25.2793,
+   "ms": 47.7098,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -32866,7 +32866,7 @@
    "tags": [
     "ecc-small"
    ],
-   "ms": 212.131,
+   "ms": 215.7972,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -33077,7 +33077,7 @@
    "tags": [
     "ecc-small"
    ],
-   "ms": 45.0197,
+   "ms": 51.3712,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -33284,7 +33284,7 @@
    "tags": [
     "ecc-small"
    ],
-   "ms": 206.2472,
+   "ms": 305.9584,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -33464,7 +33464,7 @@
    "tags": [
     "ecc-small"
    ],
-   "ms": 40.0386,
+   "ms": 75.0331,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -33631,7 +33631,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 472.4656,
+   "ms": 599.9244,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -33804,7 +33804,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 34.6408,
+   "ms": 59.512,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -33978,7 +33978,7 @@
    "tags": [
     "tfb"
    ],
-   "ms": 95.5429,
+   "ms": 167.5705,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -34186,7 +34186,7 @@
    "tags": [
     "tfb"
    ],
-   "ms": 26.1652,
+   "ms": 33.5068,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -34382,7 +34382,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 198.2043,
+   "ms": 237.1732,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -34578,7 +34578,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 30.3818,
+   "ms": 41.9168,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -34777,7 +34777,7 @@
    "tags": [
     "ecc-small"
    ],
-   "ms": 198.5094,
+   "ms": 306.9426,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -35000,7 +35000,7 @@
    "tags": [
     "ecc-small"
    ],
-   "ms": 39.32,
+   "ms": 57.5858,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -35212,7 +35212,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 200.0064,
+   "ms": 254.5095,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -35402,7 +35402,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 29.8841,
+   "ms": 43.0697,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -35587,7 +35587,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 183.5509,
+   "ms": 230.4668,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -35765,7 +35765,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 27.0771,
+   "ms": 32.4418,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -35948,7 +35948,7 @@
     "torsion-fe",
     "ecc-large"
    ],
-   "ms": 179.783,
+   "ms": 257.4771,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -36158,7 +36158,7 @@
     "torsion-fe",
     "ecc-large"
    ],
-   "ms": 39.7674,
+   "ms": 42.6613,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -36358,7 +36358,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 177.8698,
+   "ms": 249.5177,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -36542,7 +36542,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 28.5897,
+   "ms": 41.7552,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -36717,7 +36717,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 28.5568,
+   "ms": 54.5121,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -36847,7 +36847,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 25.6457,
+   "ms": 37.6136,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -36987,7 +36987,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 185.1872,
+   "ms": 212.3365,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -37170,7 +37170,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 30.3264,
+   "ms": 32.282,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -37348,7 +37348,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 213.1388,
+   "ms": 240.3828,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -37532,7 +37532,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 24.872,
+   "ms": 34.0176,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -37712,7 +37712,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 181.0345,
+   "ms": 213.8676,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -37917,7 +37917,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 26.3483,
+   "ms": 31.6236,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -38115,7 +38115,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 194.0619,
+   "ms": 293.1042,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -38160,21 +38160,21 @@
    "unsupported": [],
    "advisory": [
     "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4.",
-    "Lateral cantilever: End 1 is the only end holding Uy; it restrains Rz and Rx and its warping is restrained (' = 0); the other end is laterally free.",
+    "Lateral cantilever: End 1 is the only end holding Uy; it restrains Rz and Rx and its warping is flagged restrained but not applied (Iw = 0: ' is not a boundary condition of a closed section, EN 1993-1-1 6.2.7(7)); the other end is laterally free.",
     "G,inf companions: 2 ULS combination(s) re-solved with G at 1.0 (STR set B, EN 1990 6.4.3.1(4) / Table A1.2(B)) and at 0.9 (EQU set A, Table A1.2(A)) over the whole member (single-source permanent action) for the END REACTIONS only - uplift / hold-down forces and the web-bearing reactions; the moment and shear envelopes keep the entered G, so add a reduced-G combination by hand where a relieving permanent action could increase a moment."
    ],
    "warn": [
-    "Mesh convergence error 0.42 % (below the blocking limit, but worth noting).",
-    "C1 = 2.800 exceeds 2.76: kc = 1/sqrtC1 = 0.598 is floored at 1/sqrt2.76 = 0.602, the Table 6.6 lower bound (psi = -1 end-moment case), so the f-factor is not extrapolated beyond its calibrated range."
+    "Warping flag at End 1 not applied: this closed section has Iw = 0, so its twist equation is the second-order St Venant form and ' is not a boundary condition (EN 1993-1-1 6.2.7(7): warping of closed hollow sections may be neglected). The eigen model holds v, v' and  as flagged.",
+    "C1 = 2.795 exceeds 2.76: kc = 1/sqrtC1 = 0.598 is floored at 1/sqrt2.76 = 0.602, the Table 6.6 lower bound (psi = -1 end-moment case), so the f-factor is not extrapolated beyond its calibrated range."
    ],
    "mcrMethodReported": "eigen",
    "torsionMethod": null,
    "torsionMesh": null,
-   "Mcr": 28615.636658519026,
+   "Mcr": 28510.76231151943,
    "McrStd": 20404.58986941601,
-   "McrRatio": 1.4024117535148488,
-   "C1": 2.8000036490027864,
-   "lamLT": 0.10960229473036158,
+   "McrRatio": 1.3972720105613876,
+   "C1": 2.794544020994857,
+   "lamLT": 0.10980369092613058,
    "chiLT": 1,
    "MbRd": 343.75,
    "c1route": "cantilever",
@@ -38186,7 +38186,7 @@
     "psi": 0,
     "mu": -0.052073071637577566
    },
-   "McrWhole": 28615.636658519026,
+   "McrWhole": 28510.76231151943,
    "spanGoverns": false,
    "zg": 0,
    "closedForm": "cant",
@@ -38250,7 +38250,7 @@
      "id": "iv-McrRatio",
      "ok": false,
      "kind": "flag",
-     "detail": "Mcr eigen / standard = 1.402 (28615.6 / 20404.6 kN.m, route cantilever)"
+     "detail": "Mcr eigen / standard = 1.397 (28510.8 / 20404.6 kN.m, route cantilever)"
     },
     {
      "id": "v-MbRd<=McRd",
@@ -38285,7 +38285,7 @@
     "missing": [],
     "extra": []
    },
-   "McrRatioRuns": 1.4024117535148488
+   "McrRatioRuns": 1.3972720105613876
   },
   {
    "id": "SHS-06",
@@ -38310,7 +38310,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 27.0177,
+   "ms": 36.5627,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -38355,7 +38355,7 @@
    "unsupported": [],
    "advisory": [
     "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4.",
-    "Lateral cantilever: End 1 is the only end holding Uy; it restrains Rz and Rx and its warping is restrained (' = 0); the other end is laterally free.",
+    "Lateral cantilever: End 1 is the only end holding Uy; it restrains Rz and Rx and its warping is flagged restrained but not applied (Iw = 0: ' is not a boundary condition of a closed section, EN 1993-1-1 6.2.7(7)); the other end is laterally free.",
     "G,inf companions: 2 ULS combination(s) re-solved with G at 1.0 (STR set B, EN 1990 6.4.3.1(4) / Table A1.2(B)) and at 0.9 (EQU set A, Table A1.2(A)) over the whole member (single-source permanent action) for the END REACTIONS only - uplift / hold-down forces and the web-bearing reactions; the moment and shear envelopes keep the entered G, so add a reduced-G combination by hand where a relieving permanent action could increase a moment."
    ],
    "warn": [],
@@ -38508,7 +38508,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 203.9227,
+   "ms": 225.7932,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -38714,7 +38714,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 34.9358,
+   "ms": 44.084,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -38903,7 +38903,7 @@
     "3.27"
    ],
    "tags": [],
-   "ms": 28.4219,
+   "ms": 37.7044,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -39043,7 +39043,7 @@
     "3.27"
    ],
    "tags": [],
-   "ms": 25.9255,
+   "ms": 32.0129,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -39178,7 +39178,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 186.1662,
+   "ms": 232.386,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -39373,7 +39373,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 33.3699,
+   "ms": 33.2056,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -39563,7 +39563,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 38.5491,
+   "ms": 44.69,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -39717,7 +39717,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 214.2364,
+   "ms": 252.3818,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -39925,7 +39925,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 25.5208,
+   "ms": 44.9037,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -40127,7 +40127,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 184.6914,
+   "ms": 611.1235,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -40323,7 +40323,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 43.536,
+   "ms": 42.1409,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -40513,7 +40513,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 206.8355,
+   "ms": 330.7958,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -40715,7 +40715,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 25.0919,
+   "ms": 36.8745,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -40911,7 +40911,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 196.4912,
+   "ms": 493.3905,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -41101,7 +41101,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 27.1069,
+   "ms": 39.9012,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -41282,7 +41282,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 29.245,
+   "ms": 51.9295,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -41430,7 +41430,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 23.2195,
+   "ms": 56.5457,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -41570,7 +41570,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 201.3249,
+   "ms": 260.2769,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -41753,7 +41753,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 35.6465,
+   "ms": 39.1563,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -41930,7 +41930,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 177.1437,
+   "ms": 544.9034,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -42113,7 +42113,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 29.3073,
+   "ms": 42.8516,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -42290,7 +42290,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 176.7015,
+   "ms": 289.8534,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -42473,7 +42473,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 38.6559,
+   "ms": 45.0837,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -42651,7 +42651,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 176.5811,
+   "ms": 324.5697,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -42835,7 +42835,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 25.6494,
+   "ms": 49.4237,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -43015,7 +43015,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 168.5408,
+   "ms": 234.0125,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -43220,7 +43220,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 27.0787,
+   "ms": 39.496,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -43418,11 +43418,11 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 171.3066,
+   "ms": 213.7924,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
-   "verdict": "NOT VERIFIED",
+   "verdict": "PASS",
    "gov": {
     "name": "Deflection",
     "val": 0.9072580719063978
@@ -43460,25 +43460,24 @@
    "McRd": 31.9,
    "VplRd": 240.27393702774927,
    "deflRatio": 0.9072580719063978,
-   "unsupported": [
-    "Elastic critical moment: mesh convergence error is 0.51 %, above the 0.5 % limit this tool will certify. PASS is blocked."
-   ],
+   "unsupported": [],
    "advisory": [
     "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4.",
-    "Lateral cantilever: End 1 is the only end holding Uy; it restrains Rz and Rx and its warping is restrained (' = 0); the other end is laterally free.",
+    "Lateral cantilever: End 1 is the only end holding Uy; it restrains Rz and Rx and its warping is flagged restrained but not applied (Iw = 0: ' is not a boundary condition of a closed section, EN 1993-1-1 6.2.7(7)); the other end is laterally free.",
     "G,inf companions: 2 ULS combination(s) re-solved with G at 1.0 (STR set B, EN 1990 6.4.3.1(4) / Table A1.2(B)) and at 0.9 (EQU set A, Table A1.2(A)) over the whole member (single-source permanent action) for the END REACTIONS only - uplift / hold-down forces and the web-bearing reactions; the moment and shear envelopes keep the entered G, so add a reduced-G combination by hand where a relieving permanent action could increase a moment."
    ],
    "warn": [
-    "C1 = 3.485 exceeds 2.76: kc = 1/sqrtC1 = 0.536 is floored at 1/sqrt2.76 = 0.602, the Table 6.6 lower bound (psi = -1 end-moment case), so the f-factor is not extrapolated beyond its calibrated range."
+    "Warping flag at End 1 not applied: this closed section has Iw = 0, so its twist equation is the second-order St Venant form and ' is not a boundary condition (EN 1993-1-1 6.2.7(7): warping of closed hollow sections may be neglected). The eigen model holds v, v' and  as flagged.",
+    "C1 = 3.476 exceeds 2.76: kc = 1/sqrtC1 = 0.536 is floored at 1/sqrt2.76 = 0.602, the Table 6.6 lower bound (psi = -1 end-moment case), so the f-factor is not extrapolated beyond its calibrated range."
    ],
    "mcrMethodReported": "eigen",
    "torsionMethod": null,
    "torsionMesh": null,
-   "Mcr": 921.5022418752858,
+   "Mcr": 917.4472745673438,
    "McrStd": null,
    "McrRatio": null,
-   "C1": 3.485165265862675,
-   "lamLT": 0.1860574838451138,
+   "C1": 3.4758020660470947,
+   "lamLT": 0.18646820238352887,
    "chiLT": 1,
    "MbRd": 31.9,
    "c1route": "unsupported",
@@ -43490,7 +43489,7 @@
     "psi": 0,
     "mu": -0.16822387479045608
    },
-   "McrWhole": 921.5022418752858,
+   "McrWhole": 917.4472745673438,
    "spanGoverns": false,
    "zg": 0,
    "closedForm": "cant",
@@ -43577,7 +43576,7 @@
     "missing": [],
     "extra": []
    },
-   "McrRatioRuns": 1.7455822720138618
+   "McrRatioRuns": 1.7379010329189521
   },
   {
    "id": "RHS-07",
@@ -43602,7 +43601,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 29.3091,
+   "ms": 48.0369,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -43649,7 +43648,7 @@
    ],
    "advisory": [
     "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4.",
-    "Lateral cantilever: End 1 is the only end holding Uy; it restrains Rz and Rx and its warping is restrained (' = 0); the other end is laterally free.",
+    "Lateral cantilever: End 1 is the only end holding Uy; it restrains Rz and Rx and its warping is flagged restrained but not applied (Iw = 0: ' is not a boundary condition of a closed section, EN 1993-1-1 6.2.7(7)); the other end is laterally free.",
     "G,inf companions: 2 ULS combination(s) re-solved with G at 1.0 (STR set B, EN 1990 6.4.3.1(4) / Table A1.2(B)) and at 0.9 (EQU set A, Table A1.2(A)) over the whole member (single-source permanent action) for the END REACTIONS only - uplift / hold-down forces and the web-bearing reactions; the moment and shear envelopes keep the entered G, so add a reduced-G combination by hand where a relieving permanent action could increase a moment."
    ],
    "warn": [],
@@ -43797,7 +43796,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 205.1829,
+   "ms": 320.1706,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -43985,7 +43984,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 30.1143,
+   "ms": 82.9868,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -44167,7 +44166,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 42.9053,
+   "ms": 57.2825,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -44328,7 +44327,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 174.3189,
+   "ms": 229.7433,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -44532,7 +44531,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 30.4164,
+   "ms": 40.7487,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -44723,7 +44722,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 199.3025,
+   "ms": 265.8417,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -44931,7 +44930,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 27.5963,
+   "ms": 37.0829,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -45134,7 +45133,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 459.3482,
+   "ms": 602.5392,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -45319,7 +45318,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 37.3073,
+   "ms": 38.8665,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -45499,7 +45498,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 231.9028,
+   "ms": 237.3727,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -45695,7 +45694,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 27.4525,
+   "ms": 33.0281,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -45887,7 +45886,7 @@
    "tags": [
     "uplift"
    ],
-   "ms": 378.2235,
+   "ms": 460.5044,
    "nCombos": 3,
    "governCombo": "ULS: 1.35G + 1.5Q",
    "uplift": [
@@ -46086,7 +46085,7 @@
    "tags": [
     "uplift"
    ],
-   "ms": 67.876,
+   "ms": 74.6728,
    "nCombos": 3,
    "governCombo": "ULS: 1.35G + 1.5Q",
    "uplift": [
@@ -46278,7 +46277,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 207.3425,
+   "ms": 266.9234,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -46480,7 +46479,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 31.9212,
+   "ms": 37.9211,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -46677,7 +46676,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 194.9047,
+   "ms": 312.6343,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -46867,7 +46866,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 26.5739,
+   "ms": 33.2342,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -47049,7 +47048,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 25.8445,
+   "ms": 32.6158,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -47202,7 +47201,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 224.9615,
+   "ms": 253.8356,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -47380,7 +47379,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 27.1789,
+   "ms": 33.3715,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -47553,7 +47552,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 184.0991,
+   "ms": 246.1024,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -47749,7 +47748,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 29.7408,
+   "ms": 33.7155,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -47948,7 +47947,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 182.144,
+   "ms": 236.1916,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -48183,7 +48182,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 42.2198,
+   "ms": 54.2322,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -48413,7 +48412,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 110.387,
+   "ms": 187.5207,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -48636,7 +48635,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 38.267,
+   "ms": 57.5587,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -48854,7 +48853,7 @@
    "tags": [
     "ecc-small"
    ],
-   "ms": 184.3771,
+   "ms": 245.8527,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -49077,7 +49076,7 @@
    "tags": [
     "ecc-small"
    ],
-   "ms": 33.9288,
+   "ms": 42.8423,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -49295,7 +49294,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 117.5237,
+   "ms": 144.1004,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -49511,7 +49510,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 42.1589,
+   "ms": 49.4116,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -49721,7 +49720,7 @@
     "torsion-fe",
     "ecc-small"
    ],
-   "ms": 54.2399,
+   "ms": 56.8445,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -49902,7 +49901,7 @@
    "tags": [
     "ecc-small"
    ],
-   "ms": 214.9233,
+   "ms": 273.8881,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -50106,7 +50105,7 @@
    "tags": [
     "ecc-small"
    ],
-   "ms": 38.5167,
+   "ms": 59.5332,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -50308,7 +50307,7 @@
     "ecc-large",
     "warpFix"
    ],
-   "ms": 218.8793,
+   "ms": 323.0861,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -50520,7 +50519,7 @@
     "ecc-large",
     "warpFix"
    ],
-   "ms": 35.574,
+   "ms": 52.2455,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -50726,7 +50725,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 203.7084,
+   "ms": 302.0178,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -50907,7 +50906,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 32.5233,
+   "ms": 52.7522,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -51082,7 +51081,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 176.754,
+   "ms": 241.8593,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -51281,7 +51280,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 32.1766,
+   "ms": 48.5132,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -51476,7 +51475,7 @@
     "torsion-fe",
     "ecc-large"
    ],
-   "ms": 200.6744,
+   "ms": 232.5103,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -51669,7 +51668,7 @@
     "torsion-fe",
     "ecc-large"
    ],
-   "ms": 45.7688,
+   "ms": 44.641,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -51857,7 +51856,7 @@
     "ecc-large",
     "warpFix"
    ],
-   "ms": 196.3661,
+   "ms": 1000.7947,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -52074,7 +52073,7 @@
     "ecc-large",
     "warpFix"
    ],
-   "ms": 31.6213,
+   "ms": 61.4793,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -52280,7 +52279,7 @@
    "tags": [
     "zg-bottom"
    ],
-   "ms": 300.8046,
+   "ms": 374.6032,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -52491,7 +52490,7 @@
    "tags": [
     "zg-bottom"
    ],
-   "ms": 26.3821,
+   "ms": 39.5334,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -52697,7 +52696,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 269.5013,
+   "ms": 1040.7815,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -52896,7 +52895,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 26.7215,
+   "ms": 180.3297,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -53092,7 +53091,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 280.6235,
+   "ms": 401.3424,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -53303,7 +53302,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 33.5993,
+   "ms": 40.9555,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -53509,7 +53508,7 @@
    "tags": [
     "zg-bottom"
    ],
-   "ms": 301.8196,
+   "ms": 373.8556,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -53720,7 +53719,7 @@
    "tags": [
     "zg-bottom"
    ],
-   "ms": 26.1571,
+   "ms": 38.385,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -53927,7 +53926,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 252.419,
+   "ms": 374.8269,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -54140,7 +54139,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 23.991,
+   "ms": 35.8789,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -54329,7 +54328,7 @@
    "tags": [
     "zg-bottom"
    ],
-   "ms": 176.4415,
+   "ms": 247.638,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -54542,7 +54541,7 @@
    "tags": [
     "zg-bottom"
    ],
-   "ms": 32.6886,
+   "ms": 36.749,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -54730,7 +54729,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 188.7457,
+   "ms": 282.9074,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -54935,7 +54934,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 27.5165,
+   "ms": 40.0034,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -55137,7 +55136,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 320.8685,
+   "ms": 376.3997,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -55324,7 +55323,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 24.264,
+   "ms": 29.3619,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -55509,7 +55508,7 @@
    "tags": [
     "zg-bottom"
    ],
-   "ms": 285.7548,
+   "ms": 421.031,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -55706,7 +55705,7 @@
    "tags": [
     "zg-bottom"
    ],
-   "ms": 35.9858,
+   "ms": 52.2798,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -55893,7 +55892,7 @@
    "tags": [
     "zg-mixed"
    ],
-   "ms": 262.1035,
+   "ms": 438.0017,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -56080,7 +56079,7 @@
    "tags": [
     "zg-mixed"
    ],
-   "ms": 25.9559,
+   "ms": 40.7613,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -56263,7 +56262,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 182.8411,
+   "ms": 245.7337,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -56493,7 +56492,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 25.2358,
+   "ms": 34.3607,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -56718,7 +56717,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 187.2655,
+   "ms": 229.962,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -56936,7 +56935,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 38.8028,
+   "ms": 34.8845,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -57150,7 +57149,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 105.1091,
+   "ms": 123.4371,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -57388,7 +57387,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 29.9877,
+   "ms": 29.0849,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -57601,7 +57600,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 195.4506,
+   "ms": 246.6588,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -57825,7 +57824,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 27.3329,
+   "ms": 35.2956,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -58044,7 +58043,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 168.3433,
+   "ms": 254.9012,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -58262,7 +58261,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 30.7219,
+   "ms": 34.3404,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -58477,7 +58476,7 @@
    "tags": [
     "ux-both"
    ],
-   "ms": 195.6817,
+   "ms": 247.1992,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -58710,7 +58709,7 @@
    "tags": [
     "ux-both"
    ],
-   "ms": 24.4762,
+   "ms": 36.8626,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -58936,7 +58935,7 @@
    "tags": [
     "ux-both"
    ],
-   "ms": 180.9929,
+   "ms": 218.029,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -59144,7 +59143,7 @@
    "tags": [
     "ux-both"
    ],
-   "ms": 27.0099,
+   "ms": 32.9983,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -59344,7 +59343,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 212.9644,
+   "ms": 270.985,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -59552,7 +59551,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 27.28,
+   "ms": 46.5038,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -59751,7 +59750,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 25.2408,
+   "ms": 37.115,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -59933,7 +59932,7 @@
    "tags": [
     "tfb"
    ],
-   "ms": 98.1148,
+   "ms": 141.6134,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -60166,7 +60165,7 @@
    "tags": [
     "tfb"
    ],
-   "ms": 27.8413,
+   "ms": 52.0053,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -60389,7 +60388,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 202.5146,
+   "ms": 296.2269,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -60600,7 +60599,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 26.4658,
+   "ms": 33.4432,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -60803,7 +60802,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 23.1231,
+   "ms": 31.1855,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -60997,7 +60996,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 164.752,
+   "ms": 217.8686,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -61229,7 +61228,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 24.3247,
+   "ms": 28.3255,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -61431,7 +61430,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 36.5148,
+   "ms": 32.8292,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -61609,7 +61608,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 166.4714,
+   "ms": 224.529,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -61827,7 +61826,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 32.3963,
+   "ms": 33.6557,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -62036,7 +62035,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 33.9869,
+   "ms": 34.7042,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -62202,7 +62201,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 254.678,
+   "ms": 321.922,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -62397,7 +62396,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 32.3795,
+   "ms": 38.6931,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -62589,7 +62588,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 191.7854,
+   "ms": 243.5877,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -62823,7 +62822,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 34.7885,
+   "ms": 36.6601,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -63046,7 +63045,7 @@
     "3.27"
    ],
    "tags": [],
-   "ms": 24.4964,
+   "ms": 29.3904,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -63208,7 +63207,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 193.1633,
+   "ms": 223.2142,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -63417,7 +63416,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 26.212,
+   "ms": 33.9944,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -63617,7 +63616,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 475.9745,
+   "ms": 633.1404,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -63827,7 +63826,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 31.5208,
+   "ms": 44.6115,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -64036,7 +64035,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 697.849,
+   "ms": 836.6848,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -64213,7 +64212,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 36.7686,
+   "ms": 41.5986,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -64386,7 +64385,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 168.0704,
+   "ms": 270.9646,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -64598,7 +64597,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 25.7708,
+   "ms": 41.7484,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -64785,7 +64784,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 598.2246,
+   "ms": 784.4149,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -64989,7 +64988,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 26.3027,
+   "ms": 38.9805,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -65189,7 +65188,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 481.5996,
+   "ms": 691.3269,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -65381,7 +65380,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 35.4987,
+   "ms": 51.5602,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -65568,7 +65567,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 425.1992,
+   "ms": 508.425,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -65753,7 +65752,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 39.1004,
+   "ms": 37.6358,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -65934,7 +65933,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 538.9916,
+   "ms": 630.4167,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -66132,7 +66131,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 27.2032,
+   "ms": 31.5405,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -66326,7 +66325,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 805.3838,
+   "ms": 1010.6654,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -66494,7 +66493,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 33.4785,
+   "ms": 45.0586,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -66658,7 +66657,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 182.1777,
+   "ms": 235.8948,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -66832,7 +66831,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 33.1212,
+   "ms": 47.8422,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -67001,7 +67000,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 213.2327,
+   "ms": 245.6419,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -67177,7 +67176,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 34.4314,
+   "ms": 45.7503,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -67346,7 +67345,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 197.0733,
+   "ms": 297.7059,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -67528,7 +67527,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 31.9583,
+   "ms": 40.7696,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -67703,7 +67702,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 230.9646,
+   "ms": 285.5362,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -67883,7 +67882,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 34.627,
+   "ms": 35.4682,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -68054,7 +68053,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 29.959,
+   "ms": 32.5905,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -68191,7 +68190,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 200.0576,
+   "ms": 247.637,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -68367,7 +68366,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 31.8703,
+   "ms": 33.3164,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -68536,7 +68535,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 106.4771,
+   "ms": 148.4749,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -68710,7 +68709,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 26.6267,
+   "ms": 43.6723,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -68878,7 +68877,7 @@
    "tags": [
     "clamped"
    ],
-   "ms": 112.3913,
+   "ms": 132.6227,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -69069,7 +69068,7 @@
    "tags": [
     "clamped"
    ],
-   "ms": 47.974,
+   "ms": 59.8955,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -69249,7 +69248,7 @@
    "tags": [
     "warpFix"
    ],
-   "ms": 202.4009,
+   "ms": 260.7888,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -69440,7 +69439,7 @@
    "tags": [
     "warpFix"
    ],
-   "ms": 30.4882,
+   "ms": 40.464,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -69621,7 +69620,7 @@
    "tags": [
     "clamped"
    ],
-   "ms": 177.6774,
+   "ms": 237.9935,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -69813,7 +69812,7 @@
    "tags": [
     "clamped"
    ],
-   "ms": 30.1078,
+   "ms": 31.0912,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -69994,7 +69993,7 @@
    "tags": [
     "warpFix"
    ],
-   "ms": 228.2616,
+   "ms": 218.6067,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -70186,7 +70185,7 @@
    "tags": [
     "warpFix"
    ],
-   "ms": 29.4116,
+   "ms": 34.2495,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -70366,7 +70365,7 @@
    "tags": [
     "twist-free-end"
    ],
-   "ms": 175.3219,
+   "ms": 225.4042,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -70539,7 +70538,7 @@
    "tags": [
     "twist-free-end"
    ],
-   "ms": 25.4681,
+   "ms": 30.899,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -70720,7 +70719,7 @@
    "tags": [
     "lateral-cantilever"
    ],
-   "ms": 164.0444,
+   "ms": 219.2547,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -70894,7 +70893,7 @@
    "tags": [
     "lateral-cantilever"
    ],
-   "ms": 26.891,
+   "ms": 49.5614,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -71077,7 +71076,7 @@
     "lateral-cantilever",
     "warpFix"
    ],
-   "ms": 170.0646,
+   "ms": 235.4084,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -71258,7 +71257,7 @@
     "lateral-cantilever",
     "warpFix"
    ],
-   "ms": 36.6848,
+   "ms": 42.9919,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -71440,7 +71439,7 @@
    "tags": [
     "clamped-one"
    ],
-   "ms": 204.1928,
+   "ms": 236.1692,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -71625,7 +71624,7 @@
    "tags": [
     "clamped-one"
    ],
-   "ms": 27.3037,
+   "ms": 35.5304,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -71806,7 +71805,7 @@
    "tags": [
     "fixed-fork"
    ],
-   "ms": 188.5255,
+   "ms": 216.609,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -72016,7 +72015,7 @@
    "tags": [
     "fixed-fork"
    ],
-   "ms": 28.2827,
+   "ms": 38.0626,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -72220,7 +72219,7 @@
     "clamped",
     "warpFix"
    ],
-   "ms": 189.5304,
+   "ms": 235.2991,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -72412,7 +72411,7 @@
     "clamped",
     "warpFix"
    ],
-   "ms": 27.084,
+   "ms": 38.7774,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -72593,7 +72592,7 @@
    "tags": [
     "twist-free-end"
    ],
-   "ms": 212.3375,
+   "ms": 311.1056,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -72785,7 +72784,7 @@
    "tags": [
     "twist-free-end"
    ],
-   "ms": 25.7798,
+   "ms": 39.017,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -72985,7 +72984,7 @@
    "tags": [
     "lateral-cantilever"
    ],
-   "ms": 160.9279,
+   "ms": 220.9185,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -73172,7 +73171,7 @@
    "tags": [
     "lateral-cantilever"
    ],
-   "ms": 25.4411,
+   "ms": 30.7997,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -73366,7 +73365,7 @@
    "tags": [
     "warpFix"
    ],
-   "ms": 190.6358,
+   "ms": 212.2612,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -73539,7 +73538,7 @@
    "tags": [
     "warpFix"
    ],
-   "ms": 24.4677,
+   "ms": 35.73,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -73707,7 +73706,7 @@
    "tags": [
     "clamped"
    ],
-   "ms": 216.5223,
+   "ms": 259.822,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -73892,7 +73891,7 @@
    "tags": [
     "clamped"
    ],
-   "ms": 32.7451,
+   "ms": 50.0535,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -74072,7 +74071,7 @@
    "tags": [
     "warpFix"
    ],
-   "ms": 188.0761,
+   "ms": 245.9974,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -74240,7 +74239,7 @@
    "tags": [
     "warpFix"
    ],
-   "ms": 25.6633,
+   "ms": 38.1606,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -74402,7 +74401,7 @@
    "tags": [
     "ux-both"
    ],
-   "ms": 193.2153,
+   "ms": 234.063,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -74587,7 +74586,7 @@
    "tags": [
     "ux-both"
    ],
-   "ms": 32.968,
+   "ms": 40.1949,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -74766,7 +74765,7 @@
     "2.16",
     "2.18"
    ],
-   "ms": 23.7074,
+   "ms": 40.0394,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -74912,7 +74911,7 @@
     "2.16",
     "2.18"
    ],
-   "ms": 28.5797,
+   "ms": 31.449,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -75049,7 +75048,7 @@
     "2.16",
     "2.18"
    ],
-   "ms": 24.2331,
+   "ms": 30.8416,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -75190,7 +75189,7 @@
     "2.16",
     "2.18"
    ],
-   "ms": 25.4576,
+   "ms": 38.3836,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -75333,7 +75332,7 @@
     "2.16",
     "2.18"
    ],
-   "ms": 24.2288,
+   "ms": 32.216,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -75481,7 +75480,7 @@
     "2.16",
     "2.18"
    ],
-   "ms": 33.6792,
+   "ms": 43.9089,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -75636,7 +75635,7 @@
     "2.16",
     "2.18"
    ],
-   "ms": 26.766,
+   "ms": 30.4174,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -75761,7 +75760,7 @@
     "2.16",
     "2.18"
    ],
-   "ms": 26.9686,
+   "ms": 36.0081,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -75904,7 +75903,7 @@
     "2.16",
     "2.18"
    ],
-   "ms": 37.3166,
+   "ms": 49.8695,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -76073,7 +76072,7 @@
     "2.16",
     "2.18"
    ],
-   "ms": 26.5906,
+   "ms": 48.0442,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -76235,7 +76234,7 @@
     "uplift",
     "1.2"
    ],
-   "ms": 166.3941,
+   "ms": 215.7953,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [
@@ -76412,7 +76411,7 @@
     "uplift",
     "1.2"
    ],
-   "ms": 25.1171,
+   "ms": 33.6323,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [
@@ -76584,7 +76583,7 @@
     "hold-down",
     "1.2"
    ],
-   "ms": 28.3748,
+   "ms": 39.8991,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [
@@ -76761,7 +76760,7 @@
     "hold-down",
     "1.2"
    ],
-   "ms": 28.4762,
+   "ms": 38.4938,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [
@@ -76931,7 +76930,7 @@
     "uplift-sls",
     "1.2"
    ],
-   "ms": 213.7511,
+   "ms": 252.1072,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [
@@ -77109,7 +77108,7 @@
     "uplift-sls",
     "1.2"
    ],
-   "ms": 38.7503,
+   "ms": 38.5558,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [
@@ -77280,7 +77279,7 @@
     "hold-down",
     "1.2"
    ],
-   "ms": 384.4462,
+   "ms": 494.3792,
    "nCombos": 3,
    "governCombo": "ULS: 1.0G + 1.5W (uplift)",
    "uplift": [
@@ -77481,7 +77480,7 @@
     "hold-down",
     "1.2"
    ],
-   "ms": 90.3167,
+   "ms": 94.0064,
    "nCombos": 3,
    "governCombo": "ULS: 1.0G + 1.5W (uplift)",
    "uplift": [
@@ -77671,7 +77670,7 @@
     "uplift",
     "1.2"
    ],
-   "ms": 28.3029,
+   "ms": 40.5264,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [
@@ -77807,7 +77806,7 @@
     "hold-down",
     "1.2"
    ],
-   "ms": 275.2576,
+   "ms": 391.1698,
    "nCombos": 3,
    "governCombo": "ULS: 1.35G + 1.5Q",
    "uplift": [
@@ -78033,7 +78032,7 @@
     "hold-down",
     "1.2"
    ],
-   "ms": 66.5089,
+   "ms": 101.0611,
    "nCombos": 3,
    "governCombo": "ULS: 1.35G + 1.5Q",
    "uplift": [
@@ -78253,7 +78252,7 @@
     "uplift",
     "1.2"
    ],
-   "ms": 165.0707,
+   "ms": 253.8868,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [
@@ -78437,7 +78436,7 @@
     "uplift",
     "1.2"
    ],
-   "ms": 28.1441,
+   "ms": 31.0642,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [
@@ -78618,7 +78617,7 @@
    "tags": [
     "tfb"
    ],
-   "ms": 220.5273,
+   "ms": 241.0044,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -78826,7 +78825,7 @@
    "tags": [
     "tfb"
    ],
-   "ms": 29.3544,
+   "ms": 38.5445,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -79025,7 +79024,7 @@
     "tfb",
     "LT"
    ],
-   "ms": 25.4304,
+   "ms": 33.3461,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -79205,7 +79204,7 @@
     "LT",
     "heavy"
    ],
-   "ms": 579.3927,
+   "ms": 852.1439,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -79419,7 +79418,7 @@
     "LT",
     "heavy"
    ],
-   "ms": 26.5468,
+   "ms": 42.6103,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -79626,7 +79625,7 @@
     "ecc-large",
     "torsion+N"
    ],
-   "ms": 43.8575,
+   "ms": 74.6999,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -79816,7 +79815,7 @@
     "class3",
     "2.13"
    ],
-   "ms": 26.9738,
+   "ms": 40.688,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -79984,7 +79983,7 @@
     "mv-channel",
     "2.10"
    ],
-   "ms": 26.1597,
+   "ms": 44.175,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -80118,7 +80117,7 @@
     "heavy",
     "2.10"
    ],
-   "ms": 24.2087,
+   "ms": 37.2061,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -80247,7 +80246,7 @@
     "heavy",
     "2.10"
    ],
-   "ms": 26.5347,
+   "ms": 41.2466,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -80386,7 +80385,7 @@
     "heavy",
     "2.13"
    ],
-   "ms": 25.07,
+   "ms": 41.4496,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -80547,7 +80546,7 @@
     "biaxial",
     "2.13"
    ],
-   "ms": 25.4455,
+   "ms": 46.1352,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -80701,7 +80700,7 @@
     "heavy",
     "2.13"
    ],
-   "ms": 24.9706,
+   "ms": 44.0821,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -80869,7 +80868,7 @@
     "mvn",
     "2.13"
    ],
-   "ms": 25.1353,
+   "ms": 42.4357,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -81043,7 +81042,7 @@
    "tags": [
     "2.10"
    ],
-   "ms": 107.5132,
+   "ms": 143.162,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -81211,7 +81210,7 @@
    "tags": [
     "2.10"
    ],
-   "ms": 30.185,
+   "ms": 35.8883,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -81381,7 +81380,7 @@
     "torsion-fe",
     "ecc-large"
    ],
-   "ms": 198.3708,
+   "ms": 257.0137,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -81591,7 +81590,7 @@
     "torsion-fe",
     "ecc-large"
    ],
-   "ms": 33.4124,
+   "ms": 52.5904,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -81799,7 +81798,7 @@
     "torsion-fe",
     "ecc-large"
    ],
-   "ms": 204.7647,
+   "ms": 295.6808,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -81992,7 +81991,7 @@
     "torsion-fe",
     "ecc-large"
    ],
-   "ms": 36.5765,
+   "ms": 46.3124,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -82181,7 +82180,7 @@
     "ecc-large",
     "warpFix"
    ],
-   "ms": 215.7249,
+   "ms": 232.4651,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -82394,7 +82393,7 @@
     "ecc-large",
     "warpFix"
    ],
-   "ms": 34.0459,
+   "ms": 55.1455,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -82602,7 +82601,7 @@
     "torsion-fe",
     "ecc-small"
    ],
-   "ms": 194.2128,
+   "ms": 237.0669,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -82846,7 +82845,7 @@
     "torsion-fe",
     "ecc-small"
    ],
-   "ms": 30.3203,
+   "ms": 49.7939,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -83066,7 +83065,7 @@
     "torsion-fe",
     "ecc-small"
    ],
-   "ms": 194.6534,
+   "ms": 275.0353,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -83310,7 +83309,7 @@
     "torsion-fe",
     "ecc-small"
    ],
-   "ms": 44.9024,
+   "ms": 38.723,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -83530,7 +83529,7 @@
     "ecc-small",
     "warpFix"
    ],
-   "ms": 235.781,
+   "ms": 292.4481,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -83772,7 +83771,7 @@
     "ecc-small",
     "warpFix"
    ],
-   "ms": 34.4163,
+   "ms": 41.2954,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -84000,7 +83999,7 @@
     "aeff",
     "1.9"
    ],
-   "ms": 28.8819,
+   "ms": 31.7257,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -84172,7 +84171,7 @@
     "heavy",
     "1.9"
    ],
-   "ms": 171.2586,
+   "ms": 222.7467,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -84387,7 +84386,7 @@
     "heavy",
     "1.9"
    ],
-   "ms": 28.367,
+   "ms": 33.1265,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -84595,7 +84594,7 @@
     "aeff",
     "1.9"
    ],
-   "ms": 176.0285,
+   "ms": 216.1779,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -84809,7 +84808,7 @@
     "aeff",
     "1.9"
    ],
-   "ms": 33.5685,
+   "ms": 34.0613,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -85014,7 +85013,7 @@
     "-3.9",
     "-3.12"
    ],
-   "ms": 33.9975,
+   "ms": 28.9181,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -85169,7 +85168,7 @@
     "aeff",
     "1.9"
    ],
-   "ms": 423.3127,
+   "ms": 542.0178,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -85387,7 +85386,7 @@
     "aeff",
     "1.9"
    ],
-   "ms": 39.3659,
+   "ms": 45.7138,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -85594,7 +85593,7 @@
     "aeff",
     "1.9"
    ],
-   "ms": 39.1776,
+   "ms": 39.8675,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -85784,7 +85783,7 @@
     "biaxial",
     "2.12"
    ],
-   "ms": 36.175,
+   "ms": 46.4087,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -85936,7 +85935,7 @@
     "heavy",
     "2.12"
    ],
-   "ms": 38.5667,
+   "ms": 32.2375,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -86092,7 +86091,7 @@
     "biaxial",
     "2.12"
    ],
-   "ms": 174.1074,
+   "ms": 205.2347,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -86300,7 +86299,7 @@
     "biaxial",
     "2.12"
    ],
-   "ms": 28.0112,
+   "ms": 35.2689,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -86505,7 +86504,7 @@
     "aeff",
     "2.12"
    ],
-   "ms": 164.1497,
+   "ms": 218.6468,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -86724,7 +86723,7 @@
     "aeff",
     "2.12"
    ],
-   "ms": 27.7854,
+   "ms": 44.1749,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -86936,7 +86935,7 @@
     "heavy",
     "2.12"
    ],
-   "ms": 169.264,
+   "ms": 206.4724,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -87146,7 +87145,7 @@
     "heavy",
     "2.12"
    ],
-   "ms": 34.6541,
+   "ms": 35.3793,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -87343,7 +87342,7 @@
    "tags": [
     "aeff"
    ],
-   "ms": 26.2724,
+   "ms": 34.4387,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -87513,7 +87512,7 @@
    "tags": [
     "aeff"
    ],
-   "ms": 178.666,
+   "ms": 258.7305,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -87726,7 +87725,7 @@
    "tags": [
     "aeff"
    ],
-   "ms": 25.1139,
+   "ms": 42.6707,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -87930,7 +87929,7 @@
    "tags": [
     "mvn"
    ],
-   "ms": 26.1602,
+   "ms": 39.0288,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -88091,7 +88090,7 @@
     "expect-error"
    ],
    "error": "End 2 has no vertical restraint and End 1 does not restrain rotation: mechanism (rigid-body rotation about End 1). Restrain Ry at End 1 (cantilever / propped layout) or Uz at End 2.",
-   "ms": 0.1094,
+   "ms": 0.1328,
    "expectError": "End 2 has no vertical restraint and End 1 does not restrain rotation: mechanism",
    "throwOk": true,
    "verdict": "THROWS",
@@ -88117,7 +88116,7 @@
     "expect-error"
    ],
    "error": "Neither end restrains vertical translation Uz: mechanism (rigid-body vertical translation). Restrain Uz at one end at least.",
-   "ms": 0.1273,
+   "ms": 0.0815,
    "expectError": "Neither end restrains vertical translation",
    "throwOk": true,
    "verdict": "THROWS",
@@ -88143,7 +88142,7 @@
     "expect-error"
    ],
    "error": "Under-restrained layout (mechanism): the 1 internal hinge(s) release the in-plane moment and the end restraints Uz / Ry do not hold every segment they separate (each hinge needs one more restraint unit: 3 are needed, Uz and Ry counting one each; e.g. one hinge in a fixed - pinned, fixed - guided or fixed - fixed member, two hinges in a fixed - fixed member). Restrain Ry at an end or remove a hinge.",
-   "ms": 0.0742,
+   "ms": 0.0919,
    "expectError": "internal hinge",
    "throwOk": true,
    "verdict": "THROWS",
@@ -88169,7 +88168,7 @@
     "expect-error"
    ],
    "error": "A cantilever must have its root at End 1 (x = 0) and its free tip at End 2 (x = L): mirror the member.",
-   "ms": 0.0664,
+   "ms": 0.0789,
    "expectError": "root at End 1",
    "throwOk": true,
    "verdict": "THROWS",
@@ -88195,7 +88194,7 @@
     "expect-error"
    ],
    "error": "Torsion: the loads apply a torque but neither end restrains twist Rx: torsional mechanism. Restrain Rx at one end at least.",
-   "ms": 0.063,
+   "ms": 0.0803,
    "expectError": "torque but neither end restrains twist",
    "throwOk": true,
    "verdict": "THROWS",
@@ -88221,7 +88220,7 @@
     "expect-error"
    ],
    "error": "Axial force NEd = 100 kN is entered but neither end restrains axial translation Ux: no axial load path (mechanism). Restrain Ux at one end.",
-   "ms": 0.0759,
+   "ms": 0.0837,
    "expectError": "neither end restrains axial translation",
    "throwOk": true,
    "verdict": "THROWS",
@@ -88247,7 +88246,7 @@
     "expect-error"
    ],
    "error": "Lateral-torsional buckling: neither end restrains lateral translation Uy; the lateral stiffness matrix of the LTB model is singular. Restrain Uy (and Rx) at one end at least, or set the member fully restrained.",
-   "ms": 0.0662,
+   "ms": 0.0873,
    "expectError": "neither end restrains lateral translation",
    "throwOk": true,
    "verdict": "THROWS",
@@ -88273,7 +88272,7 @@
     "expect-error"
    ],
    "error": "Lateral-torsional buckling: no end restrains both Uy and Rx (a fork / torsional restraint); the twist mode is unrestrained. Restrain Rx at an end that holds Uy. Lateral-torsional buckling: neither end restrains twist Rx: torsional mechanism.",
-   "ms": 0.0667,
+   "ms": 0.1297,
    "expectError": "no end restrains both",
    "throwOk": true,
    "verdict": "THROWS",
@@ -88299,7 +88298,7 @@
     "expect-error"
    ],
    "error": "Lateral-torsional buckling: only End 1 restrains lateral translation Uy, so the member is a lateral cantilever; that end must also restrain Rz (lateral bending) and Rx (twist), or the lateral stiffness matrix of the LTB model is singular.",
-   "ms": 0.0641,
+   "ms": 0.1285,
    "expectError": "lateral cantilever; that end must also restrain",
    "throwOk": true,
    "verdict": "THROWS",
@@ -88325,7 +88324,7 @@
     "expect-error"
    ],
    "error": "Strut buckling z-z: the Uy / Rz fixities form a sway mechanism (z-z: held in position at one end only and in direction at neither end: sway mechanism); restrain Uy at the other end or Rz at the held end, or enter an LE/L factor.",
-   "ms": 0.0814,
+   "ms": 0.1601,
    "expectError": "Strut buckling z-z",
    "throwOk": true,
    "verdict": "THROWS",
@@ -88351,7 +88350,7 @@
     "expect-error"
    ],
    "error": "Neither end restrains vertical translation Uz: mechanism (rigid-body vertical translation). Restrain Uz at one end at least.",
-   "ms": 0.0587,
+   "ms": 0.114,
    "expectError": "Neither end restrains vertical translation",
    "throwOk": true,
    "verdict": "THROWS",
@@ -88377,7 +88376,7 @@
     "expect-error"
    ],
    "error": "Under-restrained layout (mechanism): the 2 internal hinge(s) release the in-plane moment and the end restraints Uz / Ry do not hold every segment they separate (each hinge needs one more restraint unit: 4 are needed, Uz and Ry counting one each; e.g. one hinge in a fixed - pinned, fixed - guided or fixed - fixed member, two hinges in a fixed - fixed member). Restrain Ry at an end or remove a hinge.",
-   "ms": 0.1306,
+   "ms": 0.212,
    "expectError": "internal hinge",
    "throwOk": true,
    "verdict": "THROWS",
@@ -88403,7 +88402,7 @@
     "expect-error"
    ],
    "error": "Internal hinge 1 must be inside the span, not at an end (release the end rotation R_y instead).",
-   "ms": 0.0733,
+   "ms": 0.1043,
    "expectError": "must be inside the span",
    "throwOk": true,
    "verdict": "THROWS",
@@ -88429,7 +88428,7 @@
     "expect-error"
    ],
    "error": "Lateral-torsional buckling: no end restrains both Uy and Rx (a fork / torsional restraint); the twist mode is unrestrained. Restrain Rx at an end that holds Uy. Lateral-torsional buckling: neither end restrains twist Rx: torsional mechanism.",
-   "ms": 0.068,
+   "ms": 0.1223,
    "expectError": "no end restrains both",
    "throwOk": true,
    "verdict": "THROWS",

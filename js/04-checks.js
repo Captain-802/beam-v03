@@ -87,7 +87,7 @@ function comboHasServiceLoad(combo){
    whose fixities form a sway mechanism cannot carry N_Ed.
    Returns {errors:[...], notes:[...]} (notes are printed, not blocking).
    --------------------------------------------------------------------------- */
-function endsStability(st){
+function endsStability(st,sec){
   st=st||S;
   const errs=[], notes=[];
   const [e1,e2]=endsList(st);
@@ -120,7 +120,7 @@ function endsStability(st){
     else if(lateral.length===1){
       const e=lateral[0];
       if(!(e.rz&&e.rx)) errs.push('Lateral-torsional buckling: only End '+e.n+' restrains lateral translation U<sub>y</sub>, so the member is a lateral cantilever; that end must also restrain R<sub>z</sub> (lateral bending) and R<sub>x</sub> (twist), or '+singular+'.');
-      else notes.push('Lateral cantilever: End '+e.n+' is the only end holding U<sub>y</sub>; it restrains R<sub>z</sub> and R<sub>x</sub> and its warping is '+(e.warp? 'restrained (&phi;&prime; = 0)' : 'free')+'; the other end is laterally free.');
+      else notes.push('Lateral cantilever: End '+e.n+' is the only end holding U<sub>y</sub>; it restrains R<sub>z</sub> and R<sub>x</sub> and its warping is '+(e.warp? (sec&&!warpingApplies(sec)? 'flagged restrained but not applied (I<sub>w</sub> = 0: &phi;&prime; is not a boundary condition of a closed section, EN 1993-1-1 6.2.7(7))' : 'restrained (&phi;&prime; = 0)') : 'free')+'; the other end is laterally free.');
     }
     if(!(e1.rx||e2.rx)) errs.push('Lateral-torsional buckling: neither end restrains twist R<sub>x</sub>: torsional mechanism.');
   }
@@ -236,7 +236,7 @@ function analyse(){
   // uz + ry = fixed, uz = pinned, ry = guided, neither = free / absent)
   const supportsMM=endsToSupports(S).map(s=>({pos:(+s.pos)*1000,type:s.type,end:s.end}));
   const hingesMM=(S.hinges||[]).map(h=>(+h.pos)*1000).filter(x=>x>1e-6 && x<L-1e-6);
-  const stability=endsStability(S);
+  const stability=endsStability(S,sec);
   const ends=endsList(S);
   const cant=isCantilever(S);
   const ulsCombos=ulsUser.slice();

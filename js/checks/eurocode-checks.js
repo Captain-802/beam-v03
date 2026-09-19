@@ -1446,7 +1446,9 @@ function stdMcrEndsStatus(st,sec){
       msg:'Standard (closed-form) M<sub>cr</sub> for LTB: the SN003a form'+(sec&&sec.kind==='channel'? ' and the P385/P362 channel &kappa; chain assume' : ' assumes')+' fork ends &mdash; U<sub>y</sub> (lateral translation) and R<sub>x</sub> (twist) held &mdash; at both ends (k = k<sub>w</sub> = 1); here '+desc+'. The chain printed below assumes fork ends and would be unconservative for these end conditions. '+useMcr,
       note:null};
   }
-  const clamped=ends.filter(e=>e.rz).map(e=>'End '+e.n), warped=ends.filter(e=>e.warp).map(e=>'End '+e.n);
+  // a warping flag on an I_w = 0 box is not a boundary condition of the twist equation (warpingApplies, js/03-state-ui.js)
+  const warpOn = !sec || warpingApplies(sec);
+  const clamped=ends.filter(e=>e.rz).map(e=>'End '+e.n), warped=ends.filter(e=>e.warp&&warpOn).map(e=>'End '+e.n);
   let note=null;
   if(clamped.length||warped.length){
     const parts=[];
@@ -1454,6 +1456,8 @@ function stdMcrEndsStatus(st,sec){
     if(warped.length) parts.push('warping-fixed end'+(warped.length>1?'s':'')+' ('+warped.join(' and ')+')');
     note='Standard (closed-form) M<sub>cr</sub>: '+parts.join(' and ')+' taken as fork end'+(clamped.length+warped.length>1?'s':'')+', k = k<sub>w</sub> = 1 (conservative: the SN003a k = 0.5 / k<sub>w</sub> = 0.5 rows are not applied; the FE eigen route uses v&prime; = 0 / &phi;&prime; = 0 and gives the higher M<sub>cr</sub>).';
   }
+  const warpIgnored=ends.filter(e=>e.warp&&!warpOn).map(e=>'End '+e.n);
+  if(warpIgnored.length) note=(note? note+' ' : '')+'Warping flag at '+warpIgnored.join(' and ')+' not applied: this closed section has I<sub>w</sub> = 0, so &phi;&prime; is not a boundary condition of its twist equation (EN 1993-1-1 6.2.7(7)).';
   return {ok:true, sn006:false, msg:null, note, ends:''};
 }
 // ---- Standard (closed-form) Mcr for one segment, pure ----
