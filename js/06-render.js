@@ -61,7 +61,7 @@ function render(){
   // set by both routes; 'standard' = closed form, 'eigen' = FE eigensolver)
   const mcrStd = sciU && c.mcrMethod==='standard';
   const mcrMethodLabel = mcrStd? 'standard closed-form method (NCCI SN003a / SN006a, C<sub>1</sub> tables)' : 'FE eigenvalue method';
-  const famLabel = sec.isBox? (S.family==='rhs'? 'RHS [Hot-finished]' : `SHS [${sec.boxType==='CF'?'Cold-formed':'Hot-finished'}]`) : S.family==='ub'? 'UB' : S.family==='uc'? 'UC' : 'PFC';
+  const famLabel = sec.isBox? (S.family==='rhs'? `RHS [${sec.boxType==='CF'?'Cold-formed':'Hot-finished'}]` : `SHS [${sec.boxType==='CF'?'Cold-formed':'Hot-finished'}]`) : S.family==='ub'? 'UB' : S.family==='uc'? 'UC' : 'PFC';
   const gradeTxt=`${S.grade} (p<sub>y</sub> = ${g(a.py,0)} N/mm )`;
   const vt=c.tor&&c.tor.vt ? c.tor.vt : null;
   const vtX=vt ? vt.x/1000 : 0;
@@ -208,7 +208,7 @@ function render(){
   if(sec.isBox && S.family==='shs') notes.push(`Closed square section: the BS box-section LTB calculation gives ?<sub>LT</sub> 0 and p<sub>b</sub>=p<sub>y</sub>, so M<sub>b</sub> is governed by M<sub>cx</sub>.`);
   if(sec.isBox && S.family==='rhs') notes.push(`RHS lateral torsional buckling now uses the BS box-section ?<sub>LT</sub>=2.25v(F<sub>b</sub>? <sub>w</sub>) calculation rather than the previous rough Table 15 screen.`);
   if(sec.isBox && S.family==='shs') notes.push(`Strut curve: ${sec.boxType==='CF'?'cold-formed ? curve c (a=5.5)':'hot-finished ? curve a (a=2.0)'} per Table 23, both axes (r<sub>x</sub>=r<sub>y</sub> for a square section). Override in "Robertson const." if a different curve applies.`);
-  if(sec.isBox && S.family==='rhs') notes.push(`Strut curve: hot-finished box section ? curve a (a=2.0) per Table 23, both axes. Note r<sub>x</sub>?r<sub>y</sub> for a true RHS, so P<sub>c</sub> and P<sub>cy</sub> genuinely differ even though the curve is the same both ways. Override in "Robertson const." if a different curve applies.`);
+  if(sec.isBox && S.family==='rhs') notes.push(`Strut curve: ${sec.boxType==='CF'?'cold-formed box section ? curve c (a=5.5)':'hot-finished box section ? curve a (a=2.0)'} per Table 23, both axes. Note r<sub>x</sub>?r<sub>y</sub> for a true RHS, so P<sub>c</sub> and P<sub>cy</sub> genuinely differ even though the curve is the same both ways. Override in "Robertson const." if a different curve applies.`);
   if(S.family==='ub') notes.push(`Strut curve (Table 23, rolled I-section): x-x curve ${sec.tf<=40?'a (a=2.0)':'b (a=3.5)'}, y-y curve ${sec.tf<=40?'b (a=3.5)':'c (a=5.5)'} for flange thickness ${sec.tf<=40?'=':'>'}40&nbsp;mm. Override per-axis in "Robertson const." if a different curve applies.`);
   if(S.family==='uc') notes.push(`Strut curve (Table 23, rolled H-section): x-x curve ${sec.tf<=40?'b (a=3.5)':'c (a=5.5)'}, y-y curve ${sec.tf<=40?'c (a=5.5)':'d (a=8.0)'} for flange thickness ${sec.tf<=40?'=':'>'}40&nbsp;mm   one curve lower than a rolled I-section at the same thickness. Override per-axis in "Robertson const." if a different curve applies.`);
   if(sec.kind==='channel') notes.push(`Strut curve: BS&nbsp;5950 directs channel struts to Table 25 (a distinct method from the generic curve a d system). PFC compression is blocked from PASS unless verified Table&nbsp;25/Blue Book data is implemented.`);

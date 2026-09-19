@@ -413,9 +413,12 @@ sections, mass high) to 3 x t^2 (large sections, mass low) away from the 1.25 t^
 * **RSJ (19), UBP (17), UB1 (1), CHS, channels and angles** - outside the four families requested.
 * **`RHS_CF` is data only.** `activeSectionBase()` normalises the RHS family as `boxType: "HF"` with no cold-formed switch,
   and the brief allowed no edits outside `js/sections/*.js`. The 142 rows sit in `RHS_CF` / `RHS_CFmap` (same layout as
-  `RHS`, cold-formed flat widths) and are tested directly; wiring needs an `rhsType` selector mirroring `shsType` in
-  `js/02-section-data.js`, `js/03-state-ui.js`, `js/07-wiring.js` and `index.html`, with `boxType: "CF"` (BS 5950 strut
-  curve c, EC3 `c = h - 3t` conversion as done for SHS_CF, and `ctBoxEN10210()` would need the cold-formed mean radius).
+  `RHS`, cold-formed flat widths) and are tested directly. **Wired 19 Sep 2026 (merge commit and follow-up):** an `rhsType`
+  selector (`HF` / `CF`) mirroring `shsType` in `js/02-section-data.js`, `js/03-state-ui.js`, `js/07-wiring.js` and
+  `index.html`; `boxType: "CF"` gives BS 5950 strut curve c (Robertson 5.5 both axes), EC3 curve c, the EC3 `c = h - 3t` /
+  `b - 3t` flat widths (P363) on the EC3 path and the stored `h - 5t` ratios on the BS path; no P385 hot-finished torsion
+  row is borrowed (the EN 10210-2 formula with hot-finished corners is used and flagged, as for SHS_CF). Test:
+  `tests/rhs-cold-formed.test.cjs`.
 * **Hollow P385 rows**: `TP385_SHS` / `TP385_RHS` were not extended; sizes absent from P385 Tables A.7/A.8 use the
   `ctBoxEN10210()` formula (identical to the derived J and C for hot-finished sizes).
 

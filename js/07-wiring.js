@@ -32,6 +32,7 @@ function readScalarInputs(){
   S.shsKey=$("shsSelect").value;
   S.ubKey=$("ubSelect").value;
   S.ucKey=$("ucSelect").value;
+  if($("rhsType")) S.rhsType=$("rhsType").value;
   S.rhsKey=$("rhsSelect").value;
   S.grade=$("grade").value;
   const sec=activeSection();
@@ -108,6 +109,8 @@ function wire(){
     S.mcrMethod=$("mcrMethod").value; syncInputs(); recompute(); });
   $("shsType").addEventListener("change",()=>{
     S.shsType=$("shsType").value; syncInputs(); refreshAutoFields(); recompute(); });
+  if($("rhsType")) $("rhsType").addEventListener("change",()=>{
+    S.rhsType=$("rhsType").value; syncInputs(); refreshAutoFields(); recompute(); });
   $("length").addEventListener("change",()=>{ // the End 2 label (x = L) and full-span loads follow the new length
     readScalarInputs(); syncSelfWeightLoads(); renderEndsPanel(); renderHingeList(); renderLoadList(); recompute(); });
   // End conditions: the preset drop-list and the quick buttons (data-preset = an

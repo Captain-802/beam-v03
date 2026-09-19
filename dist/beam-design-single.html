@@ -256,6 +256,11 @@
           <select id="shsType"><option value="HF">Hot-finished (EN 10210)</option><option value="CF">Cold-formed (EN 10219)</option></select>
         </label>
       </div>
+      <div id="rhsTypeRow" style="display:none">
+        <label>RHS type
+          <select id="rhsType"><option value="HF">Hot-finished (EN 10210)</option><option value="CF">Cold-formed (EN 10219, S355 series)</option></select>
+        </label>
+      </div>
       <div id="pfcRow">
         <label>PFC section <select id="pfcSelect"></select></label>
         <label class="checkline"><input type="checkbox" id="pfcMirror"> <span>Mirror section (web back on right)</span></label>
@@ -2051,6 +2056,7 @@ function tp385For(family,key){
   // P385 A.7 contains 3.2/3.6/6.3 mm walls, not the 3.0/3.5/6.0 mm
   // aliases previously added to this table. Never borrow a thicker wall's Wt.
   if(family==='shs' && (S.shsType==='CF'||[3,3.5,6].includes(Number(key.split('x').at(-1))))) return null;
+  if(family==='rhs' && S.rhsType==='CF') return null; // P385 Table A.8 is hot-finished only
   const m=family==='ub'?TP385_UB:family==='uc'?TP385_UC:family==='pfc'?TP385_PFC:family==='shs'?TP385_SHS:family==='rhs'?TP385_RHS:null;
   const r=m&&m[key]; if(!r) return null;
   if(family==='pfc') return {IT:r[0],a:r[1],Iw:r[2],Wn0:r[3],Wn2:r[4],Sw1:r[5],Sw2:r[6],Sw3:r[7],e0:r[8],esc:r[9]};
@@ -2070,10 +2076,16 @@ function activeSectionBase(){
       u:null, x:null, J:s.J, A:s.A, isBox:true, boxType:S.shsType, kind:'box'};
   }
   if(S.family==='rhs'){
-    const s = RHSmap[S.rhsKey] || RHS[0];
-    return {key:s.key, mass:s.mass, D:s.D, B:s.B, tw:s.t, tf:s.t, r:0, d:s.dt*s.t,
-      bT:s.bT, dt:s.dt, Ix:s.Ix, Iy:s.Iy, rx:s.rx, ry:s.ry, Zx:s.Zx, Zy:s.Zy, Sx:s.Sx, Sy:s.Sy,
-      u:null, x:null, J:s.J, A:s.A, isBox:true, boxType:'HF', kind:'box'};
+    const cf = S.rhsType==='CF';
+    const map = cf? RHS_CFmap : RHSmap;
+    const s = map[S.rhsKey] || Object.values(map)[0];
+    // SCI P363: c = h - 3t / b - 3t for EC3 local buckling of cold-formed hollow
+    // sections (the table stores the BS 5950 h - 5t / b - 5t flat widths), as SHS_CF.
+    const bT = (cf && S.code==='EC3')? (s.B-3*s.t)/s.t : s.bT;
+    const dt = (cf && S.code==='EC3')? (s.D-3*s.t)/s.t : s.dt;
+    return {key:s.key, mass:s.mass, D:s.D, B:s.B, tw:s.t, tf:s.t, r:0, d:dt*s.t,
+      bT:bT, dt:dt, Ix:s.Ix, Iy:s.Iy, rx:s.rx, ry:s.ry, Zx:s.Zx, Zy:s.Zy, Sx:s.Sx, Sy:s.Sy,
+      u:null, x:null, J:s.J, A:s.A, isBox:true, boxType: cf? 'CF' : 'HF', kind:'box'};
   }
   if(S.family==='ub'){
     const s = UBmap[S.ubKey] || UB[0];
@@ -2173,7 +2185,7 @@ function defaultRobertson(family,boxType,tf){
   // BS 5950-1:2000 Table 23 (allocation of strut curve) -> Table 24(a..d) Robertson
   // constants a=2.0/3.5/5.5/8.0 for curves a/b/c/d respectively.
   if(family==='shs') return boxType==='CF'? {x:5.5,y:5.5} : {x:2.0,y:2.0}; // HF box: curve a both axes; CF box: curve c both axes
-  if(family==='rhs') return {x:2.0,y:2.0}; // hot-finished box section -> curve a, both axes (Table 23)
+  if(family==='rhs') return boxType==='CF'? {x:5.5,y:5.5} : {x:2.0,y:2.0}; // HF box: curve a both axes; CF box: curve c both axes (Table 23)
   if(family==='ub'){
     // Rolled I-section: x-x/y-y = a/b up to 40mm flange, b/c over 40mm.
     return (tf||0)<=40 ? {x:2.0,y:3.5} : {x:3.5,y:5.5};
@@ -2510,7 +2522,7 @@ function endGlyphSvg(e){
 
 const DEMO={
   code:"EC3",
-  family:"ub", sectionKey:"180x75x20", shsType:"HF", shsKey:"150x150x6.3", ubKey:"457 x 191 x 82", ucKey:"203 x 203 x 60", rhsKey:"200 x 100 x 8.0",
+  family:"ub", sectionKey:"180x75x20", shsType:"HF", shsKey:"150x150x6.3", ubKey:"457 x 191 x 82", ucKey:"203 x 203 x 60", rhsType:"HF", rhsKey:"200 x 100 x 8.0",
   grade:"S275", py:null, anet:null,
   L:8.0,
   ends:endsPreset('ss',{e1:{ss:100},e2:{ss:100}}),   // End 1 (x = 0) / End 2 (x = L) degree-of-freedom flags; ss: stiff bearing length of the seating (mm along the member); blank = lower bound 0
@@ -2774,18 +2786,21 @@ function syncInputs(){
   ucSel.value=S.ucKey;
 
   const rhsSel=$("rhsSelect"); rhsSel.innerHTML="";
-  RHS.forEach(s=>{ const o=document.createElement("option"); o.value=s.key;
+  const rhsArr = S.rhsType==='CF'? RHS_CF : RHS;
+  rhsArr.forEach(s=>{ const o=document.createElement("option"); o.value=s.key;
     o.textContent=`${s.key} RHS  (${s.mass} kg/m)`; rhsSel.appendChild(o); });
-  if(!(S.rhsKey in RHSmap)) S.rhsKey = RHS[0].key;
+  if(!(S.rhsKey in (S.rhsType==='CF'? RHS_CFmap : RHSmap))) S.rhsKey = rhsArr[0].key;
   rhsSel.value=S.rhsKey;
 
   $("code").value=S.code;
   $("family").value=S.family;
   $("shsType").value=S.shsType;
+  if($("rhsType")) $("rhsType").value=S.rhsType||'HF';
   $("pfcRow").style.display = S.family==='pfc'? '' : 'none';
   if($("pfcMirror")) $("pfcMirror").checked = !!S.pfcMirror;
   $("shsRow").style.display = S.family==='shs'? '' : 'none';
   $("shsTypeRow").style.display = S.family==='shs'? '' : 'none';
+  if($("rhsTypeRow")) $("rhsTypeRow").style.display = S.family==='rhs'? '' : 'none';
   $("ubRow").style.display = S.family==='ub'? '' : 'none';
   $("ucRow").style.display = S.family==='uc'? '' : 'none';
   $("rhsRow").style.display = S.family==='rhs'? '' : 'none';
@@ -6507,7 +6522,7 @@ function render(){
   // set by both routes; 'standard' = closed form, 'eigen' = FE eigensolver)
   const mcrStd = sciU && c.mcrMethod==='standard';
   const mcrMethodLabel = mcrStd? 'standard closed-form method (NCCI SN003a / SN006a, C<sub>1</sub> tables)' : 'FE eigenvalue method';
-  const famLabel = sec.isBox? (S.family==='rhs'? 'RHS [Hot-finished]' : `SHS [${sec.boxType==='CF'?'Cold-formed':'Hot-finished'}]`) : S.family==='ub'? 'UB' : S.family==='uc'? 'UC' : 'PFC';
+  const famLabel = sec.isBox? (S.family==='rhs'? `RHS [${sec.boxType==='CF'?'Cold-formed':'Hot-finished'}]` : `SHS [${sec.boxType==='CF'?'Cold-formed':'Hot-finished'}]`) : S.family==='ub'? 'UB' : S.family==='uc'? 'UC' : 'PFC';
   const gradeTxt=`${S.grade} (p<sub>y</sub> = ${g(a.py,0)} N/mm )`;
   const vt=c.tor&&c.tor.vt ? c.tor.vt : null;
   const vtX=vt ? vt.x/1000 : 0;
@@ -6654,7 +6669,7 @@ function render(){
   if(sec.isBox && S.family==='shs') notes.push(`Closed square section: the BS box-section LTB calculation gives ?<sub>LT</sub> 0 and p<sub>b</sub>=p<sub>y</sub>, so M<sub>b</sub> is governed by M<sub>cx</sub>.`);
   if(sec.isBox && S.family==='rhs') notes.push(`RHS lateral torsional buckling now uses the BS box-section ?<sub>LT</sub>=2.25v(F<sub>b</sub>? <sub>w</sub>) calculation rather than the previous rough Table 15 screen.`);
   if(sec.isBox && S.family==='shs') notes.push(`Strut curve: ${sec.boxType==='CF'?'cold-formed ? curve c (a=5.5)':'hot-finished ? curve a (a=2.0)'} per Table 23, both axes (r<sub>x</sub>=r<sub>y</sub> for a square section). Override in "Robertson const." if a different curve applies.`);
-  if(sec.isBox && S.family==='rhs') notes.push(`Strut curve: hot-finished box section ? curve a (a=2.0) per Table 23, both axes. Note r<sub>x</sub>?r<sub>y</sub> for a true RHS, so P<sub>c</sub> and P<sub>cy</sub> genuinely differ even though the curve is the same both ways. Override in "Robertson const." if a different curve applies.`);
+  if(sec.isBox && S.family==='rhs') notes.push(`Strut curve: ${sec.boxType==='CF'?'cold-formed box section ? curve c (a=5.5)':'hot-finished box section ? curve a (a=2.0)'} per Table 23, both axes. Note r<sub>x</sub>?r<sub>y</sub> for a true RHS, so P<sub>c</sub> and P<sub>cy</sub> genuinely differ even though the curve is the same both ways. Override in "Robertson const." if a different curve applies.`);
   if(S.family==='ub') notes.push(`Strut curve (Table 23, rolled I-section): x-x curve ${sec.tf<=40?'a (a=2.0)':'b (a=3.5)'}, y-y curve ${sec.tf<=40?'b (a=3.5)':'c (a=5.5)'} for flange thickness ${sec.tf<=40?'=':'>'}40&nbsp;mm. Override per-axis in "Robertson const." if a different curve applies.`);
   if(S.family==='uc') notes.push(`Strut curve (Table 23, rolled H-section): x-x curve ${sec.tf<=40?'b (a=3.5)':'c (a=5.5)'}, y-y curve ${sec.tf<=40?'c (a=5.5)':'d (a=8.0)'} for flange thickness ${sec.tf<=40?'=':'>'}40&nbsp;mm   one curve lower than a rolled I-section at the same thickness. Override per-axis in "Robertson const." if a different curve applies.`);
   if(sec.kind==='channel') notes.push(`Strut curve: BS&nbsp;5950 directs channel struts to Table 25 (a distinct method from the generic curve a d system). PFC compression is blocked from PASS unless verified Table&nbsp;25/Blue Book data is implemented.`);
@@ -7344,7 +7359,7 @@ function renderMasterSeriesBrief(a,c,sec){
   const unsupported=c.unsupported||[];
   const verdict=c.pass? 'PASS' : failed? 'FAIL' : 'NOT VERIFIED';
   const titleSuffix=c.pass? '' : ' ('+verdict+')';
-  const famLabel = sec.isBox? (S.family==='rhs'? 'RHS [Hot-finished]' : 'SHS ['+(sec.boxType==='CF'?'Cold-formed':'Hot-finished')+']') : S.family==='ub'? 'UB' : S.family==='uc'? 'UC' : 'PFC';
+  const famLabel = sec.isBox? (S.family==='rhs'? 'RHS ['+(sec.boxType==='CF'?'Cold-formed':'Hot-finished')+']' : 'SHS ['+(sec.boxType==='CF'?'Cold-formed':'Hot-finished')+']') : S.family==='ub'? 'UB' : S.family==='uc'? 'UC' : 'PFC';
   const secStr=msbSecName(sec.key)+' '+famLabel+' ['+S.grade+']';
   const memberName=(S.memberName&&String(S.memberName).trim())? String(S.memberName).trim() : secStr;
   const cls=c.cl.cls;
@@ -7899,6 +7914,7 @@ function readScalarInputs(){
   S.shsKey=$("shsSelect").value;
   S.ubKey=$("ubSelect").value;
   S.ucKey=$("ucSelect").value;
+  if($("rhsType")) S.rhsType=$("rhsType").value;
   S.rhsKey=$("rhsSelect").value;
   S.grade=$("grade").value;
   const sec=activeSection();
@@ -7975,6 +7991,8 @@ function wire(){
     S.mcrMethod=$("mcrMethod").value; syncInputs(); recompute(); });
   $("shsType").addEventListener("change",()=>{
     S.shsType=$("shsType").value; syncInputs(); refreshAutoFields(); recompute(); });
+  if($("rhsType")) $("rhsType").addEventListener("change",()=>{
+    S.rhsType=$("rhsType").value; syncInputs(); refreshAutoFields(); recompute(); });
   $("length").addEventListener("change",()=>{ // the End 2 label (x = L) and full-span loads follow the new length
     readScalarInputs(); syncSelfWeightLoads(); renderEndsPanel(); renderHingeList(); renderLoadList(); recompute(); });
   // End conditions: the preset drop-list and the quick buttons (data-preset = an

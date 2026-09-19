@@ -275,7 +275,7 @@ function endGlyphSvg(e){
 
 const DEMO={
   code:"EC3",
-  family:"ub", sectionKey:"180x75x20", shsType:"HF", shsKey:"150x150x6.3", ubKey:"457 x 191 x 82", ucKey:"203 x 203 x 60", rhsKey:"200 x 100 x 8.0",
+  family:"ub", sectionKey:"180x75x20", shsType:"HF", shsKey:"150x150x6.3", ubKey:"457 x 191 x 82", ucKey:"203 x 203 x 60", rhsType:"HF", rhsKey:"200 x 100 x 8.0",
   grade:"S275", py:null, anet:null,
   L:8.0,
   ends:endsPreset('ss',{e1:{ss:100},e2:{ss:100}}),   // End 1 (x = 0) / End 2 (x = L) degree-of-freedom flags; ss: stiff bearing length of the seating (mm along the member); blank = lower bound 0
@@ -539,18 +539,21 @@ function syncInputs(){
   ucSel.value=S.ucKey;
 
   const rhsSel=$("rhsSelect"); rhsSel.innerHTML="";
-  RHS.forEach(s=>{ const o=document.createElement("option"); o.value=s.key;
+  const rhsArr = S.rhsType==='CF'? RHS_CF : RHS;
+  rhsArr.forEach(s=>{ const o=document.createElement("option"); o.value=s.key;
     o.textContent=`${s.key} RHS  (${s.mass} kg/m)`; rhsSel.appendChild(o); });
-  if(!(S.rhsKey in RHSmap)) S.rhsKey = RHS[0].key;
+  if(!(S.rhsKey in (S.rhsType==='CF'? RHS_CFmap : RHSmap))) S.rhsKey = rhsArr[0].key;
   rhsSel.value=S.rhsKey;
 
   $("code").value=S.code;
   $("family").value=S.family;
   $("shsType").value=S.shsType;
+  if($("rhsType")) $("rhsType").value=S.rhsType||'HF';
   $("pfcRow").style.display = S.family==='pfc'? '' : 'none';
   if($("pfcMirror")) $("pfcMirror").checked = !!S.pfcMirror;
   $("shsRow").style.display = S.family==='shs'? '' : 'none';
   $("shsTypeRow").style.display = S.family==='shs'? '' : 'none';
+  if($("rhsTypeRow")) $("rhsTypeRow").style.display = S.family==='rhs'? '' : 'none';
   $("ubRow").style.display = S.family==='ub'? '' : 'none';
   $("ucRow").style.display = S.family==='uc'? '' : 'none';
   $("rhsRow").style.display = S.family==='rhs'? '' : 'none';

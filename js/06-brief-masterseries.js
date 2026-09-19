@@ -224,7 +224,7 @@ function renderMasterSeriesBrief(a,c,sec){
   const unsupported=c.unsupported||[];
   const verdict=c.pass? 'PASS' : failed? 'FAIL' : 'NOT VERIFIED';
   const titleSuffix=c.pass? '' : ' ('+verdict+')';
-  const famLabel = sec.isBox? (S.family==='rhs'? 'RHS [Hot-finished]' : 'SHS ['+(sec.boxType==='CF'?'Cold-formed':'Hot-finished')+']') : S.family==='ub'? 'UB' : S.family==='uc'? 'UC' : 'PFC';
+  const famLabel = sec.isBox? (S.family==='rhs'? 'RHS ['+(sec.boxType==='CF'?'Cold-formed':'Hot-finished')+']' : 'SHS ['+(sec.boxType==='CF'?'Cold-formed':'Hot-finished')+']') : S.family==='ub'? 'UB' : S.family==='uc'? 'UC' : 'PFC';
   const secStr=msbSecName(sec.key)+' '+famLabel+' ['+S.grade+']';
   const memberName=(S.memberName&&String(S.memberName).trim())? String(S.memberName).trim() : secStr;
   const cls=c.cl.cls;
