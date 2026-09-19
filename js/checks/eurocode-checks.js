@@ -304,10 +304,20 @@ function checksEC3Restrained(a){
     const nAx=Math.abs(F)/NplRd;
     const biax=MzEd>1e-9;
     const My=Math.abs(a.Mmax);
+    // minor-axis resistances reported with the axial/biaxial block (so the
+    // brief prints engine values, not its own): V_pl,z,Rd from the cl 6.2.6(3)
+    // shear area for load parallel to the flanges - (f) rolled I, H and
+    // channel sections A - sum(hw tw), (h) hollow sections A b/(b + h) - and
+    // M_c,z,Rd = W_z fy/gammaM0 with the class-consistent modulus (cl 6.2.5).
+    // V_z,Ed is zero in this single-plane model, so V_pl,z,Rd is informational.
+    const hwAxz=sec.D-2*sec.tf;
+    const Avz= sec.isBox? AgAx*sec.B/(sec.D+sec.B) : Math.max(AgAx-hwAxz*sec.tw,0);
+    const VplZ=Avz*fy/(Math.sqrt(3)*gM0)/1000;                 // kN
+    const Mcz=(cl.cls<=2? sec.Sy : sec.Zy)*1e3*fy/gM0/1e6;      // kN.m
     if(sec.kind==='channel' && cl.cls<4){
       const McChan=(cl.cls<=2? sec.Sx:sec.Zx)*1e3*fy/gM0/1e6;
-      const McChanZ=(cl.cls<=2? sec.Sy:sec.Zy)*1e3*fy/gM0/1e6;
-      ax={cls3:false,chan:true,n:nAx,NplRd,NuRd,NtRd,MN:McChan,MNz:McChanZ,alpha:1,beta:1,biax,Mz:MzEd,
+      const McChanZ=Mcz;
+      ax={cls3:false,chan:true,n:nAx,NplRd,NuRd,NtRd,MN:McChan,MNz:McChanZ,alpha:1,beta:1,biax,Mz:MzEd,Avz,VplZ,Mcz,
         mnLbl:'channel: linear interaction (cl 6.2.1(7); &alpha; = &beta; = 1, conservative &mdash; verified commercial-software basis)',
         mUtil:nAx + My/Math.max(McChan,1e-9) + (biax? MzEd/Math.max(McChanZ,1e-9):0),
         nUtil: F>0? Math.abs(F)/NplRd : (F<0? Math.abs(F)/NtRd : 0), tension:F<0};
@@ -332,11 +342,11 @@ function checksEC3Restrained(a){
           MNz=Math.min(Mplz*(1-nAx)/(1-0.5*af),Mplz);
           mnLbl='a<sub>w</sub> = '+g(aw,3)+'; &alpha; = &beta; = 1.66/(1&minus;1.13n&sup2;) = '+g(alpha,2);
         }
-        ax={cls3:false,n:nAx,NplRd,NuRd,NtRd,MN,MNz,alpha,beta,mnLbl,biax,Mz:MzEd,
+        ax={cls3:false,n:nAx,NplRd,NuRd,NtRd,MN,MNz,alpha,beta,mnLbl,biax,Mz:MzEd,Avz,VplZ,Mcz,
           mUtil:Math.pow(My/Math.max(MN,1e-9),alpha) + (biax? Math.pow(MzEd/Math.max(MNz,1e-9),beta):0),
           nUtil: F>0? Math.abs(F)/NplRd : (F<0? Math.abs(F)/NtRd : 0), tension:F<0};
       } else {
-        ax={cls3:true,n:nAx,NplRd,NuRd,NtRd,MN:Mel,MNz:Melz,alpha:1,beta:1,mnLbl:'Class 3: elastic, cl 6.2.9.2',biax,Mz:MzEd,
+        ax={cls3:true,n:nAx,NplRd,NuRd,NtRd,MN:Mel,MNz:Melz,alpha:1,beta:1,mnLbl:'Class 3: elastic, cl 6.2.9.2',biax,Mz:MzEd,Avz,VplZ,Mcz,
           mUtil:Math.abs(F)/NplRd + My/Math.max(Mel,1e-9) + (biax? MzEd/Math.max(Melz,1e-9):0),
           nUtil: F>0? Math.abs(F)/NplRd : (F<0? Math.abs(F)/NtRd : 0), tension:F<0};
       }
@@ -640,6 +650,17 @@ function c1Segment(a){
   if(xm<pts[0]) return {xa:0,xb:pts[0],whole:false};
   return {xa:pts[pts.length-1],xb:L,whole:false};
 }
+// ---- LTB buckling curve, UK NA Table NA.1 (cl 6.3.2.3), shared by both Mcr methods ----
+// Rolled doubly symmetric I/H sections and hot-finished hollow sections:
+// h/b <= 2 -> b, 2 < h/b <= 3.1 -> c, h/b > 3.1 -> d. Cold-formed hollow
+// sections (with welded sections): h/b <= 2 -> c, otherwise d. Channels (not
+// doubly symmetric, "all other hot-rolled sections") -> d.
+function ltbCurveNA(sec){
+  if(sec.isBox && sec.boxType==='CF') return sec.D/sec.B<=2? {alphaLT:0.49,curve:'c'} : {alphaLT:0.76,curve:'d'};
+  if(sec.kind==='channel') return {alphaLT:0.76,curve:'d'};
+  const hb=sec.D/sec.B;
+  return hb<=2? {alphaLT:0.34,curve:'b'} : hb<=3.1? {alphaLT:0.49,curve:'c'} : {alphaLT:0.76,curve:'d'};
+}
 // ---- SN003a closed-form Mcr (pure), N.mm ----
 // Doubly symmetric section, k = kw = 1, G = 81000 N/mm2 (SN003a / P385):
 // Mcr = C1 (pi^2 E Iz/LE^2) { sqrt[ Iw/Iz + LE^2 G It/(pi^2 E Iz) + (C2 zg)^2 ] - C2 zg }
@@ -655,14 +676,94 @@ function mcrClosedForm(sec,E,LE,C1,C2,zg){
   const Mcr=C1*T1*(Math.sqrt(Math.max(IwIz+GIt/T1+zgTerm*zgTerm,0))-zgTerm);
   return {Mcr,T1,IwIz,GIt,zgUsed,zgTerm};
 }
-function sn003aC1(a,isCant,seg){
+// ---- Load height for the closed-form route (pure, reads S) ----
+// The SN003a form takes ONE z_g for the whole diagram. It is the most
+// destabilising signed height among the transverse loads that are active in
+// the combination `factors`: each load's own z_g from loadZgValue() (the
+// per-load value when eccOn is on, else the default S.za), positive above
+// the shear centre for a DOWNWARD load. A load acting upward at +z_g is
+// stabilising, so its height enters with the sign reversed. Automatic
+// self-weight (centroid, z_g = 0) and moment loads carry no load height.
+// Falls back to S.za when no transverse load is active in the combination.
+// Returns {zg (mm), source: 'loads' | 'default'}.
+function stdZgFor(factors){
+  const fac=factors||{};
+  let best=null;
+  S.loads.forEach(ld=>{
+    if(ld.isSelfWeight||ld.type==='moment') return;
+    const f=fac[ld.case]??0; if(!f) return;
+    const mag= ld.type==='point'? (+ld.P||0) : ld.type==='trap'? ((+ld.w1||0)+(+ld.w2||0))/2 : (+ld.w||0);
+    if(Math.abs(mag)<1e-12) return;
+    const z0=(typeof loadZgValue==='function')? loadZgValue(ld) : (+S.za||0);
+    const zg=(mag*f<0)? -z0 : z0;
+    if(best==null||zg>best) best=zg;
+  });
+  return best==null? {zg:(+S.za||0), source:'default'} : {zg:best, source:'loads'};
+}
+// ---- Transverse-load shape of one combination (pure, reads S) ----
+// Counts the loads with a non-zero factor (self-weight excluded, it is always
+// a full-span UDL): full-span UDLs (trap with w1 = w2 counts), point loads
+// (and how many of them sit at mid-span, +/-1% of L), any other transverse
+// load, and applied moments. The SN003a Table 3.2 rows are recognised from
+// these counts, not from the quarter-point moment ratio alone.
+function stdLoadShape(factors){
+  const fac=factors||{}, L=+S.L;
+  let nUdl=0,nPoint=0,nCentral=0,nOther=0,nMoment=0;
+  S.loads.forEach(ld=>{
+    if(ld.isSelfWeight) return;
+    const f=fac[ld.case]??0; if(!f) return;
+    if(ld.type==='moment'){ if(Math.abs(+ld.M||0)>1e-12) nMoment++; return; }
+    if(ld.type==='point'){
+      if(Math.abs(+ld.P||0)<1e-12) return;
+      nPoint++; if(Math.abs((+ld.pos)-L/2)<=0.01*L) nCentral++; return;
+    }
+    const w1= ld.type==='udl'? (+ld.w||0) : (+ld.w1||0), w2= ld.type==='udl'? (+ld.w||0) : (+ld.w2||0);
+    if(Math.abs(w1)<1e-12&&Math.abs(w2)<1e-12) return;
+    const full=(+ld.x1)<=1e-6 && Math.abs((+ld.x2)-L)<=1e-6 && Math.abs(w1-w2)<=1e-9*Math.max(Math.abs(w1),1);
+    if(full) nUdl++; else nOther++;
+  });
+  return {nUdl,nPoint,nCentral,nOther,nMoment,
+    notLoaded: nUdl+nPoint+nOther===0,                                   // only applied moments (and self-weight)
+    uniform: nMoment===0 && nUdl>0 && nPoint===0 && nOther===0,           // full-span UDL family only
+    central: nMoment===0 && nPoint>0 && nCentral===nPoint && nUdl===0 && nOther===0}; // central point load(s) only
+}
+// ---- Status of the entered load height on the closed-form route (pure, reads S.destab) ----
+// Returns {text (HTML, always printed), block (HTML or null: blocks PASS),
+// advisory (HTML or null)}. The SN003a C2 z_g term exists only for the four
+// Table 3.2 rows; a destabilising height on any other diagram cannot be
+// included by the closed form, and silently taking the load at the shear
+// centre would be unconservative, so PASS is blocked unless the user has
+// chosen the destabilising L_E = 1.2 L treatment (BS 5950 practice) instead.
+function stdZgStatus(zg,C2,zgUsed){
+  zg=+zg||0;
+  const zs=(zg>0?'+':'')+zg.toFixed(0)+' mm';
+  if(Math.abs(zg)<1e-9) return {text:'z<sub>g</sub> = 0 (load through the shear centre)', block:null, advisory:null};
+  if(zgUsed){
+    return {text:'z<sub>g</sub> = '+zs+' above the shear centre, C<sub>2</sub> = '+(+C2).toFixed(3)+' (SN003a Table 3.2)'+(S.destab? '; the destabilising &times;1.2 L<sub>E</sub> switch is also on' : ''),
+      block:null,
+      advisory: S.destab? 'Standard (closed-form) M<sub>cr</sub>: the destabilising &times;1.2 L<sub>E</sub> switch AND the SN003a C<sub>2</sub>z<sub>g</sub> load-height term are both applied. They describe the same effect, so the load height is counted twice (conservative). Untick the switch or set z<sub>g</sub> = 0 to apply one treatment only.' : null};
+  }
+  if(zg>0 && S.destab) return {text:'z<sub>g</sub> = '+zs+' entered &mdash; NOT applied in M<sub>cr</sub> (C<sub>2</sub> not published for this moment diagram); the load height is carried by the destabilising L<sub>E</sub> = 1.2&times;L<sub>E</sub>-factor&times;L only (BS 5950 practice)',
+    block:null,
+    advisory:'Standard (closed-form) M<sub>cr</sub>: z<sub>g</sub> = '+zs+' (destabilising) is entered but SN003a publishes C<sub>2</sub> only for the simply supported and fixed-ended full-span UDL and central point-load diagrams. The C<sub>2</sub>z<sub>g</sub> term is therefore NOT applied; the load height is represented by the destabilising L<sub>E</sub> = 1.2&times;L<sub>E</sub>-factor&times;L switch only. Use the FE eigenvalue method for the exact load-height effect.'};
+  if(zg>0) return {text:'z<sub>g</sub> = '+zs+' entered &mdash; NOT applied: C<sub>2</sub> not published for this moment diagram; M<sub>cr</sub> is at the shear centre (PASS blocked)',
+    block:'Standard (closed-form) M<sub>cr</sub>: a destabilising load height z<sub>g</sub> = '+zs+' is entered, but SN003a publishes C<sub>2</sub> only for the simply supported and fixed-ended full-span UDL and central point-load diagrams (Table 3.2). The closed form cannot include the load height for this moment diagram, so the printed M<sub>cr</sub> is computed with the load at the shear centre (unconservative). Use the FE eigenvalue M<sub>cr</sub> method, a verified M<sub>cr</sub>, or the destabilising L<sub>E</sub> switch (BS 5950 practice); PASS is blocked.',
+    advisory:null};
+  return {text:'z<sub>g</sub> = '+zs+' (below the shear centre, stabilising) &mdash; not applied: C<sub>2</sub> not published for this moment diagram; M<sub>cr</sub> is taken with the load at the shear centre (conservative)', block:null, advisory:null};
+}
+function sn003aC1(a,isCant,seg,diag){
   // C1 for the Mcr calculation (SN003a Table 3.1/3.2) and 1/sqrt(C1) for the
   // P362 Eq 6.55 simplified slenderness / NA 2.18 kc factor.
   // `seg` = {xa, xb} (mm) evaluates the diagram over that segment; omitted =
   // the whole member, using the analysis quantities exactly as before.
+  // `diag` = {fb, factors}: the moment diagram the C1 describes and the load
+  // factors of the combination that produced it (used for the load-list shape
+  // recognition); omitted = the governing-moment combination a.governM.
   // Returns {C1, C2, label, route, c1in}; route is one of 'override',
-  // 'cantilever', 'negligible', 'end-moment', 'uniform', 'point', 'serna'.
-  const fbM=a.governM.fb;
+  // 'cantilever', 'negligible', 'end-moment', 'uniform', 'point',
+  // 'fixed-uniform', 'fixed-point', 'serna'.
+  const fbM=(diag&&diag.fb)||a.governM.fb;
+  const fac=(diag&&diag.factors)||a.governM.combo.factors;
   const xa=seg? seg.xa : 0, xb=seg? seg.xb : a.L, Ls=xb-xa;
   const c1in=c1Inputs(fbM,xa,xb);
   if(S.C1o!=null) return {C1:S.C1o, C2:null, label:'user override', route:'override', c1in};
@@ -674,30 +775,44 @@ function sn003aC1(a,isCant,seg){
   const M0=Mat(xa+1e-4), ML=Mat(xb-1e-4), Mq=Mat(xa+Ls/4), Mq3=Mat(xa+3*Ls/4);
   if(Mm<1e-9) return {C1:1.0, C2:0, label:'negligible moment', route:'negligible', c1in};
   const endLevel=Math.max(Math.abs(M0),Math.abs(ML))/Mm;
-  // The end-moment curve applies only to a diagram that IS a straight line
-  // between the segment ends: every grid value within 5% of Mmax of the chord
-  // (self-weight curvature alone stays "not loaded", as MasterSeries treats it;
-  // a real transverse load, e.g. a propped cantilever under UDL, does not).
+  const shape=stdLoadShape(fac);
+  // The end-moment curve ("Not Loaded") applies when the combination carries
+  // no transverse load other than self-weight (decided from the load list, so
+  // a light section's factored self-weight curvature does not disqualify it)
+  // or when the diagram IS a straight line between the segment ends (every
+  // grid value within 5% of Mmax of the chord); in both cases the larger end
+  // moment must be the peak of the segment.
   const isLinear=fbM.xs.every((x,i)=> x<xa+1e-4 || x>xb-1e-4 || Math.abs(fbM.M[i]/1e6-(M0+(ML-M0)*(x-xa)/Ls))<=0.05*Mm);
-  if(endLevel>0.98 && isLinear){
+  if(endLevel>0.98 && (shape.notLoaded || isLinear)){
     // psi = smaller end moment / larger end moment (SN003a Table 3.1 convention;
     // MasterSeries psi = M1/M2), so a larger moment at x = L does not clamp to 1.
     const psi=c1in.psi;
     const c=Math.pow(1.33-0.33*psi,2); // SCI curve C1=(1.33-0.33psi)^2 = 1.77-0.88psi+0.11psi^2 (NA kc inverted)
-    return {C1:c, C2:0, label:'linear end-moment gradient, &psi; = '+psi.toFixed(2)+' (SCI curve, NA 2.18)', route:'end-moment', c1in};
+    return {C1:c, C2:0, label:'linear end-moment gradient, &psi; = '+psi.toFixed(2)+' (SCI curve, NA 2.18)'+(shape.notLoaded? '; not loaded' : ''), route:'end-moment', c1in};
   }
-  // The two tabulated transverse-load shapes (SN003a Table 3.2) are recognised
-  // only on a simply supported segment: a support at each end and no support or
-  // hinge inside it. A continuous beam's whole-member diagram can mimic the
-  // quarter-point ratio of a central point load and must not borrow its C1/C2.
-  const supX=S.supports.map(s=>(+s.pos)*1000);
-  const endSupported=supX.some(x=>Math.abs(x-xa)<1e-6) && supX.some(x=>Math.abs(x-xb)<1e-6);
-  const interiorBreak=supX.some(x=>x>xa+1e-6&&x<xb-1e-6) || (S.hinges||[]).some(h=>(+h.pos)*1000>xa+1e-6&&(+h.pos)*1000<xb-1e-6);
-  if(endLevel<0.02 && endSupported && !interiorBreak){
-    // identify the transverse-load shape from the governing BMD: quarter-point/midspan ratio
-    const r=(Math.abs(Mq)+Math.abs(Mq3))/(2*Mm);
-    if(Math.abs(r-0.75)<=0.02) return {C1:1.127, C2:0.454, label:'simply supported + uniformly distributed load (SN003a Table 3.2)', route:'uniform', c1in};
-    if(Math.abs(r-0.50)<=0.02) return {C1:1.348, C2:0.630, label:'simply supported + central point load (SN003a Table 3.2)', route:'point', c1in};
+  // The four tabulated transverse-load shapes (SN003a Table 3.2, k = kw = 1)
+  // are recognised from the LOAD LIST of the combination (full-span UDL family
+  // only, or central point load(s) only, no applied moments) on a whole
+  // segment with a support at each end and no support or hinge inside it:
+  // simply supported ends with no significant end moment, or both ends fixed.
+  // The quarter-point/mid-span ratio of the diagram is kept as a guard (the
+  // point-load row tolerates a self-weight moment share of about 9%).
+  const supAt=x=>S.supports.find(s=>Math.abs((+s.pos)*1000-x)<1e-6);
+  const sA=supAt(xa), sB=supAt(xb);
+  const endSupported=!!(sA&&sB);
+  const endFixed=!!(sA&&sB&&sA.type==='fixed'&&sB.type==='fixed');
+  const interiorBreak=S.supports.some(s=>(+s.pos)*1000>xa+1e-6&&(+s.pos)*1000<xb-1e-6) || (S.hinges||[]).some(h=>(+h.pos)*1000>xa+1e-6&&(+h.pos)*1000<xb-1e-6);
+  const whole=(!seg)||(seg.xa<=1e-6&&Math.abs(seg.xb-a.L)<=1e-6);
+  const r=(Math.abs(Mq)+Math.abs(Mq3))/(2*Mm);
+  if(whole && endSupported && !interiorBreak){
+    if(!endFixed && endLevel<0.02){
+      if(shape.uniform && Math.abs(r-0.75)<=0.02) return {C1:1.127, C2:0.454, label:'simply supported + uniformly distributed load (SN003a Table 3.2)', route:'uniform', c1in};
+      if(shape.central && Math.abs(r-0.50)<=0.02) return {C1:1.348, C2:0.630, label:'simply supported + central point load (SN003a Table 3.2)', route:'point', c1in};
+    }
+    if(endFixed){
+      if(shape.uniform) return {C1:2.578, C2:1.554, label:'fixed-ended + uniformly distributed load (SN003a Table 3.2)', route:'fixed-uniform', c1in};
+      if(shape.central) return {C1:1.683, C2:1.645, label:'fixed-ended + central point load (SN003a Table 3.2)', route:'fixed-point', c1in};
+    }
   }
   { // general diagram: Serna et al. quarter-point expression (SCI, NSC Nov 2013)
     const M2=Mat(xa+Ls/4), M3=Mat(xa+Ls/2), M4=Mat(xa+3*Ls/4);
@@ -710,19 +825,22 @@ function sn003aC1(a,isCant,seg){
 // sn006C() with kwt and eta; q + F combined by Eq (7). The SN006a boundary
 // conditions replace the effective-length machinery (LE factor and the
 // destabilising switch are NOT applied; load height enters through eta,
-// warping through the root condition). Returns Mcr = null with `reason`
-// (HTML) when the loading or the table range is not covered.
-function mcrSN006aFor(a,sec){
+// warping through the root condition). `factors` = the combination's load
+// factors (default a.governM), `zg` = the load height in mm for eta (default
+// stdZgFor(factors)). Returns Mcr = null with `reason` (HTML) when the loading
+// or the table range is not covered.
+function mcrSN006aFor(a,sec,factors,zg){
   const E=a.E, G=81000, Iz=sec.Iy*1e4, It=sec.J*1e4, Iw=(sec.Iw||0)*1e12;
   const Lc=a.L;
   const Mcr0=Math.PI/Lc*Math.sqrt(E*Iz*G*It);        // N.mm
   const kwt=Math.sqrt(E*Iw/(G*It))/Lc;
   const hs=sec.D-sec.tf;
-  const eta=(+S.za||0)/(hs/2);
+  const gfac=factors||a.governM.combo.factors;
+  const za=(zg!=null)? +zg : stdZgFor(gfac).zg;
+  const eta=za/(hs/2);
   const warp=(S.rootWarp==='restrained')?'restr':'free';
   // classify tip loading from the loads (2% de-minimis on the support moment)
   let Mq=0,MF=0,Mm2=0,nF2=0,nM2=0,other=false;
-  const gfac=a.governM.combo.factors;
   S.loads.forEach(ld=>{
     if(ld.isSelfWeight) return;
     const f=gfac[ld.case]??0; if(!f) return; // zero-factor loads do not shape this combination
@@ -750,29 +868,39 @@ function mcrSN006aFor(a,sec){
     else if(Math.abs(eta)>0&&(eta<-2||eta>3)) reason="Cantilever LTB: load-height parameter &eta; = "+eta.toFixed(2)+" is outside the SN006a table range (&minus;2 to +3).";
     else reason="Cantilever LTB: "+caseLbl+" &mdash; not covered by SN006a; PASS is blocked (conservative C1=1.0 route removed in favour of the published method).";
   }
-  return {Mcr0,kwt,hs,eta,warp,caseLbl,C,Cq,CF,Mq,MF,Mcr:(C==null? null : C*Mcr0),reason};
+  return {Mcr0,kwt,hs,eta,za,warp,caseLbl,C,Cq,CF,Mq,MF,Mcr:(C==null? null : C*Mcr0),reason};
 }
 // ---- Standard (closed-form) Mcr for one segment, pure ----
 // Used by the eigen method for the "Mcr eigen / Mcr standard" comparison (no
 // eigen solve needed) and by the report. Cantilever (I/H) -> SN006a; otherwise
 // the SN003a form with C1 from sn003aC1 over the segment, LE = LE-factor
-// (x1.2 if destabilising) x segment length, zg = S.za with C2 where published.
-// Returns kN.m: {route, Mcr (null if not covered), C1, C2, label, c1in, seg, LE}.
-function mcrStandardFor(a,sec,seg){
+// (x1.2 if destabilising) x segment length, z_g = the load height of the
+// combination (stdZgFor) with C2 where published.
+// `diag` = {fb, factors} selects the combination whose diagram and loads the
+// value describes (default a.governM), so the eigen method can pass its own
+// LTB-governing combination and get a sign-consistent comparison.
+// Returns kN.m: {route, Mcr (null if not covered), C1, C2, label, c1in, seg,
+// LE, zg, zgSource, zgUsed, zgNote (HTML), zgBlocked}.
+function mcrStandardFor(a,sec,seg,diag){
   const isCant=(S.supports.length===1 && S.supports[0].type==='fixed');
   seg=seg||c1Segment(a);
+  const fb=(diag&&diag.fb)||a.governM.fb;
+  const fac=(diag&&diag.factors)||a.governM.combo.factors;
+  const zgi=stdZgFor(fac);
   if(isCant && sec.kind==='I'){
-    const r=mcrSN006aFor(a,sec);
-    const c1in=c1Inputs(a.governM.fb,seg.xa,seg.xb);
+    const r=mcrSN006aFor(a,sec,fac,zgi.zg);
+    const c1in=c1Inputs(fb,seg.xa,seg.xb);
     return {route:'sn006a', Mcr:(r.Mcr!=null? r.Mcr/1e6 : null), C1:r.C, C2:null,
-      label:'cantilever SN006a &mdash; '+r.caseLbl, c1in, seg, LE:a.L, sn006:r};
+      label:'cantilever SN006a &mdash; '+r.caseLbl, c1in, seg, LE:a.L, sn006:r,
+      zg:zgi.zg, zgSource:zgi.source, zgUsed:Math.abs(zgi.zg)>1e-9, zgNote:'z<sub>g</sub> = '+(zgi.zg>0?'+':'')+zgi.zg.toFixed(0)+' mm through &eta; = '+r.eta.toFixed(2)+' (SN006a)', zgBlocked:false};
   }
-  const c1r=sn003aC1(a,isCant,seg.whole? undefined : seg);
+  const c1r=sn003aC1(a,isCant,seg.whole? undefined : seg,{fb,factors:fac});
   const LE=S.leFactor*(S.destab?1.2:1)*(seg.xb-seg.xa);
-  const cf=mcrClosedForm(sec,a.E,LE,c1r.C1,c1r.C2,+S.za||0);
-  const route= sec.kind==='channel'? 'channel' : sec.isBox? 'box' : c1r.route;
+  const cf=mcrClosedForm(sec,a.E,LE,c1r.C1,c1r.C2,zgi.zg);
+  const zs=stdZgStatus(zgi.zg,c1r.C2,cf.zgUsed);
+  const route= sec.kind==='channel'? 'channel' : c1r.route;
   return {route, Mcr:cf.Mcr/1e6, C1:c1r.C1, C2:c1r.C2, label:c1r.label, c1in:c1r.c1in, seg, LE,
-    T1:cf.T1/1e3, zg:(+S.za||0), zgUsed:cf.zgUsed};
+    T1:cf.T1/1e3, zg:zgi.zg, zgSource:zgi.source, zgUsed:cf.zgUsed, zgNote:zs.text, zgBlocked:!!zs.block};
 }
 
 function checksEC3UnrestrainedSCI(a){
@@ -780,15 +908,16 @@ function checksEC3UnrestrainedSCI(a){
   // as window.checksEC3UnrestrainedStandard and used when S.mcrMethod ===
   // 'standard'; the patch's own function (FE eigensolver) is the default.
   // SCI worked-example procedure: unrestrained beam to BS EN 1993-1-1 (UK NA).
-  // Cross-section checks are identical to the restrained case; LTB is verified by
-  // BOTH published routes: (A) simplified slenderness, P362 Expn (6.55)
-  // lamLT = (1/sqrt(C1))*0.9*lamZbar*sqrt(betaW); (B) elastic critical moment,
-  // SN003a with zg=0, k=kw=1, G=81000 N/mm2. chiLT per cl 6.3.2.3 with
-  // lamLT0=0.4, beta=0.75 (NA 2.17), curve from NA Table 6.3 (h/b<=2: b;
-  // 2<h/b<=3.1: c; h/b>3.1: d), then chiLT,mod = chiLT/f with kc = 1/sqrt(C1)
-  // (NA 2.18). Design basis: route (A); if (A) is exceeded but (B) passes,
-  // adequacy is taken from (B), which the SCI example itself shows is the
-  // accurate value ((A) can be significantly conservative).
+  // Cross-section checks are identical to the restrained case. LTB design
+  // basis for I/H sections: the elastic critical moment route, Mcr from the
+  // SN003a closed form (k = kw = 1, G = 81000 N/mm2, C2*zg where published),
+  // lamLT = sqrt(Wy fy / Mcr), chiLT per cl 6.3.2.3 with lamLT0 = 0.4,
+  // beta = 0.75 (NA 2.17), curve from NA Table NA.1 (ltbCurveNA), then
+  // chiLT,mod = chiLT/f with kc = 1/sqrt(C1) (NA 2.18) and Mb,Rd <= Mc,Rd.
+  // The P362 Expn (6.55) simplified slenderness lamLT = (1/sqrt(C1)) 0.9
+  // lamZbar sqrt(betaW) is evaluated alongside as a COMPARISON only (ltb.MbSimp);
+  // it never sets the verdict. Boxes take the same Mcr chain with Iw = 0,
+  // cantilevers SN006a, channels the P385/P362 kappa chain.
   const b=checksEC3Restrained(a);
   const sec=a.sec, fy=a.py, E=a.E, gM1=1.0;
   const unsupported=b.unsupported.slice();
@@ -796,56 +925,62 @@ function checksEC3UnrestrainedSCI(a){
   const Wy=b.Wy;
   const isCant=(S.supports.length===1 && S.supports[0].type==='fixed');
   const LE=S.leFactor*(S.destab?1.2:1)*a.L;
+  const gfac=a.governM.combo.factors;
   const c1r=sn003aC1(a,isCant);   // whole member: the closed form treats the member as one segment
   const C1=c1r.C1, invSqrtC1=1/Math.sqrt(C1), kc=invSqrtC1;
+  const zgi=stdZgFor(gfac);       // load height of the governing combination (per-load z_g, most destabilising)
+  const zgStd=zgi.zg;
   const segStd=c1Segment(a);
   if(!segStd.whole) advisory.push("Standard (closed-form) M<sub>cr</sub>: the member is treated as ONE segment of length L<sub>E</sub> = "+(S.leFactor*(S.destab?1.2:1)).toFixed(2)+"&times;L with C<sub>1</sub> from the whole-member moment diagram; intermediate lateral restraints and the span-by-span check of a continuous beam are not applied on this route (conservative on L<sub>E</sub>). Use the FE eigenvalue method for span-by-span M<sub>cr</sub>, or verify each span separately.");
-  let ltb;
+  const curve=ltbCurveNA(sec);
+  // chi_LT chain of cl 6.3.2.3 (NA 2.17: lamLT0 = 0.4, beta = 0.75) with the
+  // NA 2.18 f-factor from kc = 1/sqrt(C1); f = 1 when `noF` (cantilevers)
+  const chiChain=(lamLT,noF)=>{
+    if(lamLT<=0.4) return {Phi:null,chi:1,f:1,chiMod:1,ign:true};
+    const Phi=0.5*(1+curve.alphaLT*(lamLT-0.4)+0.75*lamLT*lamLT);
+    let chi=1/(Phi+Math.sqrt(Math.max(Phi*Phi-0.75*lamLT*lamLT,1e-12)));
+    chi=Math.min(chi,1,1/(lamLT*lamLT));
+    let f=noF? 1 : Math.min(1-0.5*(1-kc)*(1-2*Math.pow(lamLT-0.8,2)),1);
+    const chiMod=Math.min(chi/f,1,1/(lamLT*lamLT));
+    return {Phi,chi,f,chiMod,ign:false};
+  };
+  let ltb, zgs=null;
   if(sec.isBox){
-    // SCI hollow-section example: check the slenderness explicitly. Warping is
-    // neglected (Iw ~ 0 for a closed section): Mcr = C1*(pi^2*E*Iz/L^2)*sqrt(GIt/(pi^2*E*Iz/L^2)).
-    const G=81000, Iz=sec.Iy*1e4, It=sec.J*1e4;
-    const T1=Math.PI*Math.PI*E*Iz/(LE*LE);
-    const Mcr=C1*T1*Math.sqrt(Math.max(G*It/T1,0));
+    // Closed section: the same SN003a chain with Iw = 0 (warping neglected),
+    // C2*zg where published, chi_LT from the NA Table NA.1 curve (hot-finished
+    // hollow sections share the I/H h/b allocation, cold-formed c/d - the same
+    // ltbCurveNA() the eigen method uses). lamLT <= 0.4 reproduces the
+    // exemption (cl 6.3.2.2(4); square hollow sections are also exempt by
+    // cl 6.3.2.1(2)); a slender RHS on a long span gets a real chi_LT.
+    const cf=mcrClosedForm(sec,E,LE,C1,c1r.C2,zgStd);
+    const Mcr=cf.Mcr;
     const lamLT=Math.sqrt(Wy*fy/Mcr);
-    let Phi=null,chi=1,f=1,chiMod=1,ign=true;
-    if(lamLT>0.4){ // hollow sections are not listed in NA Table 6.3 -> curve d
-      const alphaLT=0.76;
-      Phi=0.5*(1+alphaLT*(lamLT-0.4)+0.75*lamLT*lamLT);
-      chi=Math.min(1/(Phi+Math.sqrt(Math.max(Phi*Phi-0.75*lamLT*lamLT,1e-12))),1,1/(lamLT*lamLT));
-      f=Math.min(1-0.5*(1-kc)*(1-2*Math.pow(lamLT-0.8,2)),1);
-      chiMod=Math.min(chi/f,1,1/(lamLT*lamLT)); ign=false;
-    }
-    const Mb=Math.min(chiMod*Wy*fy/gM1/1e6,b.McRd);
-    ltb={na:true, box:true, T1:T1/1e3, Mcr:Mcr/1e6, lamLTmcr:lamLT, ignM:ign,
-      PhiM:Phi, chiM:chi, fM:f, chiModM:chiMod, MbSimp:Mb, MbMcr:Mb, MbRd:Mb};
+    const sB=chiChain(lamLT,false);
+    const Mb=Math.min(sB.chiMod*Wy*fy/gM1/1e6,b.McRd);
+    zgs=stdZgStatus(zgStd,c1r.C2,cf.zgUsed);
+    ltb={na:sB.ign, box:true, T1:cf.T1/1e3, GIt:cf.GIt/1e9, Mcr:Mcr/1e6, lamLTmcr:lamLT, ignM:sB.ign,
+      PhiM:sB.Phi, chiM:sB.chi, fM:sB.f, chiModM:sB.chiMod, curve, kc, invSqrtC1,
+      zg:zgStd, C2:c1r.C2, zgUsed:cf.zgUsed, MbSimp:Mb, MbMcr:Mb, MbRd:Mb};
   } else if(isCant && sec.kind==='I'){
     // NCCI SN006a-EN-EU cantilever path (doubly symmetric I/H): see mcrSN006aFor().
-    const sn=mcrSN006aFor(a,sec);
+    const sn=mcrSN006aFor(a,sec,gfac,zgStd);
     const {Mcr0,kwt,eta,warp,caseLbl,C,Cq,CF,Mq,MF}=sn;
+    zgs={text:'z<sub>g</sub> = '+(zgStd>0?'+':'')+zgStd.toFixed(0)+' mm through &eta; = z<sub>g</sub>/(h<sub>s</sub>/2) = '+eta.toFixed(2)+' (SN006a)', block:null, advisory:null};
     if(C==null){
       unsupported.push(sn.reason);
       ltb={na:false,cant:true,Mcr0:Mcr0/1e6,kwt,eta,warp,caseLbl,C:0,Cq,CF,Mq,MF,
         lamLTsimp:0,lamLTmcr:0,ignS:true,ignM:true,chiM:1,fM:1,chiModM:1,PhiM:null,
-        curve:{alphaLT:0,curve:'-'},kc:1,invSqrtC1:1,MbSimp:0,MbMcr:0,MbRd:0,Mcr:0,T1:0,IwIz:0,GIt:0};
+        curve,kc:1,invSqrtC1:1,MbSimp:0,MbMcr:0,MbRd:0,Mcr:0,T1:0,IwIz:0,GIt:0,zg:zgStd,zgUsed:Math.abs(zgStd)>1e-9};
     } else {
       const Mcr=C*Mcr0;
       const lamLT=Math.sqrt(Wy*fy/Mcr);
-      const hb=sec.D/sec.B;
-      const curve = hb<=2? {alphaLT:0.34,curve:'b'} : hb<=3.1? {alphaLT:0.49,curve:'c'} : {alphaLT:0.76,curve:'d'};
-      let Phi=null,chi=1,f=1,chiMod=1,ign=true;
-      if(lamLT>0.4){
-        Phi=0.5*(1+curve.alphaLT*(lamLT-0.4)+0.75*lamLT*lamLT);
-        chi=Math.min(1/(Phi+Math.sqrt(Math.max(Phi*Phi-0.75*lamLT*lamLT,1e-12))),1,1/(lamLT*lamLT));
-        f=1; // kc/f-factor not applied for cantilevers (no published kc)
-        chiMod=chi; ign=false;
-      }
-      const Mb=Math.min(chiMod*Wy*fy/gM1/1e6,b.McRd);
+      const sB=chiChain(lamLT,true);   // kc/f-factor not applied for cantilevers (no published kc)
+      const Mb=Math.min(sB.chiMod*Wy*fy/gM1/1e6,b.McRd);
       ltb={na:false,cant:true,Mcr0:Mcr0/1e6,kwt,eta,warp,caseLbl,C,Cq,CF,Mq,MF,
-        lamLTsimp:lamLT,lamLTmcr:lamLT,PhiS:Phi,chiS:chi,ignS:ign,
-        PhiM:Phi,chiM:chi,fM:1,chiModM:chiMod,ignM:ign,curve,kc:1,invSqrtC1:1,
-        lamZ:0,lam1:0,lamZbar:0,rootBw:1,hb,
-        MbSimp:Mb,MbMcr:Mb,MbRd:Mb,Mcr:Mcr/1e6,McrBack:Mcr/1e6,T1:0,IwIz:0,GIt:0,fS:1,chiModS:chiMod};
+        lamLTsimp:lamLT,lamLTmcr:lamLT,PhiS:sB.Phi,chiS:sB.chi,ignS:sB.ign,
+        PhiM:sB.Phi,chiM:sB.chi,fM:1,chiModM:sB.chiMod,ignM:sB.ign,curve,kc:1,invSqrtC1:1,
+        lamZ:0,lam1:0,lamZbar:0,rootBw:1,hb:sec.D/sec.B,
+        MbSimp:Mb,MbMcr:Mb,MbRd:Mb,Mcr:Mcr/1e6,McrBack:Mcr/1e6,T1:0,IwIz:0,GIt:0,fS:1,chiModS:sB.chiMod,zg:zgStd,zgUsed:Math.abs(zgStd)>1e-9};
     }
   } else if(sec.kind==='channel'){
     // P385 / P362 channel chain (spec 13.4): lamLT = (L/i_z)/kappa, curve d,
@@ -861,7 +996,7 @@ function checksEC3UnrestrainedSCI(a){
       chi=Math.min(1/(Phi+Math.sqrt(Math.max(Phi*Phi-0.75*lamLT*lamLT,1e-12))),1,1/(lamLT*lamLT));
       ign=false;
     }
-    const Mb=chi*Wy*fy/gM1/1e6;
+    const Mb=Math.min(chi*Wy*fy/gM1/1e6,b.McRd);
     const McrBack=Wy*fy/(lamLT*lamLT)/1e6;
     // Mcr route for channels: a PFC bent about its major axis is symmetric about
     // the axis of bending (Wagner term zj = 0), so with the load through the
@@ -869,10 +1004,10 @@ function checksEC3UnrestrainedSCI(a){
     // expression is theoretically exact (validated against an independent commercial-software
     // channel example: Mcr 330.9, chi 0.881, f 0.838, Mb = Mc 97.625). Route is
     // OFFERED only under those conditions: no active torsion (e = 0 everywhere),
-    // z_a = 0, two end fork supports (not a cantilever). The kappa chain stays
-    // the primary basis; the Mcr route rescues it, mirroring the I-section pattern.
+    // z_g = 0, two end fork supports (not a cantilever). The kappa chain stays
+    // the primary basis; the Mcr route rescues it, mirroring the old I-section pattern.
     let chanMcr=null;
-    const chanMcrOK = !(a.tors&&a.tors.on) && Math.abs(+S.za||0)<1e-9 && !isCant &&
+    const chanMcrOK = !(a.tors&&a.tors.on) && Math.abs(zgStd)<1e-9 && !isCant &&
       S.supports.length===2 && Math.min(...S.supports.map(s=>+s.pos))<=1e-6 &&
       Math.abs(Math.max(...S.supports.map(s=>+s.pos))-S.L)<=1e-6 && (sec.Iw||0)>0;
     let MbMcr2=Mb;
@@ -891,10 +1026,11 @@ function checksEC3UnrestrainedSCI(a){
       MbMcr2=Math.min(chiModC*Wy*fy/gM1/1e6, b.McRd);
       chanMcr={Mcr:McrC/1e6,lam:lamC,Phi:PhiC,chi:chiC,f:fC,chiMod:chiModC,ign:ignC,Mb:MbMcr2,T1:T1c/1e3};
     }
+    zgs={text: Math.abs(zgStd)<1e-9? 'z<sub>g</sub> = 0 (load through the shear centre)' : 'z<sub>g</sub> = '+(zgStd>0?'+':'')+zgStd.toFixed(0)+' mm entered &mdash; not used by the P385/P362 &kappa; chain (load height enters the channel route only through the destabilising L<sub>E</sub> switch); the shear-centre M<sub>cr</sub> route is not offered', block:null, advisory:null};
     ltb={na:false,channel:true,chanMcr,ry,kappa,lamLTsimp:lamLT,lamLTmcr:lamLT,PhiS:Phi,chiS:chi,ignS:ign,
       PhiM:Phi,chiM:chi,fM:1,chiModM:chi,ignM:ign,curve:{alphaLT:0.76,curve:'d'},kc:invSqrtC1,invSqrtC1,
       lamZ:LE/ry,lam1:0,lamZbar:0,rootBw:1,hb:sec.D/sec.B,
-      MbSimp:Mb,MbMcr:MbMcr2,MbRd:Mb,Mcr:McrBack,McrBack,T1:0,IwIz:0,GIt:0,fS:1,chiModS:chi};
+      MbSimp:Mb,MbMcr:MbMcr2,MbRd:Mb,Mcr:McrBack,McrBack,T1:0,IwIz:0,GIt:0,fS:1,chiModS:chi,zg:zgStd,zgUsed:false};
   } else {
     const ry=sec.ry*10;
     const lamZ=LE/ry;
@@ -902,35 +1038,31 @@ function checksEC3UnrestrainedSCI(a){
     const lamZbar=lamZ/lam1;
     const rootBw=b.cl.cls<=2? 1 : Math.sqrt(sec.Zx/sec.Sx);
     const hb=sec.D/sec.B;
-    const curve = hb<=2? {alphaLT:0.34,curve:'b'} : hb<=3.1? {alphaLT:0.49,curve:'c'} : {alphaLT:0.76,curve:'d'};
-    const chiChain=(lamLT)=>{
-      if(lamLT<=0.4) return {Phi:null,chi:1,f:1,chiMod:1,ign:true};
-      const Phi=0.5*(1+curve.alphaLT*(lamLT-0.4)+0.75*lamLT*lamLT);
-      let chi=1/(Phi+Math.sqrt(Math.max(Phi*Phi-0.75*lamLT*lamLT,1e-12)));
-      chi=Math.min(chi,1,1/(lamLT*lamLT));
-      let f=1-0.5*(1-kc)*(1-2*Math.pow(lamLT-0.8,2)); f=Math.min(f,1);
-      const chiMod=Math.min(chi/f,1,1/(lamLT*lamLT));
-      return {Phi,chi,f,chiMod,ign:false};
-    };
-    // (A) simplified slenderness
-    const lamLTsimp=invSqrtC1*0.9*lamZbar*rootBw;
-    const sA=chiChain(lamLTsimp);
-    const MbSimp=sA.chiMod*Wy*fy/gM1/1e6;
-    // (B) elastic critical moment (SN003a; k=kw=1; C2*zg load-height term when
-    // z_a is supplied and C2 is published for the recognised diagram) - mcrClosedForm()
-    const zg=(+S.za||0);                               // mm, + above shear centre (destabilising for gravity loads)
+    // (B) DESIGN BASIS: elastic critical moment (SN003a; k = kw = 1; C2*zg
+    // load-height term where published for the recognised diagram) - mcrClosedForm()
     const C2=c1r.C2;
-    const cf=mcrClosedForm(sec,E,LE,C1,C2,zg);
+    const cf=mcrClosedForm(sec,E,LE,C1,C2,zgStd);
     const T1=cf.T1, IwIz=cf.IwIz, GIt=cf.GIt, zgUsed=cf.zgUsed, Mcr=cf.Mcr; // N, mm2, N.mm2, N.mm
     const lamLTmcr=Math.sqrt(Wy*fy/Mcr);
-    const sB=chiChain(lamLTmcr);
-    const MbMcr=sB.chiMod*Wy*fy/gM1/1e6;
+    const sB=chiChain(lamLTmcr,false);
+    const MbMcr=Math.min(sB.chiMod*Wy*fy/gM1/1e6,b.McRd);
+    // (A) COMPARISON ONLY: simplified slenderness, P362 Expn (6.55)
+    const lamLTsimp=invSqrtC1*0.9*lamZbar*rootBw;
+    const sA=chiChain(lamLTsimp,false);
+    const MbSimp=Math.min(sA.chiMod*Wy*fy/gM1/1e6,b.McRd);
+    zgs=stdZgStatus(zgStd,C2,zgUsed);
     ltb={na:false,ry,lamZ,lam1,lamZbar,rootBw,hb,curve,kc,invSqrtC1,
       lamLTsimp,PhiS:sA.Phi,chiS:sA.chi,fS:sA.f,chiModS:sA.chiMod,ignS:sA.ign,MbSimp,
-      T1:T1/1e3,IwIz:IwIz/1e2,GIt:GIt/1e9,Mcr:Mcr/1e6,zg,C2,zgUsed,
+      T1:T1/1e3,IwIz:IwIz/1e2,GIt:GIt/1e9,Mcr:Mcr/1e6,zg:zgStd,C2,zgUsed,
       lamLTmcr,PhiM:sB.Phi,chiM:sB.chi,fM:sB.f,chiModM:sB.chiMod,ignM:sB.ign,MbMcr,
-      MbRd:MbSimp};
+      MbRd:MbMcr};
   }
+  // ---- load height bookkeeping (always printed; may block PASS) ----
+  ltb.zgSource=zgi.source;
+  ltb.zgNote=zgs? zgs.text : '';
+  ltb.zgBlocked=!!(zgs&&zgs.block);
+  if(zgs&&zgs.block) unsupported.push(zgs.block);
+  if(zgs&&zgs.advisory) advisory.push(zgs.advisory);
   // ---- method tags and the MasterSeries-style C1 inputs (M1, M2, Mo, psi, mu) ----
   // The closed form derives C1 from the WHOLE member, so the printed inputs are
   // the whole-member values (segment 0..L); the eigen method fills the same
@@ -939,7 +1071,7 @@ function checksEC3UnrestrainedSCI(a){
   ltb.mcrMethod='standard';
   ltb.c1in=c1r.c1in;
   ltb.c1seg={xa:0,xb:a.L,whole:true};
-  ltb.c1route= ltb.cant? 'sn006a' : ltb.channel? 'channel' : ltb.box? 'box' : c1r.route;
+  ltb.c1route= ltb.cant? 'sn006a' : ltb.channel? 'channel' : c1r.route;
   ltb.c1label= ltb.cant? ('cantilever SN006a &mdash; '+ltb.caseLbl) : ltb.channel? ('channel &mdash; P385/P362 kappa chain; '+c1r.label) : c1r.label;
   ltb.C1show= ltb.cant? (ltb.C||0) : C1;
   ltb.McrStandard= ltb.cant? (ltb.Mcr>0? ltb.Mcr : null) : ltb.channel? (ltb.chanMcr? ltb.chanMcr.Mcr : ltb.McrBack) : ltb.Mcr;
@@ -947,10 +1079,21 @@ function checksEC3UnrestrainedSCI(a){
   ltb.segWhole=segStd.whole;
   const Mx=b.Mx;
   let ltbUtil = ltb.MbRd>0? Mx/ltb.MbRd : 0;
-  let ltbBasis = ltb.na? 'closed section &mdash; not susceptible to LTB (cl 6.3.2.1(2)), M<sub>b,Rd</sub> = M<sub>c,Rd</sub>' : 'simplified slenderness (P362 Expn 6.55)';
-  if(!ltb.na && ltbUtil>1.0001 && ltb.MbMcr>0 && Mx/ltb.MbMcr<=1.0001){
-    ltbUtil=Mx/ltb.MbMcr; ltb.MbRd=ltb.MbMcr;
-    ltbBasis='M<sub>cr</sub> method (SN003a) &mdash; the simplified route is exceeded, but it is conservative; adequacy is demonstrated by the M<sub>cr</sub> route';
+  let ltbBasis;
+  if(ltb.box){
+    ltbBasis = ltb.ignM
+      ? 'closed hollow section, &lambda;&#772;<sub>LT</sub> = '+ltb.lamLTmcr.toFixed(3)+' &le; 0.4 from the SN003a M<sub>cr</sub> with I<sub>w</sub> = 0: lateral-torsional buckling effects may be ignored (cl 6.3.2.2(4)'+(S.family==='shs'? '; a square hollow section is also not susceptible by cl 6.3.2.1(2)' : '')+'), M<sub>b,Rd</sub> = M<sub>c,Rd</sub>'
+      : 'closed hollow section on a long span: M<sub>cr</sub> method (SN003a with I<sub>w</sub> = 0), &lambda;&#772;<sub>LT</sub> = '+ltb.lamLTmcr.toFixed(3)+' &gt; 0.4, &chi;<sub>LT,mod</sub> from cl 6.3.2.3 with curve '+curve.curve+' (NA Table NA.1, hot-finished / cold-formed hollow section) and k<sub>c</sub> = 1/&radic;C<sub>1</sub>; M<sub>b,Rd</sub> = &chi;<sub>LT,mod</sub>W<sub>y</sub>f<sub>y</sub>/&gamma;<sub>M1</sub> &le; M<sub>c,Rd</sub>';
+  } else if(ltb.cant){
+    ltbBasis = 'M<sub>cr</sub> method (NCCI SN006a cantilever): M<sub>cr</sub> = C&middot;M<sub>cr,0</sub>, &lambda;&#772;<sub>LT</sub> = &radic;(W<sub>y</sub>f<sub>y</sub>/M<sub>cr</sub>), &chi;<sub>LT</sub> from cl 6.3.2.3 curve '+curve.curve+' with f = 1; M<sub>b,Rd</sub> = &chi;<sub>LT</sub>W<sub>y</sub>f<sub>y</sub>/&gamma;<sub>M1</sub> &le; M<sub>c,Rd</sub>';
+  } else if(ltb.channel){
+    ltbBasis = 'P385/P362 channel &kappa; chain, &lambda;&#772;<sub>LT</sub> = (L<sub>E</sub>/i<sub>z</sub>)/&kappa;, curve d, no f-factor; M<sub>b,Rd</sub> = &chi;<sub>LT</sub>W<sub>y</sub>f<sub>y</sub>/&gamma;<sub>M1</sub> &le; M<sub>c,Rd</sub>';
+    if(ltbUtil>1.0001 && ltb.MbMcr>0 && Mx/ltb.MbMcr<=1.0001){
+      ltbUtil=Mx/ltb.MbMcr; ltb.MbRd=ltb.MbMcr;
+      ltbBasis='M<sub>cr</sub> method (SN003a with z<sub>j</sub> = 0, load through the shear centre) &mdash; the P385/P362 channel &kappa; chain is exceeded, but it is conservative; adequacy is demonstrated by the M<sub>cr</sub> route';
+    }
+  } else {
+    ltbBasis = 'M<sub>cr</sub> method (SN003a closed form, k = k<sub>w</sub> = 1, G = 81000 N/mm&sup2;'+(ltb.zgUsed? ', C<sub>2</sub>z<sub>g</sub> load-height term' : '')+'): &lambda;&#772;<sub>LT</sub> = &radic;(W<sub>y</sub>f<sub>y</sub>/M<sub>cr</sub>) = '+ltb.lamLTmcr.toFixed(3)+', &chi;<sub>LT,mod</sub> from cl 6.3.2.3 curve '+curve.curve+' with k<sub>c</sub> = 1/&radic;C<sub>1</sub> (NA 2.18); M<sub>b,Rd</sub> = &chi;<sub>LT,mod</sub>W<sub>y</sub>f<sub>y</sub>/&gamma;<sub>M1</sub> &le; M<sub>c,Rd</sub>. The P362 Expn 6.55 simplified slenderness (&lambda;&#772;<sub>LT</sub> = '+ltb.lamLTsimp.toFixed(3)+', M<sub>b,Rd</sub> = '+ltb.MbSimp.toFixed(1)+' kN&middot;m) is printed for comparison only';
   }
   // ---- BS EN 1993-6 Annex A: LTB + minor-axis bending + torsion interaction (P385 6.2/8.2) ----
   let annex=null;
@@ -959,7 +1102,9 @@ function checksEC3UnrestrainedSCI(a){
     const chiA=ltb.channel? ltb.chiM : (ltb.ignM? 1 : ltb.chiM);
     const MbA=chiA*Wy*fy/gM1/1e6;
     const McrA=ltb.channel? ltb.McrBack : ltb.Mcr;
-    const Cmz = Math.abs(C1-1.348)<1e-6? 0.9 : Math.abs(C1-1.127)<1e-6? 0.95 : 1.0;
+    // Cmz proxy for the minor-axis diagram: the tabulated load case behind C1
+    // (central point load 0.9, UDL 0.95, otherwise 1.0 conservative)
+    const Cmz = (c1r.route==='point')? 0.9 : (c1r.route==='uniform')? 0.95 : 1.0;
     let MyMax=0; b.tor.grids.forEach(g2=>g2.rows.forEach(r2=>{ MyMax=Math.max(MyMax,r2.My); }));
     // resistances CLASS-CONSISTENT (elastic for Class 3) - required: with plastic
     // values a Class 3 member scores unconservatively (exposed by an independent commercial-software
@@ -983,7 +1128,8 @@ function checksEC3UnrestrainedSCI(a){
     }
   }
   // member buckling: susceptible to torsional deformation unless closed section
-  // or LTB plays no part (chiLT = 1); cantilever/channel handled per path
+  // or LTB plays no part (chiLT = 1); cantilever/channel handled per path.
+  // The Mb,Rd handed to Eq 6.61/6.62 is the design value above (Mcr route).
   const isCantU=(S.supports.length===1 && S.supports[0].type==='fixed');
   const useB1u = sec.isBox || ltb.na || (ltb.MbRd>=b.McRd*0.9999);
   const buck=(b.ax && !b.ax.tension)? annexB2(a,sec,fy,b.cl,ltb.MbRd>0? ltb.MbRd : b.McRd,useB1u,isCantU) : null;
@@ -1017,4 +1163,3 @@ function checksEC3UnrestrainedSCI(a){
   const pass=unsupported.length===0 && utils.every(u=>u.val<=1.0001);
   return Object.assign({},b,{sci:false,sciU:true,mcrMethod:'standard',unsupported,advisory,ltb,ltbUtil,ltbBasis,C1,c1label:c1r.label,LE,utils,gov,pass,annex,buck});
 }
-

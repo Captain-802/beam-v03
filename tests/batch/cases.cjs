@@ -188,6 +188,12 @@ mk('UB-41', 'UB 610x229x125, 2 x 5 m continuous, Q on span 1 only, warping-restr
   { L: 10, supports: [{ pos: 0, type: 'pinned', phip: true }, { pos: 5, type: 'pinned' }, { pos: 10, type: 'pinned', phip: true }], loads: [UDL(0, 10, 45, 'G'), UDL(0, 5, 90, 'Q')] }, ['1.2']);
 mk('UB-42', 'UB 356x171x45, 8 m SS, full UDL, grade S355', UB('356 x 171 x 45'),
   { L: 8, supports: SS(8), grade: 'S355', loads: [UDL(0, 8, 2.5, 'G'), UDL(0, 8, 3.2, 'Q')] });
+mk('UB-43', 'UB 406x140x39, 8 m fixed-fixed, full UDL, top-flange loading zg = +D/2 (SN003a fixed-ended row, C2 = 1.554)', UB('406 x 140 x 39'),
+  { L: 8, supports: FIXFIX(8), eccOn: true, za: 203, loads: [UDL(0, 8, 2.4, 'G', { e: 0, zg: 203 }), UDL(0, 8, 2.9, 'Q', { e: 0, zg: 203 })] }, ['zg-top']);
+mk('UB-44', 'UB 406x178x54, 7 m SS, point load at 0.35L, top-flange loading zg = +D/2 (no published C2: standard route blocked)', UB('406 x 178 x 54'),
+  { L: 7, supports: SS(7), eccOn: true, za: 201, loads: [P(2.45, 10, 'G', { e: 0, zg: 201 }), P(2.45, 28, 'Q', { e: 0, zg: 201 })] }, ['zg-top']);
+mk('UB-45', 'UC 203x203x60, 6 m fixed-fixed, central point load, top-flange loading zg = +D/2 (SN003a fixed-ended row, C2 = 1.645)', UC('203 x 203 x 60'),
+  { L: 6, supports: FIXFIX(6), eccOn: true, za: 105, loads: [P(3, 30, 'G', { e: 0, zg: 105 }), P(3, 80, 'Q', { e: 0, zg: 105 })] }, ['zg-top']);
 
 /* =========================================================================
    UC - universal columns used as beams

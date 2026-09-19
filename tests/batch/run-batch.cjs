@@ -15,7 +15,12 @@
            dmax (full-span UDL, central or tip point load; self-weight included)
      (ii)  vertical equilibrium  sum(R) + sum(applied) = 0  for every case
      (iii) standard closed-form Mcr recomputed for doubly symmetric sections
-           (I/H: SN003a with G = 81000; box: Iw = 0; cantilever: SN006a C*Mcr0)
+           (I/H and box: SN003a with G = 81000, Iw = 0 for a box; cantilever:
+           SN006a C*Mcr0) with C1, C2, z_g and LE derived HERE from the case
+           inputs (load list, support types, za / per-load zg, LE factor and
+           destabilising switch) and the analysis moment diagram - never from
+           the engine's own C1 / C2 / zgUsed / LE; also checks that a
+           destabilising z_g on a non-tabulated diagram is BLOCKED
      (iv)  eigen / standard Mcr ratio, flagged outside 0.85-1.25 (an outlier,
            not necessarily an error)
      (v)   Mb,Rd <= Mc,Rd
@@ -64,6 +69,78 @@ function mcrClosedFormIndependent(sec, E, LE, C1, C2, zg, zgUsed) {
   const T1 = Math.PI * Math.PI * E * Iz / (LE * LE);
   const zgTerm = (zgUsed && C2 != null && C2 > 0) ? C2 * zg : 0;
   return C1 * T1 * (Math.sqrt(Math.max(Iw / Iz + G_STEEL * It / T1 + zgTerm * zgTerm, 0)) - zgTerm) / 1e6; // kN.m
+}
+const interp = (xs, ys, xq) => {
+  if (xq <= xs[0]) return ys[0];
+  if (xq >= xs[xs.length - 1]) return ys[ys.length - 1];
+  for (let i = 0; i < xs.length - 1; i++) if (xq >= xs[i] && xq <= xs[i + 1]) { const t = xs[i + 1] === xs[i] ? 0 : (xq - xs[i]) / (xs[i + 1] - xs[i]); return ys[i] + (ys[i + 1] - ys[i]) * t; }
+  return ys[ys.length - 1];
+};
+/* Closed-form inputs derived from the CASE and the analysis diagram of one
+   combination (factors fac, diagram fb over [xa, xb] mm), independently of the
+   check engine:
+     shape  - from the case's load list: only applied couples -> 'end-moment'
+              (SCI curve C1 = (1.33 - 0.33 psi)^2, psi = smaller/larger end
+              moment); full-span UDL family only / central point load(s) only,
+              no applied couples, on a simply supported (end moments < 2 % of
+              Mmax) or fixed-ended whole member -> SN003a Table 3.2 rows
+              (1.127/0.454, 1.348/0.630, 2.578/1.554, 1.683/1.645); otherwise
+              Serna's quarter-point expression, C2 unpublished
+     zg     - most destabilising signed height of the loads active in the
+              combination: per-load zg when eccOn (else za), sign reversed for
+              an upward load; za when no transverse load is active
+     LE     - leFactor x (destab ? 1.2 : 1) x segment length
+   Returns {C1, C2, zg, zgApplied, LE, route, blockExpected}. */
+function stdInputsIndependent(o, fac, fb, xa, xb) {
+  const L = o.L, Lmm = L * 1000, whole = xa <= 1e-6 && Math.abs(xb - Lmm) <= 1e-6;
+  const sup = o.supports;
+  const supAt = x => sup.find(sp => Math.abs(sp.pos * 1000 - x) < 1e-6);
+  const sA = supAt(xa), sB = supAt(xb);
+  const endSupported = !!(sA && sB), endFixed = !!(sA && sB && sA.type === 'fixed' && sB.type === 'fixed');
+  const interior = sup.some(sp => sp.pos * 1000 > xa + 1e-6 && sp.pos * 1000 < xb - 1e-6) || (o.hinges || []).some(h => h.pos * 1000 > xa + 1e-6 && h.pos * 1000 < xb - 1e-6);
+  let nUdl = 0, nPoint = 0, nCentral = 0, nOther = 0, nMom = 0, zgBest = null;
+  for (const ld of o.loads) {
+    const f = fac[ld.case] || 0; if (!f) continue;
+    if (ld.type === 'moment') { if (ld.M) nMom++; continue; }
+    const mag = ld.type === 'point' ? ld.P : ld.type === 'trap' ? (ld.w1 + ld.w2) / 2 : ld.w;
+    if (!mag) continue;
+    const z0 = (o.eccOn && ld.zg != null) ? ld.zg : (o.za || 0);
+    const zg = mag * f < 0 ? -z0 : z0;
+    if (zgBest == null || zg > zgBest) zgBest = zg;
+    if (ld.type === 'point') { nPoint++; if (Math.abs(ld.pos - L / 2) <= 0.01 * L) nCentral++; }
+    else if ((ld.type === 'udl' || (ld.type === 'trap' && ld.w1 === ld.w2)) && ld.x1 === 0 && Math.abs(ld.x2 - L) < 1e-9) nUdl++;
+    else nOther++;
+  }
+  const zg = zgBest == null ? (o.za || 0) : zgBest;
+  const Mat = x => interp(fb.xs, fb.M, x) / 1e6;
+  let Mm = 0; fb.xs.forEach((x, i) => { if (x >= xa - 1e-6 && x <= xb + 1e-6) Mm = Math.max(Mm, Math.abs(fb.M[i]) / 1e6); });
+  const Ls = xb - xa, M0 = Mat(xa + 1e-4), ML = Mat(xb - 1e-4);
+  const endLevel = Mm > 1e-9 ? Math.max(Math.abs(M0), Math.abs(ML)) / Mm : 0;
+  const r = Mm > 1e-9 ? (Math.abs(Mat(xa + Ls / 4)) + Math.abs(Mat(xa + 3 * Ls / 4))) / (2 * Mm) : 0;
+  let C1, C2 = null, route;
+  const notLoaded = nUdl + nPoint + nOther === 0;
+  const isLinear = fb.xs.every((x, i) => x < xa + 1e-4 || x > xb - 1e-4 || Math.abs(fb.M[i] / 1e6 - (M0 + (ML - M0) * (x - xa) / Ls)) <= 0.05 * Mm);
+  const isCant = sup.length === 1 && sup[0].type === 'fixed';
+  if (o.C1o != null) { C1 = o.C1o; route = 'override'; }
+  else if (isCant) { C1 = 1; route = 'cantilever'; }   // box cantilever: the closed form keeps C1 = 1 (I/H cantilevers take SN006a, checked above)
+  else if (Mm < 1e-9) { C1 = 1; C2 = 0; route = 'negligible'; }
+  else if (endLevel > 0.98 && (notLoaded || isLinear)) {
+    const [Mlo, Mhi] = Math.abs(ML) >= Math.abs(M0) ? [M0, ML] : [ML, M0];
+    const psi = Math.abs(Mhi) > 1e-9 ? Math.max(-1, Math.min(1, Mlo / Mhi)) : 1;
+    C1 = Math.pow(1.33 - 0.33 * psi, 2); C2 = 0; route = 'end-moment';
+  }
+  else if (whole && endSupported && !interior && !endFixed && endLevel < 0.02 && nMom === 0 && nUdl > 0 && nPoint === 0 && nOther === 0 && Math.abs(r - 0.75) <= 0.02) { C1 = 1.127; C2 = 0.454; route = 'uniform'; }
+  else if (whole && endSupported && !interior && !endFixed && endLevel < 0.02 && nMom === 0 && nPoint > 0 && nCentral === nPoint && nUdl === 0 && nOther === 0 && Math.abs(r - 0.50) <= 0.02) { C1 = 1.348; C2 = 0.630; route = 'point'; }
+  else if (whole && endFixed && !interior && nMom === 0 && nUdl > 0 && nPoint === 0 && nOther === 0) { C1 = 2.578; C2 = 1.554; route = 'fixed-uniform'; }
+  else if (whole && endFixed && !interior && nMom === 0 && nPoint > 0 && nCentral === nPoint && nUdl === 0 && nOther === 0) { C1 = 1.683; C2 = 1.645; route = 'fixed-point'; }
+  else {
+    const M2 = Mat(xa + Ls / 4), M3 = Mat(xa + Ls / 2), M4 = Mat(xa + 3 * Ls / 4);
+    const d = Mm * Mm + 9 * M2 * M2 + 16 * M3 * M3 + 9 * M4 * M4;
+    C1 = d > 0 ? Math.sqrt(35 * Mm * Mm / d) : 1; route = 'serna';
+  }
+  const LE = (o.leFactor != null ? o.leFactor : 1) * (o.destab ? 1.2 : 1) * Ls;
+  const zgApplied = Math.abs(zg) > 1e-9 && C2 != null && C2 > 0;
+  return { C1, C2, zg, zgApplied, LE, route, blockExpected: zg > 0 && !(C2 > 0) && !o.destab };
 }
 
 /* Applicability of the single-load closed forms (i). Returns null or
@@ -166,7 +243,8 @@ function runOne(cs, method) {
       rec.spanGoverns = !!L.spanGoverns;
       rec.zg = num(L.zg);
     } else {
-      // standard closed form: basis is the simplified slenderness unless the Mcr route rescued it
+      // standard closed form: the Mcr route is the design basis (the channel kappa chain is
+      // its own route, rescued by the shear-centre Mcr route when that one passes)
       const mcrRoute = /M.?cr.? method/i.test(rec.ltbBasis) || /Mcr method/.test(rec.ltbBasis);
       rec.Mcr = num(L.McrStandard != null ? L.McrStandard : L.Mcr);
       rec.C1 = num(L.C1show != null ? L.C1show : c.C1);
@@ -174,7 +252,8 @@ function runOne(cs, method) {
       if (L.box || L.cant) { rec.lamLT = num(L.lamLTmcr); rec.chiLT = num(L.chiModM); }
       else if (L.channel) { rec.lamLT = mcrRoute && L.chanMcr ? num(L.chanMcr.lam) : num(L.lamLTsimp); rec.chiLT = mcrRoute && L.chanMcr ? num(L.chanMcr.chiMod) : num(L.chiS); }
       else { rec.lamLT = mcrRoute ? num(L.lamLTmcr) : num(L.lamLTsimp); rec.chiLT = mcrRoute ? num(L.chiModM) : num(L.chiModS); }
-      rec.stdBasis = mcrRoute ? 'Mcr route' : 'simplified slenderness';
+      rec.stdBasis = mcrRoute ? 'Mcr route' : (L.channel ? 'channel kappa chain' : 'Mcr route');
+      rec.zg = num(L.zg); rec.zgUsed = !!L.zgUsed; rec.zgBlocked = !!L.zgBlocked;
     }
   }
 
@@ -224,8 +303,12 @@ function runOne(cs, method) {
           add('iii-McrStd', rel(exp, L.Mcr) <= TOL, `SN006a: C*Mcr0 = ${fmt(L.C, 3)} x ${fmt(Mcr0, 2)} = ${fmt(exp, 2)} vs engine ${fmt(L.Mcr, 2)} kN.m`);
         } else add('iii-McrStd', true, 'SN006a not covered for this loading (blocked by the engine)', 'info');
       } else {
-        const exp = mcrClosedFormIndependent(sec, E, c.LE, c.C1, L.C2, za, !!L.zgUsed);
-        add('iii-McrStd', rel(exp, L.Mcr) <= TOL, `SN003a: C1 ${fmt(c.C1, 3)}, LE ${fmt(c.LE / 1000, 2)} m${L.zgUsed ? ', C2 zg term' : ''} -> ${fmt(exp, 2)} vs engine ${fmt(L.Mcr, 2)} kN.m`);
+        // whole member, governing-moment combination: every input from the case
+        const ind = stdInputsIndependent(cs.overrides, gM, a.governM.fb, 0, cs.overrides.L * 1000);
+        const exp = mcrClosedFormIndependent(sec, E, ind.LE, ind.C1, ind.C2, ind.zg, ind.zgApplied);
+        add('iii-McrStd', rel(exp, L.Mcr) <= TOL, `SN003a (independent ${ind.route}): C1 ${fmt(ind.C1, 3)}, C2 ${ind.C2 == null ? '-' : fmt(ind.C2, 3)}, zg ${fmt(ind.zg, 0)} mm${ind.zgApplied ? ' applied' : ''}, LE ${fmt(ind.LE / 1000, 2)} m -> ${fmt(exp, 2)} vs engine ${fmt(L.Mcr, 2)} kN.m (engine route ${L.c1route || '-'})`);
+        const blocked = (c.unsupported || []).some(m => /C<sub>2<\/sub> only for the simply supported and fixed-ended/.test(m));
+        add('iii-zgBlock', blocked === ind.blockExpected, `destabilising zg on a non-tabulated diagram: block expected ${ind.blockExpected}, engine blocked ${blocked}`);
       }
     } else if (L.std && L.std.Mcr != null) {
       const s = L.std;
@@ -236,8 +319,17 @@ function runOne(cs, method) {
           add('iii-McrStd', rel(exp, s.Mcr) <= TOL && rel(Mcr0i, s.sn006.Mcr0 / 1e6) <= TOL, `SN006a (comparison): C ${fmt(s.sn006.C, 3)} x Mcr0 ${fmt(Mcr0i, 2)} = ${fmt(s.sn006.C * Mcr0i, 2)} vs engine ${fmt(s.Mcr, 2)} kN.m`);
         }
       } else {
-        const exp = mcrClosedFormIndependent(sec, E, s.LE, s.C1, s.C2, za, !!s.zgUsed);
-        add('iii-McrStd', rel(exp, s.Mcr) <= TOL, `SN003a (comparison, segment ${fmt(s.seg.xa / 1000, 2)}-${fmt(s.seg.xb / 1000, 2)} m): C1 ${fmt(s.C1, 3)}, LE ${fmt(s.LE / 1000, 2)} m -> ${fmt(exp, 2)} vs engine ${fmt(s.Mcr, 2)} kN.m`);
+        // the comparison describes the LTB-governing combination (label printed by the engine) over its segment
+        const gov = L.governCombo ? cs.overrides.combos.find(cb => cb.label === L.governCombo) : null;
+        const govRes = gov ? a.ulsResults.find(r => r.combo.label === gov.label) : null;
+        if (gov && govRes) {
+          const ind = stdInputsIndependent(cs.overrides, gov.factors, govRes.fb, s.seg.xa, s.seg.xb);
+          const exp = mcrClosedFormIndependent(sec, E, ind.LE, ind.C1, ind.C2, ind.zg, ind.zgApplied);
+          add('iii-McrStd', rel(exp, s.Mcr) <= TOL, `SN003a (comparison, independent ${ind.route}, segment ${fmt(s.seg.xa / 1000, 2)}-${fmt(s.seg.xb / 1000, 2)} m, ${gov.label}): C1 ${fmt(ind.C1, 3)}, C2 ${ind.C2 == null ? '-' : fmt(ind.C2, 3)}, zg ${fmt(ind.zg, 0)} mm${ind.zgApplied ? ' applied' : ''}, LE ${fmt(ind.LE / 1000, 2)} m -> ${fmt(exp, 2)} vs engine ${fmt(s.Mcr, 2)} kN.m`);
+        } else {
+          const exp = mcrClosedFormIndependent(sec, E, s.LE, s.C1, s.C2, s.zg, !!s.zgUsed);
+          add('iii-McrStd(arith)', rel(exp, s.Mcr) <= TOL, `SN003a (comparison, arithmetic only): C1 ${fmt(s.C1, 3)}, LE ${fmt(s.LE / 1000, 2)} m -> ${fmt(exp, 2)} vs engine ${fmt(s.Mcr, 2)} kN.m`);
+        }
       }
     }
   }

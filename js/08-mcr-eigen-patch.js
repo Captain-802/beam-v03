@@ -459,8 +459,11 @@
   }
 
   function ltbCurve(sec) {
-    // UK NA / SCI P362 Table 6.6: hot-finished hollow sections share the
-    // I/H h/b allocation; cold-formed hollow sections use c (h/b<=2) or d.
+    // UK NA Table NA.1 (cl 6.3.2.3): hot-finished hollow sections share the
+    // I/H h/b allocation; cold-formed hollow sections use c (h/b<=2) or d;
+    // channels d. ONE allocation for both Mcr methods: ltbCurveNA() in
+    // js/checks/eurocode-checks.js (the standard route uses the same function).
+    if (typeof ltbCurveNA === 'function') return ltbCurveNA(sec);
     if (sec.isBox && sec.boxType === 'CF') return sec.D/sec.B <= 2 ? { alphaLT: 0.49, curve: 'c' } : { alphaLT: 0.76, curve: 'd' };
     if (sec.kind === 'channel') return { alphaLT: 0.76, curve: 'd' }; // not doubly symmetric
     var hb = sec.D / sec.B;
@@ -742,13 +745,16 @@
 
     /* ---- Standard-method comparison (no eigen solve): closed-form Mcr for
        the same segment - the governing span when the span-by-span check
-       governs, otherwise the whole member - with C1 from sn003aC1 (SN006a
-       for a cantilever), LE = LE-factor x segment length and zg = S.za with
-       C2 where published. Also the MasterSeries-style C1 inputs. ---- */
+       governs, otherwise the whole member - and for the SAME COMBINATION as
+       the design eigen value (govEv: its own moment diagram for C1 and the
+       MasterSeries-style C1 inputs, its own load factors for the SN003a shape
+       recognition and the load height z_g = most destabilising per-load value
+       of that combination), with C1 from sn003aC1 (SN006a for a cantilever),
+       LE = LE-factor x segment length and C2 where published. ---- */
     var segC1 = spanGov ? { xa: spanGov.a, xb: spanGov.b, whole: false }
                         : (typeof c1Segment === 'function' ? c1Segment(a) : { xa: 0, xb: a.L, whole: true });
     var stdCmp = null;
-    try { stdCmp = mcrStandardFor(a, sec, segC1); }
+    try { stdCmp = mcrStandardFor(a, sec, segC1, { fb: govEv.res.fb, factors: govEv.res.combo.factors }); }
     catch (eStd) { stdCmp = { route: 'n/a', Mcr: null, C1: null, label: 'closed form not available: ' + eStd.message, c1in: null, seg: segC1 }; }
     if (stdCmp && !stdCmp.c1in && typeof c1Inputs === 'function') stdCmp.c1in = c1Inputs(govEv.res.fb, segC1.xa, segC1.xb);
     ltb.mcrMethod = 'eigen';

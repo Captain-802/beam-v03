@@ -196,3 +196,111 @@ test('standard C1 recognises the tabulated shapes only on a simply supported seg
   const p=run('checks(analyse())');                             // propped cantilever under UDL is not a linear end-moment diagram
   assert.equal(p.ltb.c1route,'serna'); near(p.ltb.c1in.psi,0,1e-6); near(p.ltb.c1in.mu,-1,1e-3);
 });
+
+// ---- Review fixes, Sep 2026: the standard route honours its label ----
+test('standard route: the SN003a Mcr chain is the design basis, MbRd = MbMcr feeds Eq 6.62 and agrees with the eigen run (MIX-03)', () => {
+  const fix={family:'uc',ucKey:'254 x 254 x 73',restraint:'ltb',L:6,axial:500,Mz:15,supports:[{pos:0,type:'pinned'},{pos:6,type:'pinned'}],
+    loads:[{type:'udl',x1:0,x2:6,w:6.5,case:'G'},{type:'udl',x1:0,x2:6,w:8,case:'Q'}]};
+  reset({...fix,mcrMethod:'standard'}); const s=run('checks(analyse())');
+  reset({...fix,mcrMethod:'eigen'});    const e=run('checks(analyse())');
+  near(s.ltb.MbRd,s.ltb.MbMcr,1e-12);                              // Mcr route IS the design value
+  assert.ok(s.ltb.MbSimp<s.ltb.MbMcr, 'P362 simplified value kept only as a comparison');
+  near(s.ltbUtil,s.Mx/s.ltb.MbMcr,1e-12);
+  assert.match(s.ltbBasis,/^M<sub>cr<\/sub> method \(SN003a closed form/);
+  near(s.buck.MbRdI,s.ltb.MbMcr,1e-12);                             // annexB2 receives the Mcr-route value
+  const ratio=e.ltb.Mcr/s.ltb.Mcr;                                  // 478.2 / 475.3
+  assert.ok(Math.abs(ratio-1)<0.01);
+  assert.ok(Math.abs(s.buck.u2-e.buck.u2)<0.01*e.buck.u2, `Eq 6.62 standard ${s.buck.u2} vs eigen ${e.buck.u2}`);
+  assert.equal(s.pass,true); assert.equal(e.pass,true);
+  const u2s=s.utils.find(u=>/6\.62/.test(u.name)).val; assert.ok(u2s<1);
+});
+test('standard route: Mb,Rd is capped at the shear-reduced Mc,Rd on both routes (UB-35 with LTB)', () => {
+  const fix={ubKey:'914 x 419 x 388',restraint:'ltb',L:3,supports:[{pos:0,type:'pinned'},{pos:3,type:'pinned'}],loads:[{type:'point',pos:1.5,P:3000,case:'Q'}]};
+  reset({...fix,mcrMethod:'standard'}); const s=run('checks(analyse())');
+  reset({...fix,mcrMethod:'eigen'});    const e=run('checks(analyse())');
+  assert.ok(s.McRd<s.Wy*s.fy/1e6, 'moment resistance is shear-reduced (cl 6.2.8(3))');
+  near(s.ltb.MbRd,s.McRd,1e-9); near(s.ltb.MbMcr,s.McRd,1e-9); near(s.ltb.MbSimp,s.McRd,1e-9);
+  near(e.ltb.MbRd,s.McRd,1e-9); near(s.ltbUtil,e.ltbUtil,1e-9);
+});
+test('standard route: per-load z_g is the closed-form load height (UB-04 with za = 0)', () => {
+  const fix={ubKey:'305 x 165 x 40',restraint:'ltb',L:6,eccOn:true,za:0,supports:[{pos:0,type:'pinned'},{pos:6,type:'pinned'}],
+    loads:[{type:'udl',x1:0,x2:6,w:5,case:'G',e:0,zg:152},{type:'udl',x1:0,x2:6,w:6,case:'Q',e:0,zg:152}]};
+  reset({...fix,mcrMethod:'standard'}); const s=run('checks(analyse())');
+  near(s.ltb.zg,152,1e-9); assert.equal(s.ltb.zgUsed,true); assert.equal(s.ltb.zgSource,'loads'); near(s.C1,1.127,1e-9); near(s.ltb.C2,0.454,1e-9);
+  const sec=run('activeSection()'), E=210000,G=81000,L=6000,Iz=sec.Iy*1e4,It=sec.J*1e4,Iw=sec.Iw*1e12,T1=Math.PI**2*E*Iz/L**2,t=0.454*152;
+  near(s.ltb.Mcr,1.127*T1*(Math.sqrt(Iw/Iz+G*It/T1+t*t)-t)/1e6,1e-9);
+  reset({...fix,mcrMethod:'standard',za:152}); const s2=run('checks(analyse())'); near(s2.ltb.Mcr,s.ltb.Mcr,1e-12);   // same as the global za
+  reset({...fix,mcrMethod:'eigen'}); const e=run('checks(analyse())');
+  assert.ok(Math.abs(e.ltb.Mcr/s.ltb.Mcr-1)<0.02, `eigen ${e.ltb.Mcr} vs standard ${s.ltb.Mcr}`);
+  near(e.ltb.McrStandard,s.ltb.Mcr,1e-9);
+  // an upward load hung below the shear centre is destabilising: its height enters with the sign reversed
+  reset({...fix,mcrMethod:'standard',loads:[{type:'udl',x1:0,x2:6,w:-5,case:'G',e:0,zg:-152},{type:'udl',x1:0,x2:6,w:-6,case:'Q',e:0,zg:-152}]});
+  near(run('checks(analyse()).ltb.zg'),152,1e-9);
+});
+test('standard route: a destabilising load height on a non-tabulated diagram blocks PASS, is conservative when stabilising, and the fixed-ended SN003a rows carry C2', () => {
+  const off={ubKey:'406 x 178 x 54',restraint:'ltb',mcrMethod:'standard',L:7,eccOn:true,supports:[{pos:0,type:'pinned'},{pos:7,type:'pinned'}],
+    loads:[{type:'point',pos:2.45,P:12,case:'G'},{type:'point',pos:2.45,P:32,case:'Q'}]};
+  reset({...off,za:201}); const b=run('checks(analyse())');           // off-centre point load, top flange: Serna, no C2
+  assert.equal(b.ltb.c1route,'serna'); assert.equal(b.ltb.C2,null); assert.equal(b.ltb.zgUsed,false); assert.equal(b.ltb.zgBlocked,true);
+  assert.ok(b.unsupported.some(m=>/C<sub>2<\/sub> only for the simply supported and fixed-ended/.test(m))); assert.equal(b.pass,false);
+  assert.match(b.ltb.zgNote,/NOT applied/);
+  reset({...off,za:-201}); const st=run('checks(analyse())');         // bottom flange: ignored, conservative, no block
+  assert.equal(st.ltb.zgBlocked,false); assert.match(st.ltb.zgNote,/stabilising/); near(st.ltb.Mcr,b.ltb.Mcr,1e-12);
+  reset({...off,za:201,destab:true}); const d=run('checks(analyse())'); // BS-style x1.2 carries the height instead
+  assert.equal(d.ltb.zgBlocked,false); assert.ok(d.advisory.some(m=>/represented by the destabilising/.test(m))); near(d.LE,1.2*7000,1e-9);
+  // fixed-ended UDL and central point load: SN003a Table 3.2 rows 3 and 4 with C2 published
+  const ff={ubKey:'406 x 140 x 39',restraint:'ltb',mcrMethod:'standard',L:8,eccOn:true,za:203,supports:[{pos:0,type:'fixed'},{pos:8,type:'fixed'}]};
+  reset({...ff,loads:[{type:'udl',x1:0,x2:8,w:5,case:'G'},{type:'udl',x1:0,x2:8,w:6,case:'Q'}]}); const fu=run('checks(analyse())');
+  assert.equal(fu.ltb.c1route,'fixed-uniform'); near(fu.C1,2.578,1e-9); near(fu.ltb.C2,1.554,1e-9); assert.equal(fu.ltb.zgUsed,true); assert.equal(fu.unsupported.length,0);
+  reset({...ff,mcrMethod:'eigen',loads:[{type:'udl',x1:0,x2:8,w:5,case:'G'},{type:'udl',x1:0,x2:8,w:6,case:'Q'}]}); const fe=run('checks(analyse())');
+  assert.ok(fe.ltb.Mcr/fu.ltb.Mcr>0.95 && fe.ltb.Mcr/fu.ltb.Mcr<1.15, `fixed-fixed UDL top flange: eigen ${fe.ltb.Mcr} vs SN003a ${fu.ltb.Mcr}`);
+  reset({...ff,loads:[{type:'point',pos:4,P:40,case:'Q'}]}); const fp=run('checks(analyse())');
+  assert.equal(fp.ltb.c1route,'fixed-point'); near(fp.C1,1.683,1e-9); near(fp.ltb.C2,1.645,1e-9); assert.equal(fp.ltb.zgUsed,true);
+  // the SN003a C2 term and the x1.2 switch together: applied, with an overlap advisory
+  reset({ubKey:'533 x 210 x 92',restraint:'ltb',mcrMethod:'standard',L:8,leFactor:1.2,destab:true,eccOn:true,za:266,supports:[{pos:0,type:'pinned'},{pos:8,type:'pinned'}],
+    loads:[{type:'udl',x1:0,x2:8,w:9,case:'G'},{type:'udl',x1:0,x2:8,w:11,case:'Q'}]});
+  const ov=run('checks(analyse())'); assert.equal(ov.ltb.zgUsed,true); near(ov.LE,1.2*1.2*8000,1e-9); assert.ok(ov.advisory.some(m=>/counted twice/.test(m)));
+});
+test('SN003a rows are recognised from the load list: a triangular load and quarter-point loads take the Serna route', () => {
+  reset({ubKey:'356 x 171 x 45',restraint:'ltb',mcrMethod:'standard',L:7,supports:[{pos:0,type:'pinned'},{pos:7,type:'pinned'}],
+    loads:[{type:'udl',x1:0,x2:7,w:3,case:'G'},{type:'trap',x1:0,x2:7,w1:0,w2:11,case:'Q'}]});
+  const t=run('checks(analyse())'); assert.equal(t.ltb.c1route,'serna'); assert.ok(t.C1>1.127 && t.C1<1.2); assert.equal(t.ltb.C2,null);
+  reset({ubKey:'406 x 178 x 54',restraint:'ltb',mcrMethod:'standard',L:8,supports:[{pos:0,type:'pinned'},{pos:8,type:'pinned'}],
+    loads:[{type:'point',pos:2,P:30,case:'Q'},{type:'point',pos:4,P:30,case:'Q'},{type:'point',pos:6,P:30,case:'Q'}]});
+  const q=run('checks(analyse())'); assert.equal(q.ltb.c1route,'serna'); assert.equal(q.ltb.C2,null);
+  reset({ubKey:'406 x 178 x 54',restraint:'ltb',mcrMethod:'standard',L:7,supports:[{pos:0,type:'pinned'},{pos:7,type:'pinned'}],loads:[{type:'point',pos:3.5,P:32,case:'Q'}]});
+  assert.equal(run('checks(analyse()).ltb.c1route'),'point');
+  // UDL + in-span couple is not the UDL row
+  reset({restraint:'ltb',mcrMethod:'standard',L:8,supports:[{pos:0,type:'pinned'},{pos:8,type:'pinned'}],loads:[{type:'udl',x1:0,x2:8,w:6,case:'Q'},{type:'moment',pos:4,M:72,case:'Q'}]});
+  assert.equal(run('checks(analyse()).ltb.c1route'),'serna');
+});
+test('"Not Loaded" is decided from the loads: equal end couples with self-weight take the end-moment route with psi = 1 (UB-25)', () => {
+  reset({ubKey:'356 x 127 x 33',restraint:'ltb',mcrMethod:'standard',L:6,supports:[{pos:0,type:'pinned'},{pos:6,type:'pinned'}],loads:[{type:'moment',pos:0,M:24,case:'Q'},{type:'moment',pos:6,M:-24,case:'Q'}]});
+  const c=run('checks(analyse())');
+  assert.equal(c.ltb.c1route,'end-moment'); near(c.C1,1.0,1e-6); near(c.ltb.c1in.psi,1,1e-6); assert.match(c.c1label,/not loaded/);
+  assert.ok(Math.abs(c.ltb.c1in.Mo)>0.05*Math.abs(c.ltb.c1in.M2), 'self-weight curvature exceeds the 5% chord band');
+});
+test('eigen route: the standard comparison describes the LTB-governing combination (reversing wind), sign-consistent C1 inputs', () => {
+  reset({L:8,restraint:'ltb',mcrMethod:'eigen',eccOn:true,za:0,supports:[{pos:0,type:'pinned'},{pos:8,type:'pinned'}],
+    loads:[{type:'udl',x1:0,x2:8,w:19.7,case:'G'},{type:'udl',x1:0,x2:8,w:19.8,case:'Q'},{type:'udl',x1:0,x2:8,w:-45,case:'W',e:0,zg:-230}],
+    combos:[{id:'c1',label:'ULS: 1.35G + 1.5Q',factors:{G:1.35,Q:1.5,W:0,E:0},sls:false,on:true},{id:'c2',label:'ULS: 1.0G + 1.5W',factors:{G:1.0,Q:0,W:1.5,E:0},sls:false,on:true},{id:'s1',label:'SLS',factors:{G:0,Q:1,W:0,E:0},sls:true,on:true}]});
+  const c=run('checks(analyse())');
+  assert.equal(c.ltb.governCombo,'ULS: 1.0G + 1.5W'); assert.ok(c.ltb.MxGov<400 && c.ltb.MxGov>350);
+  assert.ok(c.ltb.c1in.Mo<0, 'Mo has the sign of the hogging governing diagram'); near(Math.abs(c.ltb.c1in.Mo),c.ltb.MxGov,1e-3);
+  near(c.ltb.c1in.mu,-300,1e-9);
+  assert.equal(c.ltb.std.route,'uniform'); near(c.ltb.std.zg,230,1e-9); assert.equal(c.ltb.std.zgUsed,true);   // upward load below the shear centre: destabilising
+  assert.ok(c.ltb.McrRatio>0.85 && c.ltb.McrRatio<1.0, 'ratio ' + c.ltb.McrRatio);
+  // the standard run of the same input describes the governing-MOMENT combination (1.35G + 1.5Q, sagging)
+  run("S.mcrMethod='standard'"); const s=run('checks(analyse())'); assert.ok(s.ltb.c1in.Mo>0); near(s.ltb.zg,0,1e-9);
+});
+test('closed hollow section: one LTB curve allocation for both Mcr methods, exemption tagged only when lambda_LT <= 0.4', () => {
+  const fix={family:'rhs',rhsKey:'300 x 100 x 8.0',restraint:'ltb',L:14,supports:[{pos:0,type:'pinned'},{pos:14,type:'pinned'}],loads:[{type:'udl',x1:0,x2:14,w:1,case:'G'},{type:'udl',x1:0,x2:14,w:1.5,case:'Q'}]};
+  reset({...fix,mcrMethod:'standard'}); const s=run('checks(analyse())');
+  reset({...fix,mcrMethod:'eigen'});    const e=run('checks(analyse())');
+  assert.equal(s.ltb.curve.curve,'c'); assert.equal(e.ltb.curve.curve,'c'); assert.equal(run('ltbCurveNA(activeSection()).curve'),'c');
+  assert.equal(s.ltb.na,false); assert.equal(s.ltb.box,true); assert.ok(s.ltb.lamLTmcr>0.4 && s.ltb.MbRd<s.McRd);
+  assert.match(s.ltbBasis,/curve c/); assert.ok(!/6\.3\.2\.1\(2\)/.test(s.ltbBasis));
+  assert.ok(Math.abs(e.ltb.MbRd-s.ltb.MbRd)/s.ltb.MbRd<0.01);
+  reset({family:'shs',shsKey:'150x150x6.3',restraint:'ltb',mcrMethod:'standard',L:4,supports:[{pos:0,type:'pinned'},{pos:4,type:'pinned'}],loads:[{type:'udl',x1:0,x2:4,w:10,case:'Q'}]});
+  const q=run('checks(analyse())'); assert.equal(q.ltb.na,true); near(q.ltb.MbRd,q.McRd,1e-9); assert.match(q.ltbBasis,/6\.3\.2\.2\(4\)/); assert.match(q.ltbBasis,/6\.3\.2\.1\(2\)/);
+});

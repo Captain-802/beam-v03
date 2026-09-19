@@ -1,10 +1,10 @@
 # 100-beam verification campaign - headless batch runner
 
-Runs the EC3 beam checker over a library of 111 distinct beams without a
+Runs the EC3 beam checker over a library of 114 distinct beams without a
 browser, records every printed design quantity, and cross-checks the engine
 against independent closed forms computed in the runner. LTB cases are run
 with BOTH Mcr methods (`eigen` FE eigensolver and `standard` closed form), so
-the 111 cases give 202 runs.
+the 114 cases give 208 runs.
 
 ## Files
 
@@ -50,8 +50,9 @@ engine's intermediate results. Tolerance 0.5 % relative unless stated.
 |---|---|---|
 | i-Mmax, i-dmax | Simply supported or cantilever single-load closed forms (full-span UDL incl. self-weight, central / tip point load) for Mmax and dmax, using the governing ULS / SLS combination factors | SS and cantilever cases without hinges or other load shapes (115 runs) |
 | ii-equilibrium | sum of reactions + sum of applied vertical loads = 0 for the governing-moment combination (1 N floor for moment-only loading) | every run |
-| iii-McrStd | Standard closed-form Mcr recomputed: SN003a with G = 81000 N/mm2 for I / H and box sections, SN006a C x Mcr0 for cantilevers. In eigen runs the engine's comparison value (`ltb.McrStandard`, same segment) is checked; in standard runs the design value | doubly symmetric sections (152 runs) |
-| iv-McrRatio | Mcr,eigen / Mcr,standard for the same segment, flagged when outside 0.85-1.25. An outlier is interesting output, not necessarily an error | eigen runs with a closed-form comparison (91 runs) |
+| iii-McrStd | Standard closed-form Mcr recomputed: SN003a with G = 81000 N/mm2 for I / H and box sections (Iw = 0 for a box), SN006a C x Mcr0 for I/H cantilevers. C1 / C2 are derived in the runner from the case's load list and support types (SN003a Table 3.2 rows 1.127/0.454, 1.348/0.630, 2.578/1.554, 1.683/1.645; the SCI end-moment curve for couples only; Serna's quarter-point expression otherwise), z_g from the case's `za` / per-load `zg` (most destabilising active load, sign reversed for an upward load) and LE from the LE factor, the destabilising switch and the segment length - never from the engine's own C1 / C2 / zgUsed / LE. In eigen runs the engine's comparison value (`ltb.McrStandard`, same segment and same LTB-governing combination) is checked; in standard runs the design value | doubly symmetric sections (158 runs) |
+| iii-zgBlock | A destabilising z_g on a diagram without a published C2 must be BLOCKED by the standard route (unless the destabilising L_E switch carries it); the runner derives the expectation from the case and looks for the engine's blocking message | standard runs of I / H and box sections (76 runs) |
+| iv-McrRatio | Mcr,eigen / Mcr,standard for the same segment, flagged when outside 0.85-1.25. An outlier is interesting output, not necessarily an error | eigen runs with a closed-form comparison (94 runs) |
 | v-MbRd<=McRd | Mb,Rd <= Mc,Rd | every LTB run that produced an Mb,Rd |
 | vi-governing | the reported governing utilisation equals the max of the printed utilisations | every run |
 
@@ -60,18 +61,18 @@ observe from the check output (axial / biaxial / tension / torsion / Annex A /
 flexural buckling / interaction / torsional-flexural gap / restraints / shear
 buckling) and lists the differences.
 
-## Case coverage (111 cases, 202 runs)
+## Case coverage (114 cases, 208 runs)
 
 | Family | Cases | LTB (x2 runs) | Fully restrained | Notes |
 |---|---|---|---|---|
-| UB | 49 | 41 | 8 | 127x76x13 to 1016x305x272, incl. curve-c / curve-d shapes, deep 914 and 1016 sections, S355 |
-| UC | 14 | 12 | 2 | 152x152x23 to 356x406x235 |
+| UB | 51 | 43 | 8 | 127x76x13 to 1016x305x272, incl. curve-c / curve-d shapes, deep 914 and 1016 sections, S355 |
+| UC | 15 | 13 | 2 | 152x152x23 to 356x406x235 |
 | PFC | 19 | 15 | 4 | 100x50x10 to 430x100x64, e = 0 / small / flange half-width, web-side e < 0 |
 | SHS | 11 | 7 | 4 | hot-finished and cold-formed |
 | RHS | 18 | 16 | 2 | h/b up to 3 (300x100), 500x300, 450x250 |
 
-Supports: 83 simply supported, 7 two-span, 2 three-span, 6 cantilevers, 4
-propped cantilevers (+1 with an internal hinge), 4 fixed-fixed, 2 overhang
+Supports: 84 simply supported, 7 two-span, 2 three-span, 6 cantilevers, 4
+propped cantilevers (+1 with an internal hinge), 6 fixed-fixed, 2 overhang
 beams, 2 Gerber beams (one and two hinges).
 Loads: full UDL (92), partial UDL (5), trapezoidal / triangular rising and
 falling (7), single and multiple point loads incl. loads at 0.25-0.3 m from a
@@ -79,9 +80,12 @@ support (29 / 8), applied end and in-span couples incl. psi = +1, 0 and -1 (6),
 mixed UDL + UVL + point + couple, uplift through an upward W load (GQW combos)
 and through a negative W factor (GQWneg), unbalanced Q patterns over 2 and 3
 spans.
-Eccentricity / load height: eccOn in 23 cases (16 with e > 0 up to the flange
+Eccentricity / load height: eccOn in 26 cases (16 with e > 0 up to the flange
 half-width, on PFC, UB, SHS and RHS), zg = +D/2 and -D/2 through `za` and
-per-load `zg` (7), a per-load mixed top / bottom case (MIX-08).
+per-load `zg` (10, incl. the fixed-ended UDL and central-point rows of SN003a
+Table 3.2 with C2 = 1.554 / 1.645 in UB-43 / UB-45 and an off-centre point
+load with no published C2 in UB-44, which the standard route must block), a
+per-load mixed top / bottom case (MIX-08).
 Axial: compression in 8 cases up to ~0.27 Npl, tension in 3; Mz in 7 cases;
 intermediate lateral restraints at third points, quarter points and at the
 point loads in 9 cases; LE factor + destabilising switch (UB-40); root
@@ -93,15 +97,15 @@ exercise the FAIL path.
 
 ## Results of the current run (2026-09-19, Node v24.14.1)
 
-Verdicts: PASS 160 | FAIL 38 | NOT VERIFIED 4 | ERROR 0. Cross-check
+Verdicts: PASS 168 | FAIL 34 | NOT VERIFIED 6 | ERROR 0. Cross-check
 mismatches: 0 runs. Trigger mismatches: 1 case (PFC-17, see below).
 
 ### Per section family
 
 | Family | Cases | Runs | PASS | FAIL | NOT VERIFIED | ERROR |
 |---|---|---|---|---|---|---|
-| UB | 49 | 90 | 72 | 18 | 0 | 0 |
-| UC | 14 | 26 | 21 | 5 | 0 | 0 |
+| UB | 51 | 94 | 75 | 17 | 2 | 0 |
+| UC | 15 | 28 | 26 | 2 | 0 | 0 |
 | PFC | 19 | 34 | 23 | 9 | 2 | 0 |
 | SHS | 11 | 18 | 14 | 2 | 2 | 0 |
 | RHS | 18 | 34 | 30 | 4 | 0 | 0 |
@@ -110,8 +114,8 @@ mismatches: 0 runs. Trigger mismatches: 1 case (PFC-17, see below).
 
 | Method | Runs | PASS | FAIL | NOT VERIFIED | ERROR |
 |---|---|---|---|---|---|
-| eigen | 91 | 82 | 7 | 2 | 0 |
-| standard | 91 | 60 | 30 | 1 | 0 |
+| eigen | 94 | 85 | 7 | 2 | 0 |
+| standard | 94 | 65 | 26 | 3 | 0 |
 | n/a (restrained) | 20 | 18 | 1 | 1 | 0 |
 
 ### Cross-check totals
@@ -120,36 +124,39 @@ mismatches: 0 runs. Trigger mismatches: 1 case (PFC-17, see below).
 |---|---|---|---|
 | i-Mmax | 115 | 115 | 0 |
 | i-dmax | 115 | 115 | 0 |
-| ii-equilibrium | 202 | 202 | 0 |
-| iii-McrStd | 152 | 152 | 0 |
-| iv-McrRatio | 91 | 83 | 8 flagged |
-| v-MbRd<=McRd | 182 | 182 | 0 |
-| vi-governing | 202 | 202 | 0 |
+| ii-equilibrium | 208 | 208 | 0 |
+| iii-McrStd | 158 | 158 | 0 |
+| iii-zgBlock | 76 | 76 | 0 |
+| iv-McrRatio | 94 | 86 | 8 flagged |
+| v-MbRd<=McRd | 188 | 188 | 0 |
+| vi-governing | 208 | 208 | 0 |
 
 ### Eigen / standard Mcr outliers
 
-Same segment (the engine's own comparison inside the eigen run, 8 of 91):
+Same segment (the engine's own comparison inside the eigen run, 8 of 94):
 
 | Case | Ratio | Standard route | Layout |
 |---|---|---|---|
 | UB-23 | 1.446 | Serna | 7 m span + 2 m overhang, UDL + tip load |
 | UB-27 | 0.830 | Serna | SS, UDL + in-span couple + point load |
 | UB-40 | 1.657 | uniform | SS UDL with LE factor 1.2 + destabilising (closed form uses LE = 1.2 x 1.2 x 8 = 11.52 m, the eigensolver solves the 8 m member) |
-| UC-12 | 1.321 | Serna | fixed-fixed, central point load |
+| UB-44 | 0.679 | Serna | SS, point load at 0.35L with top-flange z_g: the closed form has no C2 for this diagram (blocked on the standard route), the eigen value carries the load height |
 | PFC-09 | 1.996 | channel | 3.5 m cantilever, UDL |
-| SHS-06 | 1.397 | box | 4 m cantilever, tip load + UDL |
-| RHS-07 | 1.690 | box | 3 m cantilever, UDL + tip load |
+| SHS-06 | 1.397 | cantilever (C1 = 1) | 4 m cantilever, tip load + UDL |
+| RHS-07 | 1.690 | cantilever (C1 = 1) | 3 m cantilever, UDL + tip load |
 | MIX-06 | 1.724 | Serna | fixed - hinge - pinned, UDL |
 
 Across the two runs (design Mcr of the eigen run / design Mcr of the standard
-run): 37 of 91. The standard run always treats the member as one segment with
+run): 37 of 94. The standard run always treats the member as one segment with
 LE = k x L, so every multi-span beam and every beam with intermediate
 restraints lands here (UB-06/08/13/14/15/17/24/39/41, UC-07/08, PFC-10/18,
 SHS-05, RHS-08/09/14, MIX-02/04 ...) together with the channel cases, where
-the standard route's P362 simplified slenderness governs rather than the
-closed-form Mcr. These drive the 30 standard-method FAILs: the closed form is
-the conservative whole-member answer and is expected to fail where the eigen
-span-by-span check passes.
+the standard route's P385/P362 kappa chain (not the closed-form Mcr) is the
+design basis. These drive the 26 standard-method FAILs: the closed form is the
+conservative whole-member answer and is expected to fail where the eigen
+span-by-span check passes. (Since the Sep 2026 review fixes the standard route
+of I/H sections uses the SN003a Mcr chain as its design basis; the P362
+Expn 6.55 simplified slenderness is printed for comparison only.)
 
 ### Known gaps surfaced
 

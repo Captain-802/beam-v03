@@ -9,10 +9,12 @@
    to EN 1993-1-1" printout. Every number printed is a field of a / c / sec
    or is derived by one of the msb* helpers below, each of which only
    re-expresses a value the check engine already used (ratio, unit change,
-   back-substitution); no resistance is recomputed here. Where the engine
-   has no value the tag column prints "not evaluated".
+   back-substitution); no resistance is recomputed here (V_pl.z.Rd and
+   M_c.z.Rd come from the engine's c.ax block). Where the engine has no
+   value the tag column prints "not evaluated".
    Blocking messages (c.unsupported) appear as red "NOT VERIFIED" rows in
-   the block of the check they concern and again in the verdict footer.
+   the block of the check they concern (a message no block claims is printed
+   before the deflection block) and again in the verdict footer.
    =========================================================================== */
 
 /* ---- formatting (docs/BRIEF_MAPPING.md section 3) ---- */
@@ -90,15 +92,6 @@ function msbC1Tag(label,route){
 }
 // Euler load about one axis, kN: pi^2 E I / L^2 (I cm4, L mm)
 function msbNcr(E,I_cm4,L_mm){ return Math.PI*Math.PI*E*I_cm4*1e4/(L_mm*L_mm)/1000; }
-// minor-axis plastic shear resistance, EN 1993-1-1 6.2.6(3), kN; null for channels
-function msbVplZ(sec,fy,hw){
-  if(sec.kind==='channel') return null;
-  const A=sec.A*100;
-  const Avz= sec.isBox? A*sec.B/(sec.D+sec.B) : (A-hw*sec.tw);
-  return {Avz, VplZ:Avz*fy/Math.sqrt(3)/1000};
-}
-// minor-axis moment resistance, kN.m (class-consistent modulus, gammaM0 = 1)
-function msbMcz(sec,cls,fy){ const W=cls<=2? sec.Sy : sec.Zy; return {W, Mcz:W*1e3*fy/1e6}; }
 // characteristic resistances used by the cl 6.3.3 ratios
 function msbNRk(sec,fy){ return sec.A*100*fy/1000; }           // kN
 function msbMyRk(Wy,fy){ return Wy*fy/1e6; }                   // kN.m (Wy mm3)
@@ -277,11 +270,11 @@ function renderMasterSeriesBrief(a,c,sec){
       msbR(cx.u), msbWarn(cx.u<=1.0001));
   }
   if(AX){
-    const vz=msbVplZ(sec,c.fy,c.hw);
-    if(vz) h+=msbRow('V<sub>z.Ed</sub>/V<sub>pl.z.Rd</sub>', '0 / '+msbKN(vz.VplZ)+' = (A<sub>v,z</sub> = '+g(vz.Avz,1)+' mm&sup2;; no minor-axis shear in the single-plane model)', '0.000', 'Low Shear');
-    const mz=msbMcz(sec,cls,c.fy);
-    const McZ = B? B.Mcz : mz.Mcz;
-    h+=msbRow('M<sub>c.z.Rd</sub> = f<sub>y</sub>.'+(cls<=2? 'W<sub>pl.z</sub>':'W<sub>el.z</sub>')+'/&gamma;<sub>M0</sub>', msbInt(c.fy)+' x '+f1(mz.W,1)+'/1', msbKNm(McZ)+' kN.m', '');
+    // V_pl.z.Rd, A_v,z and M_c.z.Rd are engine values (c.ax, cl 6.2.6(3) / 6.2.5)
+    if(AX.VplZ!=null) h+=msbRow('V<sub>z.Ed</sub>/V<sub>pl.z.Rd</sub>', '0 / '+msbKN(AX.VplZ)+' = (A<sub>v,z</sub> = '+g(AX.Avz,1)+' mm&sup2;; no minor-axis shear in the single-plane model)', '0.000', 'Low Shear');
+    else h+=msbRow('V<sub>z.Ed</sub>/V<sub>pl.z.Rd</sub>', 'V<sub>pl.z.Rd</sub> not evaluated by the engine for this section', '&mdash;', 'not evaluated');
+    if(AX.Mcz!=null) h+=msbRow('M<sub>c.z.Rd</sub> = f<sub>y</sub>.'+(cls<=2? 'W<sub>pl.z</sub>':'W<sub>el.z</sub>')+'/&gamma;<sub>M0</sub>', msbInt(c.fy)+' x '+f1(cls<=2? sec.Sy : sec.Zy,1)+'/1', msbKNm(AX.Mcz)+' kN.m', '');
+    else h+=msbRow('M<sub>c.z.Rd</sub>', 'not evaluated by the engine', '&mdash;', 'not evaluated');
     h+=msbRow('N<sub>pl.Rd</sub> = A<sub>g</sub>.f<sub>y</sub>/&gamma;<sub>M0</sub>', f1(sec.A,2)+' x '+msbInt(c.fy)+'/1 = (No bearing / block tearing design)', msbKN(AX.NplRd)+' kN', '');
     if(AX.tension && S.anet!=null) h+=msbRow('N<sub>u.Rd</sub> = 0.9A<sub>net</sub>f<sub>u</sub>/&gamma;<sub>M2</sub>', '0.9 x '+f1(S.anet,2)+' x '+msbInt(fuFromGrade(S.grade))+'/1.10', msbKN(AX.NuRd)+' kN', '&gamma;<sub>M2</sub> = 1.10 (UK NA)');
     if(AX.tension) h+=msbRow('n = N<sub>Ed</sub>/N<sub>t.Rd</sub>', f1(-Math.abs(N),3)+' / '+msbKN(AX.NtRd)+' =', msbR(AX.nUtil), msbWarn(AX.nUtil<=1.0001));
@@ -299,7 +292,7 @@ function renderMasterSeriesBrief(a,c,sec){
       h+=msbRow('W<sub>pl.N.y</sub> = Fn(W<sub>pl.y</sub>, A<sub>vy</sub>, n)', f1(sec.Sx,1)+', '+f1(c.Av/100,3)+', '+msbR(AX.n), f1(msbWplN(AX.MN,c.fy),1)+' cm&sup3;', '');
       h+=msbRow('M<sub>N.y.Rd</sub> = W<sub>pl.N.y</sub>.f<sub>y</sub>/&gamma;<sub>M0</sub>', f1(msbWplN(AX.MN,c.fy),1)+' x '+msbInt(c.fy)+'/1', msbKNm(AX.MN)+' kN.m', waiver? '6.2.9.1(4)' : '');
       if(AX.biax){
-        h+=msbRow('W<sub>pl.N.z</sub> = Fn(W<sub>pl.z</sub>, A<sub>vz</sub>, n)', f1(sec.Sy,1)+', '+(vz? f1(vz.Avz/100,3) : '&mdash;')+', '+msbR(AX.n), f1(msbWplN(AX.MNz,c.fy),1)+' cm&sup3;', '');
+        h+=msbRow('W<sub>pl.N.z</sub> = Fn(W<sub>pl.z</sub>, A<sub>vz</sub>, n)', f1(sec.Sy,1)+', '+(AX.Avz!=null? f1(AX.Avz/100,3) : '&mdash;')+', '+msbR(AX.n), f1(msbWplN(AX.MNz,c.fy),1)+' cm&sup3;', '');
         h+=msbRow('M<sub>N.z.Rd</sub> = W<sub>pl.N.z</sub>.f<sub>y</sub>/&gamma;<sub>M0</sub>', f1(msbWplN(AX.MNz,c.fy),1)+' x '+msbInt(c.fy)+'/1', msbKNm(AX.MNz)+' kN.m', '');
       }
       h+=msbRow('(M<sub>y.Ed</sub>/M<sub>N.y.Rd</sub>)<sup>&alpha;</sup>+(M<sub>z.Ed</sub>/M<sub>N.z.Rd</sub>)<sup>&beta;</sup>',
@@ -372,9 +365,20 @@ function renderMasterSeriesBrief(a,c,sec){
     h+=msbRow('M<sub>b.Rd</sub> = M<sub>c.y.Rd</sub>', 'Fully Restrained', msbKNm(c.McRd)+' kN.m', '');
   } else if(!LT){
     h+=msbRow('M<sub>b.Rd</sub>', 'no LTB result in the check object', '&mdash;', 'not evaluated');
-  } else if(LT.na){
-    h+=msbRow('M<sub>b.Rd</sub> = M<sub>c.y.Rd</sub>', 'closed hollow section &mdash; not susceptible to LTB', msbKNm(LT.MbRd)+' kN.m', '6.3.2.1(2)');
-    if(LT.Mcr>0) h+=msbRow('M<sub>cr</sub> (information, I<sub>w</sub> = 0)', 'SN003a with C<sub>1</sub> = '+msbR(c.C1)+', L<sub>e</sub> = '+msbM(c.LE/1000)+' m: &lambda;&#772;<sub>LT</sub> = '+msbR(LT.lamLTmcr), msbKNm(LT.Mcr)+' kN.m', 'SN003a');
+  } else if(LT.box && !eigen){
+    // closed section on the standard route: SN003a chain with I_w = 0
+    if(LT.ignM){
+      if(S.family==='shs') h+=msbRow('M<sub>b.Rd</sub> = M<sub>c.y.Rd</sub>', 'closed hollow section &mdash; not susceptible to LTB (&lambda;&#772;<sub>LT</sub> = '+msbR(LT.lamLTmcr)+' &le; 0.4)', msbKNm(LT.MbRd)+' kN.m', '6.3.2.1(2)');
+      else h+=msbRow('M<sub>b.Rd</sub> = M<sub>c.y.Rd</sub>', 'closed hollow section, &lambda;&#772;<sub>LT</sub> = '+msbR(LT.lamLTmcr)+' &le; 0.4: LTB may be ignored', msbKNm(LT.MbRd)+' kN.m', '6.3.2.2(4)');
+      if(LT.Mcr>0) h+=msbRow('M<sub>cr</sub> (information, I<sub>w</sub> = 0)', 'SN003a with C<sub>1</sub> = '+msbR(c.C1)+', L<sub>e</sub> = '+msbM(c.LE/1000)+' m; '+msbEsc(LT.zgNote||''), msbKNm(LT.Mcr)+' kN.m', 'SN003a');
+    } else {
+      h+=msbRow('L<sub>e</sub> = '+g(leK,2)+' L', g(leK,2)+' x '+msbM(S.L)+' =', msbM(c.LE/1000)+' m', '');
+      h+=msbRow('M<sub>cr</sub> = Fn(C<sub>1</sub>, L<sub>e</sub>, I<sub>z</sub>, I<sub>t</sub>, I<sub>w</sub> = 0, E)', msbR(c.C1)+', '+f1(c.LE/1000,3)+', '+g(sec.Iy,2)+', '+g(sec.J,2)+', 0, '+msbInt(a.E)+'; '+msbEsc(LT.zgNote||''), msbKNm(LT.Mcr)+' kN.m', LT.zgBlocked? '<span class="ms-warn">BLOCKED</span>' : 'SN003a');
+      h+=lamLine(LT.lamLTmcr,LT.Mcr);
+      h+=chiLine(LT.lamLTmcr,LT.PhiM,LT.curve.alphaLT,LT.chiM,LT.curve.curve);
+      h+=chiModLine(LT.chiM,LT.lamLTmcr,LT.kc,LT.fM,LT.chiModM,'6.3.2.3 / NA Table NA.1');
+      h+=mbLine(LT.chiModM,LT.MbRd);
+    }
     h+=ratioLine(c.Mx,LT.MbRd);
   } else if(eigen){
     if(LT.failed){
@@ -418,6 +422,7 @@ function renderMasterSeriesBrief(a,c,sec){
     h+=ratioLine(c.Mx,LT.MbRd);
   } else if(LT.channel){
     h+=msbRow('L<sub>e</sub> = '+g(leK,2)+' L', g(leK,2)+' x '+msbM(S.L)+' =', msbM(c.LE/1000)+' m', '');
+    if(Math.abs(LT.zg||0)>1e-9) h+=msbRow('z<sub>g</sub>', msbEsc(LT.zgNote||''), '', 'load height');
     h+=msbRow('&lambda;&#772;<sub>LT</sub> = (L<sub>e</sub>/i<sub>z</sub>)/&kappa;', '('+g(c.LE,0)+'/'+g(LT.ry,1)+')/'+g(LT.kappa,0)+' ('+S.grade+')', msbR(LT.lamLTmcr), 'P362 channel');
     if(LT.ignM) h+=ignLine(LT.lamLTmcr); else h+=chiLine(LT.lamLTmcr,LT.PhiM,0.76,LT.chiM,'d');
     h+=msbRow('M<sub>b.Rd</sub> = &chi;W<sub>pl.y</sub>.f<sub>y</sub> (&kappa; chain, no f)', msbR(LT.chiM)+' x '+WyTxt+' x '+msbInt(c.fy)+' =', msbKNm(LT.MbSimp)+' kN.m', '');
@@ -431,15 +436,13 @@ function renderMasterSeriesBrief(a,c,sec){
   } else {
     // D. standard closed form, SN003a (I/H)
     h+=msbRow('L<sub>e</sub> = '+g(leK,2)+' L', g(leK,2)+' x '+msbM(S.L)+' =', msbM(c.LE/1000)+' m', '');
-    h+=msbRow('M<sub>cr</sub> = Fn(C<sub>1</sub>, L<sub>e</sub>, I<sub>z</sub>, I<sub>t</sub>, I<sub>w</sub>, E)', msbR(c.C1)+', '+f1(c.LE/1000,3)+', '+g(sec.Iy,2)+', '+g(sec.J,2)+', '+g(sec.Iw||0,4)+', '+msbInt(a.E)+(LT.zgUsed? ', C<sub>2</sub>z<sub>g</sub> = '+g(LT.C2*LT.zg,1)+' mm' : ''), msbKNm(LT.Mcr)+' kN.m', 'SN003a');
+    h+=msbRow('M<sub>cr</sub> = Fn(C<sub>1</sub>, L<sub>e</sub>, I<sub>z</sub>, I<sub>t</sub>, I<sub>w</sub>, E)', msbR(c.C1)+', '+f1(c.LE/1000,3)+', '+g(sec.Iy,2)+', '+g(sec.J,2)+', '+g(sec.Iw||0,4)+', '+msbInt(a.E)+(LT.zgUsed? ', C<sub>2</sub>z<sub>g</sub> = '+g(LT.C2*LT.zg,1)+' mm' : '')+'; '+msbEsc(LT.zgNote||''), msbKNm(LT.Mcr)+' kN.m', LT.zgBlocked? '<span class="ms-warn">BLOCKED</span>' : 'SN003a');
     h+=lamLine(LT.lamLTmcr,LT.Mcr);
     if(LT.ignM) h+=ignLine(LT.lamLTmcr); else h+=chiLine(LT.lamLTmcr,LT.PhiM,LT.curve.alphaLT,LT.chiM,LT.curve.curve);
     h+=chiModLine(LT.chiM,LT.lamLTmcr,LT.kc,LT.fM,LT.chiModM,'6.3.2.3');
-    h+=mbLine(LT.chiModM,LT.MbMcr);
-    if(Math.abs(LT.MbRd-LT.MbMcr)>1e-6){
-      h+=msbRow('&lambda;&#772;<sub>LT</sub> (P362 6.55 simplified) ; M<sub>b.Rd</sub>', '(1/&radic;C<sub>1</sub>)0.9&lambda;&#772;<sub>z</sub>&radic;&beta;<sub>w</sub> = '+msbR(LT.lamLTsimp)+'; &chi;<sub>LT.mod</sub> = '+msbR(LT.chiModS), msbKNm(LT.MbSimp)+' kN.m', 'P362 6.55');
-      h+=msbRow('M<sub>b.Rd</sub> (design basis)', msbEsc(c.ltbBasis), msbKNm(LT.MbRd)+' kN.m', '');
-    }
+    h+=mbLine(LT.chiModM,LT.MbRd);
+    // [beam-v03 addition] the P362 Expn 6.55 simplified slenderness, comparison only (never the design basis)
+    h+=msbRow('&lambda;&#772;<sub>LT</sub> (P362 6.55 simplified) ; M<sub>b.Rd</sub> (comparison only)', '(1/&radic;C<sub>1</sub>)0.9&lambda;&#772;<sub>z</sub>&radic;&beta;<sub>w</sub> = '+msbR(LT.lamLTsimp)+'; &chi;<sub>LT.mod</sub> = '+msbR(LT.chiModS)+'; M<sub>y.Ed</sub>/M<sub>b.Rd,simp</sub> = '+msbR(c.Mx/Math.max(LT.MbSimp,1e-9)), msbKNm(LT.MbSimp)+' kN.m', 'P362 6.55 comparison');
     h+=ratioLine(c.Mx,LT.MbRd);
   }
   h+=msbNotVerifiedRows(nv.ltb);
@@ -523,6 +526,9 @@ function renderMasterSeriesBrief(a,c,sec){
     }
     h+=msbNotVerifiedRows(nv.torsion);
   }
+
+  /* ---- blocking messages that no block above claims ---- */
+  h+=msbNotVerifiedRows(nv.general);
 
   /* ---- 5.9 Deflection Check ---- */
   h+=msbHead('Deflection Check - Load Case '+caseD);

@@ -27,7 +27,8 @@ function render(over, method) {
   c.reset(Object.assign({}, over, method ? {mcrMethod: method} : {}));
   return run(`(()=>{ const a=analyse(); const ch=checks(a); const html=renderMasterSeriesBrief(a,ch,a.sec);
     return {html, utils:ch.utils, unsupported:ch.unsupported, McRd:ch.McRd, ltbUtil:ch.ltbUtil, momUtil:ch.momUtil, pass:ch.pass,
-            ax:!!ch.ax, buck:ch.buck? {Fc:ch.buck.Fc, biax:ch.buck.biax} : null, tor:!!ch.tor, mcrMethod:ch.mcrMethod, eigen:!!(ch.ltb&&ch.ltb.eigen)}; })()`);
+            ax:!!ch.ax, axVplZ:ch.ax? ch.ax.VplZ : null, axMcz:ch.ax? ch.ax.Mcz : null, buck:ch.buck? {Fc:ch.buck.Fc, biax:ch.buck.biax} : null, tor:!!ch.tor, mcrMethod:ch.mcrMethod, eigen:!!(ch.ltb&&ch.ltb.eigen),
+            ltbMbRd:ch.ltb? ch.ltb.MbRd : null, ltbMbMcr:ch.ltb? ch.ltb.MbMcr : null, ltbMbSimp:ch.ltb? ch.ltb.MbSimp : null}; })()`);
 }
 // ---- HTML readers ----
 const ROW = /<div class="ms-row[^"]*"><div class="ms-l">(.*?)<\/div><div class="ms-v[^"]*">(.*?)<\/div><div class="ms-r">(.*?)<\/div><div class="ms-t">(.*?)<\/div><\/div>/g;
@@ -119,10 +120,17 @@ test('demo beam, not fully restrained: FE lines in eigen mode, fn(M1, M2, Mo, ps
   assert.ok(c1, 'standard C1 line'); assert.equal(c1.tag, 'Uniform'); assert.equal(c1.res, '1.127');
   assert.equal(c1.vals, '0.0, 0.0, 459.0, 1.000, 300.000');
   const mcr = row(hs2, /^M<sub>cr<\/sub> = Fn\(C<sub>1<\/sub>, L<sub>e<\/sub>, I<sub>z<\/sub>, I<sub>t<\/sub>, I<sub>w<\/sub>, E\)$/);
-  assert.equal(mcr.vals, '1.127, 8.000, 1870, 69.2, 0.922, 210000'); assert.equal(mcr.tag, 'SN003a');
+  assert.equal(mcr.vals, '1.127, 8.000, 1870, 69.2, 0.922, 210000; z<sub>g</sub> = 0 (load through the shear centre)'); assert.equal(mcr.tag, 'SN003a');
   assert.ok(row(hs2, /^L<sub>e<\/sub> = 1 L$/).res === '8 m');
-  assert.ok(row(hs2, /P362 6\.55 simplified/), 'simplified route printed when it is the design basis');
-  assert.ok(row(hs2, /^M<sub>b\.Rd<\/sub> \(design basis\)$/), 'design-basis line');
+  // the Mcr route is the design basis: the printed Mb.Rd is the SN003a-chain value and the
+  // ratio line equals c.ltbUtil (checked by checkCommon); the P362 6.55 route is a comparison row
+  const mbS = row(hs2, /^M<sub>b\.Rd<\/sub> = &chi;/);
+  near3(mbS.res, s.ltbMbMcr, 'Mb.Rd printed = MbMcr'); near3(mbS.res, s.ltbMbRd, 'Mb.Rd printed = design MbRd');
+  const cmp = row(hs2, /P362 6\.55 simplified\) ; M<sub>b\.Rd<\/sub> \(comparison only\)/);
+  assert.ok(cmp && cmp.tag === 'P362 6.55 comparison', 'simplified route printed as a comparison row');
+  near3(cmp.res, s.ltbMbSimp, 'comparison row prints MbSimp');
+  assert.equal(row(hs2, /^M<sub>b\.Rd<\/sub> \(design basis\)$/), null, 'no separate design-basis line: the chain above IS the basis');
+  assert.ok(/z<sub>g<\/sub> = 0 \(load through the shear centre\)/.test(mcr.vals), 'load height always printed on the Mcr line');
 });
 
 test('UB with axial compression and Mz: Axial with Moments brief with every block, both methods', () => {
@@ -144,6 +152,9 @@ test('UB with axial compression and Mz: Axial with Moments brief with every bloc
     assert.equal(row(html, /^C<sub>mz<\/sub>/).tag, 'Table B.3');
     assert.ok(/Table B\.[12]/.test(row(html, /^k<sub>zy<\/sub>/).tag));
     assert.ok(html.includes('(No bearing / block tearing design)'));
+    // V_pl.z.Rd and M_c.z.Rd are the engine's c.ax values (nothing recomputed in the brief)
+    near3(row(html, /^V<sub>z\.Ed<\/sub>\/V<sub>pl\.z\.Rd<\/sub>$/).vals.replace(/^0 \/ /, ''), r.axVplZ, m + ': V_pl.z.Rd from c.ax');
+    near3(row(html, /^M<sub>c\.z\.Rd<\/sub> = /).res, r.axMcz, m + ': M_c.z.Rd from c.ax');
     assert.deepEqual(u.names.slice(0, 7), ['N_Ed/N_(pl.Rd)', 'Local', 'UNyz', 'UMyz', 'Ax+M_6.61', 'Ax+M_6.62', 'Deflection']);
     near3(u.vals[4], r.utils.find(x => /6\.61/.test(x.name)).val, 'Ax+M_6.61'); near3(u.vals[5], r.utils.find(x => /6\.62/.test(x.name)).val, 'Ax+M_6.62');
     near3(u.vals[1], r.utils.find(x => /Biaxial/.test(x.name)).val, 'Local = biaxial interaction');
@@ -250,10 +261,17 @@ test('pure helpers: case ranges, unity max, minor-axis shear area, W_pl.N back-s
   assert.equal(run('msbCaseRanges([1,2,4,5,6,9])'), '1-2, 4-6, 9');
   assert.equal(run('msbCaseRanges([])'), '');
   assert.equal(run('msbMaxExclDeflection([{name:"Deflection",val:5},{name:"a",val:0.4},{name:"b",val:0.9}])'), 0.9);
-  const vz = run('msbVplZ({kind:"I",A:104,tw:9.9,isBox:false},275,428)');
-  assert.ok(Math.abs(vz.Avz - (10400 - 428 * 9.9)) < 1e-9 && Math.abs(vz.VplZ - vz.Avz * 275 / Math.sqrt(3) / 1000) < 1e-9);
-  assert.equal(run('msbVplZ({kind:"channel"},275,100)'), null);
-  const bx = run('msbVplZ({kind:"box",isBox:true,A:35.8,B:150,D:150},275,0)'); assert.ok(Math.abs(bx.Avz - 1790) < 1e-9);
+  assert.equal(run('typeof msbVplZ'), 'undefined', 'no V_pl.z.Rd recomputation in the brief');
+  assert.equal(run('typeof msbMcz'), 'undefined', 'no M_c.z.Rd recomputation in the brief');
+  // the engine's c.ax carries V_pl.z.Rd (cl 6.2.6(3)(f): A - hw tw) and M_c.z.Rd (class-consistent W_z fy)
+  c.reset({axial:100});
+  const ax = run('(()=>{ const a=analyse(); const ch=checks(a); return {ax:ch.ax, A:a.sec.A, tw:a.sec.tw, D:a.sec.D, tf:a.sec.tf, Sy:a.sec.Sy, fy:ch.fy, cls:ch.cl.cls}; })()');
+  const AvzExp = ax.A * 100 - (ax.D - 2 * ax.tf) * ax.tw;
+  assert.ok(Math.abs(ax.ax.Avz - AvzExp) < 1e-9 && Math.abs(ax.ax.VplZ - AvzExp * ax.fy / Math.sqrt(3) / 1000) < 1e-9, 'c.ax.VplZ');
+  assert.ok(ax.cls <= 2 && Math.abs(ax.ax.Mcz - ax.Sy * 1e3 * ax.fy / 1e6) < 1e-9, 'c.ax.Mcz = W_pl.z fy');
+  c.reset({family:'shs', shsKey:'150x150x6.3', axial:50});
+  const bx = run('(()=>{ const a=analyse(); const ch=checks(a); return {Avz:ch.ax.Avz, A:a.sec.A, B:a.sec.B, D:a.sec.D}; })()');
+  assert.ok(Math.abs(bx.Avz - bx.A * 100 * bx.B / (bx.D + bx.B)) < 1e-9, 'box A_v,z = A b/(b+h)');
   assert.ok(Math.abs(run('msbWplN(503.25,275)') - 1830) < 1e-9);
   assert.ok(Math.abs(run('msbNcr(210000,1870,8000)') - Math.PI ** 2 * 210000 * 1870e4 / 8000 ** 2 / 1000) < 1e-9);
   assert.ok(Math.abs(run('msbKc(1.127)') - 1 / Math.sqrt(1.127)) < 1e-12 && run('msbKc(0.5)') === 1);
@@ -266,4 +284,46 @@ test('pure helpers: case ranges, unity max, minor-axis shear area, W_pl.N back-s
   assert.equal(run('msbBlockFor("EC3 Class 4 (slender) section: effective-section properties")'), 'class');
   assert.equal(run('msbBlockFor("Torsion on this open section is NOT COVERED")'), 'torsion');
   assert.equal(run('msbBlockFor("Elastic critical moment: mesh convergence error is 1 %")'), 'ltb');
+});
+
+test('a blocking message that no block claims is still printed as a NOT VERIFIED row (before the deflection block)', () => {
+  c.reset({restraint:'ltb', mcrMethod:'standard'});
+  const r = run(`(()=>{ const a=analyse(); const ch=checks(a);
+    const msg='Custom limitation recorded by a future check; PASS is blocked.';
+    assert_block: { if(msbBlockFor(msg)!=='general') throw new Error('test message must be unclassifiable: '+msbBlockFor(msg)); }
+    ch.unsupported=ch.unsupported.concat([msg]); ch.pass=false;
+    return {html:renderMasterSeriesBrief(a,ch,a.sec), utils:ch.utils, unsupported:ch.unsupported, McRd:ch.McRd, ltbUtil:ch.ltbUtil, momUtil:ch.momUtil, pass:ch.pass, msg}; })()`);
+  const {html} = checkCommon(r, 'general-nv');   // asserts every unsupported message has an ms-nv-msg row
+  const iRow = html.indexOf('ms-nv-msg">' + r.msg), iDef = html.indexOf('Deflection Check - Load Case'), iTor = html.indexOf('Torsion Design');
+  assert.ok(iRow > 0 && iRow < iDef, 'general row sits before the deflection block');
+  assert.ok(iTor < 0 || iRow > iTor, 'general row sits after the torsion block when present');
+  assert.equal([...html.matchAll(/<div class="ms-row ms-nv">/g)].length, r.unsupported.length, 'one NOT VERIFIED row per message');
+});
+
+test('standard route, closed section on a long span: the brief prints the real chi_LT chain and curve, not the 6.3.2.1(2) exemption', () => {
+  const over = {family:'rhs', rhsKey:'300 x 100 x 8.0', restraint:'ltb', L:14, supports:[{pos:0,type:'pinned'},{pos:14,type:'pinned'}],
+                loads:[{type:'udl',x1:0,x2:14,w:1,case:'G'},{type:'udl',x1:0,x2:14,w:1.5,case:'Q'}]};
+  const s = render(over, 'standard');
+  const {html} = checkCommon(s, 'rhs-long/standard');
+  assert.equal(row(html, /^M<sub>b\.Rd<\/sub> = M<sub>c\.y\.Rd<\/sub>$/), null, 'no exemption line when lambda_LT > 0.4');
+  assert.ok(row(html, /^M<sub>cr<\/sub> = Fn\(C<sub>1<\/sub>, L<sub>e<\/sub>, I<sub>z<\/sub>, I<sub>t<\/sub>, I<sub>w<\/sub> = 0, E\)$/), 'SN003a line with Iw = 0');
+  assert.equal(row(html, /^&chi;<sub>LT<\/sub> = Fn/).tag, 'Curve c', 'hot-finished RHS h/b = 3 -> curve c (NA Table NA.1), same as the eigen route');
+  assert.equal(row(html, /^&chi;<sub>LT\.mod<\/sub> = Fn/).tag, '6.3.2.3 / NA Table NA.1');
+  near3(row(html, /^M<sub>b\.Rd<\/sub> = &chi;/).res, s.ltbMbRd, 'Mb.Rd printed = engine value');
+  assert.ok(s.ltbMbRd < s.McRd, 'a real reduction is printed');
+  const e = render(over, 'eigen');
+  assert.equal(row(e.html, /^&chi;<sub>LT<\/sub> = Fn/).tag, 'Curve c', 'eigen route: same curve');
+  assert.ok(Math.abs(e.ltbMbRd - s.ltbMbRd) / s.ltbMbRd < 0.01, 'both routes agree within 1% for this box');
+});
+
+test('standard route: the entered load height is always printed, and a destabilising height on a non-tabulated diagram is BLOCKED', () => {
+  // off-centre point load, top-flange load height: Serna C1, no published C2
+  const s = render({restraint:'ltb', eccOn:true, za:201, L:7, supports:[{pos:0,type:'pinned'},{pos:7,type:'pinned'}],
+    loads:[{type:'point',pos:2.45,P:12,case:'G'},{type:'point',pos:2.45,P:32,case:'Q'}]}, 'standard');
+  const {html} = checkCommon(s, 'offcentre-zg/standard');
+  const mcr = row(html, /^M<sub>cr<\/sub> = Fn\(C<sub>1<\/sub>, L<sub>e<\/sub>/);
+  assert.ok(/z<sub>g<\/sub> = \+201 mm entered &mdash; NOT applied/.test(mcr.vals), 'zg printed as not applied: ' + mcr.vals);
+  assert.ok(mcr.tag.includes('BLOCKED'));
+  assert.ok(s.unsupported.some(m => /C<sub>2<\/sub> only for the simply supported and fixed-ended/.test(m)) && !s.pass);
+  assert.ok(html.includes('(NOT VERIFIED)') || html.includes('(FAIL)'));
 });
