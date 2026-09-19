@@ -330,7 +330,7 @@ test('brief: "Web Transverse Forces (EN 1993-1-5 cl 6)" block directly after Loc
   assert.ok(names.includes('F/F_Rd') && names.includes('Web 7.2') && names[names.length - 1] === 'Max');
   // blank s_s at a support that fails at the lower bound 0: NOT VERIFIED row in the block, the asterisk note, the station row tag and the title
   c.reset({ends:E('ss')}); r = brief(); h = r.html;
-  assert.ok(/s<sub>s<\/sub> = 0\.00 mm \(not entered: lower bound 0\)/.test(h) && /\* s<sub>s<\/sub> not entered at this support: evaluated at the lower bound s<sub>s<\/sub> = 0/.test(h), 'lower-bound note');
+  assert.ok(/s<sub>s<\/sub> = 0\.00 mm \(not entered: lower bound 0\)/.test(h) && /\* s<sub>s<\/sub> not entered at this end: evaluated at the lower bound s<sub>s<\/sub> = 0/.test(h), 'lower-bound note');
   assert.ok(/\(NOT VERIFIED\)/.test(h.slice(0, 400)) && !r.pass && !r.utils.some(u => /Web transverse/.test(u.name)), 'NOT VERIFIED, no web verdict entry');
   const wb = h.slice(h.indexOf('Web Transverse Forces (EN 1993-1-5 cl 6)'), h.indexOf('Compression Resistance') > 0 ? h.indexOf('Compression Resistance') : h.indexOf('Lateral'));
   assert.ok(/ms-nv-msg">Web transverse force at x = 0 m \(End 1 reaction\): the stiff bearing length/.test(wb), 'NOT VERIFIED row inside the web block');
@@ -349,7 +349,7 @@ test('brief: "Web Transverse Forces (EN 1993-1-5 cl 6)" block directly after Loc
     const i = rep.indexOf('Web Transverse Forces (EN 1993-1-5 Cl. 6, interaction Cl. 7.2)');
     assert.ok(i > 0 && i > rep.indexOf('Moment Resistance (Cl. 6.2.5)'), 'report block after Moment Resistance');
     assert.ok(/Governing station x = 3 m: point load 1/.test(rep) && /<td>End 2 reaction<\/td><td colspan="11">stiffener declared - design stiffener separately/.test(rep));
-    assert.ok(/Web transverse forces \(EN 1993-1-5 clause 6\): F<sub>Rd<\/sub> = f<sub>yw<\/sub>L<sub>eff<\/sub>t<sub>w<\/sub>\/&gamma;<sub>M1<\/sub> at every point load and every support reaction/.test(rep), 'report note');
+    assert.ok(/Web transverse forces \(EN 1993-1-5 clause 6\): F<sub>Rd<\/sub> = f<sub>yw<\/sub>L<sub>eff<\/sub>t<sub>w<\/sub>\/&gamma;<sub>M1<\/sub> at every point load and every end reaction/.test(rep), 'report note');
     assert.ok(!/undefined|NaN/.test(rep.slice(i, i + 6000)));
   }
 });

@@ -77,7 +77,7 @@ function wire(){
     .forEach(id=>{ if($(id)) $(id).addEventListener("input",()=>{ readScalarInputs(); recompute(); }); });
   $("za").addEventListener("input",()=>{ readScalarInputs(); renderLoadList(); recompute(); });
   $("destab").addEventListener("change",()=>{ readScalarInputs(); recompute(); });
-  $("eccOn").addEventListener("change",()=>{ readScalarInputs(); renderEndsList(); renderLoadList(); recompute(); });   // end rows: the warping flag is shown once eccentricity is on
+  $("eccOn").addEventListener("change",()=>{ readScalarInputs(); renderLoadList(); recompute(); });
   function refreshAutoFields(){
     const sec=activeSection();
     $("py").value=pyFromGrade(S.grade,sec.tf); S.py=null;
@@ -108,18 +108,18 @@ function wire(){
     S.mcrMethod=$("mcrMethod").value; syncInputs(); recompute(); });
   $("shsType").addEventListener("change",()=>{
     S.shsType=$("shsType").value; syncInputs(); refreshAutoFields(); recompute(); });
-  $("length").addEventListener("change",()=>{ // stretch full-span loads/supports that sat at old end
-    readScalarInputs(); syncSelfWeightLoads(); renderEndsList(); renderHingeList(); renderLoadList(); recompute(); });
-  // end presets (data-preset: cant | ss | propped | fixed, or any END_PRESETS key);
-  // the seating / hold-down / stiffener entries of the ends are kept
-  const PRESET_ALIAS={cant:'cantilever', ss:'ss', propped:'fixed-pinned', fixed:'fixed-fixed'};
-  document.querySelectorAll("[data-preset]").forEach(b=>b.addEventListener("click",()=>{
-    const p=PRESET_ALIAS[b.dataset.preset]||b.dataset.preset;
-    const keep=k=>({holdDown:S.ends[k].holdDown, ss:S.ends[k].ss, stiff:S.ends[k].stiff});
-    S.ends=endsPreset(p,{e1:keep('e1'),e2:keep('e2')});
-    S.hinges=[];   // a preset can leave an existing hinge as a mechanism
-    renderEndsList(); renderHingeList(); recompute();
-  }));
+  $("length").addEventListener("change",()=>{ // the End 2 label (x = L) and full-span loads follow the new length
+    readScalarInputs(); syncSelfWeightLoads(); renderEndsPanel(); renderHingeList(); renderLoadList(); recompute(); });
+  // End conditions: the preset drop-list and the quick buttons (data-preset = an
+  // END_PRESETS key) apply a preset through applyEndPreset() (the seating /
+  // hold-down / stiffener entries of the ends are kept, the hinges cleared);
+  // 'custom' on the drop-list only names the current flags
+  function choosePreset(p){
+    if(p==='custom'){ S.endPreset='custom'; renderEndsPanel(); return; }
+    applyEndPreset(S,p); renderEndsPanel(); renderHingeList(); recompute();
+  }
+  if($("endPreset")) $("endPreset").addEventListener("change",()=>choosePreset($("endPreset").value));
+  document.querySelectorAll("[data-preset]").forEach(b=>b.addEventListener("click",()=>choosePreset(b.dataset.preset)));
   $("addHinge").addEventListener("click",()=>{ if(!S.hinges) S.hinges=[]; S.hinges.push({pos:+(S.L/2).toFixed(2)}); renderHingeList(); recompute(); });
   document.querySelectorAll("[data-add]").forEach(b=>b.addEventListener("click",()=>{
     const L=S.L, t=b.dataset.add;

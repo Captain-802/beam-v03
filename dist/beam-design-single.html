@@ -45,6 +45,17 @@
   .ltb-fixed{color:#1f2937;}
   .ltb-checks{display:grid; grid-template-columns:1fr 1fr; gap:4px 8px; margin-top:5px;}
   .ltb-checks .checkline{font-size:10.5px; margin:0;}
+  /* End conditions panel: End 1 | End 2 columns, each with its glyph, the seven
+     DOF boxes and the seating / hold-down entries of a vertically held end */
+  .ends-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:4px 0 6px;}
+  .end-col{border:1px solid #cfd6e2; border-radius:6px; padding:7px 8px; background:#fbfcfe; min-width:0;}
+  .end-head{font-size:12px; font-weight:700; color:#1f2937; margin-bottom:3px;}
+  .end-glyph{display:block; width:100%; height:auto; max-height:72px; margin:0 0 4px;}
+  .end-dofs .checkline{font-size:11px; margin:2px 0;}
+  .end-extra{border-top:1px dashed #d3d8e2; margin-top:6px; padding-top:5px;}
+  .end-extra .checkline{font-size:10.5px; margin:3px 0;}
+  .end-extra .fld{margin:3px 0;}
+  .end-none{font-size:10.5px; color:#6b7280;}
   .buttons{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:6px 0 2px;}
   button{border:1px solid #1e40af; border-radius:6px; background:var(--accent); color:#fff; padding:8px 10px; font-weight:700; cursor:pointer; font-size:12px;}
   button.secondary{background:#fff; color:#1e40af;}
@@ -135,6 +146,7 @@
   .ms-brief.ms-fail{background:#dbe6f5;}
   .ms-brief sub,.ms-brief sup{font-size:9px; line-height:0;}
   .ms-title{text-align:center; font-weight:700; color:#1a237e; font-size:15px; line-height:1.35; margin-bottom:8px;}
+  .ms-title .ms-ends{font-weight:400; font-size:12.5px; color:#1f2937; margin-top:2px;}   /* End conditions line under the title (19 Sep 2026 scope) */
   .ms-h{font-weight:700; color:#1a237e; font-size:16px; margin:9px 0 2px; line-height:1.2;}
   .ms-sub{font-weight:700; color:#1a237e; font-size:13.5px; margin:4px 0 1px 8px;}
   .ms-row{display:grid; grid-template-columns:minmax(190px,32%) 1fr minmax(120px,16%) minmax(90px,12%); column-gap:10px; padding:1px 0 1px 8px;}
@@ -218,7 +230,7 @@
 <main class="app">
   <aside class="controls">
     <h1>Steel Beam Designer — Eurocode 3 / BS 5950</h1>
-    <p class="sub">Solves any single-span beam (cantilever, simply supported, propped, fixed, overhanging) under arbitrary loads by the direct stiffness method, then performs the BS 5950-1:2000 member checks for PFC channels, SHS (hot-finished or cold-formed), RHS (hot-finished), UB universal beams, or UC universal columns. Blue Book section data is built in; every value is editable.</p>
+    <p class="sub">Solves one single-span beam with any end condition (six degrees of freedom plus warping at each end: simply supported, fixed, propped, cantilever, guided / sliding end, laterally clamped, or any custom combination) and internal hinges under arbitrary loads by the direct stiffness method, then performs the EN 1993-1-1 (UK NA) or BS 5950-1:2000 member checks for PFC channels, SHS (hot-finished or cold-formed), RHS (hot-finished), UB universal beams, or UC universal columns. Blue Book section data is built in; every value is editable.</p>
 
     <div class="buttons">
       <button type="button" id="printBtn">Print / PDF</button>
@@ -288,22 +300,32 @@
     </details>
 
     <details open>
-      <summary>Geometry &amp; supports</summary>
+      <summary>Geometry &amp; end conditions</summary>
       <label>Member length L, m <input id="length" type="number" step="0.01"></label>
+      <label>End conditions
+        <select id="endPreset">
+          <option value="ss">Simply supported</option>
+          <option value="fixed-fixed">Fixed-fixed</option>
+          <option value="fixed-pinned">Fixed-pinned (propped cantilever)</option>
+          <option value="cantilever">Cantilever</option>
+          <option value="guided-fixed">Guided-fixed</option>
+          <option value="pinned-guided">Pinned-guided</option>
+          <option value="custom">Custom</option>
+        </select>
+      </label>
       <div class="preset-row">
-        <button type="button" data-preset="cant">Cantilever</button>
+        <button type="button" data-preset="cantilever">Cantilever</button>
         <button type="button" data-preset="ss">Simply supported</button>
-        <button type="button" data-preset="propped">Propped cantilever</button>
-        <button type="button" data-preset="fixed">Fixed fixed</button>
+        <button type="button" data-preset="fixed-pinned">Propped cantilever</button>
+        <button type="button" data-preset="fixed-fixed">Fixed fixed</button>
       </div>
-      <div class="list" id="supportList"></div>
-      <div class="addbar"><button type="button" id="addSupport">+ Add support</button></div>
-      <div class="hint">Pinned = vertical restraint only. Fixed = vertical + rotational. Position measured from the left end (0&nbsp;m). A support that lifts in any combination (negative reaction) blocks PASS with a &ldquo;Hold-down required&rdquo; message unless <b>hold-down provided</b> is ticked for it, in which case the design hold-down force is printed as an advisory. <b>Web transverse forces (EC3, EN 1993-1-5 clause 6):</b> every support reaction is checked as a patch load on the bottom flange with the entered <b>stiff bearing length s<sub>s</sub></b> along the member (blank = the lower bound 0: a station that passes at s<sub>s</sub> = 0 is verified for any seating, one that fails at 0 is <b>NOT VERIFIED</b> until the seating length is entered; capped at h<sub>w</sub>); a support at the member end is an end reaction (type c). Uplift is also tested with the &gamma;<sub>G,inf</sub> companions (G at 1.0, STR set B, and 0.9, EQU set A, with the entered variable factors) of every ULS combination; the hold-down force is the worst of them. Tick <b>bearing stiffener provided</b> to declare a stiffener at that support instead &mdash; the stiffener itself must then be designed to EN 1993-1-5 9.4.</div>
+      <div class="ends-grid" id="endsPanel"></div>
+      <div class="hint">One span from End 1 (x = 0) to End 2 (x = L). Each end has six degrees of freedom plus warping, each <b>restrained (ticked)</b> or free: U<sub>x</sub> axial, U<sub>y</sub> lateral, U<sub>z</sub> vertical, R<sub>x</sub> twist, R<sub>y</sub> rotation about the major axis (in-plane fixity), R<sub>z</sub> rotation about the minor axis (lateral bending), warping &phi;&prime; = 0. U<sub>z</sub> + R<sub>y</sub> = fixed, U<sub>z</sub> alone = pinned, R<sub>y</sub> alone = guided (sliding end: rotation held, vertical free, no vertical reaction), neither = free end. U<sub>y</sub>, R<sub>z</sub>, R<sub>x</sub> and warping are the LTB eigen and torsion boundary conditions (U<sub>y</sub> + R<sub>x</sub> = fork end, + R<sub>z</sub> = laterally clamped); U<sub>x</sub> is the axial load path (N<sub>Ed</sub> needs it at one end at least). A cantilever is End 1 fully restrained and End 2 free; the guided-fixed preset holds End 1 fixed and End 2 sliding. The strut effective lengths default from these fixities (P360 Table 6.2 / BS 5950 Table 22 style, printed [verify]). Changing a box switches the drop-list to Custom; a mechanism is refused with a message naming the missing restraint. An end that lifts in any combination (negative reaction) blocks PASS with a &ldquo;Hold-down required&rdquo; message unless <b>hold-down provided</b> is ticked for it, in which case the design hold-down force is printed as an advisory; uplift is also tested with the &gamma;<sub>G,inf</sub> companions (G at 1.0, STR set B, and 0.9, EQU set A) of every ULS combination. <b>Web transverse forces (EC3, EN 1993-1-5 clause 6):</b> each end reaction is checked as a patch load on the bottom flange with the entered <b>stiff bearing length s<sub>s</sub></b> along the member (blank = the lower bound 0: a station that passes at s<sub>s</sub> = 0 is verified for any seating, one that fails at 0 is <b>NOT VERIFIED</b> until the seating length is entered; capped at h<sub>w</sub>); an end reaction is load type (c). Tick <b>bearing stiffener provided</b> to declare a stiffener at that end instead &mdash; the stiffener itself must then be designed to EN 1993-1-5 9.4.</div>
 
       <div style="margin-top:10px;font-size:11px;font-weight:700;color:#374151">Internal hinges (moment releases)</div>
       <div class="list" id="hingeList"></div>
       <div class="addbar"><button type="button" id="addHinge">+ Add internal hinge</button></div>
-      <div class="hint">An internal hinge releases the in-plane bending moment (M&nbsp;=&nbsp;0) at that point &mdash; the moment diagram, deflection and elastic critical moment M<sub>cr</sub> all redistribute. The layout must stay stable (e.g. propped / Gerber suspended-span). Lateral and torsional continuity are kept across the hinge; if the physical connection also releases warping or is braced, add that separately in the LTB restraint options.</div>
+      <div class="hint">An internal hinge releases the in-plane bending moment (M&nbsp;=&nbsp;0) at that point inside the span &mdash; the moment diagram, deflection and elastic critical moment M<sub>cr</sub> all redistribute. The ends must keep the member stable with the hinge (e.g. a fixed-pinned span with one hinge); a mechanism is refused. Lateral and torsional continuity are kept across the hinge; if the physical connection also releases warping or is braced, add that separately in the LTB restraint options.</div>
     </details>
 
     <details open>
@@ -316,9 +338,9 @@
         <button type="button" data-add="moment">+ Moment</button>
         <button type="button" id="addSelfWeight">Self-weight auto</button>
       </div>
-      <div class="hint">Forces positive <b>downward</b> (kN, kN/m). Moment positive anticlockwise (kN m). Enter <b>characteristic</b> (unfactored) values and tag each load's <b>case</b>   the partial factors come from the Load Combinations below, not from the load itself. Section self-weight is added automatically as Dead (G) from the selected section mass/m. <b>Point loads (EC3):</b> each is also checked as a transverse force on the web (EN 1993-1-5 clause 6, with the 7.2 interaction) using its own <b>stiff bearing length s<sub>s</sub></b> (blank = 0 mm); tick <b>bearing stiffener provided</b> where a stiffener will be designed (EN 1993-1-5 9.4). A load directly over a support is treated as transferred through the web (type b).</div>
+      <div class="hint">Forces positive <b>downward</b> (kN, kN/m). Moment positive anticlockwise (kN m). Enter <b>characteristic</b> (unfactored) values and tag each load's <b>case</b>   the partial factors come from the Load Combinations below, not from the load itself. Section self-weight is added automatically as Dead (G) from the selected section mass/m. <b>Point loads (EC3):</b> each is also checked as a transverse force on the web (EN 1993-1-5 clause 6, with the 7.2 interaction) using its own <b>stiff bearing length s<sub>s</sub></b> (blank = 0 mm); tick <b>bearing stiffener provided</b> where a stiffener will be designed (EN 1993-1-5 9.4). A load directly over an end holding U<sub>z</sub> is treated as transferred through the web (type b).</div>
       <label class="checkline"><input type="checkbox" id="eccOn"> <span>Load eccentricity</span></label>
-      <div class="hint">When activated, each load row gains its own shear-centre offset <b>e (mm)</b>. In EC3 unrestrained mode each transverse load also gets its own <b>z<sub>g</sub></b> load height above the shear centre. Applied moments act through the shear centre. Automatic self-weight acts through the centroid: e = 0 for doubly symmetric sections, but e = e<sub>sc</sub> for PFC channels. <b>Open-section torsion (EC3):</b> every support prevents twist; a fork-fork single span with full-span or point torques uses the SCI P385 Appendix C closed forms, any other layout (cantilever, multi-span, overhang, partial-span eccentric load, warping-restrained support) the warping-torsion finite-element model, which reports its mesh error. Tick <b>warping restrained for torsion</b> on a support (shown once eccentricity is on) only where the connection really prevents warping of the flanges; the default is a fork end with free warping.</div>
+      <div class="hint">When activated, each load row gains its own shear-centre offset <b>e (mm)</b>. In EC3 unrestrained mode each transverse load also gets its own <b>z<sub>g</sub></b> load height above the shear centre. Applied moments act through the shear centre. Automatic self-weight acts through the centroid: e = 0 for doubly symmetric sections, but e = e<sub>sc</sub> for PFC channels. <b>Open-section torsion (EC3):</b> twist is prevented at every end whose R<sub>x</sub> box is ticked (at least one end must hold it); with U<sub>y</sub> + R<sub>x</sub> at both ends and warping free at both, full-span or point torques use the SCI P385 Appendix C closed forms, any other layout (torsion cantilever with R<sub>x</sub> at one end only, partial-span eccentric load, warping-fixed end) the warping-torsion finite-element model, which reports its mesh error. Tick <b>warping</b> under End conditions only where the connection really prevents warping of the flanges; the default is a fork end with free warping.</div>
     </details>
 
     <details open>
@@ -327,9 +349,7 @@
       <div class="addbar">
         <button type="button" id="addCombo">+ Add combination</button>
       </div>
-      <div class="hint">Switch on every combination you want <b>considered in the design</b>. For each ULS combination switched on, the solver finds Shear/Moment everywhere along the member; the worst case from any switched-on combination governs each check (envelope), and the report states which combination governs which check. At least one ULS and one SLS (deflection) combination must be on.</div>
-      <label class="checkline"><input type="checkbox" id="autoPattern" checked> <span>Automatic pattern loading (multi-span / cantilever)</span></label>
-      <div class="hint">When the member has more than one span segment (support to support, plus any cantilever or end overhang; internal hinges do not split segments), every enabled ULS and SLS combination with a non-zero <b>Q</b> factor is supplemented by the span-wise patterns: Q on each single segment, on each pair of adjacent segments and on alternate segments, with G (and W, E) at their entered factors on every span &mdash; EN 1990 Eq 6.10 as entered, e.g. &ldquo;ULS: 1.35G + 1.5Q (Q on span 2 only)&rdquo;. The generated combinations enter every check (envelopes, per-span deflection, torsion, LTB per combination, uplift). <b>Limitation:</b> &gamma;<sub>G,inf</sub> = 1.0 on relieving spans (Table A1.2(B)) is not generated &mdash; add a reduced-G combination by hand where a relieving permanent action could govern.</div>
+      <div class="hint">Switch on every combination you want <b>considered in the design</b>. For each ULS combination switched on, the solver finds Shear/Moment everywhere along the member; the worst case from any switched-on combination governs each check (envelope), and the report states which combination governs which check. At least one ULS and one SLS (deflection) combination must be on. Every ULS combination with &gamma;<sub>G</sub> &gt; 1.0 is supplemented automatically by its &gamma;<sub>G,inf</sub> companions (G at 1.0, STR set B, and 0.9, EQU set A, variable factors as entered) solved for the end reactions only (uplift / hold-down and web bearing); the moment and shear envelopes keep the entered factors.</div>
     </details>
 
     <details class="compact-details axial-ltb" open>
@@ -343,22 +363,19 @@
           <label><span>M<sub>cr</sub> method</span>
             <select id="mcrMethod"><option value="eigen">FE eigenvalue (actual diagram, load heights, restraints, hinges)</option><option value="standard">Standard closed form (C<sub>1</sub> tables, SN003a / SN006a)</option></select>
           </label>
-          <div class="hint"><b>Standard</b> = closed-form M<sub>cr</sub> = C<sub>1</sub>(&pi;&sup2;EI<sub>z</sub>/L<sub>E</sub>&sup2;)&radic;[I<sub>w</sub>/I<sub>z</sub> + L<sub>E</sub>&sup2;GI<sub>t</sub>/(&pi;&sup2;EI<sub>z</sub>)] with C<sub>1</sub> from the NCCI SN003a tables (simply supported or fixed-ended full-span UDL / central point load, recognised from the load list) or the end-moment formula (&psi; = M<sub>1</sub>/M<sub>2</sub>), the Serna quarter-point expression for a general diagram, C<sub>2</sub>&middot;z<sub>g</sub> where published (a destabilising z<sub>g</sub> on any other diagram blocks PASS unless the destabilising L<sub>E</sub> switch carries it), NCCI SN006a for cantilevers and the P385/P362 channel chain &mdash; as MasterSeries-type software does; L<sub>E</sub> = L<sub>E</sub>-factor &times; L over the whole member; M<sub>b,Rd</sub> from the M<sub>cr</sub> chain (the P362 simplified slenderness is printed for comparison only). <b>Eigen</b> = finite-element eigenvalue of the actual moment diagram with each load&rsquo;s height, the lateral restraints, support conditions and internal hinges (span by span for continuous beams). The report prints both values and their ratio.</div>
+          <div class="hint"><b>Standard</b> = closed-form M<sub>cr</sub> = C<sub>1</sub>(&pi;&sup2;EI<sub>z</sub>/L<sub>E</sub>&sup2;)&radic;[I<sub>w</sub>/I<sub>z</sub> + L<sub>E</sub>&sup2;GI<sub>t</sub>/(&pi;&sup2;EI<sub>z</sub>)] with C<sub>1</sub> from the NCCI SN003a tables (simply supported or fixed-ended full-span UDL / central point load, recognised from the load list) or the end-moment formula (&psi; = M<sub>1</sub>/M<sub>2</sub>), the Serna quarter-point expression for a general diagram, C<sub>2</sub>&middot;z<sub>g</sub> where published (a destabilising z<sub>g</sub> on any other diagram blocks PASS unless the destabilising L<sub>E</sub> switch carries it), NCCI SN006a for cantilevers and the P385/P362 channel chain &mdash; as MasterSeries-type software does; L<sub>E</sub> = L<sub>E</sub>-factor &times; L over the whole member; M<sub>b,Rd</sub> from the M<sub>cr</sub> chain (the P362 simplified slenderness is printed for comparison only). <b>Eigen</b> = finite-element eigenvalue of the actual moment diagram with each load&rsquo;s height, the end degree-of-freedom flags (U<sub>y</sub>, R<sub>z</sub>, R<sub>x</sub>, warping), the intermediate lateral restraints (bay by bay between them) and internal hinges. The report prints both values and their ratio.</div>
         </div>
       </div>
       <label><span>Axial F, kN</span> <input id="axial" type="number" step="0.001"></label>
       <div class="hint">Positive = compression, negative = tension. Entered directly as the governing ULS design value   it is <b>not</b> run through the Load Combinations below. Leave 0 for a pure beam.</div>
       <label><span>Minor-axis moment M<sub>z,Ed</sub>, kN&middot;m</span> <input id="Mz" type="number" step="0.001"></label>
       <div class="hint">Coincident ULS design moment about the <b>minor (z&ndash;z)</b> axis, entered directly (this solver bends in one plane). Forms the full EC3 biaxial interaction (M<sub>y</sub>/M<sub>N,y</sub>)<sup>&alpha;</sup> + (M<sub>z</sub>/M<sub>N,z</sub>)<sup>&beta;</sup> &le; 1 (cl 6.2.9.1). Leave 0 for uniaxial bending.</div>
-      <label id="leRow"><span>L<sub>E</sub> / L factor</span> <input id="leFactor" type="number" step="0.01"></label>
-      <div class="hint">Strut buckling length L<sub>cr</sub> = factor &times; L about both axes (minor axis shortened to the lateral-restraint spacing where restraints are modelled). <b>Cantilever with axial compression:</b> the fixed-free sway length L<sub>cr</sub> = 2.0 L is taken by default while this factor is left at 1.0; any other value is kept as an explicit override.</div>
+      <label id="leRow"><span>L<sub>E</sub> / L factor</span> <input id="leFactor" type="number" step="0.01" placeholder="auto: from the end fixities"></label>
+      <div class="hint">Blank = the strut buckling lengths L<sub>cr,y</sub> and L<sub>cr,z</sub> come from the end fixities under End conditions (y-y from U<sub>z</sub> / R<sub>y</sub>, z-z from U<sub>y</sub> / R<sub>z</sub>: 0.7 L held in position and direction at both ends, 0.85 L direction at one end, 1.0 L direction at neither, 2.0 L cantilever, 1.2 L fixed with a guided far end; P360 Table 6.2 / BS 5950 Table 22 style, printed [verify]); the minor axis is shortened to the lateral-restraint spacing where restraints are modelled. A number here overrides both axes (an entered 1.0 is an override). On the closed-form and BS 5950 LTB routes the same factor sets L<sub>E</sub> = factor &times; L (blank = 1.0).</div>
       <label id="LTRow" style="display:none"><span>Torsional buckling length L<sub>T</sub>, m</span> <input id="LT" type="number" step="0.01" placeholder="blank = twist-restraint spacing"></label>
-      <div class="hint">PFC under axial compression: torsional and torsional-flexural buckling (EN 1993-1-1 cl 6.3.1.4) are checked with N<sub>cr,T</sub> = (GI<sub>T</sub> + &pi;&sup2;EI<sub>w</sub>/L<sub>T</sub>&sup2;)/i<sub>0</sub>&sup2; and the torsional-flexural coupling with the major-axis flexural mode through the shear-centre offset e<sub>sc</sub> (SCI P385 Table A.3). L<sub>T</sub> is the length between points where twist is prevented; blank takes the largest spacing of the twist restraints (supports and intermediate restraints with &phi; held, capped at L<sub>cr,y</sub>) &mdash; a lateral-only restraint shortens L<sub>cr,z</sub> but not L<sub>T</sub>.</div>
+      <div class="hint">PFC under axial compression: torsional and torsional-flexural buckling (EN 1993-1-1 cl 6.3.1.4) are checked with N<sub>cr,T</sub> = (GI<sub>T</sub> + &pi;&sup2;EI<sub>w</sub>/L<sub>T</sub>&sup2;)/i<sub>0</sub>&sup2; and the torsional-flexural coupling with the major-axis flexural mode through the shear-centre offset e<sub>sc</sub> (SCI P385 Table A.3). L<sub>T</sub> is the length between points where twist is prevented; blank takes the largest spacing of the twist restraints (the ends with R<sub>x</sub> ticked and the intermediate restraints with &phi; held, capped at L<sub>cr,y</sub>) &mdash; a lateral-only restraint shortens L<sub>cr,z</sub> but not L<sub>T</sub>.</div>
       <label id="zaRow"><span>Default z<sub>g</sub>, mm</span> <input id="za" type="number" step="1" placeholder="0"></label>
       <div class="hint live-hint" id="zaHint"></div>
-      <label id="warpRow"><span>Root warping</span>
-        <select id="rootWarp"><option value="free">Free</option><option value="restrained">Restrained</option></select>
-      </label>
       <label class="checkline" id="destabRow"><input type="checkbox" id="destab"> <span>Destabilising load &times;1.2 L<sub>E</sub></span></label>
       <div class="hint">For PFC, this sets both the LTB effective length (Table 13/14) and the strut effective length. For SHS, LTB does not apply (cl 4.3.6.1), so this sets only the strut effective length (Table 22).</div>
       <div id="bsFactorsRow">
@@ -376,7 +393,7 @@
       <label>Deflection limit span/ <input id="divisor" type="number" step="1"></label>
       <label>Cantilever deflection limit L/ <input id="divisorCant" type="number" step="1"></label>
       <label>Absolute deflection limit, mm <input id="deflAbs" type="number" step="1" placeholder="blank = none"></label>
-      <div class="hint">Deflection is checked segment by segment: each support-to-support span against span/divisor, each cantilever or end overhang against its own length / the cantilever divisor (default 180 &mdash; UK NA to EN 1993-1-1 Table NA.2, cantilevers: length/180 <b>[verify]</b>), every segment also capped by the absolute limit when one is entered. A cantilever value is the tip deflection relative to its support (the root rotation is inside the solver).</div>
+      <div class="hint">Span/divisor when both ends hold U<sub>z</sub>; L / the cantilever divisor (default 180 &mdash; UK NA to EN 1993-1-1 Table NA.2, cantilevers: length/180 <b>[verify]</b>) when an end is vertically free (cantilever tip, guided tip: the tip deflection relative to the held end); both capped by the absolute limit when one is entered.</div>
       <label>E, N/mm  <input id="E" type="number" step="1000"></label>
       <label>K<sub>e</sub> (effective area) <input id="Ke" type="number" step="0.05" placeholder="auto"></label>
       <div id="robRow">
@@ -527,6 +544,13 @@ function solveBeam(L,EI,supports,loads,nSub=120,hinges){
   const w=nodes.map((_,i)=>d[wDof[i]]);
   return {nodes,w,reactions};
 }
+/* Reaction moment of an end (fixed or guided) as the beam's end bending moment
+   in the diagram convention (sagging positive, hogging negative), kN.m (pure).
+   The nodal reaction R[rot] is anticlockwise-positive on the beam, so it is
+   the negative of the beam moment at End 1 (x = 0) and equal to it at End 2
+   (x = L): a fixed-fixed UDL prints -wL^2/12 at both ends, a guided End 2
+   under a fixed - guided UDL prints +wL^2/6 (sagging). */
+function reactionEndMomentKNm(r){ return ((r.end===2? r.M : -r.M)||0)/1e6; }
 function sfdBmd(L,supports,loads,reactions,N=1000){
   const PF=[],PM=[];
   reactions.forEach(r=>{ PF.push([r.pos,r.V]); if(r.type==='fixed'||r.type==='guided') PM.push([r.pos,-r.M]); });
@@ -1650,19 +1674,23 @@ const DEFAULT_COMBOS=[
    'none' (free end, absent from the solver's support list).
    --------------------------------------------------------------------------- */
 const END_DOFS=['ux','uy','uz','rx','ry','rz','warp'];
-const END_DOF_LABELS={ux:'U<sub>x</sub> axial',uy:'U<sub>y</sub> lateral',uz:'U<sub>z</sub> vertical',rx:'R<sub>x</sub> twist',ry:'R<sub>y</sub> major-axis rotation (in-plane)',rz:'R<sub>z</sub> minor-axis rotation (lateral bending)',warp:'warping &phi;&prime; = 0'};
+/* Long labels (title / tooltip) and the short labels of the End conditions panel. */
+const END_DOF_LABELS={ux:'U<sub>x</sub> axial translation (axial load path of N<sub>Ed</sub>)',uy:'U<sub>y</sub> lateral translation (LTB v = 0; minor-axis strut)',uz:'U<sub>z</sub> vertical translation (vertical support)',rx:'R<sub>x</sub> twist about the member axis (LTB / torsion &phi; = 0)',ry:'R<sub>y</sub> rotation about the major axis (in-plane fixity)',rz:'R<sub>z</sub> rotation about the minor axis (LTB v&prime; = 0: laterally clamped; minor-axis strut)',warp:'warping &phi;&prime; = 0 (LTB eigen and torsion FE)'};
+const END_DOF_SHORT={ux:'U<sub>x</sub> axial',uy:'U<sub>y</sub> lateral',uz:'U<sub>z</sub> vertical',rx:'R<sub>x</sub> twist',ry:'R<sub>y</sub> major rotation',rz:'R<sub>z</sub> minor rotation',warp:'Warping &phi;&prime;'};
 /* Presets (pure): every preset restrains U_x at End 1 only, so the axial load
    path is statically determinate; tick U_x at End 2 for a fully built-in far
    end (printed as "axial statically indeterminate: N taken as applied").
    Warping is restrained only at a cantilever root (the seventh flag of the
-   scope note); every other preset leaves warping free (fork ends). */
+   scope note); every other preset leaves warping free (fork ends).
+   `label` is the End conditions drop-list text, `name` the short name printed
+   on the End conditions line of the brief and the report. */
 const END_PRESETS={
-  'ss':           {label:'Simply supported', e1:{ux:1,uy:1,uz:1,rx:1}, e2:{uy:1,uz:1,rx:1}},
-  'fixed-fixed':  {label:'Fixed - fixed', e1:{ux:1,uy:1,uz:1,rx:1,ry:1,rz:1}, e2:{uy:1,uz:1,rx:1,ry:1,rz:1}},
-  'fixed-pinned': {label:'Propped cantilever (fixed - pinned)', e1:{ux:1,uy:1,uz:1,rx:1,ry:1,rz:1}, e2:{uy:1,uz:1,rx:1}},
-  'cantilever':   {label:'Cantilever (End 1 fully restrained, End 2 free)', e1:{ux:1,uy:1,uz:1,rx:1,ry:1,rz:1,warp:1}, e2:{}},
-  'guided-fixed': {label:'Fixed - guided (End 2 sliding: rotation held, vertical free)', e1:{ux:1,uy:1,uz:1,rx:1,ry:1,rz:1}, e2:{uy:1,rx:1,ry:1,rz:1}},
-  'pinned-guided':{label:'Pinned - guided (End 2 sliding: rotation held, vertical free)', e1:{ux:1,uy:1,uz:1,rx:1}, e2:{uy:1,rx:1,ry:1,rz:1}}
+  'ss':           {label:'Simply supported', name:'simply supported', e1:{ux:1,uy:1,uz:1,rx:1}, e2:{uy:1,uz:1,rx:1}},
+  'fixed-fixed':  {label:'Fixed-fixed', name:'fixed-fixed', e1:{ux:1,uy:1,uz:1,rx:1,ry:1,rz:1}, e2:{uy:1,uz:1,rx:1,ry:1,rz:1}},
+  'fixed-pinned': {label:'Fixed-pinned (propped cantilever)', name:'fixed-pinned (propped cantilever)', e1:{ux:1,uy:1,uz:1,rx:1,ry:1,rz:1}, e2:{uy:1,uz:1,rx:1}},
+  'cantilever':   {label:'Cantilever (End 1 fixed, End 2 free)', name:'cantilever', e1:{ux:1,uy:1,uz:1,rx:1,ry:1,rz:1,warp:1}, e2:{}},
+  'guided-fixed': {label:'Guided-fixed (End 1 fixed, End 2 sliding: rotation held, vertical free)', name:'guided-fixed', e1:{ux:1,uy:1,uz:1,rx:1,ry:1,rz:1}, e2:{uy:1,rx:1,ry:1,rz:1}},
+  'pinned-guided':{label:'Pinned-guided (End 1 pinned, End 2 sliding: rotation held, vertical free)', name:'pinned-guided', e1:{ux:1,uy:1,uz:1,rx:1}, e2:{uy:1,rx:1,ry:1,rz:1}}
 };
 END_PRESETS['fixed-guided']=END_PRESETS['guided-fixed'];   // alias: End 1 fixed, End 2 guided
 /* Normalised flag set of one end (pure; tolerant of a partial object). */
@@ -1763,11 +1791,91 @@ function lcrDefaults(st){
   }
   return out;
 }
-/* Printed description of the end restraints (pure). */
-function endsDescription(st){
-  const sym={ux:'U<sub>x</sub>',uy:'U<sub>y</sub>',uz:'U<sub>z</sub>',rx:'R<sub>x</sub>',ry:'R<sub>y</sub>',rz:'R<sub>z</sub>',warp:'&phi;&prime;'};
-  const held=e=>END_DOFS.filter(k=>e[k]).map(k=>sym[k]);
-  return endsList(st).map(e=>'End '+e.n+' (x = '+(e.x||0)+' m): '+(held(e).length? held(e).join(', ')+' restrained' : 'free')).join('; ');
+/* ---- End conditions panel state (UI half of the 19 Sep 2026 scope change) ----
+   st.endPreset is the drop-list selection: a preset key or 'custom'. The DOF
+   flags are the truth; the selection only names them. */
+/* Apply a preset to the state: the seven flags of both ends from the preset,
+   the seating / hold-down / stiffener entries kept, the hinges cleared (a
+   preset can leave an existing hinge as a mechanism). Returns st. */
+function applyEndPreset(st,name){
+  st=st||S;
+  if(name==='fixed-guided') name='guided-fixed';
+  const keep=k=>{ const e=(st.ends&&st.ends[k])||{}; return {holdDown:e.holdDown, ss:e.ss, stiff:e.stiff}; };
+  st.ends=endsPreset(name,{e1:keep('e1'),e2:keep('e2')});   // throws for an unknown name
+  st.endPreset=name;
+  st.hinges=[];
+  return st;
+}
+/* Set one DOF flag of one end; the selection becomes 'custom'. Returns st. */
+function setEndDof(st,key,dof,on){
+  st=st||S;
+  if(key!=='e1'&&key!=='e2') throw new Error('setEndDof: end must be e1 or e2, got "'+key+'"');
+  if(END_DOFS.indexOf(dof)<0) throw new Error('setEndDof: unknown degree of freedom "'+dof+'" (ux uy uz rx ry rz warp)');
+  if(!st.ends) st.ends=endsPreset('ss');
+  st.ends[key][dof]=!!on;
+  st.endPreset='custom';
+  return st;
+}
+/* Drop-list value for the state (pure): 'custom' when the flags were edited by
+   hand, else the preset the flags match, else 'custom'. A stored preset whose
+   flags no longer match (a fixture built from endsPreset() alone) is never
+   shown: the flags are the truth. */
+function endPresetSelection(st){
+  st=st||S;
+  if(st.endPreset==='custom') return 'custom';
+  return endsPresetName(st.ends)||'custom';
+}
+/* Derived end types (pure): in plane from U_z / R_y, LTB from U_y / R_z / R_x / warping. */
+function endInPlaneLabel(t){ return t==='fixed'? 'fixed' : t==='pinned'? 'pinned' : t==='guided'? 'guided (R<sub>y</sub> held, U<sub>z</sub> free)' : 'free'; }
+function endLtbType(e){
+  if(!(e.uy||e.rx||e.rz||e.warp)) return 'free';
+  if(e.uy&&e.rx) return (e.rz? 'laterally clamped' : 'fork')+(e.warp? ', warping fixed' : '');
+  const held=[]; if(e.uy) held.push('v'); if(e.rz) held.push('v&prime;'); if(e.rx) held.push('&phi;'); if(e.warp) held.push('&phi;&prime;');
+  return 'partial ('+held.join(', ')+' = 0)';
+}
+/* "End conditions" line of the brief title and the report (pure): the seven
+   flags of each end as symbols (W = warping), the derived in-plane and LTB end
+   types, the preset name when the flags match one, and the internal hinges. */
+function endsConditionsLine(st){
+  st=st||S;
+  const sym={ux:'U<sub>x</sub>',uy:'U<sub>y</sub>',uz:'U<sub>z</sub>',rx:'R<sub>x</sub>',ry:'R<sub>y</sub>',rz:'R<sub>z</sub>',warp:'W'};
+  const parts=endsList(st).map(e=>{
+    const held=END_DOFS.filter(k=>e[k]).map(k=>sym[k]);
+    return 'End '+e.n+': '+(held.length? held.join(' ')+' restrained' : 'free')+' ('+endInPlaneLabel(endInPlaneType(e))+' in plane; LTB '+endLtbType(e)+')';
+  });
+  const name=endsPresetName(st.ends);
+  const hinges=(st.hinges||[]).length? '; internal hinge'+(st.hinges.length>1? 's' : '')+' at '+st.hinges.map(h=>g(+h.pos,2)+' m').join(', ')+' (in-plane moment release, lateral / twist continuity kept)' : '';
+  return parts.join('; ')+' &mdash; '+(name? END_PRESETS[name].name : 'custom end conditions')+hinges;
+}
+/* Glyph of one end condition for the End conditions panel (pure string
+   builder, no DOM): the in-plane symbol (fixed wall, pin or roller, guided
+   slider, free end) on a beam stub, the in-plane type above it and the LTB end
+   type under it. e = one entry of endsList(); the support sits on the left for
+   End 1 and on the right for End 2. */
+function endGlyphSvg(e){
+  const W=120,H=64, yB=30, sgn=e.n===2? 1 : -1, x0=e.n===2? 88 : 32, xFar=e.n===2? 12 : 108;
+  const t=endInPlaneType(e);
+  let s='<line x1="'+x0+'" y1="'+yB+'" x2="'+xFar+'" y2="'+yB+'" stroke="#111" stroke-width="3"/>';
+  const hatch=(x,y1,y2)=>{ let h=''; for(let y=y1;y<y2;y+=6) h+='<line x1="'+x+'" y1="'+y+'" x2="'+(x+sgn*6)+'" y2="'+(y+6)+'" stroke="#111" stroke-width="1"/>'; return h; };
+  if(t==='fixed'){
+    s+='<line x1="'+x0+'" y1="'+(yB-16)+'" x2="'+x0+'" y2="'+(yB+16)+'" stroke="#111" stroke-width="2.4"/>'+hatch(x0,yB-16,yB+16);
+  } else if(t==='pinned'){
+    s+='<polygon points="'+x0+','+yB+' '+(x0-7)+','+(yB+13)+' '+(x0+7)+','+(yB+13)+'" fill="none" stroke="#111" stroke-width="1.6"/>';
+    if(e.ux){
+      s+='<line x1="'+(x0-11)+'" y1="'+(yB+14)+'" x2="'+(x0+11)+'" y2="'+(yB+14)+'" stroke="#111" stroke-width="1.4"/>';
+      for(let x=x0-9;x<=x0+9;x+=6) s+='<line x1="'+x+'" y1="'+(yB+14)+'" x2="'+(x-4)+'" y2="'+(yB+19)+'" stroke="#111" stroke-width="1"/>';
+    } else s+='<circle cx="'+(x0-4)+'" cy="'+(yB+16)+'" r="2.2" fill="none" stroke="#111" stroke-width="1.2"/><circle cx="'+(x0+4)+'" cy="'+(yB+16)+'" r="2.2" fill="none" stroke="#111" stroke-width="1.2"/><line x1="'+(x0-11)+'" y1="'+(yB+19)+'" x2="'+(x0+11)+'" y2="'+(yB+19)+'" stroke="#111" stroke-width="1.4"/>';
+  } else if(t==='guided'){
+    s+='<rect x="'+(x0-3)+'" y="'+(yB-12)+'" width="6" height="24" fill="none" stroke="#111" stroke-width="1.6"/>'+
+       '<line x1="'+(x0+sgn*8)+'" y1="'+(yB-16)+'" x2="'+(x0+sgn*8)+'" y2="'+(yB+16)+'" stroke="#111" stroke-width="2.4"/>'+hatch(x0+sgn*8,yB-16,yB+16);
+  } else {
+    s+='<circle cx="'+x0+'" cy="'+yB+'" r="2.5" fill="#fff" stroke="#111" stroke-width="1.2"/>';
+  }
+  const top= t==='pinned'? (e.ux? 'pin' : 'roller') : t==='none'? 'free' : t;
+  s+='<text x="'+(W/2)+'" y="10" font-family="Arial" font-size="9" fill="#374151" text-anchor="middle">'+top+' in plane</text>';
+  const ltb= !(e.uy||e.rx||e.rz||e.warp)? 'free' : (e.uy&&e.rx)? (e.rz? 'clamped' : 'fork')+(e.warp? ' + warping' : '') : 'partial';   // short form of endLtbType() for the glyph width
+  s+='<text x="'+(W/2)+'" y="'+(H-4)+'" font-family="Arial" font-size="8.5" fill="#6b7280" text-anchor="middle">LTB: '+ltb+'</text>';
+  return '<svg class="end-glyph" viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="End '+e.n+' condition">'+s+'</svg>';
 }
 
 
@@ -1778,6 +1886,7 @@ const DEMO={
   grade:"S275", py:null, anet:null,
   L:8.0,
   ends:endsPreset('ss',{e1:{ss:100},e2:{ss:100}}),   // End 1 (x = 0) / End 2 (x = L) degree-of-freedom flags; ss: stiff bearing length of the seating (mm along the member); blank = lower bound 0
+  endPreset:'ss',      // End conditions drop-list: a preset key or 'custom' (the flags above are the truth; endPresetSelection())
   hinges:[],
   loads:[{type:'udl',x1:0,x2:8.0,w:19.7,case:'G'},{type:'udl',x1:0,x2:8.0,w:19.8,case:'Q'}],
   combos:JSON.parse(JSON.stringify(DEFAULT_COMBOS)),
@@ -1862,29 +1971,33 @@ function syncLoadHeightHint(sec, show){
   el.style.display=show ? '' : 'none';
 }
 
-function renderEndsList(){
-  const c=$("supportList"); if(!c) return; c.innerHTML="";
-  const webBearingOn = webBearingInputsOn();
-  const ltbBCOn = S.code==='EC3' && (S.restraint||'full')!=='full';
-  const torsionBCOn = torsionWarpInputsOn();
-  const preset=endsPresetName(S.ends);
-  endsList().forEach(e=>{
-    const row=document.createElement("div"); row.className="row";
-    const vertical=e.uz;
-    const dof=k=>`<label class="checkline"><input type="checkbox" data-end="${e.key}" data-dof="${k}"${e[k]?' checked':''}> <span>${END_DOF_LABELS[k]}</span></label>`;
-    row.innerHTML=`<div class="rowhead"><b style="font-size:12px">End ${e.n} (x = ${e.x} m)</b><span style="font-size:11px;color:#6b7280">${endInPlaneType(e)==='none'? 'free end' : endInPlaneType(e)+' in plane'}${preset? '' : ' (custom)'}</span></div>
-      <div class="ltb-checks">${dof('ux')}${dof('uy')}${dof('uz')}${dof('rx')}${dof('ry')}${dof('rz')}${(ltbBCOn||torsionBCOn)? dof('warp') : ''}</div>
-      ${vertical? `<div class="ltb-checks" style="margin-top:4px">
-        <label class="checkline"><input type="checkbox" data-end="${e.key}" data-dof="holdDown"${e.holdDown?' checked':''}> <span>hold-down provided (uplift resisted)</span></label>${webBearingOn? `
-        <label class="checkline"><input type="checkbox" data-end="${e.key}" data-dof="stiff"${e.stiff?' checked':''}> <span>bearing stiffener provided (EN 1993-1-5 9.4)</span></label>` : ''}
-      </div>${webBearingOn? `<div class="grid2" style="margin-top:4px">
-        <div class="fld"><span>Stiff bearing s<sub>s</sub>, mm (blank = lower bound 0: NOT VERIFIED if it fails)</span><input type="number" step="1" min="0" placeholder="0 (enter the seating length)" value="${e.ss!=null? e.ss : ''}" data-end="${e.key}" data-ss="1"></div>
-      </div>` : ''}` : ''}`;
-    c.appendChild(row);
-  });
+/* HTML of the End conditions panel (pure string builder): two columns, End 1
+   (x = 0) and End 2 (x = L), each with its glyph, the seven DOF boxes (checked
+   = restrained) and, for an end that holds U_z, the hold-down box and (EC3)
+   the stiff bearing length s_s and the bearing-stiffener box. */
+function endsPanelHtml(st){
+  st=st||S;
+  const webBearingOn = st.code==='EC3';
+  return endsList(st).map(e=>{
+    const dof=k=>`<label class="checkline" title="${END_DOF_LABELS[k].replace(/<[^>]+>/g,'').replace(/"/g,'&quot;')}"><input type="checkbox" data-end="${e.key}" data-dof="${k}"${e[k]?' checked':''}> <span>${END_DOF_SHORT[k]}</span></label>`;
+    const extra= e.uz
+      ? `<div class="end-extra"><label class="checkline"><input type="checkbox" data-end="${e.key}" data-opt="holdDown"${e.holdDown?' checked':''}> <span>hold-down provided</span></label>${webBearingOn? `
+        <div class="fld"><span>Stiff bearing s<sub>s</sub>, mm</span><input type="number" step="1" min="0" placeholder="blank = lower bound 0" value="${e.ss!=null? e.ss : ''}" data-end="${e.key}" data-ss="1" title="Stiff bearing length of the seating along the member (blank = lower bound 0: a station failing at 0 is NOT VERIFIED until the seating length is entered)"></div>
+        <label class="checkline"><input type="checkbox" data-end="${e.key}" data-opt="stiff"${e.stiff?' checked':''}> <span>bearing stiffener provided</span></label>` : ''}</div>`
+      : `<div class="end-extra end-none">no vertical reaction (U<sub>z</sub> free)</div>`;
+    return `<div class="end-col" data-endcol="${e.key}"><div class="end-head">End ${e.n} (x = ${e.n===1? '0' : 'L = '+e.x} m)</div>${endGlyphSvg(e)}
+      <div class="end-dofs">${END_DOFS.map(dof).join('')}</div>${extra}</div>`;
+  }).join('');
+}
+function renderEndsPanel(){
+  const c=$("endsPanel"); if(!c) return;
+  c.innerHTML=endsPanelHtml(S);
+  const sel=$("endPreset"); if(sel) sel.value=endPresetSelection(S);
   c.querySelectorAll("[data-dof]").forEach(el=>el.addEventListener("change",e=>{
-    const k=e.target.dataset.end, d=e.target.dataset.dof;
-    S.ends[k][d]=e.target.checked; renderEndsList(); recompute();
+    setEndDof(S,e.target.dataset.end,e.target.dataset.dof,e.target.checked); renderEndsPanel(); recompute();
+  }));
+  c.querySelectorAll("[data-opt]").forEach(el=>el.addEventListener("change",e=>{
+    S.ends[e.target.dataset.end][e.target.dataset.opt]=e.target.checked; recompute();
   }));
   c.querySelectorAll("[data-ss]").forEach(el=>el.addEventListener("input",e=>{
     // ss: blank = lower bound 0 (NOT VERIFIED if the station fails); a number is kept as entered
@@ -1918,12 +2031,9 @@ function loadFields(ld,i){
   if(ld.type==='trap') return `<div class="grid2">${f("Start x1, m","x1",ld.x1)}${f("End x2, m","x2",ld.x2)}</div><div class="grid3" style="margin-top:6px">${f("w1, kN/m","w1",ld.w1)}${f("w2, kN/m","w2",ld.w2)}${caseSel}</div>`;
   return "";
 }
-/* EN 1993-1-5 clause 6 inputs (EC3 path): per point load and per support a
+/* EN 1993-1-5 clause 6 inputs (EC3 path): per point load and per end a
    stiff bearing length s_s and a "bearing stiffener provided" switch. */
 function webBearingInputsOn(){ return S.code==='EC3'; }
-/* Per-support "warping restrained for torsion" switch (warping-torsion FE,
-   19 Sep 2026 G4): EC3 path, torsion active, open section. */
-function torsionWarpInputsOn(){ return S.code==='EC3' && !!S.eccOn && !activeSection().isBox; }
 function loadBearingFields(ld,i){
   if(!webBearingInputsOn() || ld.type!=='point' || ld.isSelfWeight) return '';
   const ssVal = (ld.ss!=null && ld.ss!=='' && isFinite(+ld.ss))? ld.ss : '';
@@ -2060,13 +2170,6 @@ function syncInputs(){
   $("za").value = S.za||0;
   $("zaRow").style.display = (S.code==='EC3' && !sciMode)? '' : 'none';
   syncLoadHeightHint(sec, S.code==='EC3' && !sciMode);
-  // STAGED: 19 Sep 2026 - the "Root warping" select, the "+ Add support" button and the
-  // "Automatic pattern loading" switch are superseded by the end DOF flags of the
-  // single-span model; they are hidden here until the UI half of the scope change
-  // removes them from index.html.
-  if($("warpRow")) $("warpRow").style.display='none';
-  if($("addSupport")) $("addSupport").style.display='none';
-  if($("autoPattern")){ const lab=$("autoPattern").parentElement; if(lab){ lab.style.display='none'; const hint=lab.nextElementSibling; if(hint&&hint.classList&&hint.classList.contains('hint')) hint.style.display='none'; } }
   if($("mcrMethod")){
     $("mcrMethod").value = S.mcrMethod==='standard'? 'standard' : 'eigen';
     $("mcrMethodRow").style.display = (S.code==='EC3' && !sciMode)? '' : 'none';
@@ -2078,7 +2181,7 @@ function syncInputs(){
   $("py").value = S.py!=null? S.py : pyFromGrade(S.grade,sec.tf);
   $("anet").value = S.anet!=null? S.anet : "";
   $("length").value=S.L; $("axial").value=S.axial; if($("Mz")) $("Mz").value=S.Mz;
-  $("leFactor").value=S.leFactor??""; $("leFactor").placeholder='auto: from the end fixities';
+  $("leFactor").value=S.leFactor??"";
   $("destab").checked=S.destab; $("mLTo").value=S.mLTo??""; $("mxo").value=S.mxo??"";
   $("C1o").value=S.C1o??"";
   if($("LT")){ $("LT").value=S.LT??""; $("LTRow").style.display=(S.code==='EC3' && S.family==='pfc')? '' : 'none'; }
@@ -2088,7 +2191,7 @@ function syncInputs(){
   const autoRob=defaultRobertson(S.family,sec.boxType,sec.tf);
   $("robertsonX").value = S.robX!=null? S.robX : autoRob.x;
   $("robertsonY").value = S.robY!=null? S.robY : autoRob.y;
-  renderEndsList(); renderHingeList(); renderLoadList(); renderComboList();
+  renderEndsPanel(); renderHingeList(); renderLoadList(); renderComboList();
   updatePlateUI();
 }
 
@@ -2607,7 +2710,7 @@ function holdDownCheck(a){
       else { blocking=true; msg='Hold-down required: '+force(true)+'. The end cannot resist uplift as modelled; tick "hold-down provided" for this end once a holding-down connection is designed for this force, or revise the restraints / loading (EN 1990 2.4.4 EQU; the &gamma;<sub>G,inf</sub> companions - G at 1.0 (STR set B) and 0.9 (EQU set A) with the entered variable factors - are included).'; }
     } else {
       level='sls';
-      msg='Hold-down check (SLS only) '+where+': the variable-action-only combination '+u.comboSls+' lifts this support by R = &minus;'+kN(u.RSls)+' kN; no ULS combination lifts it, including the &gamma;<sub>G,inf</sub> companions with G at 1.0 (STR set B) and 0.9 (EQU set A, EN 1990 Table A1.2(A)) and the entered variable factors'+(u.holdDown? '; hold-down provided' : '')+'. A deflection combination without G is not an equilibrium state, so this does not block PASS.';
+      msg='Hold-down check (SLS only) '+where+': the variable-action-only combination '+u.comboSls+' lifts this end by R = &minus;'+kN(u.RSls)+' kN; no ULS combination lifts it, including the &gamma;<sub>G,inf</sub> companions with G at 1.0 (STR set B) and 0.9 (EQU set A, EN 1990 Table A1.2(A)) and the entered variable factors'+(u.holdDown? '; hold-down provided' : '')+'. A deflection combination without G is not an equilibrium state, so this does not block PASS.';
     }
     const row=Object.assign({},u,{msg,level,blocking});
     out.rows.push(row);
@@ -2638,7 +2741,7 @@ function checks(a){
     return worst;
   });
   c.unsupported=[...new Set(c.unsupported.concat(...results.map(r=>r.c.unsupported)))];
-  // shared analysis-level checks (uplift / hold-down, pattern-loading note)
+  // shared analysis-level checks (uplift / hold-down, stability notes, the gamma_G,inf companion note)
   const hd=holdDownCheck(a);
   c.holdDown=hd;
   c.unsupported=c.unsupported.concat(hd.unsupported);
@@ -4576,7 +4679,7 @@ function checksEC3UnrestrainedSCI(a){
                    mesh-convergence measure creep instead of converge;
                    19 Sep 2026 review finding)
        T           element end forces (nodal equilibrium exact); a node where
-                   T jumps (point torque, interior support) is reported as
+                   T jumps (point torque) is reported as
                    three stations x - 0.01, x, x + 0.01 mm like p385Solve
        phi''       B/(E I_w);  phi''' = (G I_T phi' - T)/(E I_w)
    The returned object has the shape of p385Solve's result ({xs, phi, p1, p2,
@@ -5582,7 +5685,7 @@ function renderWebTransverseBlock(c,sec,a){
       return `<tr><td class="num">${g(s.x/1000,3)}</td><td>${s.label}</td><td>(${t.type})</td><td class="num">${g(s.ss,1)}${s.ssDefault?'*':''}</td><td class="num">${g(t.kF,3)}</td><td class="num">${g(t.ly,1)}</td><td class="num">${g(t.lam,3)}</td><td class="num">${g(t.chi,3)}</td><td class="num">${f1(s.FRdTot,1)}</td><td class="num">${f1(cs.F,1)}</td><td>${cs.combo}</td><td class="num">${g(s.eta2,3)}</td><td class="num">${g(s.u72,3)}</td><td style="font-weight:700;color:${(s.eta2<=1.0001&&s.u72<=1.0001)?'#166534':'#b91c1c'}">${s.nv? 'NOT VERIFIED' : (s.eta2<=1.0001&&s.u72<=1.0001)? (s===W.gov2? 'governs':'OK') : 'FAIL'}</td></tr>`;
     }).join('')}</tbody>
   </table>
-  <div class="note" style="margin-left:0">${W.anyDefaultSs? '* s<sub>s</sub> not entered at this end: evaluated at the lower bound s<sub>s</sub> = 0 (F<sub>Rd</sub> rises with the seating length: a station passing at 0 is verified for any seating, one failing at 0 is NOT VERIFIED until s<sub>s</sub> is entered in the support row). ':''}Point loads act on the top flange (bottom flange for an upward load) and reactions on the bottom flange; s<sub>s</sub> &le; h<sub>w</sub> (6.3(1)); type (c) is evaluated whenever s<sub>s</sub> + c &lt; 2h<sub>w</sub>/3 (the value at which k<sub>F</sub>(c) reaches the long-panel 6) and the lower F<sub>Rd</sub> of types (a) and (c) governs; a point load over a support is type (b) with F<sub>Ed</sub> = max(P, R). &eta;<sub>1</sub> uses the unreduced class-consistent M<sub>c,Rd</sub> (${W.cls<=2? 'W<sub>pl,y</sub>':'W<sub>el,y</sub>'}) [verify: EN 1993-1-5 4.6 writes &eta;<sub>1</sub> with W<sub>eff</sub>]. Not evaluated: distributed loads as patch loads, loads hung from the bottom flange, the closely spaced total-load check (6.3(3)), flange-induced buckling (section 8); a declared bearing stiffener must be designed to 9.4.</div>`;
+  <div class="note" style="margin-left:0">${W.anyDefaultSs? '* s<sub>s</sub> not entered at this end: evaluated at the lower bound s<sub>s</sub> = 0 (F<sub>Rd</sub> rises with the seating length: a station passing at 0 is verified for any seating, one failing at 0 is NOT VERIFIED until s<sub>s</sub> is entered under End conditions). ':''}Point loads act on the top flange (bottom flange for an upward load) and reactions on the bottom flange; s<sub>s</sub> &le; h<sub>w</sub> (6.3(1)); type (c) is evaluated whenever s<sub>s</sub> + c &lt; 2h<sub>w</sub>/3 (the value at which k<sub>F</sub>(c) reaches the long-panel 6) and the lower F<sub>Rd</sub> of types (a) and (c) governs; a point load over an end holding U<sub>z</sub> is type (b) with F<sub>Ed</sub> = max(P, R). &eta;<sub>1</sub> uses the unreduced class-consistent M<sub>c,Rd</sub> (${W.cls<=2? 'W<sub>pl,y</sub>':'W<sub>el,y</sub>'}) [verify: EN 1993-1-5 4.6 writes &eta;<sub>1</sub> with W<sub>eff</sub>]. Not evaluated: distributed loads as patch loads, loads hung from the bottom flange, the closely spaced total-load check (6.3(3)), flange-induced buckling (section 8); a declared bearing stiffener must be designed to 9.4.</div>`;
   return h;
 }
 
@@ -5626,13 +5729,21 @@ function render(){
   });
   const loadLines=[autoSwLine,...userLoadLines].join("<br>");
   const sectionView = typeof sectionLoadLineView === 'function' ? sectionLoadLineView(sec) : '';
-  const reactLine=a.reactions.map(r=>`End ${r.end||''} @ ${g(r.pos/1000)} m: `+(r.type==='guided'? '' : `R = ${f1(r.V/1000,2)} kN`)+((r.type==='fixed'||r.type==='guided')? (r.type==='guided'? '' : ', ')+`M = ${f1(-r.M/1e6,2)} kN m`+(r.type==='guided'? ' (guided: no vertical reaction)' : '') : '')).join("   ");
-  const endsLine=`<div class="note" style="margin-left:0">End restraints: ${endsDescription(S)}${(S.hinges||[]).length? '; internal hinge(s) at '+S.hinges.map(h=>g(+h.pos,2)+' m').join(', ')+' (in-plane moment release, lateral / twist continuity kept)' : ''}.</div>`;
+  // End 1 / End 2 reactions of the governing-moment combination: R (upward positive) and the
+  // end moment in the diagram convention as the end type carries them; "guided: M only"
+  const reactLine=endsList().map(e=>{
+    const r=a.reactions.find(q=>q.end===e.n);
+    if(!r) return `End ${e.n} (x = ${g(e.x)} m): free end, no reaction`;
+    if(r.type==='guided') return `End ${e.n} (x = ${g(e.x)} m): guided: M only, M = ${f1(reactionEndMomentKNm(r),2)} kN m`;
+    return `End ${e.n} (x = ${g(e.x)} m): R = ${f1(r.V/1000,2)} kN`+(r.type==='fixed'? `, M = ${f1(reactionEndMomentKNm(r),2)} kN m` : ' (pinned: no M)');
+  }).join(" &nbsp; | &nbsp; ");
+  // End conditions line (19 Sep 2026 scope): the seven DOF flags of each end, the derived end types, the preset and the hinges
+  const endsLine=`<div class="note" style="margin-left:0">End conditions: ${endsConditionsLine(S)}.</div>`;
   // uplift / hold-down rows (every combination's reactions; item 1.2)
   const HD=c.holdDown||null;
   const upliftLines=(HD&&HD.rows&&HD.rows.length)
     ? HD.rows.map(u=>{
-        if(u.level==='sls') return `<div class="note" style="margin-left:0"><b>Uplift at SLS only, End ${u.n} (x = ${g(u.pos/1000,2)} m):</b> R = &minus;${f1(Math.abs(u.RSls),2)} kN (SLS combination ${u.comboSls}); no ULS combination lifts this support, including the &gamma;<sub>G,inf</sub> companions with G at 1.0 (STR set B) and 0.9 (EQU set A) (advisory).</div>`;
+        if(u.level==='sls') return `<div class="note" style="margin-left:0"><b>Uplift at SLS only, End ${u.n} (x = ${g(u.pos/1000,2)} m):</b> R = &minus;${f1(Math.abs(u.RSls),2)} kN (SLS combination ${u.comboSls}); no ULS combination lifts this end, including the &gamma;<sub>G,inf</sub> companions with G at 1.0 (STR set B) and 0.9 (EQU set A) (advisory).</div>`;
         return `<div class="note" style="margin-left:0;color:${u.holdDown?'#374151':'#b91c1c'}"><b>Hold-down ${u.holdDown?'provided':'required'} at End ${u.n} (x = ${g(u.pos/1000,2)} m):</b> R = &minus;${f1(Math.abs(u.RUls),2)} kN (combination ${u.comboUls})${u.RSls!=null? `; SLS uplift &minus;${f1(Math.abs(u.RSls),2)} kN (${u.comboSls})`:''}; ${u.nCombos} combination(s) lift this end${u.holdDown? ' &mdash; design the hold-down connection for this force (advisory)' : ' &mdash; NOT VERIFIED until "hold-down provided" is ticked for this end'}.</div>`; }).join('')
     : (a.uplift? `<div class="note" style="margin-left:0">Uplift: no end lifts in any of the ${a.uplift.nCombos!=null? a.uplift.nCombos : a.ulsResults.length+a.slsResults.length} combinations (all reactions &ge; 0${(a.ulsCompanions&&a.ulsCompanions.length)? '; incl. the '+a.ulsCompanions.length+' &gamma;<sub>G,inf</sub> companions with G at 1.0 and 0.9' : ''}).</div>` : '');
   // gamma_G,inf companions (reactions only)
@@ -5698,7 +5809,7 @@ function render(){
     : "Open-section torsion per SCI P385: elastic Method B with fork ends and free warping, using Appendix C Cases 3/4/10. The rotation-induced minor moment is included. Plastic redistribution and growth of eccentricity as the section twists are not iterated. The EC3 destabilising switch does not add this second-order torsional effect.");
   if((sci||sciU)&&c.tor) notes.push("Torsion: each applied load acts at its own offset e from the shear centre; loads with e = 0 and applied moments generate no torque. Automatic self-weight acts through the centroid, so it has e = 0 for doubly symmetric sections but e = e<sub>sc</sub> for PFC channels. The verification conservatively assumes maximum shear, bending and torsion are coincident (SCI example note). Twist is prevented at every end whose R<sub>x</sub> is restrained ("+endsList().filter(e=>e.rx).map(e=>'End '+e.n).join(', ')+"); the connection must provide that torsional restraint (friction-grip or similar). Torsion is evaluated on the EC3 code path only.");
   if((sci||sciU)&&c.coex&&c.coex.pureShearFail) notes.push("Coexistent M&ndash;V: V<sub>Ed</sub> exceeds V<sub>pl,Rd</sub> at the reported section, so the cl 6.2.8 reduced moment formula is bypassed; the section has already failed in pure shear.");
-  if((sci||sciU)&&c.web&&c.web.checked) notes.push("Web transverse forces (EN 1993-1-5 clause 6): F<sub>Rd</sub> = f<sub>yw</sub>L<sub>eff</sub>t<sub>w</sub>/&gamma;<sub>M1</sub> at every point load and every support reaction of every ULS combination, with the clause 7.2 interaction &eta;<sub>2</sub> + 0.8&eta;<sub>1</sub> &le; 1.4 at the same station; governing station x = "+g(c.web.gov2.x/1000,3)+" m ("+c.web.gov2.label+", type ("+c.web.gov2.type+")), F<sub>Ed</sub>/F<sub>Rd</sub> = "+g(c.web.util2,3)+". A failing station needs a bearing stiffener (tick \"bearing stiffener provided\" once it is designed to EN 1993-1-5 9.4) or a longer stiff bearing s<sub>s</sub>.");
+  if((sci||sciU)&&c.web&&c.web.checked) notes.push("Web transverse forces (EN 1993-1-5 clause 6): F<sub>Rd</sub> = f<sub>yw</sub>L<sub>eff</sub>t<sub>w</sub>/&gamma;<sub>M1</sub> at every point load and every end reaction of every ULS combination, with the clause 7.2 interaction &eta;<sub>2</sub> + 0.8&eta;<sub>1</sub> &le; 1.4 at the same station; governing station x = "+g(c.web.gov2.x/1000,3)+" m ("+c.web.gov2.label+", type ("+c.web.gov2.type+")), F<sub>Ed</sub>/F<sub>Rd</sub> = "+g(c.web.util2,3)+". A failing station needs a bearing stiffener (tick \"bearing stiffener provided\" once it is designed to EN 1993-1-5 9.4) or a longer stiff bearing s<sub>s</sub>.");
   if(sci){
     if(c.hsNote) notes.push(c.hsNote+".");
     if(c.ax) notes.push(c.ax.tension
@@ -6048,6 +6159,7 @@ function render(){
     <div>
       <h2>Member Loading and Member Forces</h2>
       <div class="meta">${sname(sec.key)} ${famLabel} &nbsp; &nbsp; ${gradeTxt} &nbsp; &nbsp; L = ${g(S.L)} m</div>
+      ${endsLine}
       <div class="loadlist">${loadLines}</div>
     </div>
     ${sectionView}
@@ -6056,8 +6168,7 @@ function render(){
   <div class="diagcard">
     <div class="dt">Loading</div>
     ${beamDiagram(a)}
-    ${endsLine}
-    <div class="note" style="margin-left:0">Reactions (governing-moment combo, ${a.governM.combo.label}): ${reactLine}</div>
+    <div class="note" style="margin-left:0">Reactions (governing-moment combo, ${a.governM.combo.label}; R upward positive, M sagging positive): ${reactLine}</div>
     ${upliftLines}
   </div>
 
@@ -6406,7 +6517,7 @@ function msbWebBlock(a,c,sec,nvRows){
         return '<tr><td class="num">'+msbM(s.x/1000)+'</td><td>'+msbEsc(s.label)+'</td><td>('+t.type+')</td><td class="num">'+msbMM(s.ss)+(s.ssDefault? '*' : '')+'</td><td class="num">'+msbR(t.kF)+'</td><td class="num">'+msbMM(t.ly)+'</td><td class="num">'+msbR(t.lam)+'</td><td class="num">'+msbR(t.chi)+'</td><td class="num">'+msbKN(s.FRdTot)+'</td><td class="num">'+msbKN(cs.F)+'</td><td>'+msbEsc(cs.combo)+'</td><td class="num">'+msbR(s.eta2)+'</td><td class="num">'+msbR(s.u72)+'</td><td>'+(s.nv? '<span class="ms-warn">NOT VERIFIED</span>' : (s.eta2<=1.0001&&s.u72<=1.0001)? (s===W.gov2? 'governs' : 'OK') : '<span class="ms-warn">Warning</span>')+'</td></tr>';
       }).join('')+'</tbody></table>';
   }
-  h+='<div class="ms-note">'+(W.anyDefaultSs? '* s<sub>s</sub> not entered at this support: evaluated at the lower bound s<sub>s</sub> = 0 (F<sub>Rd</sub> rises with the seating length, so a station passing at 0 is verified for any seating; one failing at 0 is NOT VERIFIED until s<sub>s</sub> is entered). ' : '')+'Point loads act on the top flange (bottom flange for an upward load), reactions on the bottom flange; s<sub>s</sub> &le; h<sub>w</sub> (6.3(1)); c = distance from the bearing edge to the member end; type (c) is evaluated whenever s<sub>s</sub> + c &lt; 2h<sub>w</sub>/3 (k<sub>F</sub>(c) &lt; 6) and the lower F<sub>Rd</sub> of types (a) and (c) governs; a load over a support is type (b) with F<sub>Ed</sub> = max(P, R). &eta;<sub>1</sub> uses the unreduced M<sub>c.y.Rd</sub> ('+(W.cls<=2? 'W<sub>pl.y</sub>' : 'W<sub>el.y</sub>')+') [verify: EN 1993-1-5 4.6 writes &eta;<sub>1</sub> with W<sub>eff</sub>]. Distributed loads, hanger loads, the closely-spaced total-load check (6.3(3)) and flange-induced buckling (section 8) are not evaluated.</div>';
+  h+='<div class="ms-note">'+(W.anyDefaultSs? '* s<sub>s</sub> not entered at this end: evaluated at the lower bound s<sub>s</sub> = 0 (F<sub>Rd</sub> rises with the seating length, so a station passing at 0 is verified for any seating; one failing at 0 is NOT VERIFIED until s<sub>s</sub> is entered). ' : '')+'Point loads act on the top flange (bottom flange for an upward load), reactions on the bottom flange; s<sub>s</sub> &le; h<sub>w</sub> (6.3(1)); c = distance from the bearing edge to the member end; type (c) is evaluated whenever s<sub>s</sub> + c &lt; 2h<sub>w</sub>/3 (k<sub>F</sub>(c) &lt; 6) and the lower F<sub>Rd</sub> of types (a) and (c) governs; a load over an end holding U<sub>z</sub> is type (b) with F<sub>Ed</sub> = max(P, R). &eta;<sub>1</sub> uses the unreduced M<sub>c.y.Rd</sub> ('+(W.cls<=2? 'W<sub>pl.y</sub>' : 'W<sub>el.y</sub>')+') [verify: EN 1993-1-5 4.6 writes &eta;<sub>1</sub> with W<sub>eff</sub>]. Distributed loads, hanger loads, the closely-spaced total-load check (6.3(3)) and flange-induced buckling (section 8) are not evaluated.</div>';
   h+=msbNotVerifiedRows(nvRows);
   return h;
 }
@@ -6441,7 +6552,9 @@ function renderMasterSeriesBrief(a,c,sec){
   /* ---- 5.0 Title ---- */
   h+='<div class="ms-title"><div>'+(AX? 'Axial with Moments (Member)' : 'Beam &amp; Beam-Portion (Member)')+titleSuffix+'</div>'+
      '<div>Member '+memberName+'</div>'+
-     '<div>'+(isCant? 'Cantilever 0 to '+msbM(a.L/1000)+' m' : 'Between '+msbM(xa/1000)+' and '+msbM(xb/1000)+' m')+', in Load Case '+caseM+'</div></div>';
+     '<div>'+(isCant? 'Cantilever 0 to '+msbM(a.L/1000)+' m' : 'Between '+msbM(xa/1000)+' and '+msbM(xb/1000)+' m')+', in Load Case '+caseM+'</div>'+
+     // [beam-v03 addition, 19 Sep 2026 scope] the seven DOF flags of each end, the derived end types, the preset name and the hinges
+     '<div class="ms-ends">End conditions: '+endsConditionsLine(S)+'</div></div>';
 
   /* ---- 5.1 Member Loading and Member Forces ---- */
   h+=msbHead('Member Loading and Member Forces');
@@ -6457,8 +6570,6 @@ function renderMasterSeriesBrief(a,c,sec){
   });
   const swE=selfWeightEccentricity(sec);
   loadLines.push('G SW '+g(selfWeightValue(sec),4)+' kN/m 0&ndash;'+g(S.L)+' m'+(S.eccOn&&Math.abs(swE)>1e-9? ' e = '+g(swE,1)+' mm' : '')+' ( automatic )');
-  // end restraints of the single span (19 Sep 2026 scope): the seven DOF flags of each end
-  loadLines.push('<b>End restraints</b>: '+endsDescription(S)+((S.hinges||[]).length? '; internal hinge(s) at '+S.hinges.map(h=>g(+h.pos,2)+' m').join(', ')+' (in-plane moment release)' : ''));
   // gamma_G,inf companions (19 Sep 2026 review): G at 1.0 (STR set B) and 0.9 (EQU set A) of every ULS combination
   // with G > 1.0, solved for the end reactions (uplift / hold-down, web bearing)
   if(a.ulsCompanions && a.ulsCompanions.length){
@@ -6477,14 +6588,23 @@ function renderMasterSeriesBrief(a,c,sec){
   const pm=msbPortionMoments(gfb,xa,xb);
   const MmaxP=wholePortion? a.Mmax : pm.Mmax, MposP=wholePortion? a.Mpos : pm.xmax/1000;
   const dfl=a.deflection||{dmax:a.dmax,dpos:a.dpos*1000};
-  h+='<table class="ms-forces"><thead><tr><th colspan="12" class="ms-ft">Member Forces in Load Case '+caseM+' and Maximum Deflection from Load Case '+caseD+'</th></tr>'+
-     '<tr><th rowspan="2">Mem<br>ber<br>No.</th><th rowspan="2">Node<br>End1<br>End2</th><th rowspan="2">Axial<br>Force<br>(kN)</th><th rowspan="2">Torque<br>Moment<br>(kN.m)</th><th colspan="2">Shear Force<br>(kN)</th><th colspan="2">Bending Moment<br>(kN.m)</th><th colspan="2">Maximum Moment<br>(kN.m @ m)</th><th rowspan="2">Maximum<br>Deflection<br>(mm @ m)</th></tr>'+
-     '<tr><th>y-y</th><th>z-z</th><th>y-y</th><th>z-z</th><th>y-y</th><th>z-z</th></tr></thead><tbody>'+
-     '<tr><td class="num">1</td><td class="num">x = '+msbM(xa/1000)+'</td><td class="num">'+f1(Math.abs(N),2)+Ntag+'</td><td class="num">'+f1(torqueAt(xa),2)+'</td><td class="num">'+f1(V1,2)+'</td><td class="num">0.00</td><td class="num">'+f1(M1,2)+'</td><td class="num">'+f1(S.Mz||0,2)+'</td><td class="num">'+f1(MmaxP,2)+'</td><td class="num">'+f1(S.Mz||0,2)+'</td><td class="num">'+f1(dfl.dmax,2)+'</td></tr>'+
-     '<tr><td class="num"></td><td class="num">x = '+msbM(xb/1000)+'</td><td class="num">'+f1(Math.abs(N),2)+Ntag+'</td><td class="num">'+f1(torqueAt(xb),2)+'</td><td class="num">'+f1(V2,2)+'</td><td class="num">0.00</td><td class="num">'+f1(M2,2)+'</td><td class="num">'+f1(S.Mz||0,2)+'</td><td class="num">@ '+f1(MposP,3)+'</td><td class="num">@ &mdash;</td><td class="num">@ '+f1(dfl.dpos/1000,3)+'</td></tr>'+
+  // [beam-v03 addition, 19 Sep 2026 scope] End 1 / End 2 reactions of the governing-moment
+  // combination (a.reactions: end, type, V, M): R and M as the end type carries them, a
+  // guided end "M only", a free end none; printed only when the portion end is the member end
+  const reactCells=(n,xEnd)=>{
+    const r=a.reactions.find(q=>q.end===n);
+    if(Math.abs(xEnd-(n===1? 0 : a.L))>1e-6) return '<td class="num">&mdash;</td><td class="num">&mdash;</td>';
+    if(!r) return '<td class="num">free: none</td><td class="num">&mdash;</td>';
+    if(r.type==='guided') return '<td class="num">guided: M only</td><td class="num">'+f1(reactionEndMomentKNm(r),2)+'</td>';
+    return '<td class="num">'+f1(r.V/1000,2)+'</td><td class="num">'+(r.type==='fixed'? f1(reactionEndMomentKNm(r),2) : '&mdash;')+'</td>';
+  };
+  h+='<table class="ms-forces"><thead><tr><th colspan="13" class="ms-ft">Member Forces in Load Case '+caseM+' and Maximum Deflection from Load Case '+caseD+'</th></tr>'+
+     '<tr><th rowspan="2">Mem<br>ber<br>No.</th><th rowspan="2">Node<br>End1<br>End2</th><th rowspan="2">Axial<br>Force<br>(kN)</th><th rowspan="2">Torque<br>Moment<br>(kN.m)</th><th colspan="2">Shear Force<br>(kN)</th><th colspan="2">Bending Moment<br>(kN.m)</th><th colspan="2">Maximum Moment<br>(kN.m @ m)</th><th rowspan="2">Maximum<br>Deflection<br>(mm @ m)</th><th colspan="2">Reaction<br>R (kN), M (kN.m)</th></tr>'+
+     '<tr><th>y-y</th><th>z-z</th><th>y-y</th><th>z-z</th><th>y-y</th><th>z-z</th><th>R</th><th>M</th></tr></thead><tbody>'+
+     '<tr><td class="num">1</td><td class="num">End 1, x = '+msbM(xa/1000)+'</td><td class="num">'+f1(Math.abs(N),2)+Ntag+'</td><td class="num">'+f1(torqueAt(xa),2)+'</td><td class="num">'+f1(V1,2)+'</td><td class="num">0.00</td><td class="num">'+f1(M1,2)+'</td><td class="num">'+f1(S.Mz||0,2)+'</td><td class="num">'+f1(MmaxP,2)+'</td><td class="num">'+f1(S.Mz||0,2)+'</td><td class="num">'+f1(dfl.dmax,2)+'</td>'+reactCells(1,xa)+'</tr>'+
+     '<tr><td class="num"></td><td class="num">End 2, x = '+msbM(xb/1000)+'</td><td class="num">'+f1(Math.abs(N),2)+Ntag+'</td><td class="num">'+f1(torqueAt(xb),2)+'</td><td class="num">'+f1(V2,2)+'</td><td class="num">0.00</td><td class="num">'+f1(M2,2)+'</td><td class="num">'+f1(S.Mz||0,2)+'</td><td class="num">@ '+f1(MposP,3)+'</td><td class="num">@ &mdash;</td><td class="num">@ '+f1(dfl.dpos/1000,3)+'</td>'+reactCells(2,xb)+'</tr>'+
      '</tbody></table>';
-  const reactLine=a.reactions.map(r=>'End '+(r.end||'')+' @ '+msbM(r.pos/1000)+' m: '+(r.type==='guided'? 'M = '+f1(-r.M/1e6,2)+' kN.m (guided, no vertical reaction)' : 'R = '+f1(r.V/1000,2)+' kN'+(r.type==='fixed'? ', M = '+f1(-r.M/1e6,2)+' kN.m' : ''))).join(' &nbsp; ');
-  h+='<div class="ms-note">Reactions ('+a.governM.combo.label+'): '+reactLine+'. V<sub>z</sub> = 0: no minor-axis shear in the single-plane model; M<sub>z</sub> is the entered constant design moment.</div>';
+  h+='<div class="ms-note">Reactions of '+a.governM.combo.label+' at the member ends: R positive upward (a negative R is uplift), M = the end bending moment in the diagram convention (sagging positive, hogging negative); a pinned end carries no M, a guided end no R, a free end neither. V<sub>z</sub> = 0: no minor-axis shear in the single-plane model; M<sub>z</sub> is the entered constant design moment.</div>';
   // uplift / hold-down (item 1.2): one row per lifting support, in the Member Forces block
   const HD=c.holdDown||null;
   if(HD && HD.rows && HD.rows.length){
@@ -6717,7 +6837,7 @@ function renderMasterSeriesBrief(a,c,sec){
       if(sg){
         if(lam<=0.4) h+=ignLine(lam);
         else h+=chiLine(lam,msbPhiLT(lam,LT.curve.alphaLT),LT.curve.alphaLT,sg.chi,LT.curve.curve);
-        h+=chiModLine(sg.chi,lam,null,1,sg.chi,'span: f = 1');
+        h+=chiModLine(sg.chi,lam,null,1,sg.chi,'isolated bay: f = 1');
         h+=mbLine(sg.chi,sg.Mb);
         h+=ratioLine(sg.Ms,sg.Mb);
       } else {
@@ -7014,7 +7134,7 @@ function wire(){
     .forEach(id=>{ if($(id)) $(id).addEventListener("input",()=>{ readScalarInputs(); recompute(); }); });
   $("za").addEventListener("input",()=>{ readScalarInputs(); renderLoadList(); recompute(); });
   $("destab").addEventListener("change",()=>{ readScalarInputs(); recompute(); });
-  $("eccOn").addEventListener("change",()=>{ readScalarInputs(); renderEndsList(); renderLoadList(); recompute(); });   // end rows: the warping flag is shown once eccentricity is on
+  $("eccOn").addEventListener("change",()=>{ readScalarInputs(); renderLoadList(); recompute(); });
   function refreshAutoFields(){
     const sec=activeSection();
     $("py").value=pyFromGrade(S.grade,sec.tf); S.py=null;
@@ -7045,18 +7165,18 @@ function wire(){
     S.mcrMethod=$("mcrMethod").value; syncInputs(); recompute(); });
   $("shsType").addEventListener("change",()=>{
     S.shsType=$("shsType").value; syncInputs(); refreshAutoFields(); recompute(); });
-  $("length").addEventListener("change",()=>{ // stretch full-span loads/supports that sat at old end
-    readScalarInputs(); syncSelfWeightLoads(); renderEndsList(); renderHingeList(); renderLoadList(); recompute(); });
-  // end presets (data-preset: cant | ss | propped | fixed, or any END_PRESETS key);
-  // the seating / hold-down / stiffener entries of the ends are kept
-  const PRESET_ALIAS={cant:'cantilever', ss:'ss', propped:'fixed-pinned', fixed:'fixed-fixed'};
-  document.querySelectorAll("[data-preset]").forEach(b=>b.addEventListener("click",()=>{
-    const p=PRESET_ALIAS[b.dataset.preset]||b.dataset.preset;
-    const keep=k=>({holdDown:S.ends[k].holdDown, ss:S.ends[k].ss, stiff:S.ends[k].stiff});
-    S.ends=endsPreset(p,{e1:keep('e1'),e2:keep('e2')});
-    S.hinges=[];   // a preset can leave an existing hinge as a mechanism
-    renderEndsList(); renderHingeList(); recompute();
-  }));
+  $("length").addEventListener("change",()=>{ // the End 2 label (x = L) and full-span loads follow the new length
+    readScalarInputs(); syncSelfWeightLoads(); renderEndsPanel(); renderHingeList(); renderLoadList(); recompute(); });
+  // End conditions: the preset drop-list and the quick buttons (data-preset = an
+  // END_PRESETS key) apply a preset through applyEndPreset() (the seating /
+  // hold-down / stiffener entries of the ends are kept, the hinges cleared);
+  // 'custom' on the drop-list only names the current flags
+  function choosePreset(p){
+    if(p==='custom'){ S.endPreset='custom'; renderEndsPanel(); return; }
+    applyEndPreset(S,p); renderEndsPanel(); renderHingeList(); recompute();
+  }
+  if($("endPreset")) $("endPreset").addEventListener("change",()=>choosePreset($("endPreset").value));
+  document.querySelectorAll("[data-preset]").forEach(b=>b.addEventListener("click",()=>choosePreset(b.dataset.preset)));
   $("addHinge").addEventListener("click",()=>{ if(!S.hinges) S.hinges=[]; S.hinges.push({pos:+(S.L/2).toFixed(2)}); renderHingeList(); recompute(); });
   document.querySelectorAll("[data-add]").forEach(b=>b.addEventListener("click",()=>{
     const L=S.L, t=b.dataset.add;
@@ -8141,7 +8261,7 @@ function wire(){
       '<div class="list" id="ltbRestraintList"></div>' +
       '<div class="addbar"><button type="button" id="addLtbRestraint">+ Add lateral restraint</button></div>' +
       '<div class="hint">The LTB boundary conditions of the two ends come from their degree-of-freedom flags under ' +
-      'Geometry &amp; supports: U<sub>y</sub> = lateral displacement v held, R<sub>x</sub> = twist &phi; held (a fork end holds both), ' +
+      'Geometry &amp; end conditions: U<sub>y</sub> = lateral displacement v held, R<sub>x</sub> = twist &phi; held (a fork end holds both), ' +
       'R<sub>z</sub> = lateral bending v&prime; held (laterally clamped end), warping = &phi;&prime; held. A free end holds none of them. ' +
       'Add intermediate restraints where purlins, ties or secondary beams hold the member. ' +
       'The LTB buckling length follows from these conditions and positions &mdash; the L<sub>E</sub> factor and the destabilising &times;1.2 switch ' +

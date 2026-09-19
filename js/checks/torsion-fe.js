@@ -54,7 +54,7 @@
                    mesh-convergence measure creep instead of converge;
                    19 Sep 2026 review finding)
        T           element end forces (nodal equilibrium exact); a node where
-                   T jumps (point torque, interior support) is reported as
+                   T jumps (point torque) is reported as
                    three stations x - 0.01, x, x + 0.01 mm like p385Solve
        phi''       B/(E I_w);  phi''' = (G I_T phi' - T)/(E I_w)
    The returned object has the shape of p385Solve's result ({xs, phi, p1, p2,

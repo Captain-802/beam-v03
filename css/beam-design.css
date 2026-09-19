@@ -35,6 +35,17 @@
   .ltb-fixed{color:#1f2937;}
   .ltb-checks{display:grid; grid-template-columns:1fr 1fr; gap:4px 8px; margin-top:5px;}
   .ltb-checks .checkline{font-size:10.5px; margin:0;}
+  /* End conditions panel: End 1 | End 2 columns, each with its glyph, the seven
+     DOF boxes and the seating / hold-down entries of a vertically held end */
+  .ends-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:4px 0 6px;}
+  .end-col{border:1px solid #cfd6e2; border-radius:6px; padding:7px 8px; background:#fbfcfe; min-width:0;}
+  .end-head{font-size:12px; font-weight:700; color:#1f2937; margin-bottom:3px;}
+  .end-glyph{display:block; width:100%; height:auto; max-height:72px; margin:0 0 4px;}
+  .end-dofs .checkline{font-size:11px; margin:2px 0;}
+  .end-extra{border-top:1px dashed #d3d8e2; margin-top:6px; padding-top:5px;}
+  .end-extra .checkline{font-size:10.5px; margin:3px 0;}
+  .end-extra .fld{margin:3px 0;}
+  .end-none{font-size:10.5px; color:#6b7280;}
   .buttons{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:6px 0 2px;}
   button{border:1px solid #1e40af; border-radius:6px; background:var(--accent); color:#fff; padding:8px 10px; font-weight:700; cursor:pointer; font-size:12px;}
   button.secondary{background:#fff; color:#1e40af;}
@@ -125,6 +136,7 @@
   .ms-brief.ms-fail{background:#dbe6f5;}
   .ms-brief sub,.ms-brief sup{font-size:9px; line-height:0;}
   .ms-title{text-align:center; font-weight:700; color:#1a237e; font-size:15px; line-height:1.35; margin-bottom:8px;}
+  .ms-title .ms-ends{font-weight:400; font-size:12.5px; color:#1f2937; margin-top:2px;}   /* End conditions line under the title (19 Sep 2026 scope) */
   .ms-h{font-weight:700; color:#1a237e; font-size:16px; margin:9px 0 2px; line-height:1.2;}
   .ms-sub{font-weight:700; color:#1a237e; font-size:13.5px; margin:4px 0 1px 8px;}
   .ms-row{display:grid; grid-template-columns:minmax(190px,32%) 1fr minmax(120px,16%) minmax(90px,12%); column-gap:10px; padding:1px 0 1px 8px;}

@@ -1057,7 +1057,7 @@
       '<div class="list" id="ltbRestraintList"></div>' +
       '<div class="addbar"><button type="button" id="addLtbRestraint">+ Add lateral restraint</button></div>' +
       '<div class="hint">The LTB boundary conditions of the two ends come from their degree-of-freedom flags under ' +
-      'Geometry &amp; supports: U<sub>y</sub> = lateral displacement v held, R<sub>x</sub> = twist &phi; held (a fork end holds both), ' +
+      'Geometry &amp; end conditions: U<sub>y</sub> = lateral displacement v held, R<sub>x</sub> = twist &phi; held (a fork end holds both), ' +
       'R<sub>z</sub> = lateral bending v&prime; held (laterally clamped end), warping = &phi;&prime; held. A free end holds none of them. ' +
       'Add intermediate restraints where purlins, ties or secondary beams hold the member. ' +
       'The LTB buckling length follows from these conditions and positions &mdash; the L<sub>E</sub> factor and the destabilising &times;1.2 switch ' +

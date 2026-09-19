@@ -134,6 +134,7 @@ Row notation in the tables below: **Label** | **Formula (HTML)** | **Substituted
 | 1 | `Beam & Beam-Portion (Member)` or `Axial with Moments (Member)` | section 2.2 |
 | 2 | `Member <name>` | `S.memberName` if non-empty, else DERIVE: `<sname(sec.key)> <famLabel> [<S.grade>]`, e.g. "457 x 191 x 89 UB [S355]" (`sname`, `famLabel` as built in `render()`) |
 | 3 | `Between <xa> and <xb> m, in Load Case <n>` | `xa`, `xb` = governing portion from section 7 (single span: 0 and `S.L`); `n` = DERIVE: 1-based index of `a.governM.combo` in the enabled ULS list, followed by the label in brackets, e.g. `Load Case 1 (ULS: 1.35G + 1.5Q (Eq 6.10))` |
+| 4 **[beam-v03 addition, 19 Sep 2026 scope change, UI half]** | `End conditions: End 1: U<sub>x</sub> U<sub>y</sub> U<sub>z</sub> R<sub>x</sub> restrained (pinned in plane; LTB fork); End 2: … — <preset name or custom end conditions>[; internal hinge(s) at x m (in-plane moment release, lateral / twist continuity kept)]` in `div.ms-ends` (normal weight) | `endsConditionsLine(S)` (js/03-state-ui.js): the seven flags of each end (W = warping), the derived in-plane type (`endInPlaneType`: fixed / pinned / guided (R<sub>y</sub> held, U<sub>z</sub> free) / free) and LTB type (`endLtbType`: fork / laterally clamped / + warping fixed / partial (…) / free), `endsPresetName(S.ends)`, `S.hinges` |
 
 Member identity (MasterSeries "SB A\2-3L1 Id 26 @ Level 1") is NOT AVAILABLE unless `S.memberName` is added; the section string is the fallback.
 
@@ -153,7 +154,7 @@ Heading `Member Loading and Member Forces`.
 | Column | End 1 | End 2 | Source |
 |---|---|---|---|
 | Mem ber No. | 1 | | NOT AVAILABLE (single member); print `1` |
-| Node End1 / End2 | `x = 0` | `x = L` | DERIVE: positions `0` and `S.L` m (no node numbers exist); for the governing portion print `xa`, `xb` |
+| Node End1 / End2 | `End 1, x = 0` | `End 2, x = L` | DERIVE: positions `0` and `S.L` m (no node numbers exist); for the governing portion print `xa`, `xb` |
 | Axial Force (kN) | `N` with suffix `C` (compression, `S.axial > 0`) or `T` (tension) | same | `S.axial` (constant along the member; sign convention: positive = compression, as `render()` prints `c.F >= 0 ? 'C' : 'T'`) |
 | Torque Moment (kN.m) | `T` at x = 0 | at x = L | `T.p385 ? T.TtEnds[0] : 0`, `T.TtEnds[1]`; boxes: DERIVE `interpAt(a.tors.diag.xs, a.tors.diag.T, 0)` and at `S.L`; `0.00` when `a.tors` is null |
 | Shear Force y-y (kN) | DERIVE `interpAt(fb.xs, fb.V, 1e-4)/1000` | DERIVE `interpAt(fb.xs, fb.V, a.L−1e-4)/1000` | `fb = a.governM.fb` (governing combination's own diagram, not the envelope) |
@@ -163,10 +164,11 @@ Heading `Member Loading and Member Forces`.
 | Maximum Moment y-y (kN.m @ m) | `a.Mmax @ a.Mpos` | | signed |
 | Maximum Moment z-z | `S.Mz @ —` | | position NOT AVAILABLE (uniform) |
 | Maximum Deflection (mm @ m) | `a.deflection.dmax @ a.deflection.dpos/1000` | | governing span segment of the governing SLS case (`a.governD`); beam-v03 stores nodal deflection, which equals the in-span value between supports because support nodes have w = 0; for a cantilever it is the tip deflection |
+| Reaction R (kN), M (kN.m) **[beam-v03 addition, 19 Sep 2026 scope change, UI half]** | fixed: `R`, `M`; pinned: `R`, `—`; guided: `guided: M only`, `M`; free: `free: none`, `—` | same | `a.reactions[]` of the governing-moment combination (`r.end`, `r.type`, `r.V/1000`, `reactionEndMomentKNm(r)` = the end bending moment in the diagram convention, sagging positive, hogging negative — js/01-computation-engine.js); `—` in both cells when the portion end is not the member end (governing bay); the note under the table states the conventions |
 
 **[beam-v03 addition, 19 Sep 2026]** the load list ends with the automatic pattern-loading lines (`a.patterns`: segments, generated ULS/SLS cases numbered by the expanded lists, followed since the 19 Sep 2026 review fixes by the gamma_G,inf companion lines - `a.ulsCompanions`, one summary line and one line per companion `ULS Cn: <parent label> [gamma_G,inf = 1.0, STR set B]` / `[... = 0.9, EQU set A]`, reactions only - and the companion note `a.patterns.limitation`), and the reactions line is followed by the uplift rows (`c.holdDown.rows`: "Hold-down required" as a NOT VERIFIED row, "Hold-down provided" as an advisory row with the design force, or "Uplift ... OK"). Case numbers (`msbCaseIndex(combo, sls, a)`) index the analysed lists `a.ulsResults` / `a.slsResults`, so a generated pattern is "Load Case 3 (ULS: 1.35G + 1.5Q (Q on span 2 only))".
 
-**[beam-v03 addition]** a reactions line under the table: `R @ x m = V kN (, M kN.m)` from `a.reactions[]` (`V/1000`, `−M/1e6`), and a one-row-per-combination summary (`a.ulsResults[i].combo.label`, `Vmax/1000`, `Mmax/1e6 @ Mpos/1000`; `a.slsResults[i].combo.label`, `dmax`) when more than one combination is enabled, because MasterSeries' "Auto Design Load Cases" list has no beam-v03 equivalent other than this.
+**[beam-v03 addition]** a note under the table stating the reaction conventions (the reactions themselves are in the table's Reaction columns since the UI half of the 19 Sep 2026 scope change), and a one-row-per-combination summary (`a.ulsResults[i].combo.label`, `Vmax/1000`, `Mmax/1e6 @ Mpos/1000`; `a.slsResults[i].combo.label`, `dmax`) when more than one combination is enabled, because MasterSeries' "Auto Design Load Cases" list has no beam-v03 equivalent other than this.
 
 ### 5.2 Classification and Effective Area (EN 1993: 2006)
 
@@ -298,7 +300,7 @@ Heading `Lateral Buckling Check M.b.Rd`. Five variants.
 
 | Label / formula | Substituted values | Result | Tag | Source |
 |---|---|---|---|---|
-| `L<sub>e</sub> = portion between restraints` | `restraints at x = <vPoints/1000 joined> m (fork)`; cantilever adds `root warping <S.rootWarp>` | governing portion length `(xb − xa)/1000` m | `FE` | `LT.vPoints`, `LT.modePeakX`, `S.rootWarp`, `S.supports[].vp/.phip`, `S.fixedLateral` (extra fixities listed as in `ltbEigenReport`) |
+| `L<sub>e</sub> = portion between restraints` | `End 1 v, φ = 0; End 2 v, φ = 0[; lateral restraint points at x = <vPoints/1000 joined> m]` (the end boundary conditions from the DOF flags: v from U<sub>y</sub>, v′ from R<sub>z</sub>, φ from R<sub>x</sub>, φ′ from warping; a free end prints `free`) | governing portion length `(xb − xa)/1000` m | `FE` | `LT.vPoints`, `endsList()` (js/03-state-ui.js; since the 19 Sep 2026 scope change) |
 | `M<sub>cr</sub> = FE eigenvalue (n<sub>Elem</sub>, mesh error)` | `<nElem> elements, <meshError %> %` + (`LT.nCombos > 1` ? `; governing: <governCombo>` : ``) + (`LT.zg != 0` ? `; z<sub>g</sub> = <zg> mm` (or the `LT.zgValues` list) : ``) | `LT.Mcr` kN.m | `converged` / `BLOCKED` (`LT.mcrConverged` false or `LT.meshError > 0.005`) | `LT.nElem`, `LT.meshError`, `LT.Mcr`, `LT.nCombos`, `LT.governCombo`, `LT.zg`, `LT.zgValues`, `LT.zgUniform`, `LT.mcrConverged`; `LT.McrRev` (load reversed) may be shown as a second value when `LT.zg != 0` |
 | `λ<sub>LT</sub> = √W.f<sub>y</sub>/M<sub>cr</sub>` | `√ <Wy cm³> x <fy> / <Mcr>` | `LT.lamLT` | | `c.Wy/1e3`, `c.fy`, `LT.Mcr`, `LT.lamLT` |
 | `λ<sub>LT</sub> ≤ λ<sub>LT,0</sub>` (only when `LT.ign`) | `<lamLT> ≤ 0.4` | `χ<sub>LT</sub> = 1.000` | `6.3.2.2(4)` | `LT.ign` |
@@ -453,7 +455,7 @@ Rendering: any cell > 1.0001 in red bold; the bar is followed by the verdict foo
 
 ## 7. Portions between lateral restraints (formerly "Multi-span members and portions")
 
-**19 Sep 2026 scope change:** the tool handles one span (End 1 to End 2 with their degree-of-freedom flags). "Span by span" below now reads "bay by bay between intermediate lateral restraints": the portion table and the governing portion are the bays between the ends holding U<sub>y</sub> and the intermediate lateral restraints (`LT.segments`, `LT.spanGov`), never support-to-support spans. The loading list opens with an "End restraints" line printing the seven flags of each end. Multi-span, overhang and Gerber layouts are out of scope and refused by validation.
+**19 Sep 2026 scope change:** the tool handles one span (End 1 to End 2 with their degree-of-freedom flags). "Span by span" below now reads "bay by bay between intermediate lateral restraints": the portion table and the governing portion are the bays between the ends holding U<sub>y</sub> and the intermediate lateral restraints (`LT.segments`, `LT.spanGov`), never support-to-support spans. The title block ends with an "End conditions" line printing the seven flags of each end, the derived end types and the preset name (section 5.0 line 4; the loading-list "End restraints" line of the engine half is gone). Multi-span, overhang and Gerber layouts are out of scope and refused by validation.
 
 
 MasterSeries splits a member at lateral restraints and prints one portion at a time, each with its own moment diagram, C1 and M<sub>cr</sub>. beam-v03 has no portion selector: the FE method solves the whole member (all supports as forks plus `S.ltbRestraints`) and, when there are three or more lateral points (`LT.vPoints.length >= 3`), also solves each bay in isolation (`LT.segments[]`, fork ends, own share of loads and moment) and lets the worst isolated span govern when its utilisation exceeds the whole-member value (`LT.spanGoverns`, `LT.spanGov`). The brief maps this as follows.
@@ -492,10 +494,10 @@ Under the table print the whole-member M<sub>cr</sub> and the sentence already c
 
 ### 7.3 Other layouts
 
-* Cantilever (`S.supports.length === 1`, fixed): one portion `0–L`; title `Cantilever 0 to L m`; C1 line prints `eigen` (FE) or `Cantilever` (SN006a); `f = 1`.
+* Cantilever (`isCantilever(S)`: End 1 holds U<sub>z</sub> + R<sub>y</sub>, End 2 neither): one portion `0–L`; title `Cantilever 0 to L m`; C1 line prints `eigen` (FE) or `Cantilever` (SN006a); `f = 1`.
 * Internal hinges (`S.hinges`) shape the BMD only; they are not restraints and do not create portions.
 * Several ULS combinations: the LTB block prints the governing combination for LTB (`LT.governCombo`) which may differ from the title's `a.governM.combo`; the FE M<sub>cr</sub> line carries that label.
-* Different restraint stiffness at End 1 / End 2 (MasterSeries "As End1", averaged k) is NOT AVAILABLE; beam-v03 models end conditions explicitly through the per-support `vp`/`phip` flags, which are listed on the L<sub>e</sub> line.
+* Different restraint stiffness at End 1 / End 2 (MasterSeries "As End1", averaged k) is NOT AVAILABLE; beam-v03 models end conditions explicitly through the per-end R<sub>z</sub> / warping flags (v′, φ′), which are listed on the L<sub>e</sub> line and on the End conditions line of the title.
 
 ---
 
@@ -538,7 +540,7 @@ None of these re-implements a resistance; each re-expresses a number the check f
 | Contents of "Torsion Bending Design @ x" | not documented by MasterSeries | beam-v03 P385 lines (5.8) |
 | "Print both Simplified & More Exact" (Annex A interaction) | Annex B Method 2 only | omitted |
 | Def Limit pattern rows, Def Limit Sway, Lambda Limit (L/r slenderness limit) | not implemented (slenderness limit is a BS 5950 retention in MasterSeries) | omitted; `S.divisor` only |
-| End-1 / End-2 different effective-length factors (averaged) | explicit per-support LTB flags instead | list the flags |
+| End-1 / End-2 different effective-length factors (averaged) | explicit per-end DOF flags instead | list the flags |
 | Bolt-hole deductions (F-Holes, W-Holes, bolts in row) | only `S.anet` for N<sub>u.Rd</sub> | N<sub>u.Rd</sub> line when tension and `S.anet` |
 | Effective area for Class 4 | not computed (blocked) | `Class 4` + BLOCKED |
 | Annex BB.3 (Lm, NcrT, Nb.T.Rd, Mcr0) | not implemented | not printed (out of scope) |

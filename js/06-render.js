@@ -45,7 +45,7 @@ function renderWebTransverseBlock(c,sec,a){
       return `<tr><td class="num">${g(s.x/1000,3)}</td><td>${s.label}</td><td>(${t.type})</td><td class="num">${g(s.ss,1)}${s.ssDefault?'*':''}</td><td class="num">${g(t.kF,3)}</td><td class="num">${g(t.ly,1)}</td><td class="num">${g(t.lam,3)}</td><td class="num">${g(t.chi,3)}</td><td class="num">${f1(s.FRdTot,1)}</td><td class="num">${f1(cs.F,1)}</td><td>${cs.combo}</td><td class="num">${g(s.eta2,3)}</td><td class="num">${g(s.u72,3)}</td><td style="font-weight:700;color:${(s.eta2<=1.0001&&s.u72<=1.0001)?'#166534':'#b91c1c'}">${s.nv? 'NOT VERIFIED' : (s.eta2<=1.0001&&s.u72<=1.0001)? (s===W.gov2? 'governs':'OK') : 'FAIL'}</td></tr>`;
     }).join('')}</tbody>
   </table>
-  <div class="note" style="margin-left:0">${W.anyDefaultSs? '* s<sub>s</sub> not entered at this end: evaluated at the lower bound s<sub>s</sub> = 0 (F<sub>Rd</sub> rises with the seating length: a station passing at 0 is verified for any seating, one failing at 0 is NOT VERIFIED until s<sub>s</sub> is entered in the support row). ':''}Point loads act on the top flange (bottom flange for an upward load) and reactions on the bottom flange; s<sub>s</sub> &le; h<sub>w</sub> (6.3(1)); type (c) is evaluated whenever s<sub>s</sub> + c &lt; 2h<sub>w</sub>/3 (the value at which k<sub>F</sub>(c) reaches the long-panel 6) and the lower F<sub>Rd</sub> of types (a) and (c) governs; a point load over a support is type (b) with F<sub>Ed</sub> = max(P, R). &eta;<sub>1</sub> uses the unreduced class-consistent M<sub>c,Rd</sub> (${W.cls<=2? 'W<sub>pl,y</sub>':'W<sub>el,y</sub>'}) [verify: EN 1993-1-5 4.6 writes &eta;<sub>1</sub> with W<sub>eff</sub>]. Not evaluated: distributed loads as patch loads, loads hung from the bottom flange, the closely spaced total-load check (6.3(3)), flange-induced buckling (section 8); a declared bearing stiffener must be designed to 9.4.</div>`;
+  <div class="note" style="margin-left:0">${W.anyDefaultSs? '* s<sub>s</sub> not entered at this end: evaluated at the lower bound s<sub>s</sub> = 0 (F<sub>Rd</sub> rises with the seating length: a station passing at 0 is verified for any seating, one failing at 0 is NOT VERIFIED until s<sub>s</sub> is entered under End conditions). ':''}Point loads act on the top flange (bottom flange for an upward load) and reactions on the bottom flange; s<sub>s</sub> &le; h<sub>w</sub> (6.3(1)); type (c) is evaluated whenever s<sub>s</sub> + c &lt; 2h<sub>w</sub>/3 (the value at which k<sub>F</sub>(c) reaches the long-panel 6) and the lower F<sub>Rd</sub> of types (a) and (c) governs; a point load over an end holding U<sub>z</sub> is type (b) with F<sub>Ed</sub> = max(P, R). &eta;<sub>1</sub> uses the unreduced class-consistent M<sub>c,Rd</sub> (${W.cls<=2? 'W<sub>pl,y</sub>':'W<sub>el,y</sub>'}) [verify: EN 1993-1-5 4.6 writes &eta;<sub>1</sub> with W<sub>eff</sub>]. Not evaluated: distributed loads as patch loads, loads hung from the bottom flange, the closely spaced total-load check (6.3(3)), flange-induced buckling (section 8); a declared bearing stiffener must be designed to 9.4.</div>`;
   return h;
 }
 
@@ -89,13 +89,21 @@ function render(){
   });
   const loadLines=[autoSwLine,...userLoadLines].join("<br>");
   const sectionView = typeof sectionLoadLineView === 'function' ? sectionLoadLineView(sec) : '';
-  const reactLine=a.reactions.map(r=>`End ${r.end||''} @ ${g(r.pos/1000)} m: `+(r.type==='guided'? '' : `R = ${f1(r.V/1000,2)} kN`)+((r.type==='fixed'||r.type==='guided')? (r.type==='guided'? '' : ', ')+`M = ${f1(-r.M/1e6,2)} kN m`+(r.type==='guided'? ' (guided: no vertical reaction)' : '') : '')).join("   ");
-  const endsLine=`<div class="note" style="margin-left:0">End restraints: ${endsDescription(S)}${(S.hinges||[]).length? '; internal hinge(s) at '+S.hinges.map(h=>g(+h.pos,2)+' m').join(', ')+' (in-plane moment release, lateral / twist continuity kept)' : ''}.</div>`;
+  // End 1 / End 2 reactions of the governing-moment combination: R (upward positive) and the
+  // end moment in the diagram convention as the end type carries them; "guided: M only"
+  const reactLine=endsList().map(e=>{
+    const r=a.reactions.find(q=>q.end===e.n);
+    if(!r) return `End ${e.n} (x = ${g(e.x)} m): free end, no reaction`;
+    if(r.type==='guided') return `End ${e.n} (x = ${g(e.x)} m): guided: M only, M = ${f1(reactionEndMomentKNm(r),2)} kN m`;
+    return `End ${e.n} (x = ${g(e.x)} m): R = ${f1(r.V/1000,2)} kN`+(r.type==='fixed'? `, M = ${f1(reactionEndMomentKNm(r),2)} kN m` : ' (pinned: no M)');
+  }).join(" &nbsp; | &nbsp; ");
+  // End conditions line (19 Sep 2026 scope): the seven DOF flags of each end, the derived end types, the preset and the hinges
+  const endsLine=`<div class="note" style="margin-left:0">End conditions: ${endsConditionsLine(S)}.</div>`;
   // uplift / hold-down rows (every combination's reactions; item 1.2)
   const HD=c.holdDown||null;
   const upliftLines=(HD&&HD.rows&&HD.rows.length)
     ? HD.rows.map(u=>{
-        if(u.level==='sls') return `<div class="note" style="margin-left:0"><b>Uplift at SLS only, End ${u.n} (x = ${g(u.pos/1000,2)} m):</b> R = &minus;${f1(Math.abs(u.RSls),2)} kN (SLS combination ${u.comboSls}); no ULS combination lifts this support, including the &gamma;<sub>G,inf</sub> companions with G at 1.0 (STR set B) and 0.9 (EQU set A) (advisory).</div>`;
+        if(u.level==='sls') return `<div class="note" style="margin-left:0"><b>Uplift at SLS only, End ${u.n} (x = ${g(u.pos/1000,2)} m):</b> R = &minus;${f1(Math.abs(u.RSls),2)} kN (SLS combination ${u.comboSls}); no ULS combination lifts this end, including the &gamma;<sub>G,inf</sub> companions with G at 1.0 (STR set B) and 0.9 (EQU set A) (advisory).</div>`;
         return `<div class="note" style="margin-left:0;color:${u.holdDown?'#374151':'#b91c1c'}"><b>Hold-down ${u.holdDown?'provided':'required'} at End ${u.n} (x = ${g(u.pos/1000,2)} m):</b> R = &minus;${f1(Math.abs(u.RUls),2)} kN (combination ${u.comboUls})${u.RSls!=null? `; SLS uplift &minus;${f1(Math.abs(u.RSls),2)} kN (${u.comboSls})`:''}; ${u.nCombos} combination(s) lift this end${u.holdDown? ' &mdash; design the hold-down connection for this force (advisory)' : ' &mdash; NOT VERIFIED until "hold-down provided" is ticked for this end'}.</div>`; }).join('')
     : (a.uplift? `<div class="note" style="margin-left:0">Uplift: no end lifts in any of the ${a.uplift.nCombos!=null? a.uplift.nCombos : a.ulsResults.length+a.slsResults.length} combinations (all reactions &ge; 0${(a.ulsCompanions&&a.ulsCompanions.length)? '; incl. the '+a.ulsCompanions.length+' &gamma;<sub>G,inf</sub> companions with G at 1.0 and 0.9' : ''}).</div>` : '');
   // gamma_G,inf companions (reactions only)
@@ -161,7 +169,7 @@ function render(){
     : "Open-section torsion per SCI P385: elastic Method B with fork ends and free warping, using Appendix C Cases 3/4/10. The rotation-induced minor moment is included. Plastic redistribution and growth of eccentricity as the section twists are not iterated. The EC3 destabilising switch does not add this second-order torsional effect.");
   if((sci||sciU)&&c.tor) notes.push("Torsion: each applied load acts at its own offset e from the shear centre; loads with e = 0 and applied moments generate no torque. Automatic self-weight acts through the centroid, so it has e = 0 for doubly symmetric sections but e = e<sub>sc</sub> for PFC channels. The verification conservatively assumes maximum shear, bending and torsion are coincident (SCI example note). Twist is prevented at every end whose R<sub>x</sub> is restrained ("+endsList().filter(e=>e.rx).map(e=>'End '+e.n).join(', ')+"); the connection must provide that torsional restraint (friction-grip or similar). Torsion is evaluated on the EC3 code path only.");
   if((sci||sciU)&&c.coex&&c.coex.pureShearFail) notes.push("Coexistent M&ndash;V: V<sub>Ed</sub> exceeds V<sub>pl,Rd</sub> at the reported section, so the cl 6.2.8 reduced moment formula is bypassed; the section has already failed in pure shear.");
-  if((sci||sciU)&&c.web&&c.web.checked) notes.push("Web transverse forces (EN 1993-1-5 clause 6): F<sub>Rd</sub> = f<sub>yw</sub>L<sub>eff</sub>t<sub>w</sub>/&gamma;<sub>M1</sub> at every point load and every support reaction of every ULS combination, with the clause 7.2 interaction &eta;<sub>2</sub> + 0.8&eta;<sub>1</sub> &le; 1.4 at the same station; governing station x = "+g(c.web.gov2.x/1000,3)+" m ("+c.web.gov2.label+", type ("+c.web.gov2.type+")), F<sub>Ed</sub>/F<sub>Rd</sub> = "+g(c.web.util2,3)+". A failing station needs a bearing stiffener (tick \"bearing stiffener provided\" once it is designed to EN 1993-1-5 9.4) or a longer stiff bearing s<sub>s</sub>.");
+  if((sci||sciU)&&c.web&&c.web.checked) notes.push("Web transverse forces (EN 1993-1-5 clause 6): F<sub>Rd</sub> = f<sub>yw</sub>L<sub>eff</sub>t<sub>w</sub>/&gamma;<sub>M1</sub> at every point load and every end reaction of every ULS combination, with the clause 7.2 interaction &eta;<sub>2</sub> + 0.8&eta;<sub>1</sub> &le; 1.4 at the same station; governing station x = "+g(c.web.gov2.x/1000,3)+" m ("+c.web.gov2.label+", type ("+c.web.gov2.type+")), F<sub>Ed</sub>/F<sub>Rd</sub> = "+g(c.web.util2,3)+". A failing station needs a bearing stiffener (tick \"bearing stiffener provided\" once it is designed to EN 1993-1-5 9.4) or a longer stiff bearing s<sub>s</sub>.");
   if(sci){
     if(c.hsNote) notes.push(c.hsNote+".");
     if(c.ax) notes.push(c.ax.tension
@@ -511,6 +519,7 @@ function render(){
     <div>
       <h2>Member Loading and Member Forces</h2>
       <div class="meta">${sname(sec.key)} ${famLabel} &nbsp; &nbsp; ${gradeTxt} &nbsp; &nbsp; L = ${g(S.L)} m</div>
+      ${endsLine}
       <div class="loadlist">${loadLines}</div>
     </div>
     ${sectionView}
@@ -519,8 +528,7 @@ function render(){
   <div class="diagcard">
     <div class="dt">Loading</div>
     ${beamDiagram(a)}
-    ${endsLine}
-    <div class="note" style="margin-left:0">Reactions (governing-moment combo, ${a.governM.combo.label}): ${reactLine}</div>
+    <div class="note" style="margin-left:0">Reactions (governing-moment combo, ${a.governM.combo.label}; R upward positive, M sagging positive): ${reactLine}</div>
     ${upliftLines}
   </div>
 

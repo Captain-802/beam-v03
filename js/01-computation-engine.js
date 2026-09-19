@@ -132,6 +132,13 @@ function solveBeam(L,EI,supports,loads,nSub=120,hinges){
   const w=nodes.map((_,i)=>d[wDof[i]]);
   return {nodes,w,reactions};
 }
+/* Reaction moment of an end (fixed or guided) as the beam's end bending moment
+   in the diagram convention (sagging positive, hogging negative), kN.m (pure).
+   The nodal reaction R[rot] is anticlockwise-positive on the beam, so it is
+   the negative of the beam moment at End 1 (x = 0) and equal to it at End 2
+   (x = L): a fixed-fixed UDL prints -wL^2/12 at both ends, a guided End 2
+   under a fixed - guided UDL prints +wL^2/6 (sagging). */
+function reactionEndMomentKNm(r){ return ((r.end===2? r.M : -r.M)||0)/1e6; }
 function sfdBmd(L,supports,loads,reactions,N=1000){
   const PF=[],PM=[];
   reactions.forEach(r=>{ PF.push([r.pos,r.V]); if(r.type==='fixed'||r.type==='guided') PM.push([r.pos,-r.M]); });

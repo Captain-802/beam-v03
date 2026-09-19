@@ -118,13 +118,12 @@ test('[hand-derived] F3/F7: a blank end s_s is the lower bound 0 (demo reaction 
   // a lighter beam passes at the lower bound and is verified for any seating: 203x133x25, 4 m, 5 + 5 kN/m -> R = 34.9 kN
   c.reset({ family: 'ub', ubKey: '203 x 133 x 25', L: 4, ends:ENDS('ss'), loads: [{ type: 'udl', x1: 0, x2: 4, w: 5, case: 'G' }, { type: 'udl', x1: 0, x2: 4, w: 5, case: 'Q' }] });
   r = full(); assert.ok(r.c.web.stations.every(s => s.ssDefault && s.ss === 0 && !s.nv) && r.c.web.checked && r.c.pass, r.c.unsupported.join(' | '));
-  // F7: the end row label is section-independent (no "blank = B = ..." text); switching the section changes nothing in it
-  const labelFor = key => run(`(()=>{ S.family='ub'; S.ubKey=${JSON.stringify(key)}; const rows=[]; const fake={innerHTML:'', appendChild:r=>rows.push(r.innerHTML), querySelectorAll:()=>[]};
-    document.getElementById=()=>fake; document.createElement=()=>({className:'',innerHTML:''}); renderEndsList(); return rows.map(h=>{ const i=h.indexOf('Stiff bearing'); return i<0? '' : h.slice(i, h.indexOf('</span>', i)); }); })()`);
+  // F7: the s_s field of the End conditions panel is section-independent (no "blank = B = ..." text); switching the section changes nothing in it
+  const labelFor = key => run(`(()=>{ S.family='ub'; S.ubKey=${JSON.stringify(key)}; const html=endsPanelHtml(S);
+    return html.split('<div class="end-col"').slice(1).map(h=>{ const i=h.indexOf('Stiff bearing'); return i<0? '' : h.slice(i, h.indexOf('</div>', i)); }); })()`);
   const l1 = labelFor('457 x 191 x 82'), l2 = labelFor('610 x 229 x 101');
   assert.ok(l1.length === 2 && l1[0] && /lower bound 0/.test(l1[0]) && !/B =/.test(l1[0]), JSON.stringify(l1));
-  assert.equal(JSON.stringify(l1), JSON.stringify(l2), 'label identical after a section change');
-  run("document.getElementById=()=>null; delete document.createElement;");
+  assert.equal(JSON.stringify(l1), JSON.stringify(l2), 'field identical after a section change');
 });
 
 // ---- finding 6: solve caches (eigen and warping-torsion FE) ----

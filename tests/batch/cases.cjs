@@ -145,9 +145,9 @@ mk('UB-13', 'UB 610x229x125, 12 m SS, full UDL, restraints at third points', UB(
 mk('UB-16', 'UB 914x305x224, 16 m SS deep beam, full UDL, fully restrained', UB('914 x 305 x 224'),
   { L: 16, ends: SS(), restraint: 'full', loads: [UDL(0, 16, 20, 'G'), UDL(0, 16, 25, 'Q')] });
 mk('UB-18', 'UB 203x133x25, 4 m cantilever, UDL + tip point load, warping free at root', UB('203 x 133 x 25'),
-  { L: 4, ends: CANT(), divisor: 180, loads: [UDL(0, 4, 1, 'G'), UDL(0, 4, 1.5, 'Q'), P(4, 2, 'Q')] });
+  { L: 4, ends: CANT({ e1: { warp: false } }), divisor: 180, loads: [UDL(0, 4, 1, 'G'), UDL(0, 4, 1.5, 'Q'), P(4, 2, 'Q')] });   // root warping unticked (the cantilever preset restrains it)
 mk('UB-19', 'UB 254x102x22, 3 m cantilever, tip point load, root warping restrained', UB('254 x 102 x 22'),
-  { L: 3, ends: CANT(), divisor: 180, rootWarp: 'restrained', loads: [P(3, 10, 'Q')] });
+  { L: 3, ends: CANT(), divisor: 180, loads: [P(3, 10, 'Q')] });   // the cantilever preset restrains the root warping (seventh flag)
 mk('UB-20', 'UB 305x127x37, 6 m propped cantilever, full UDL', UB('305 x 127 x 37'),
   { L: 6, ends: PROPPED(), loads: [UDL(0, 6, 6, 'G'), UDL(0, 6, 7, 'Q')] });
 mk('UB-21', 'UB 406x140x39, 8 m fixed-fixed, full UDL (h/b > 2, curve c)', UB('406 x 140 x 39'),

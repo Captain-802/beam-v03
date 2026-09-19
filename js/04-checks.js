@@ -513,7 +513,7 @@ function holdDownCheck(a){
       else { blocking=true; msg='Hold-down required: '+force(true)+'. The end cannot resist uplift as modelled; tick "hold-down provided" for this end once a holding-down connection is designed for this force, or revise the restraints / loading (EN 1990 2.4.4 EQU; the &gamma;<sub>G,inf</sub> companions - G at 1.0 (STR set B) and 0.9 (EQU set A) with the entered variable factors - are included).'; }
     } else {
       level='sls';
-      msg='Hold-down check (SLS only) '+where+': the variable-action-only combination '+u.comboSls+' lifts this support by R = &minus;'+kN(u.RSls)+' kN; no ULS combination lifts it, including the &gamma;<sub>G,inf</sub> companions with G at 1.0 (STR set B) and 0.9 (EQU set A, EN 1990 Table A1.2(A)) and the entered variable factors'+(u.holdDown? '; hold-down provided' : '')+'. A deflection combination without G is not an equilibrium state, so this does not block PASS.';
+      msg='Hold-down check (SLS only) '+where+': the variable-action-only combination '+u.comboSls+' lifts this end by R = &minus;'+kN(u.RSls)+' kN; no ULS combination lifts it, including the &gamma;<sub>G,inf</sub> companions with G at 1.0 (STR set B) and 0.9 (EQU set A, EN 1990 Table A1.2(A)) and the entered variable factors'+(u.holdDown? '; hold-down provided' : '')+'. A deflection combination without G is not an equilibrium state, so this does not block PASS.';
     }
     const row=Object.assign({},u,{msg,level,blocking});
     out.rows.push(row);
@@ -544,7 +544,7 @@ function checks(a){
     return worst;
   });
   c.unsupported=[...new Set(c.unsupported.concat(...results.map(r=>r.c.unsupported)))];
-  // shared analysis-level checks (uplift / hold-down, pattern-loading note)
+  // shared analysis-level checks (uplift / hold-down, stability notes, the gamma_G,inf companion note)
   const hd=holdDownCheck(a);
   c.holdDown=hd;
   c.unsupported=c.unsupported.concat(hd.unsupported);

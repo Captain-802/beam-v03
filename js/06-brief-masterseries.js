@@ -207,7 +207,7 @@ function msbWebBlock(a,c,sec,nvRows){
         return '<tr><td class="num">'+msbM(s.x/1000)+'</td><td>'+msbEsc(s.label)+'</td><td>('+t.type+')</td><td class="num">'+msbMM(s.ss)+(s.ssDefault? '*' : '')+'</td><td class="num">'+msbR(t.kF)+'</td><td class="num">'+msbMM(t.ly)+'</td><td class="num">'+msbR(t.lam)+'</td><td class="num">'+msbR(t.chi)+'</td><td class="num">'+msbKN(s.FRdTot)+'</td><td class="num">'+msbKN(cs.F)+'</td><td>'+msbEsc(cs.combo)+'</td><td class="num">'+msbR(s.eta2)+'</td><td class="num">'+msbR(s.u72)+'</td><td>'+(s.nv? '<span class="ms-warn">NOT VERIFIED</span>' : (s.eta2<=1.0001&&s.u72<=1.0001)? (s===W.gov2? 'governs' : 'OK') : '<span class="ms-warn">Warning</span>')+'</td></tr>';
       }).join('')+'</tbody></table>';
   }
-  h+='<div class="ms-note">'+(W.anyDefaultSs? '* s<sub>s</sub> not entered at this support: evaluated at the lower bound s<sub>s</sub> = 0 (F<sub>Rd</sub> rises with the seating length, so a station passing at 0 is verified for any seating; one failing at 0 is NOT VERIFIED until s<sub>s</sub> is entered). ' : '')+'Point loads act on the top flange (bottom flange for an upward load), reactions on the bottom flange; s<sub>s</sub> &le; h<sub>w</sub> (6.3(1)); c = distance from the bearing edge to the member end; type (c) is evaluated whenever s<sub>s</sub> + c &lt; 2h<sub>w</sub>/3 (k<sub>F</sub>(c) &lt; 6) and the lower F<sub>Rd</sub> of types (a) and (c) governs; a load over a support is type (b) with F<sub>Ed</sub> = max(P, R). &eta;<sub>1</sub> uses the unreduced M<sub>c.y.Rd</sub> ('+(W.cls<=2? 'W<sub>pl.y</sub>' : 'W<sub>el.y</sub>')+') [verify: EN 1993-1-5 4.6 writes &eta;<sub>1</sub> with W<sub>eff</sub>]. Distributed loads, hanger loads, the closely-spaced total-load check (6.3(3)) and flange-induced buckling (section 8) are not evaluated.</div>';
+  h+='<div class="ms-note">'+(W.anyDefaultSs? '* s<sub>s</sub> not entered at this end: evaluated at the lower bound s<sub>s</sub> = 0 (F<sub>Rd</sub> rises with the seating length, so a station passing at 0 is verified for any seating; one failing at 0 is NOT VERIFIED until s<sub>s</sub> is entered). ' : '')+'Point loads act on the top flange (bottom flange for an upward load), reactions on the bottom flange; s<sub>s</sub> &le; h<sub>w</sub> (6.3(1)); c = distance from the bearing edge to the member end; type (c) is evaluated whenever s<sub>s</sub> + c &lt; 2h<sub>w</sub>/3 (k<sub>F</sub>(c) &lt; 6) and the lower F<sub>Rd</sub> of types (a) and (c) governs; a load over an end holding U<sub>z</sub> is type (b) with F<sub>Ed</sub> = max(P, R). &eta;<sub>1</sub> uses the unreduced M<sub>c.y.Rd</sub> ('+(W.cls<=2? 'W<sub>pl.y</sub>' : 'W<sub>el.y</sub>')+') [verify: EN 1993-1-5 4.6 writes &eta;<sub>1</sub> with W<sub>eff</sub>]. Distributed loads, hanger loads, the closely-spaced total-load check (6.3(3)) and flange-induced buckling (section 8) are not evaluated.</div>';
   h+=msbNotVerifiedRows(nvRows);
   return h;
 }
@@ -242,7 +242,9 @@ function renderMasterSeriesBrief(a,c,sec){
   /* ---- 5.0 Title ---- */
   h+='<div class="ms-title"><div>'+(AX? 'Axial with Moments (Member)' : 'Beam &amp; Beam-Portion (Member)')+titleSuffix+'</div>'+
      '<div>Member '+memberName+'</div>'+
-     '<div>'+(isCant? 'Cantilever 0 to '+msbM(a.L/1000)+' m' : 'Between '+msbM(xa/1000)+' and '+msbM(xb/1000)+' m')+', in Load Case '+caseM+'</div></div>';
+     '<div>'+(isCant? 'Cantilever 0 to '+msbM(a.L/1000)+' m' : 'Between '+msbM(xa/1000)+' and '+msbM(xb/1000)+' m')+', in Load Case '+caseM+'</div>'+
+     // [beam-v03 addition, 19 Sep 2026 scope] the seven DOF flags of each end, the derived end types, the preset name and the hinges
+     '<div class="ms-ends">End conditions: '+endsConditionsLine(S)+'</div></div>';
 
   /* ---- 5.1 Member Loading and Member Forces ---- */
   h+=msbHead('Member Loading and Member Forces');
@@ -258,8 +260,6 @@ function renderMasterSeriesBrief(a,c,sec){
   });
   const swE=selfWeightEccentricity(sec);
   loadLines.push('G SW '+g(selfWeightValue(sec),4)+' kN/m 0&ndash;'+g(S.L)+' m'+(S.eccOn&&Math.abs(swE)>1e-9? ' e = '+g(swE,1)+' mm' : '')+' ( automatic )');
-  // end restraints of the single span (19 Sep 2026 scope): the seven DOF flags of each end
-  loadLines.push('<b>End restraints</b>: '+endsDescription(S)+((S.hinges||[]).length? '; internal hinge(s) at '+S.hinges.map(h=>g(+h.pos,2)+' m').join(', ')+' (in-plane moment release)' : ''));
   // gamma_G,inf companions (19 Sep 2026 review): G at 1.0 (STR set B) and 0.9 (EQU set A) of every ULS combination
   // with G > 1.0, solved for the end reactions (uplift / hold-down, web bearing)
   if(a.ulsCompanions && a.ulsCompanions.length){
@@ -278,14 +278,23 @@ function renderMasterSeriesBrief(a,c,sec){
   const pm=msbPortionMoments(gfb,xa,xb);
   const MmaxP=wholePortion? a.Mmax : pm.Mmax, MposP=wholePortion? a.Mpos : pm.xmax/1000;
   const dfl=a.deflection||{dmax:a.dmax,dpos:a.dpos*1000};
-  h+='<table class="ms-forces"><thead><tr><th colspan="12" class="ms-ft">Member Forces in Load Case '+caseM+' and Maximum Deflection from Load Case '+caseD+'</th></tr>'+
-     '<tr><th rowspan="2">Mem<br>ber<br>No.</th><th rowspan="2">Node<br>End1<br>End2</th><th rowspan="2">Axial<br>Force<br>(kN)</th><th rowspan="2">Torque<br>Moment<br>(kN.m)</th><th colspan="2">Shear Force<br>(kN)</th><th colspan="2">Bending Moment<br>(kN.m)</th><th colspan="2">Maximum Moment<br>(kN.m @ m)</th><th rowspan="2">Maximum<br>Deflection<br>(mm @ m)</th></tr>'+
-     '<tr><th>y-y</th><th>z-z</th><th>y-y</th><th>z-z</th><th>y-y</th><th>z-z</th></tr></thead><tbody>'+
-     '<tr><td class="num">1</td><td class="num">x = '+msbM(xa/1000)+'</td><td class="num">'+f1(Math.abs(N),2)+Ntag+'</td><td class="num">'+f1(torqueAt(xa),2)+'</td><td class="num">'+f1(V1,2)+'</td><td class="num">0.00</td><td class="num">'+f1(M1,2)+'</td><td class="num">'+f1(S.Mz||0,2)+'</td><td class="num">'+f1(MmaxP,2)+'</td><td class="num">'+f1(S.Mz||0,2)+'</td><td class="num">'+f1(dfl.dmax,2)+'</td></tr>'+
-     '<tr><td class="num"></td><td class="num">x = '+msbM(xb/1000)+'</td><td class="num">'+f1(Math.abs(N),2)+Ntag+'</td><td class="num">'+f1(torqueAt(xb),2)+'</td><td class="num">'+f1(V2,2)+'</td><td class="num">0.00</td><td class="num">'+f1(M2,2)+'</td><td class="num">'+f1(S.Mz||0,2)+'</td><td class="num">@ '+f1(MposP,3)+'</td><td class="num">@ &mdash;</td><td class="num">@ '+f1(dfl.dpos/1000,3)+'</td></tr>'+
+  // [beam-v03 addition, 19 Sep 2026 scope] End 1 / End 2 reactions of the governing-moment
+  // combination (a.reactions: end, type, V, M): R and M as the end type carries them, a
+  // guided end "M only", a free end none; printed only when the portion end is the member end
+  const reactCells=(n,xEnd)=>{
+    const r=a.reactions.find(q=>q.end===n);
+    if(Math.abs(xEnd-(n===1? 0 : a.L))>1e-6) return '<td class="num">&mdash;</td><td class="num">&mdash;</td>';
+    if(!r) return '<td class="num">free: none</td><td class="num">&mdash;</td>';
+    if(r.type==='guided') return '<td class="num">guided: M only</td><td class="num">'+f1(reactionEndMomentKNm(r),2)+'</td>';
+    return '<td class="num">'+f1(r.V/1000,2)+'</td><td class="num">'+(r.type==='fixed'? f1(reactionEndMomentKNm(r),2) : '&mdash;')+'</td>';
+  };
+  h+='<table class="ms-forces"><thead><tr><th colspan="13" class="ms-ft">Member Forces in Load Case '+caseM+' and Maximum Deflection from Load Case '+caseD+'</th></tr>'+
+     '<tr><th rowspan="2">Mem<br>ber<br>No.</th><th rowspan="2">Node<br>End1<br>End2</th><th rowspan="2">Axial<br>Force<br>(kN)</th><th rowspan="2">Torque<br>Moment<br>(kN.m)</th><th colspan="2">Shear Force<br>(kN)</th><th colspan="2">Bending Moment<br>(kN.m)</th><th colspan="2">Maximum Moment<br>(kN.m @ m)</th><th rowspan="2">Maximum<br>Deflection<br>(mm @ m)</th><th colspan="2">Reaction<br>R (kN), M (kN.m)</th></tr>'+
+     '<tr><th>y-y</th><th>z-z</th><th>y-y</th><th>z-z</th><th>y-y</th><th>z-z</th><th>R</th><th>M</th></tr></thead><tbody>'+
+     '<tr><td class="num">1</td><td class="num">End 1, x = '+msbM(xa/1000)+'</td><td class="num">'+f1(Math.abs(N),2)+Ntag+'</td><td class="num">'+f1(torqueAt(xa),2)+'</td><td class="num">'+f1(V1,2)+'</td><td class="num">0.00</td><td class="num">'+f1(M1,2)+'</td><td class="num">'+f1(S.Mz||0,2)+'</td><td class="num">'+f1(MmaxP,2)+'</td><td class="num">'+f1(S.Mz||0,2)+'</td><td class="num">'+f1(dfl.dmax,2)+'</td>'+reactCells(1,xa)+'</tr>'+
+     '<tr><td class="num"></td><td class="num">End 2, x = '+msbM(xb/1000)+'</td><td class="num">'+f1(Math.abs(N),2)+Ntag+'</td><td class="num">'+f1(torqueAt(xb),2)+'</td><td class="num">'+f1(V2,2)+'</td><td class="num">0.00</td><td class="num">'+f1(M2,2)+'</td><td class="num">'+f1(S.Mz||0,2)+'</td><td class="num">@ '+f1(MposP,3)+'</td><td class="num">@ &mdash;</td><td class="num">@ '+f1(dfl.dpos/1000,3)+'</td>'+reactCells(2,xb)+'</tr>'+
      '</tbody></table>';
-  const reactLine=a.reactions.map(r=>'End '+(r.end||'')+' @ '+msbM(r.pos/1000)+' m: '+(r.type==='guided'? 'M = '+f1(-r.M/1e6,2)+' kN.m (guided, no vertical reaction)' : 'R = '+f1(r.V/1000,2)+' kN'+(r.type==='fixed'? ', M = '+f1(-r.M/1e6,2)+' kN.m' : ''))).join(' &nbsp; ');
-  h+='<div class="ms-note">Reactions ('+a.governM.combo.label+'): '+reactLine+'. V<sub>z</sub> = 0: no minor-axis shear in the single-plane model; M<sub>z</sub> is the entered constant design moment.</div>';
+  h+='<div class="ms-note">Reactions of '+a.governM.combo.label+' at the member ends: R positive upward (a negative R is uplift), M = the end bending moment in the diagram convention (sagging positive, hogging negative); a pinned end carries no M, a guided end no R, a free end neither. V<sub>z</sub> = 0: no minor-axis shear in the single-plane model; M<sub>z</sub> is the entered constant design moment.</div>';
   // uplift / hold-down (item 1.2): one row per lifting support, in the Member Forces block
   const HD=c.holdDown||null;
   if(HD && HD.rows && HD.rows.length){
@@ -518,7 +527,7 @@ function renderMasterSeriesBrief(a,c,sec){
       if(sg){
         if(lam<=0.4) h+=ignLine(lam);
         else h+=chiLine(lam,msbPhiLT(lam,LT.curve.alphaLT),LT.curve.alphaLT,sg.chi,LT.curve.curve);
-        h+=chiModLine(sg.chi,lam,null,1,sg.chi,'span: f = 1');
+        h+=chiModLine(sg.chi,lam,null,1,sg.chi,'isolated bay: f = 1');
         h+=mbLine(sg.chi,sg.Mb);
         h+=ratioLine(sg.Ms,sg.Mb);
       } else {

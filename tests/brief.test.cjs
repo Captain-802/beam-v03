@@ -246,7 +246,7 @@ test('single span with two intermediate restraints renders a three-row portion t
   assert.equal([...tbl.matchAll(/<tr><td class="num">\d<\/td>/g)].length, 3);
   assert.ok(/0 &ndash; 3\.5.*3\.5 &ndash; 7.*7 &ndash; 12/s.test(tbl));
   assert.ok(row(html, /^L<sub>e<\/sub> = portion/).vals.includes('End 1 v, &phi; = 0; End 2 v, &phi; = 0; lateral restraint points at x = 0, 3.5, 7, 12 m'), row(html, /^L<sub>e<\/sub> = portion/).vals);
-  assert.ok(html.includes('<b>End restraints</b>: End 1 (x = 0 m): U<sub>x</sub>, U<sub>y</sub>, U<sub>z</sub>, R<sub>x</sub> restrained; End 2 (x = 12 m): U<sub>y</sub>, U<sub>z</sub>, R<sub>x</sub> restrained'), 'end restraint line in the load list');
+  assert.ok(html.includes('<div class="ms-ends">End conditions: End 1: U<sub>x</sub> U<sub>y</sub> U<sub>z</sub> R<sub>x</sub> restrained (pinned in plane; LTB fork); End 2: U<sub>y</sub> U<sub>z</sub> R<sub>x</sub> restrained (pinned in plane; LTB fork) &mdash; simply supported</div>'), 'End conditions line under the title');
   assert.ok(row(html, /^C<sub>1<\/sub> = M<sub>cr<\/sub>\/M<sub>cr,uniform<\/sub>/), 'C1 line (bay or whole-member ratio for k_c)');
   assert.ok(/\[segment [\d.]+&ndash;[\d.]+ m\]/.test(row(html, /standard, comparison/).vals), 'comparison C1 names its segment');
 });
@@ -333,4 +333,50 @@ test('standard route: the entered load height is always printed, and a destabili
   assert.ok(mcr.tag.includes('BLOCKED'));
   assert.ok(s.unsupported.some(m => /C<sub>2<\/sub> only for the simply supported and fixed-ended/.test(m)) && !s.pass);
   assert.ok(html.includes('(NOT VERIFIED)') || html.includes('(FAIL)'));
+});
+
+// ---- UI half of the 19 Sep 2026 scope change: every preset and a custom guided case render in both Mcr methods ----
+// reads the End 1 / End 2 rows of the Member Forces table: the last two cells are the reaction R and M
+function forceRows(html) {
+  const tbl = html.match(/<table class="ms-forces">.*?<\/table>/s)[0];
+  return [...tbl.matchAll(/<tr>((?:<td class="num">.*?<\/td>)+)<\/tr>/g)].map(m => [...m[1].matchAll(/<td class="num">(.*?)<\/td>/g)].map(x => x[1]));
+}
+test('End conditions: the six presets and a custom guided case render in both Mcr methods with the End conditions line, the reaction cells per end type and no undefined/NaN', () => {
+  const udl = L => [{type:'udl', x1:0, x2:L, w:10, case:'Q'}];
+  const Q15 = [{id:'c1', label:'ULS: 1.5Q', factors:{G:0,Q:1.5,W:0,E:0}, sls:false, on:true}, {id:'s1', label:'SLS: Q', factors:{G:0,Q:1,W:0,E:0}, sls:true, on:true}];
+  const isNum = s => /^-?\d+\.\d\d$/.test(s);
+  const cases = [
+    {p:'ss',            line:'End 1: U<sub>x</sub> U<sub>y</sub> U<sub>z</sub> R<sub>x</sub> restrained (pinned in plane; LTB fork); End 2: U<sub>y</sub> U<sub>z</sub> R<sub>x</sub> restrained (pinned in plane; LTB fork) &mdash; simply supported',
+                        r1:[isNum, s => s === '&mdash;'], r2:[isNum, s => s === '&mdash;']},
+    {p:'fixed-fixed',   line:'&mdash; fixed-fixed', r1:[isNum, isNum], r2:[isNum, isNum]},
+    {p:'fixed-pinned',  line:'&mdash; fixed-pinned (propped cantilever)', r1:[isNum, isNum], r2:[isNum, s => s === '&mdash;']},
+    {p:'cantilever',    line:'End 1: U<sub>x</sub> U<sub>y</sub> U<sub>z</sub> R<sub>x</sub> R<sub>y</sub> R<sub>z</sub> W restrained (fixed in plane; LTB laterally clamped, warping fixed); End 2: free (free in plane; LTB free) &mdash; cantilever',
+                        r1:[isNum, isNum], r2:[s => s === 'free: none', s => s === '&mdash;']},
+    {p:'guided-fixed',  line:'End 2: U<sub>y</sub> R<sub>x</sub> R<sub>y</sub> R<sub>z</sub> restrained (guided (R<sub>y</sub> held, U<sub>z</sub> free) in plane; LTB laterally clamped) &mdash; guided-fixed',
+                        r1:[isNum, isNum], r2:[s => s === 'guided: M only', isNum]},
+    {p:'pinned-guided', line:'&mdash; pinned-guided', r1:[isNum, s => s === '&mdash;'], r2:[s => s === 'guided: M only', isNum]},
+    // custom: End 1 pinned but laterally clamped and warping-fixed, End 2 guided with U_x held too (axial path indeterminate)
+    {p:'custom', ends:E('pinned-guided', {e1:{rz:true, warp:true}, e2:{ux:true}}),
+                        line:'End 1: U<sub>x</sub> U<sub>y</sub> U<sub>z</sub> R<sub>x</sub> R<sub>z</sub> W restrained (pinned in plane; LTB laterally clamped, warping fixed); End 2: U<sub>x</sub> U<sub>y</sub> R<sub>x</sub> R<sub>y</sub> R<sub>z</sub> restrained (guided (R<sub>y</sub> held, U<sub>z</sub> free) in plane; LTB laterally clamped) &mdash; custom end conditions',
+                        r1:[isNum, s => s === '&mdash;'], r2:[s => s === 'guided: M only', isNum]},
+  ];
+  for (const cs of cases) for (const m of ['eigen', 'standard']) {
+    const tag = cs.p + '/' + m;
+    const r = render({restraint:'ltb', L:6, ends: cs.ends || E(cs.p), loads:udl(6), combos:Q15}, m);
+    const {html} = checkCommon(r, tag);   // no undefined/NaN, block order, unity bar, NOT VERIFIED rows
+    const ends = html.match(/<div class="ms-ends">End conditions: (.*?)<\/div>/);
+    assert.ok(ends && ends[1].includes(cs.line), tag + ': End conditions line: ' + (ends && ends[1]));
+    const rows = forceRows(html);
+    assert.equal(rows.length, 2, tag + ': two end rows');
+    assert.ok(/^End 1, x = 0$/.test(rows[0][1]) && /^End 2, x = 6$/.test(rows[1][1]), tag + ': end labels ' + rows[0][1] + ' / ' + rows[1][1]);
+    const c1 = rows[0].slice(-2), c2 = rows[1].slice(-2);
+    assert.ok(cs.r1[0](c1[0]) && cs.r1[1](c1[1]), tag + ': End 1 reaction cells ' + JSON.stringify(c1));
+    assert.ok(cs.r2[0](c2[0]) && cs.r2[1](c2[1]), tag + ': End 2 reaction cells ' + JSON.stringify(c2));
+    // [hand-derived] fixed-fixed: M = -wL^2/12 = -1.5 x 10 x 36/12 = -45 at both ends (hogging negative at End 2 too);
+    // guided-fixed: M_1 = -wL^2/3 = -180, M_2 = +wL^2/6 = +90 (sagging); pinned-guided: M_2 = +wL^2/2 = +270, R_1 = wL = 90
+    if (cs.p === 'fixed-fixed') { assert.equal(c1[1], '-45.00'); assert.equal(c2[1], '-45.00'); assert.equal(c1[0], '45.00'); }
+    if (cs.p === 'guided-fixed') { assert.equal(c1[1], '-180.00'); assert.equal(c2[1], '90.00'); assert.equal(c1[0], '90.00'); }
+    if (cs.p === 'pinned-guided') { assert.equal(c1[0], '90.00'); assert.equal(c2[1], '270.00'); }
+    if (cs.p === 'cantilever') { assert.equal(c1[0], '90.00'); assert.equal(c1[1], '-270.00'); }
+  }
 });

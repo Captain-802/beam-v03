@@ -221,7 +221,7 @@ test('closed forms stay the default where they apply (fork-fork full-span UDL + 
   cmp.forEach((p, i) => near(p[1], p[0], 5e-3, 'closed vs FE ' + i));
 });
 
-test('per-end warping flag: both ends warping-fixed on a fork-fork UB routes to the FE, lowers phi_max and M_w changes, prints the BCs; the option is exposed on the EC3 path with torsion active on open sections', () => {
+test('per-end warping flag: both ends warping-fixed on a fork-fork UB routes to the FE, lowers phi_max and M_w changes, prints the BCs; the flag is one of the seven end boxes', () => {
   const lay = { restraint: 'ltb', eccOn: true, L: 8, ends:E('ss'), loads: [{ type: 'udl', x1: 0, x2: 8, w: 10, case: 'Q', e: 100 }] };
   c.reset(lay); const free = full();
   assert.equal(free.a.torsO.method, 'closed');
@@ -231,10 +231,8 @@ test('per-end warping flag: both ends warping-fixed on a fork-fork UB routes to 
   assert.ok(Math.abs(fix.c.tor.TtEnds[0]) < 1e-9 && Math.abs(fix.c.tor.TtEnds[1]) < 1e-9, 'St Venant torque zero at warping-fixed ends (all torque carried by warping there)');
   near(Math.abs(fix.c.tor.TEnds[0]), Math.abs(free.c.tor.TEnds[0]), 1e-6, 'total end torque unchanged (symmetric layout: half the applied torque each end)');
   const h = brief(); const ta = row(h, /^Torsion analysis$/); assert.ok(ta && /x = 0 m \(&phi; = 0, &phi;&prime; = 0: warping fixed\)/.test(ta.vals) && /warping-fixed end/.test(ta.vals), JSON.stringify(ta));
-  assert.equal(run('torsionWarpInputsOn()'), true);
-  c.reset(Object.assign({}, lay, { eccOn: false })); assert.equal(run('torsionWarpInputsOn()'), false);
-  c.reset(Object.assign({}, lay, { family: 'rhs' })); assert.equal(run('torsionWarpInputsOn()'), false);
-  c.reset(Object.assign({}, lay, { code: 'BS5950' })); assert.equal(run('torsionWarpInputsOn()'), false);
+  // the warping flag is one of the seven boxes of each end in the End conditions panel (always shown)
+  assert.ok(/data-dof="warp"/.test(run('endsPanelHtml(S)')), 'warping box rendered in the End conditions panel');
 });
 
 test('mesh-convergence guard: an unconverged FE solution blocks PASS with the printed error, the brief prints BLOCKED on the method row and the NOT VERIFIED row in the Torsion Design block', () => {

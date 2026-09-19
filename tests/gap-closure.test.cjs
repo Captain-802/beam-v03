@@ -129,7 +129,7 @@ test('deflection limits: a vertically free end (cantilever tip, guided tip) uses
 });
 
 // ---- brief and report placement ----
-test('brief: end restraints in the loading list, hold-down row in Member Forces, the deflection row of a vertically free end, strut tags from the end fixities', () => {
+test('brief: End conditions line under the title, hold-down row in Member Forces, the deflection row of a vertically free end, strut tags from the end fixities', () => {
   const ROW = /<div class="ms-row[^"]*"><div class="ms-l">(.*?)<\/div><div class="ms-v[^"]*">(.*?)<\/div><div class="ms-r">(.*?)<\/div><div class="ms-t">(.*?)<\/div><\/div>/g;
   const rows = html => [...html.matchAll(ROW)].map(m => ({label:m[1], vals:m[2], res:m[3], tag:m[4]}));
   const brief = () => run(`(()=>{ const a=analyse(); const ch=checks(a); return {html:renderMasterSeriesBrief(a,ch,a.sec), unsupported:ch.unsupported, pass:ch.pass}; })()`);
@@ -139,7 +139,9 @@ test('brief: end restraints in the loading list, hold-down row in Member Forces,
   const iLoad = h.indexOf('Member Loading and Member Forces'), iCls = h.indexOf('Classification and Effective Area'), iHd = h.indexOf('ms-nv-msg">Hold-down required');
   assert.ok(iLoad < iHd && iHd < iCls, 'hold-down NOT VERIFIED row sits in the Member Forces block');
   assert.equal([...h.matchAll(/<div class="ms-row ms-nv">/g)].length, r.unsupported.length, 'one NOT VERIFIED row per blocking message');
-  assert.ok(/<b>End restraints<\/b>: End 1 \(x = 0 m\): U<sub>x<\/sub>, U<sub>y<\/sub>, U<sub>z<\/sub>, R<sub>x<\/sub> restrained; End 2 \(x = 6 m\): U<sub>y<\/sub>, U<sub>z<\/sub>, R<sub>x<\/sub> restrained/.test(h.slice(iLoad, iCls)), 'end restraint line in the load list');
+  const title = h.slice(0, iLoad);   // the End conditions line belongs to the title block (UI half of the 19 Sep 2026 scope)
+  assert.ok(/<div class="ms-ends">End conditions: End 1: U<sub>x<\/sub> U<sub>y<\/sub> U<sub>z<\/sub> R<sub>x<\/sub> restrained \(pinned in plane; LTB fork\); End 2: U<sub>y<\/sub> U<sub>z<\/sub> R<sub>x<\/sub> restrained \(pinned in plane; LTB fork\) &mdash; simply supported<\/div>/.test(title), 'End conditions line under the title: ' + title);
+  assert.ok(!/End restraints/.test(h), 'the old loading-list line is gone');
   assert.ok(/&gamma;<sub>G,inf<\/sub> companions: none generated/.test(h.slice(iLoad, iCls)), 'gamma_G,inf companion note printed with the loads');
   assert.ok(rows(h).find(x => /^Auto Design Load Cases$/.test(x.label)).vals === '1; SLS 1');
   // hold-down provided: advisory row with the force in the Member Forces block, no NOT VERIFIED row
