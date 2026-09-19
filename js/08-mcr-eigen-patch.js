@@ -848,6 +848,10 @@
     }
     if (annex) utils.push({ name: 'LTB+torsion (EN 1993-6 Annex A)', val: annex.u });
     if (b.coex) utils.push({ name: b.coex.pureShearFail ? 'Pure shear failure at M-V check point (6.2.6)' : 'Bending+shear coexistent (6.2.8)', val: b.coex.u });
+    if (b.web && b.web.checked) {
+      utils.push({ name: WEB_UTIL_NAMES[0], val: b.web.util2 });
+      utils.push({ name: WEB_UTIL_NAMES[1], val: b.web.util72 });
+    }
     if (b.tor && b.tor.box) {
       utils.push({ name: 'Torsion  T_Ed/T_Rd', val: b.tor.torUtil });
       utils.push({ name: 'Shear+torsion  V_Ed/V_pl,T,Rd', val: b.tor.vtUtil });

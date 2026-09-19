@@ -280,6 +280,172 @@ function annexB2(a,sec,fy,cl,MbRdI,useB1,isCant){
   return {Fc,Mx,Lcr,LcrY,LcrZ,Ky,Kz,cantStrut,leOverride,lcrBasis,lczFromRestraints,lam1,lamY,lamZ,cvY,cvZ,chiY,chiZ,NbY,NbZ,ny,nz,
     Cmy,Cmz,CmLT,cmLabel:cm.label,swayNote,useB1,c12,kyy,kzz,kyz,kzy,kzyLbl,MbRdI,Mcz,MzEd,mzTerm,biax:MzEd>1e-9,u1,u2};
 }
+/* ---------------------------------------------------------------------------
+   EN 1993-1-5 clause 6: resistance of the web to transverse forces, with the
+   clause 7.2 interaction (19 Sep 2026 gap closure, items 2.16 + 2.18). Pure:
+   reads the analysis a (every ULS combination's own reactions and diagram),
+   the section, fy, eps, the class and the state S (per-load ss / stiff, per-
+   support ss / stiff, axial). No DOM.
+   Stations: every point load (non-zero P) and every support. Loads within
+   0.5 mm of each other share a station (forces summed, the smaller s_s
+   kept); a point load at a support position is a "both" station.
+   Load types (Figure 6.1): (a) interior load resisted by shear in the web,
+   k_F = 6 + 2(h_w/a)^2; (b) load transferred through the web to the opposite
+   flange (a point load directly over a support), k_F = 3.5 + 2(h_w/a)^2,
+   F_Ed = max(P, R) taken conservatively as the through-load; (c) load near an
+   unstiffened end, k_F = 2 + 6(s_s + c)/h_w <= 6, evaluated whenever
+   (s_s + c) < 2h_w/3 (the value at which k_F(c) reaches the long-panel 6),
+   together with type (a); the lower F_Rd governs.
+   F_Rd = f_yw L_eff t_w / gamma_M1 (6.2), L_eff = chi_F l_y, chi_F = 0.5 /
+   lambda_F <= 1, lambda_F = sqrt(l_y t_w f_yw / F_cr), F_cr = 0.9 k_F E t_w^3
+   / h_w (6.4); m1 = f_yf b_f/(f_yw t_w), m2 = 0.02 (h_w/t_f)^2 if lambda_F >
+   0.5 else 0 (one re-evaluation with m2 = 0 when the first pass gives
+   lambda_F <= 0.5); l_y = s_s + 2 t_f (1 + sqrt(m1 + m2)) <= a for (a)/(b),
+   the two 6.5(4) expressions with l_e = k_F E t_w^2/(2 f_yw h_w) <= s_s + c
+   for (c). b_f is limited to 15 eps t_f each side of the web (6.5(1)).
+   s_s: per-load input (default 0) and per-support input (default = the
+   section flange width B, tagged [verify]: enter the seating length along the
+   member), capped at h_w (6.3(1)). c = max(d - s_s/2, 0) with d the distance
+   from the station to the nearer member end. a = distance between declared
+   bearing stiffeners bounding the station, the full member length when none
+   are declared (conservative, printed).
+   Hollow sections: two webs, each a plate of thickness t with the tabulated
+   flat depth (h_w = d, corner geometry of the section table); the flange
+   width per web is B/2 limited to t + 15 eps t; the load is shared between
+   the webs by the lever rule of its eccentricity e (0.5 each when e = 0).
+   Interaction 7.2: eta_2 + 0.8 eta_1 <= 1.4 with eta_2 = F_Ed/F_Rd and eta_1
+   = M_Ed/M_c,Rd (+ N_Ed/N_pl,Rd when N_Ed != 0) at the same station in the
+   same combination; M_c,Rd is the unreduced class-consistent W_y f_y/gamma_M0
+   [verify: EN 1993-1-5 4.6 writes eta_1 with W_eff, i.e. W_el for Class 3].
+   The interaction is evaluated at every station; where the loaded flange is
+   in tension 7.2(2) refers to 6.2.1(5) of EN 1993-1-1 instead and the row
+   says so (the 7.2 expression is still applied as a screen).
+   A station whose "bearing stiffener provided" box is ticked is not checked:
+   it prints "stiffener declared - design stiffener separately (EN 1993-1-5
+   9.4)" as an advisory. Returns {checked, stations, util2, util72, ...}.
+   --------------------------------------------------------------------------- */
+const WEB_UTIL_NAMES=["Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)","Web transverse force + bending (EN 1993-1-5 7.2)"];
+function webTransverseCheck(a,sec,fy,eps,cl){
+  const gM0=1.0, gM1=1.0, E=a.E, L=a.L;
+  const isBox=!!sec.isBox, chan=sec.kind==='channel';
+  const tw=sec.tw, tf=sec.tf;
+  const hw= isBox? sec.d : sec.D-2*sec.tf;
+  const nWebs= isBox? 2 : 1;
+  const fyw=fy, fyf=fy;
+  const bfRaw= isBox? sec.B/2 : sec.B;
+  const bfLim= (isBox||chan)? tw+15*eps*tf : tw+30*eps*tf;
+  const bf=Math.min(bfRaw,bfLim);
+  const m1=fyf*bf/(fyw*tw);
+  const m2full=0.02*Math.pow(hw/tf,2);
+  const Wy=(cl.cls<=2? sec.Sx : sec.Zx)*1e3;
+  const McRd0=Wy*fy/gM0/1e6;                     // kN.m, unreduced, class-consistent
+  const NplRd=sec.A*100*fy/gM0/1000;             // kN
+  const NEd=Math.abs(S.axial||0);
+  const out={checked:false,hw,tw,tf,bf,bfRaw,bfLim,m1,m2full,eps,fyw,fyf,nWebs,isBox,chan,McRd0,NplRd,NEd,cls:cl.cls,
+    stations:[],gov2:null,gov72:null,util2:0,util72:0,unsupported:[],advisory:[],aBasis:'',anyDefaultSs:false,anyTension:false};
+  if(!(hw>0&&tw>0&&tf>0)){ out.unsupported.push('Web transverse forces (EN 1993-1-5 clause 6): the web geometry (h_w, t_w, t_f) is undefined for this section; the check cannot be made.'); return out; }
+  const tol=0.5;   // mm: loads / supports closer than this share a station
+  const st=[];
+  const find=x=>st.find(s=>Math.abs(s.x-x)<=tol);
+  const ssOf=v=>(v!=null && v!=='' && Number.isFinite(+v))? Math.max(+v,0) : null;
+  S.loads.forEach((ld,i)=>{
+    if(ld.isSelfWeight||ld.type!=='point'||!(Math.abs(+ld.P||0)>1e-12)) return;
+    const x=(+ld.pos)*1000;
+    let s=find(x); if(!s){ s={x,loads:[],support:null}; st.push(s); }
+    s.loads.push({i,ss:ssOf(ld.ss),stiff:!!ld.stiff,e:(S.eccOn&&Number.isFinite(+ld.e))? Math.abs(+ld.e) : 0});
+  });
+  S.supports.forEach((sp,i)=>{
+    const x=(+sp.pos)*1000;
+    let s=find(x); if(!s){ s={x,loads:[],support:null}; st.push(s); }
+    s.support={i,ss:ssOf(sp.ss),stiff:!!sp.stiff,type:sp.type};
+  });
+  st.sort((p,q)=>p.x-q.x);
+  // declared stiffeners bound the web panels (a); none declared -> a = L
+  const stiffX=st.filter(s=>s.loads.some(l=>l.stiff)||(s.support&&s.support.stiff)).map(s=>s.x);
+  out.aBasis= stiffX.length? 'a = distance between the declared bearing stiffeners bounding the station (member ends otherwise)' : 'no transverse stiffeners declared: a = L = '+g(L,0)+' mm, the full member length (conservative)';
+  const panelOf=x=>{ let l=0,r=L; stiffX.forEach(p=>{ if(p<x-tol && p>l) l=p; if(p>x+tol && p<r) r=p; }); return {a:Math.max(r-l,1e-6),l,r}; };
+  const solve=(type,ss,c,aPanel)=>{
+    const kF= type==='a'? 6+2*Math.pow(hw/aPanel,2) : type==='b'? 3.5+2*Math.pow(hw/aPanel,2) : Math.min(2+6*(ss+c)/hw,6);
+    const Fcr=0.9*kF*E*Math.pow(tw,3)/hw;                       // N
+    const leRaw= type==='c'? kF*E*tw*tw/(2*fyw*hw) : null;
+    const le= type==='c'? Math.min(leRaw,ss+c) : null;
+    const lyFor=(m2)=>{
+      if(type==='c'){ const l1=le+tf*Math.sqrt(m1/2+Math.pow(le/tf,2)+m2), l2=le+tf*Math.sqrt(m1+m2); return {ly:Math.min(l1,l2),l1,l2,capA:false}; }
+      const l=ss+2*tf*(1+Math.sqrt(m1+m2)); return {ly:Math.min(l,aPanel),l1:l,l2:null,capA:l>aPanel};
+    };
+    let m2=m2full, r=lyFor(m2), lam=Math.sqrt(r.ly*tw*fyw/Fcr), iter=false, lam1=lam, ly1=r.ly;
+    if(lam<=0.5){ m2=0; r=lyFor(0); lam=Math.sqrt(r.ly*tw*fyw/Fcr); iter=true; }
+    const chiRaw=0.5/lam, chi=Math.min(chiRaw,1);
+    const Leff=chi*r.ly;
+    const FRd=fyw*Leff*tw/gM1/1000;                             // kN per web
+    return {type,kF,Fcr:Fcr/1000,leRaw,le,m2,iter,lam1,ly1,ly:r.ly,l1:r.l1,l2:r.l2,capA:r.capA,lam,chiRaw,chi,Leff,FRd};
+  };
+  st.forEach(s=>{
+    const kind= s.loads.length&&s.support? 'both' : s.support? 'support' : 'load';
+    const stiff= s.loads.some(l=>l.stiff)||(s.support&&s.support.stiff);
+    const n= s.support? s.support.i+1 : null;
+    const loadIdx=s.loads.map(l=>l.i+1);
+    const label= kind==='support'? 'support '+n : kind==='load'? 'point load '+loadIdx.join('+') : 'point load '+loadIdx.join('+')+' over support '+n;
+    const rec={x:s.x,kind,label,n,loadIdx,stiff:!!stiff,isEnd:(s.x<=tol||s.x>=L-tol)};
+    if(stiff){
+      rec.msg='stiffener declared - design stiffener separately (EN 1993-1-5 9.4)';
+      out.advisory.push('Web transverse forces at x = '+g(s.x/1000,3)+' m ('+label+'): '+rec.msg+'.');
+      out.stations.push(rec); return;
+    }
+    // stiff bearing length: the smaller of the entries at the station; support default = B [verify]
+    const ssLoad= s.loads.length? Math.min(...s.loads.map(l=>l.ss==null? 0 : l.ss)) : null;
+    let ssSup=null, ssDefault=false;
+    if(s.support){ ssSup= s.support.ss==null? sec.B : s.support.ss; ssDefault= s.support.ss==null; }
+    const ssIn= kind==='both'? Math.min(ssLoad,ssSup) : kind==='load'? ssLoad : ssSup;
+    const ssCap= ssIn>hw;
+    const ss=Math.min(ssIn,hw);
+    if(ssDefault) out.anyDefaultSs=true;
+    const d=Math.min(s.x,L-s.x);
+    const c=Math.max(d-ss/2,0);
+    const endZone=(ss+c)<2*hw/3;
+    const panel=panelOf(s.x);
+    const types= kind==='both'? ['b'].concat(endZone? ['c']:[]) : (endZone? ['a','c'] : ['a']);
+    const sols=types.map(t=>solve(t,ss,c,panel.a));
+    const gov=sols.reduce((p,q)=>q.FRd<p.FRd? q : p);
+    // load share per web (box: lever rule of the largest eccentricity at the station)
+    const eMax=s.loads.length? Math.max(...s.loads.map(l=>l.e)) : 0;
+    const share= isBox? Math.min(1,0.5+eMax/Math.max(sec.B-tw,1e-9)) : 1;
+    const FRdTot= isBox? gov.FRd/share : gov.FRd;
+    // F_Ed, M_Ed per ULS combination (its own load pieces, reactions and diagram)
+    const cases=a.ulsResults.map(res=>{
+      let P=0;
+      comboLoadPieces(res.combo).forEach(p=>{ if(p.type==='point' && Math.abs(p.pos-s.x)<=tol) P+=p.P*p.factor; });
+      const R= s.support? Math.max(res.r.reactions[s.support.i].V/1000,0) : 0;
+      const F= kind==='both'? Math.max(Math.abs(P),R) : kind==='load'? Math.abs(P) : R;
+      const Ms=interpAt(res.fb.xs,res.fb.M,s.x)/1e6;
+      const M=Math.abs(Ms);
+      const flange= kind==='support'? 'bottom' : (P>=0? 'top' : 'bottom');
+      // is the loaded flange the compression flange (7.2(1)) - a "both" station loads both flanges,
+      // and a station without a coincident moment (simply supported end) has no tension flange
+      const noM = M<1e-6;
+      const flangeComp= kind==='both'? true : noM? true : (flange==='top'? Ms>1e-9 : Ms<-1e-9);
+      const flangeState= kind==='both'? 'load through the web' : noM? 'no coincident moment' : (flangeComp? 'in compression' : 'in tension');
+      const eta2=F*share/Math.max(gov.FRd,1e-9);
+      const eta1=M/Math.max(McRd0,1e-9)+(NEd>1e-9? NEd/Math.max(NplRd,1e-9) : 0);
+      const u72raw=eta2+0.8*eta1, u72=u72raw/1.4;
+      return {combo:res.combo.label,P,R,F,Fweb:F*share,M,Ms,flange,flangeComp,flangeState,eta2,eta1,u72raw,u72};
+    });
+    let g2=0,g72=0; cases.forEach((cs,i)=>{ if(cs.eta2>cases[g2].eta2) g2=i; if(cs.u72>cases[g72].u72) g72=i; });
+    if(!cases[g2].flangeComp && cases[g2].F>1e-9) out.anyTension=true;
+    Object.assign(rec,{ssIn,ss,ssCap,ssDefault,d,c,endZone,a:panel.a,panel,types,sols,gov,type:gov.type,share,eMax,FRd:gov.FRd,FRdTot,cases,g2,g72,
+      eta2:cases[g2].eta2,u72:cases[g72].u72,F:cases[g2].F,combo:cases[g2].combo});
+    out.stations.push(rec);
+  });
+  const checked=out.stations.filter(s=>!s.stiff);
+  out.checked=checked.length>0;
+  if(out.checked){
+    let w2=checked[0], w72=checked[0];
+    checked.forEach(s=>{ if(s.eta2>w2.eta2) w2=s; if(s.u72>w72.u72) w72=s; });
+    out.gov2=w2; out.gov72=w72; out.util2=w2.eta2; out.util72=w72.u72;
+    checked.filter(s=>s.eta2>1.0001).forEach(s=>out.advisory.push('Bearing stiffener required at x = '+g(s.x/1000,3)+' m ('+s.label+'): F<sub>Ed</sub> = '+g(s.F,1)+' kN exceeds F<sub>Rd</sub> = '+g(s.FRdTot,1)+' kN (EN 1993-1-5 6.2, type ('+s.type+')); tick "bearing stiffener provided" once a stiffener is designed to EN 1993-1-5 9.4, or increase the stiff bearing length s<sub>s</sub>.'));
+  }
+  return out;
+}
 function checksEC3Restrained(a){
   // SCI worked-example procedure: fully laterally restrained beam to BS EN 1993-1-1 (UK NA).
   // Sequence: classification -> shear (6.2.6) -> shear buckling screen (6.2.6(6)) ->
@@ -301,7 +467,13 @@ function checksEC3Restrained(a){
   if(F>0&&sec.dt>42*eps) unsupported.push('The web is Class 4 in uniform compression. Effective-area compression buckling resistance is not implemented; gross-area member buckling cannot establish PASS.');
   const clsName=["","Class 1","Class 2","Class 3","Class 4"][cl.cls];
   if(cl.cls>=4) unsupported.push("EC3 Class 4 (slender) section"+(cl.webCase==='bending+compression'?" (web classified for combined bending + compression)":"")+": effective-section properties per EN 1993-1-5 are required; not covered by the restrained-beam procedure.");
-  advisory.push("Web bearing and buckling of the unstiffened web under concentrated loads and at supports (EN 1993-1-5 clause 6) are outside this calculator's scope - verify separately wherever a point load or a reaction is applied to the web.");
+  // web transverse forces at every point load and every support reaction
+  // (EN 1993-1-5 clause 6 + 7.2; webTransverseCheck above); its utilisations
+  // enter the verdict below, a declared stiffener prints an advisory
+  const web=webTransverseCheck(a,sec,fy,eps,cl);
+  web.unsupported.forEach(m=>unsupported.push(m));
+  web.advisory.forEach(m=>advisory.push(m));
+  advisory.push("Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4.");
   if(sec.kind==='channel' && F>0) unsupported.push("PFC under axial compression: torsional and torsional-flexural buckling (cl 6.3.1.4) are not implemented. Flexural buckling alone cannot establish adequacy; PASS is blocked.");
   const MzEd=Math.abs(S.Mz||0);   // applied minor-axis design moment (kN.m), single-value input
   // ---- axial + biaxial bending cross-section resistance, cl 6.2.9.1
@@ -599,6 +771,10 @@ function checksEC3Restrained(a){
     }
   }
   if(coex) utils.push({name:coex.pureShearFail? "Pure shear failure at M-V check point (6.2.6)" : "Bending+shear coexistent (6.2.8)",val:coex.u});
+  if(web&&web.checked){
+    utils.push({name:WEB_UTIL_NAMES[0],val:web.util2});
+    utils.push({name:WEB_UTIL_NAMES[1],val:web.util72});
+  }
   if(tor&&tor.box){
     utils.push({name:"Torsion  T_Ed/T_Rd",val:tor.torUtil});
     utils.push({name:"Shear+torsion  V_Ed/V_pl,T,Rd",val:tor.vtUtil});
@@ -609,7 +785,7 @@ function checksEC3Restrained(a){
   }
   let gov=utils[0]; utils.forEach(u=>{ if(u.val>gov.val) gov=u; });
   const pass=unsupported.length===0 && utils.every(u=>u.val<=1.0001);
-  return {sci:true,tor,coex,ax,buck,eps,cl,clsName,unsupported,advisory,fy,eta,hw,cOut,Av,AvRaw,avFloor,VcRd,Fv,shearUtil,
+  return {sci:true,tor,coex,web,ax,buck,eps,cl,clsName,unsupported,advisory,fy,eta,hw,cOut,Av,AvRaw,avFloor,VcRd,Fv,shearUtil,
     sbRatio,sbLimit,sbOk,Zx,Sx,Wy,McRd,hsNote,VatM,halfVpl,lowShearAtM,Mx,momUtil,F,
     span,divisor,dlimit,dmax,defOk,deflCant,deflAbsGoverns,holdDown,utils,gov,pass};
 }
@@ -1175,6 +1351,10 @@ function checksEC3UnrestrainedSCI(a){
   }
   if(annex) utils.push({name:"LTB+torsion (EN 1993-6 Annex A)",val:annex.u});
   if(b.coex) utils.push({name:b.coex.pureShearFail? "Pure shear failure at M-V check point (6.2.6)" : "Bending+shear coexistent (6.2.8)",val:b.coex.u});
+  if(b.web&&b.web.checked){
+    utils.push({name:WEB_UTIL_NAMES[0],val:b.web.util2});
+    utils.push({name:WEB_UTIL_NAMES[1],val:b.web.util72});
+  }
   if(b.tor&&b.tor.box){
     utils.push({name:"Torsion  T_Ed/T_Rd",val:b.tor.torUtil});
     utils.push({name:"Shear+torsion  V_Ed/V_pl,T,Rd",val:b.tor.vtUtil});

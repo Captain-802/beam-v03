@@ -210,6 +210,30 @@ Additional lines when `AX` exists (Axial with Moments). MasterSeries' Axial-with
 | `M<sub>N.z.Rd</sub> = W<sub>pl.N.z</sub>.f<sub>y</sub>/γ<sub>M0</sub>` (only when `AX.biax`) | `<WplNz> x <fy>/1` | `AX.MNz` kN.m | | `AX.MNz` |
 | `(M<sub>y.Ed</sub>/M<sub>N.y.Rd</sub>)<sup>α</sup>+(M<sub>z.Ed</sub>/M<sub>N.z.Rd</sub>)<sup>β</sup>` | `(<Mx>/<MN>)<sup><α></sup>+(<Mz>/<MNz>)<sup><β></sup>=` (print `(0)<sup>1</sup>` when not biaxial, as MasterSeries does) | `AX.mUtil` | OK / Warning | `c.Mx`, `AX.MN`, `AX.alpha`, `AX.beta`, `AX.Mz`, `AX.MNz`, `AX.mUtil`, `AX.biax`. Variants: `AX.cls3` prints `N<sub>Ed</sub>/N<sub>pl.Rd</sub> + M<sub>y.Ed</sub>/M<sub>el.y.Rd</sub> + M<sub>z.Ed</sub>/M<sub>el.z.Rd</sub>` (cl 6.2.9.2) with `AX.n + Mx/AX.MN + Mz/AX.MNz`; `AX.chan` prints the linear form `n + M<sub>y.Ed</sub>/M<sub>c.y.Rd</sub> + M<sub>z.Ed</sub>/M<sub>c.z.Rd</sub>` (cl 6.2.1(7)); boxes print the same power form with `AX.alpha = AX.beta` from 6.2.9.1(6) |
 
+### 5.3a Web Transverse Forces (EN 1993-1-5 cl 6) **[beam-v03 addition, 19 Sep 2026 gap closure G2]**
+
+Printed directly after the Local Capacity / Moment Capacity block, before Compression Resistance (MasterSeries prints its web bearing / buckling rows in the local-capacity area). Rendered by `msbWebBlock(a, c, sec, nv.web)`; every number is a field of `c.web` (`webTransverseCheck`, EN 1993-1-5 clause 6 + 7.2), nothing is recomputed.
+
+| Label / formula | Substituted values | Result | Tag | Source |
+|---|---|---|---|---|
+| `Web h<sub>w</sub>, t<sub>w</sub>, t<sub>f</sub>, b<sub>f</sub>` | `<hw>, <tw>, <tf>, <bf> mm (B [or B/2] = <bfRaw> ≤ t<sub>w</sub> + 30εt<sub>f</sub> [15ε for PFC / box] = <bfLim>); f<sub>yw</sub> = f<sub>yf</sub> = <fy>; n web(s)` | | `Fig 5.1` | `c.web.hw/tw/tf/bf/bfRaw/bfLim/fyw/nWebs/isBox/chan` |
+| `m<sub>1</sub> = f<sub>yf</sub>.b<sub>f</sub>/(f<sub>yw</sub>.t<sub>w</sub>) ; m<sub>2</sub> = 0.02(h<sub>w</sub>/t<sub>f</sub>)²` | substituted, `if λ̄<sub>F</sub> > 0.5, else 0` | | `6.5(1)` | `c.web.m1`, `c.web.m2full` |
+| `a = distance between transverse stiffeners` | `c.web.aBasis` (full member length when none declared) | | `6.4(1)` | |
+| sub-heading `Governing station x = … m: <label>, load type (a/b/c) …` | | | | `c.web.gov2` (worst F<sub>Ed</sub>/F<sub>Rd</sub>) |
+| `s<sub>s</sub>, c ; k<sub>F</sub>` | `s<sub>s</sub> = … (entered / default 0 / default B [verify]) [capped at h<sub>w</sub>]; c = … (d = … to the member end) ; k<sub>F</sub> = …` | k<sub>F</sub> | `Fig 6.1(a/b/c)` | station `ss, ssIn, ssDefault, ssCap, c, d, a`, `gov.kF` |
+| `F<sub>cr</sub> = 0.9k<sub>F</sub>.E.t<sub>w</sub>³/h<sub>w</sub>` | substituted | kN | `6.4(1)` | `gov.Fcr` |
+| `l<sub>e</sub> = k<sub>F</sub>.E.t<sub>w</sub>²/(2f<sub>yw</sub>.h<sub>w</sub>) ≤ s<sub>s</sub> + c` (type c only) | substituted | mm | `6.5(4)` | `gov.leRaw`, `gov.le` |
+| `l<sub>y</sub> = …` (6.5(3) form for a/b, min of the two 6.5(4) expressions for c) | `m<sub>2</sub> = … (first pass λ̄<sub>F</sub> = … ≤ 0.5, so m<sub>2</sub> = 0)`; substituted | mm | `6.5(3)` / `6.5(4)` | `gov.m2, iter, lam1, l1, l2, ly, capA` |
+| `λ̄<sub>F</sub> = √(l<sub>y</sub>.t<sub>w</sub>.f<sub>yw</sub>/F<sub>cr</sub>)` | substituted | λ̄<sub>F</sub> | `6.4(1)` | `gov.lam` |
+| `χ<sub>F</sub> = 0.5/λ̄<sub>F</sub> ≤ 1 ; L<sub>eff</sub> = χ<sub>F</sub>.l<sub>y</sub>` | substituted | mm | `6.4(1)` | `gov.chiRaw, chi, Leff` |
+| `F<sub>Rd</sub> = f<sub>yw</sub>.L<sub>eff</sub>.t<sub>w</sub>/γ<sub>M1</sub>` | substituted (box: `per web; load share to this web = …; F<sub>Rd</sub> for the load = …`) | kN | `6.2(1)` | `gov.FRd`, station `share, eMax, FRdTot` |
+| `F<sub>Ed</sub>/F<sub>Rd</sub>` | `[P = …, R = …:] F<sub>Ed</sub> = … kN (<combination>; on the top/bottom flange, in compression/tension) / <FRdTot> =` | ratio | OK / Warning | station `cases[g2]` |
+| `η<sub>2</sub> + 0.8η<sub>1</sub> ≤ 1.4` | `<η2> + 0.8 x (M<sub>Ed</sub>/M<sub>c.y.Rd</sub> = …/… [+ N<sub>Ed</sub>/N<sub>pl.Rd</sub>] = <η1>) = … ≤ 1.4 (<combination>[; loaded flange in tension: 7.2(2) refers to 6.2.1(5), expression applied as a screen [verify]])` | ratio/1.4 | `OK 7.2` / `Warning 7.2` | station `cases[g72]`, `c.web.McRd0`, `c.web.NEd`, `c.web.NplRd` |
+| table, one row per station | x, station, type, s<sub>s</sub> (asterisk = default B), k<sub>F</sub>, l<sub>y</sub>, λ̄<sub>F</sub>, χ<sub>F</sub>, F<sub>Rd</sub>, F<sub>Ed</sub>, load case, F<sub>Ed</sub>/F<sub>Rd</sub>, (η<sub>2</sub>+0.8η<sub>1</sub>)/1.4, status (`governs` / `OK` / `Warning`); a stiffened station prints `stiffener declared - design stiffener separately (EN 1993-1-5 9.4)` with tag `advisory` | | | | `c.web.stations[]` |
+| note (`ms-note`) | assumptions: flanges loaded, s<sub>s</sub> ≤ h<sub>w</sub>, end-zone rule, type (b) rule, η<sub>1</sub> basis [verify], what is not evaluated | | | |
+
+Unity bar: cells `F/F_Rd` and `Web 7.2` after `M-V` (when the check ran). Blocking messages that mention web transverse forces / bearing stiffeners route to this block (`msbBlockFor` → `'web'`).
+
 ### 5.4 Compression Resistance N.b.Rd
 
 Printed only when `B !== null` and `B.Fc > 1e-9` (axial compression). MasterSeries prints `Ley = Ky.Ly` / `λy` / `Nb.y.Rd` then the z-z trio.

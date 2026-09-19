@@ -177,6 +177,7 @@ function validateInputs(py,E,ulsCombos,slsCombos){
     const key=(+sp.pos).toFixed(6);
     if(seenSupports.has(key)) errs.push(`Duplicate supports at ${g(+sp.pos,3)} m are not allowed; combine them into one support.`);
     seenSupports.add(key);
+    if(sp.ss!=null && sp.ss!=='' && !(finite(sp.ss) && +sp.ss>=0)) errs.push(`Support ${i+1} stiff bearing length s_s must be blank (default) or a number >= 0 mm.`);
   });
   (S.hinges||[]).forEach((h,i)=>{
     if(!inSpan(h.pos)) errs.push(`Internal hinge ${i+1} position must be within 0 to ${S.L} m.`);
@@ -186,6 +187,7 @@ function validateInputs(py,E,ulsCombos,slsCombos){
   S.loads.forEach((ld,i)=>{
     const tag=`Load ${i+1}`;
     ['e','zg'].forEach(k=>{ if(ld[k]!=null&&!finite(ld[k])) errs.push(`${tag} ${k} must be a finite number.`); });
+    if(ld.ss!=null && ld.ss!=='' && !(finite(ld.ss) && +ld.ss>=0)) errs.push(`${tag} stiff bearing length s_s must be blank (default 0) or a number >= 0 mm.`);
     if(!CASE_LABELS[ld.case]) errs.push(`${tag} has an unknown load case.`);
     if(ld.type==='point'){
       if(!inSpan(ld.pos)) errs.push(`${tag} point-load position must be within 0 to ${S.L} m.`);

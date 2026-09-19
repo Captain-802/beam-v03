@@ -140,6 +140,7 @@ function msbPortion(a,LT){
 function msbBlockFor(msg){
   const s=msbEsc(msg);
   if(/^Hold-down/.test(s)) return 'forces';
+  if(/Web transverse forces|bearing stiffener|EN 1993-1-5 clause 6|EN 1993-1-5 9\.4/i.test(s)) return 'web';
   if(/torsion|Torsion|Eccentric loads|Annex A|k_alpha|Torsional constants|eccentric load/i.test(s)) return 'torsion';
   if(/Class 4|effective-section|Effective-area|slender/i.test(s)) return 'class';
   if(/shear/i.test(s)) return 'local';
@@ -159,6 +160,57 @@ function msbNotVerifiedRows(list){
 }
 function msbHead(t){ return '<div class="ms-h">'+t+'</div>'; }
 function msbSub(t){ return '<div class="ms-sub">'+t+'</div>'; }
+
+/* ---- Web Transverse Forces (EN 1993-1-5 cl 6 + 7.2) block, pure ----
+   Prints the web geometry and m1/m2, the full derivation of the governing
+   station (worst F_Ed/F_Rd), one table row per station, a stiffener-declared
+   advisory row per declared station and the assumptions note. Every number
+   is a field of c.web (webTransverseCheck); nothing is recomputed. */
+function msbWebTypeText(t){ return t==='a'? 'Fig 6.1(a) interior' : t==='b'? 'Fig 6.1(b) through the web' : 'Fig 6.1(c) end'; }
+function msbWebBlock(a,c,sec,nvRows){
+  const W=c.web||null;
+  let h=msbHead('Web Transverse Forces (EN 1993-1-5 cl 6)');
+  if(!W){ h+=msbRow('F<sub>Rd</sub>', 'not evaluated by the engine for this section', '&mdash;', 'not evaluated'); return h+msbNotVerifiedRows(nvRows); }
+  const webs= W.nWebs>1? W.nWebs+' webs' : '1 web';
+  h+=msbRow('Web h<sub>w</sub>, t<sub>w</sub>, t<sub>f</sub>, b<sub>f</sub>', msbMM(W.hw)+', '+msbMM(W.tw)+', '+msbMM(W.tf)+', '+msbMM(W.bf)+' mm ('+(W.isBox? 'B/2' : 'B')+' = '+msbMM(W.bfRaw)+' &le; '+(W.isBox||W.chan? 't<sub>w</sub> + 15&epsilon;t<sub>f</sub>' : 't<sub>w</sub> + 30&epsilon;t<sub>f</sub>')+' = '+msbMM(W.bfLim)+'); f<sub>yw</sub> = f<sub>yf</sub> = '+msbInt(W.fyw)+'; '+webs+(W.isBox? ' (flat depth from the section table, corner geometry)' : ''), '', 'Fig 5.1');
+  h+=msbRow('m<sub>1</sub> = f<sub>yf</sub>.b<sub>f</sub>/(f<sub>yw</sub>.t<sub>w</sub>) ; m<sub>2</sub> = 0.02(h<sub>w</sub>/t<sub>f</sub>)&sup2;', msbInt(W.fyf)+' x '+msbMM(W.bf)+'/('+msbInt(W.fyw)+' x '+msbMM(W.tw)+') = '+msbR(W.m1)+' ; 0.02 x ('+msbMM(W.hw)+'/'+msbMM(W.tf)+')&sup2; = '+msbR(W.m2full)+' if &lambda;&#772;<sub>F</sub> &gt; 0.5, else 0', '', '6.5(1)');
+  h+=msbRow('a = distance between transverse stiffeners', msbEsc(W.aBasis), '', '6.4(1)');
+  const G=W.gov2||null;
+  if(G){
+    const s=G, t=s.gov, cs=s.cases[s.g2], c72=s.cases[s.g72];
+    h+=msbSub('Governing station x = '+msbM(s.x/1000)+' m: '+msbEsc(s.label)+', load type ('+t.type+') '+msbWebTypeText(t.type)+(s.types.length>1? ' [types '+s.types.map(x=>'('+x+')').join(', ')+' evaluated, lower F<sub>Rd</sub> governs]' : ''));
+    const ssTxt='s<sub>s</sub> = '+msbMM(s.ss)+' mm'+(s.ssDefault? ' (default B [verify])' : s.kind==='load'&&s.ssIn===0? ' (default 0)' : ' (entered)')+(s.ssCap? ' (capped at h<sub>w</sub>, 6.3(1))' : '')+'; c = '+msbMM(s.c)+' mm (d = '+msbMM(s.d)+' to the member end)';
+    const kfTxt= t.type==='c'? 'k<sub>F</sub> = 2 + 6(s<sub>s</sub> + c)/h<sub>w</sub> &le; 6 = 2 + 6 x '+msbMM(s.ss+s.c)+'/'+msbMM(W.hw) : 'k<sub>F</sub> = '+(t.type==='b'? '3.5' : '6')+' + 2(h<sub>w</sub>/a)&sup2; = '+(t.type==='b'? '3.5' : '6')+' + 2('+msbMM(W.hw)+'/'+g(s.a,0)+')&sup2;';
+    h+=msbRow('s<sub>s</sub>, c ; k<sub>F</sub>', ssTxt+' ; '+kfTxt, msbR(t.kF), 'Fig 6.1('+t.type+')');
+    h+=msbRow('F<sub>cr</sub> = 0.9k<sub>F</sub>.E.t<sub>w</sub>&sup3;/h<sub>w</sub>', '0.9 x '+msbR(t.kF)+' x '+msbInt(a.E)+' x '+msbMM(W.tw)+'&sup3;/'+msbMM(W.hw), msbKN(t.Fcr)+' kN', '6.4(1)');
+    const m2Txt='m<sub>2</sub> = '+msbR(t.m2)+(t.iter? ' (first pass &lambda;&#772;<sub>F</sub> = '+msbR(t.lam1)+' &le; 0.5 with m<sub>2</sub> = '+msbR(W.m2full)+', so m<sub>2</sub> = 0)' : ' (&lambda;&#772;<sub>F</sub> &gt; 0.5)');
+    if(t.type==='c'){
+      h+=msbRow('l<sub>e</sub> = k<sub>F</sub>.E.t<sub>w</sub>&sup2;/(2f<sub>yw</sub>.h<sub>w</sub>) &le; s<sub>s</sub> + c', msbR(t.kF)+' x '+msbInt(a.E)+' x '+msbMM(W.tw)+'&sup2;/(2 x '+msbInt(W.fyw)+' x '+msbMM(W.hw)+') = '+msbMM(t.leRaw)+' &le; '+msbMM(s.ss+s.c), msbMM(t.le)+' mm', '6.5(4)');
+      h+=msbRow('l<sub>y</sub> = min[l<sub>e</sub> + t<sub>f</sub>&radic;(m<sub>1</sub>/2 + (l<sub>e</sub>/t<sub>f</sub>)&sup2; + m<sub>2</sub>), l<sub>e</sub> + t<sub>f</sub>&radic;(m<sub>1</sub> + m<sub>2</sub>)]', m2Txt+'; min['+msbMM(t.l1)+', '+msbMM(t.l2)+']', msbMM(t.ly)+' mm', '6.5(4)');
+    } else {
+      h+=msbRow('l<sub>y</sub> = s<sub>s</sub> + 2t<sub>f</sub>(1 + &radic;(m<sub>1</sub> + m<sub>2</sub>)) &le; a', m2Txt+'; '+msbMM(s.ss)+' + 2 x '+msbMM(W.tf)+' x (1 + &radic;('+msbR(W.m1)+' + '+msbR(t.m2)+')) = '+msbMM(t.l1)+(t.capA? ' &gt; a = '+g(s.a,0)+' (capped)' : ''), msbMM(t.ly)+' mm', '6.5(3)');
+    }
+    h+=msbRow('&lambda;&#772;<sub>F</sub> = &radic;(l<sub>y</sub>.t<sub>w</sub>.f<sub>yw</sub>/F<sub>cr</sub>)', '&radic;('+msbMM(t.ly)+' x '+msbMM(W.tw)+' x '+msbInt(W.fyw)+'/'+msbKN(t.Fcr)+'e3)', msbR(t.lam), '6.4(1)');
+    h+=msbRow('&chi;<sub>F</sub> = 0.5/&lambda;&#772;<sub>F</sub> &le; 1 ; L<sub>eff</sub> = &chi;<sub>F</sub>.l<sub>y</sub>', '0.5/'+msbR(t.lam)+' = '+msbR(t.chiRaw)+(t.chiRaw>1? ' &rarr; 1.000' : '')+' ; '+msbR(t.chi)+' x '+msbMM(t.ly), msbMM(t.Leff)+' mm', '6.4(1)');
+    h+=msbRow('F<sub>Rd</sub> = f<sub>yw</sub>.L<sub>eff</sub>.t<sub>w</sub>/&gamma;<sub>M1</sub>', msbInt(W.fyw)+' x '+msbMM(t.Leff)+' x '+msbMM(W.tw)+'/1.0'+(W.isBox? ' per web; load share to this web = '+msbR(s.share)+(s.eMax>0? ' (lever rule, e = '+g(s.eMax,0)+' mm)' : ' (e = 0)')+'; F<sub>Rd</sub> for the load = '+msbKN(s.FRdTot)+' kN' : ''), msbKN(t.FRd)+' kN', '6.2(1)');
+    const fTxt=(cs.P!==0&&s.support? 'P = '+msbKN(Math.abs(cs.P))+', R = '+msbKN(cs.R)+': ' : '')+'F<sub>Ed</sub> = '+msbKN(cs.F)+' kN ('+msbEsc(cs.combo)+'; on the '+cs.flange+' flange, '+msbEsc(cs.flangeState)+')';
+    h+=msbRow('F<sub>Ed</sub>/F<sub>Rd</sub>', fTxt+' / '+msbKN(s.FRdTot)+' =', msbR(cs.eta2), msbWarn(cs.eta2<=1.0001));
+    const eta1Txt='M<sub>Ed</sub>/M<sub>c.y.Rd</sub> = '+msbKNm(c72.M)+'/'+msbKNm(W.McRd0)+(W.NEd>1e-9? ' + N<sub>Ed</sub>/N<sub>pl.Rd</sub> = '+msbKN(W.NEd)+'/'+msbKN(W.NplRd) : '')+' = '+msbR(c72.eta1);
+    h+=msbRow('&eta;<sub>2</sub> + 0.8&eta;<sub>1</sub> &le; 1.4', msbR(c72.eta2)+' + 0.8 x ('+eta1Txt+') = '+msbR(c72.u72raw)+' &le; 1.4 ('+msbEsc(c72.combo)+(c72.flangeComp? '' : '; loaded flange in tension: 7.2(2) refers to 6.2.1(5), expression applied as a screen [verify]')+')', msbR(c72.u72), msbWarn(c72.u72<=1.0001)+' 7.2');
+  }
+  // every station
+  if(W.stations.length){
+    h+='<table class="ms-combos"><thead><tr><th>x (m)</th><th>Station</th><th>Type</th><th>s<sub>s</sub> (mm)</th><th>k<sub>F</sub></th><th>l<sub>y</sub> (mm)</th><th>&lambda;&#772;<sub>F</sub></th><th>&chi;<sub>F</sub></th><th>F<sub>Rd</sub> (kN)</th><th>F<sub>Ed</sub> (kN)</th><th>Load case</th><th>F<sub>Ed</sub>/F<sub>Rd</sub></th><th>(&eta;<sub>2</sub>+0.8&eta;<sub>1</sub>)/1.4</th><th></th></tr></thead><tbody>'+
+      W.stations.map(s=>{
+        if(s.stiff) return '<tr><td class="num">'+msbM(s.x/1000)+'</td><td>'+msbEsc(s.label)+'</td><td colspan="11">'+msbEsc(s.msg)+'</td><td>advisory</td></tr>';
+        const t=s.gov, cs=s.cases[s.g2];
+        return '<tr><td class="num">'+msbM(s.x/1000)+'</td><td>'+msbEsc(s.label)+'</td><td>('+t.type+')</td><td class="num">'+msbMM(s.ss)+(s.ssDefault? '*' : '')+'</td><td class="num">'+msbR(t.kF)+'</td><td class="num">'+msbMM(t.ly)+'</td><td class="num">'+msbR(t.lam)+'</td><td class="num">'+msbR(t.chi)+'</td><td class="num">'+msbKN(s.FRdTot)+'</td><td class="num">'+msbKN(cs.F)+'</td><td>'+msbEsc(cs.combo)+'</td><td class="num">'+msbR(s.eta2)+'</td><td class="num">'+msbR(s.u72)+'</td><td>'+((s.eta2<=1.0001&&s.u72<=1.0001)? (s===W.gov2? 'governs' : 'OK') : '<span class="ms-warn">Warning</span>')+'</td></tr>';
+      }).join('')+'</tbody></table>';
+  }
+  h+='<div class="ms-note">'+(W.anyDefaultSs? '* s<sub>s</sub> = section flange width B taken as a typical seating length [verify: enter the actual stiff bearing length along the member]. ' : '')+'Point loads act on the top flange (bottom flange for an upward load), reactions on the bottom flange; s<sub>s</sub> &le; h<sub>w</sub> (6.3(1)); c = distance from the bearing edge to the member end; type (c) is evaluated whenever s<sub>s</sub> + c &lt; 2h<sub>w</sub>/3 (k<sub>F</sub>(c) &lt; 6) and the lower F<sub>Rd</sub> of types (a) and (c) governs; a load over a support is type (b) with F<sub>Ed</sub> = max(P, R). &eta;<sub>1</sub> uses the unreduced M<sub>c.y.Rd</sub> ('+(W.cls<=2? 'W<sub>pl.y</sub>' : 'W<sub>el.y</sub>')+') [verify: EN 1993-1-5 4.6 writes &eta;<sub>1</sub> with W<sub>eff</sub>]. Distributed loads, hanger loads, the closely-spaced total-load check (6.3(3)) and flange-induced buckling (section 8) are not evaluated.</div>';
+  h+=msbNotVerifiedRows(nvRows);
+  return h;
+}
 
 function renderMasterSeriesBrief(a,c,sec){
   sec=sec||a.sec;
@@ -183,7 +235,7 @@ function renderMasterSeriesBrief(a,c,sec){
   const nULS=a.ulsResults.length;
   const caseM=msbCaseLabel(a.governM.combo,false,a), caseD=msbCaseLabel(a.governD.combo,true,a);
   // blocking messages sorted into their blocks
-  const nv={forces:[],class:[],local:[],compression:[],ltb:[],torsion:[],general:[]};
+  const nv={forces:[],class:[],local:[],web:[],compression:[],ltb:[],torsion:[],general:[]};
   unsupported.forEach(m=>{ let k=msbBlockFor(m); if(k==='compression' && !(B && B.Fc>1e-9)) k='local'; if(k==='torsion' && !T) k= /Annex A|k_alpha/.test(m)? 'ltb' : 'general'; nv[k].push(m); });
 
   let h='';
@@ -328,6 +380,9 @@ function renderMasterSeriesBrief(a,c,sec){
     }
   }
   h+=msbNotVerifiedRows(nv.local);
+
+  /* ---- [beam-v03 addition, 19 Sep 2026] Web Transverse Forces (EN 1993-1-5 cl 6), after Local Capacity ---- */
+  h+=msbWebBlock(a,c,sec,nv.web);
 
   /* ---- 5.4 Compression Resistance N.b.Rd ---- */
   if(B && B.Fc>1e-9){
@@ -599,7 +654,10 @@ function renderMasterSeriesBrief(a,c,sec){
     push('V/Vpl', c.shearUtil);
   }
   const coexU=findU(/6\.2\.8|Pure shear failure/), torU=findU(/^Torsion|Bending\+torsion cross-section/), vtU=findU(/Shear\+torsion/), anU=findU(/LTB\+torsion/);
+  const webU=findU(/^Web transverse force  F_Ed/), web72U=findU(/^Web transverse force \+ bending/);
   if(coexU!=null) push('M-V', coexU);
+  if(webU!=null) push('F/F_Rd', webU);
+  if(web72U!=null) push('Web 7.2', web72U);
   if(torU!=null) push('Torsion', torU);
   if(vtU!=null) push('V+T', vtU);
   if(anU!=null) push('LTB+T', anU);

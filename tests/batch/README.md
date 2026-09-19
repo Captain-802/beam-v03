@@ -56,6 +56,7 @@ engine's intermediate results. Tolerance 0.5 % relative unless stated.
 | v-MbRd<=McRd | Mb,Rd <= Mc,Rd | every LTB run that produced an Mb,Rd |
 | vi-governing | the reported governing utilisation equals the max of the printed utilisations | every run |
 | vii-uplift | every support whose reaction is negative in the governing-moment combination is reported by the engine's uplift record and, unless the case declares `holdDown` for it, carries a blocking "Hold-down required" message; every reported lifting support has a hold-down message | every run |
+| viii-FRd | Web transverse-force resistance (EN 1993-1-5 clause 6, G2): F_Rd at the engine's governing station recomputed from the raw section table (h_w = h - 2t_f, t_w, t_f, b_f <= t_w + 30 eps t_f, m1, m2 with the m2 = 0 second pass, k_F of type (a) with a = L or type (c) with c = max(d - s_s/2, 0), the (a)/(c) pair in the end zone), s_s from the case (support default = B, load default = 0); the printed utilisation must equal the largest station ratio and a stiffened station must never govern | rolled I/H runs without a declared stiffener (122 runs) |
 
 Since the 19 Sep 2026 gap closure the analysed combination list of a multi-span,
 overhang or Gerber case includes the automatic Q patterns (`a.patterns`, column
@@ -104,11 +105,25 @@ Loads are sized so the governing eigen utilisation mostly lies in 0.6-0.95.
 Deliberately heavy cases (tag `heavy`: UB-02 demo unrestrained, UB-22 curve d)
 exercise the FAIL path.
 
-## Results of the current run (2026-09-19, Node v24.14.1, after the G1 gap closure)
+## Results of the current run (2026-09-19, Node v24.14.1, after the G2 gap closure)
 
-Verdicts: PASS 154 | FAIL 38 | NOT VERIFIED 16 | ERROR 0. Cross-check
-mismatches: 0 runs. Trigger mismatches: 1 case (PFC-17, see below).
-Changes against the pre-G1 run (PASS 168 | FAIL 34 | NOT VERIFIED 6): the
+Verdicts: PASS 149 | FAIL 43 | NOT VERIFIED 16 | ERROR 0. Cross-check
+mismatches: 0 runs (viii-FRd: 122 of 122 rolled I/H runs agree with the
+independent F_Rd). Trigger mismatches: 1 case (PFC-17, see below).
+Changes against the post-G1 run (PASS 154 | FAIL 38 | NOT VERIFIED 16): five
+runs now FAIL the new web transverse-force check (EN 1993-1-5 clause 6 / 7.2),
+all with the default s_s = B [verify] at the supports and s_s = 0 at the point
+loads: UB-35 (914x419x388, 3 m, central 4500 kN ULS point load on an
+unstiffened web: F_Ed/F_Rd = 4500/2255 = 1.995, type (a), s_s = 0), UB-17
+(1016x305x272 two-span, interior reaction 2302 kN vs F_Rd 2100 kN, 7.2 with
+the hogging moment 1.132), UB-24 and MIX-02 (Gerber beams, interior reaction
+under the "Q on spans 2+3 only" pattern with the coincident hogging moment:
+7.2 = 1.053 / 1.024 while F_Ed/F_Rd = 0.946 / 0.896). Twelve runs are now
+governed by a web entry (UB-14, UB-15, UB-17, UB-24, UB-35, UB-41, UC-07,
+MIX-02, MIX-05): heavy interior reactions of continuous beams. Every other
+verdict is unchanged.
+
+Changes of the post-G1 run against the pre-G1 run (PASS 168 | FAIL 34 | NOT VERIFIED 6): the
 wind-uplift cases UB-36, UB-37, RHS-16 and the end-couple cases UB-26, UC-13
 lift a support at ULS and are now NOT VERIFIED ("Hold-down required", the
 trigger 1.2 they were written for); the overhang cases UB-23 (LTB 0.85 -> 1.16
@@ -123,7 +138,7 @@ not blocking (see AUDIT.md).
 
 | Family | Cases | Runs | PASS | FAIL | NOT VERIFIED | ERROR |
 |---|---|---|---|---|---|---|
-| UB | 51 | 94 | 67 | 19 | 8 | 0 |
+| UB | 51 | 94 | 62 | 24 | 8 | 0 |
 | UC | 15 | 28 | 24 | 2 | 2 | 0 |
 | PFC | 19 | 34 | 23 | 9 | 2 | 0 |
 | SHS | 11 | 18 | 14 | 2 | 2 | 0 |
@@ -133,9 +148,9 @@ not blocking (see AUDIT.md).
 
 | Method | Runs | PASS | FAIL | NOT VERIFIED | ERROR |
 |---|---|---|---|---|---|
-| eigen | 94 | 78 | 9 | 7 | 0 |
-| standard | 94 | 58 | 28 | 8 | 0 |
-| n/a (restrained) | 20 | 18 | 1 | 1 | 0 |
+| eigen | 94 | 75 | 12 | 7 | 0 |
+| standard | 94 | 57 | 29 | 8 | 0 |
+| n/a (restrained) | 20 | 17 | 2 | 1 | 0 |
 
 ### Cross-check totals
 
@@ -150,6 +165,7 @@ not blocking (see AUDIT.md).
 | v-MbRd<=McRd | 188 | 188 | 0 |
 | vi-governing | 208 | 208 | 0 |
 | vii-uplift | 208 | 208 | 0 |
+| viii-FRd | 122 | 122 | 0 |
 
 ### Eigen / standard Mcr outliers
 
@@ -179,6 +195,13 @@ of I/H sections uses the SN003a Mcr chain as its design basis; the P362
 Expn 6.55 simplified slenderness is printed for comparison only.)
 
 ### Known gaps surfaced
+
+- Web transverse forces (G2): the campaign's supports carry no `ss`, so the
+  section flange width B is used as a typical seating length [verify], and its
+  point loads carry no `ss` (0 mm). Add `ss` (mm) and `stiff: true` to a
+  support or point load object in `cases.cjs` to model the actual bearing or a
+  declared stiffener; the verdict changes listed above follow from these
+  defaults.
 
 - Wind-uplift and end-couple cases (UB-26, UB-36, UB-37, UC-13, RHS-16):
   a support lifts at ULS and no hold-down is declared in the case -> NOT

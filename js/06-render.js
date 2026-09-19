@@ -6,6 +6,48 @@ const f1=(v,d=1)=>{ if(!isFinite(v))return" "; const n=Math.abs(v)<5e-7?0:v; ret
 const sname=k=>k.replace(/x/g,' ');
 function st(ok,t,fl){ return `<div class="status ${ok?'ok':'fail'}">${ok?t:(fl||'FAIL')}</div>`; }
 
+/* Web transverse forces (EN 1993-1-5 clause 6 + 7.2) block of the detailed
+   report: geometry, the governing station's derivation and one row per
+   station. Pure function of c.web (webTransverseCheck); nothing recomputed. */
+function renderWebTransverseBlock(c,sec,a){
+  const W=c.web; if(!W) return '';
+  const typeName=t=>t==='a'? 'type (a), interior load resisted by web shear' : t==='b'? 'type (b), load transferred through the web to the opposite flange' : 'type (c), load near an unstiffened end';
+  let h=`
+  <div class="section-title smallgap">Web Transverse Forces (EN 1993-1-5 Cl. 6, interaction Cl. 7.2)</div>
+  <div class="calc-block">
+    <div>Web geometry h<sub>w</sub>, t<sub>w</sub>, t<sub>f</sub>; b<sub>f</sub> &le; ${W.isBox||W.chan? 't<sub>w</sub> + 15&epsilon;t<sub>f</sub>':'t<sub>w</sub> + 30&epsilon;t<sub>f</sub>'}</div><div class="formula">${W.isBox? 'each web a plate of thickness t, flat depth from the section table (corner geometry); flange share per web B/2':'clear depth between flanges'}: h<sub>w</sub> = ${g(W.hw,1)}, t<sub>w</sub> = ${g(W.tw,1)}, t<sub>f</sub> = ${g(W.tf,1)} mm; b<sub>f</sub> = min(${g(W.bfRaw,1)}, ${g(W.bfLim,1)}) = ${g(W.bf,1)} mm; f<sub>yw</sub> = f<sub>yf</sub> = ${g(W.fyw,0)} N/mm&sup2;</div><div class="value">${W.nWebs} web${W.nWebs>1?'s':''}</div><div></div>
+    <div>m<sub>1</sub> = f<sub>yf</sub>b<sub>f</sub>/(f<sub>yw</sub>t<sub>w</sub>); m<sub>2</sub> = 0.02(h<sub>w</sub>/t<sub>f</sub>)&sup2; if &lambda;&#772;<sub>F</sub> &gt; 0.5, else 0</div><div class="formula">${g(W.fyf,0)}&times;${g(W.bf,1)}/(${g(W.fyw,0)}&times;${g(W.tw,1)}); 0.02&times;(${g(W.hw,1)}/${g(W.tf,1)})&sup2;</div><div class="value">${g(W.m1,3)}; ${g(W.m2full,3)}</div><div class="status">6.5(1)</div>
+    <div>a (distance between transverse stiffeners)</div><div class="formula">${W.aBasis}</div><div class="value"></div><div class="status">6.4(1)</div>`;
+  const G=W.gov2;
+  if(G){
+    const s=G, t=s.gov, cs=s.cases[s.g2], c72=s.cases[s.g72];
+    const ssTxt=`s<sub>s</sub> = ${g(s.ss,1)} mm${s.ssDefault? ' (default = B [verify])' : (s.kind==='load'&&s.ssIn===0? ' (default 0)' : ' (entered)')}${s.ssCap? ', capped at h<sub>w</sub> (6.3(1))':''}; d = ${g(s.d,1)} mm to the member end; c = max(d &minus; s<sub>s</sub>/2, 0) = ${g(s.c,1)} mm`;
+    h+=`
+    <div><b>Governing station x = ${g(s.x/1000,3)} m: ${s.label}</b></div><div class="formula">${typeName(t.type)}${s.types.length>1? ' &mdash; types '+s.types.map(x=>'('+x+')').join(', ')+' evaluated ('+s.sols.map(q=>'F<sub>Rd,'+q.type+'</sub> = '+f1(q.FRd,1)).join(', ')+' kN), the lower governs' : ''}; ${ssTxt}</div><div class="value"></div><div></div>
+    <div>k<sub>F</sub> = ${t.type==='c'? '2 + 6(s<sub>s</sub> + c)/h<sub>w</sub> &le; 6' : (t.type==='b'? '3.5' : '6')+' + 2(h<sub>w</sub>/a)&sup2;'}</div><div class="formula">${t.type==='c'? '2 + 6&times;'+g(s.ss+s.c,1)+'/'+g(W.hw,1) : (t.type==='b'? '3.5' : '6')+' + 2&times;('+g(W.hw,1)+'/'+g(s.a,0)+')&sup2;'}</div><div class="value">${g(t.kF,3)}</div><div class="status">Fig 6.1(${t.type})</div>
+    <div>F<sub>cr</sub> = 0.9k<sub>F</sub>Et<sub>w</sub>&sup3;/h<sub>w</sub></div><div class="formula">0.9&times;${g(t.kF,3)}&times;${g(a.E,0)}&times;${g(W.tw,1)}&sup3;/${g(W.hw,1)}</div><div class="value">${f1(t.Fcr,1)} kN</div><div class="status">6.4(1)</div>
+    ${t.type==='c'? `<div>l<sub>e</sub> = k<sub>F</sub>Et<sub>w</sub>&sup2;/(2f<sub>yw</sub>h<sub>w</sub>) &le; s<sub>s</sub> + c</div><div class="formula">${g(t.kF,3)}&times;${g(a.E,0)}&times;${g(W.tw,1)}&sup2;/(2&times;${g(W.fyw,0)}&times;${g(W.hw,1)}) = ${g(t.leRaw,1)} &le; ${g(s.ss+s.c,1)}</div><div class="value">${g(t.le,1)} mm</div><div class="status">6.5(4)</div>
+    <div>l<sub>y</sub> = min[l<sub>e</sub> + t<sub>f</sub>&radic;(m<sub>1</sub>/2 + (l<sub>e</sub>/t<sub>f</sub>)&sup2; + m<sub>2</sub>), l<sub>e</sub> + t<sub>f</sub>&radic;(m<sub>1</sub> + m<sub>2</sub>)]</div><div class="formula">m<sub>2</sub> = ${g(t.m2,3)}${t.iter? ' (first pass &lambda;&#772;<sub>F</sub> = '+g(t.lam1,3)+' &le; 0.5, so m<sub>2</sub> = 0)':''}; min[${g(t.l1,1)}, ${g(t.l2,1)}]</div><div class="value">${g(t.ly,1)} mm</div><div class="status">6.5(4)</div>`
+    : `<div>l<sub>y</sub> = s<sub>s</sub> + 2t<sub>f</sub>(1 + &radic;(m<sub>1</sub> + m<sub>2</sub>)) &le; a</div><div class="formula">m<sub>2</sub> = ${g(t.m2,3)}${t.iter? ' (first pass &lambda;&#772;<sub>F</sub> = '+g(t.lam1,3)+' &le; 0.5, so m<sub>2</sub> = 0)':''}; ${g(s.ss,1)} + 2&times;${g(W.tf,1)}&times;(1 + &radic;(${g(W.m1,3)} + ${g(t.m2,3)})) = ${g(t.l1,1)}${t.capA? ' &gt; a = '+g(s.a,0)+' (capped)':''}</div><div class="value">${g(t.ly,1)} mm</div><div class="status">6.5(3)</div>`}
+    <div>&lambda;&#772;<sub>F</sub> = &radic;(l<sub>y</sub>t<sub>w</sub>f<sub>yw</sub>/F<sub>cr</sub>); &chi;<sub>F</sub> = 0.5/&lambda;&#772;<sub>F</sub> &le; 1</div><div class="formula">&radic;(${g(t.ly,1)}&times;${g(W.tw,1)}&times;${g(W.fyw,0)}/${f1(t.Fcr*1000,0)}) = ${g(t.lam,3)}; 0.5/${g(t.lam,3)} = ${g(t.chiRaw,3)}${t.chiRaw>1? ' &rarr; 1.0':''}</div><div class="value">&chi;<sub>F</sub> = ${g(t.chi,3)}</div><div class="status">6.4(1)</div>
+    <div>F<sub>Rd</sub> = f<sub>yw</sub>L<sub>eff</sub>t<sub>w</sub>/&gamma;<sub>M1</sub>, L<sub>eff</sub> = &chi;<sub>F</sub>l<sub>y</sub></div><div class="formula">${g(W.fyw,0)}&times;${g(t.Leff,1)}&times;${g(W.tw,1)}/1.0${W.isBox? ' per web; share to this web '+g(s.share,3)+(s.eMax>0? ' (lever rule, e = '+g(s.eMax,0)+' mm)':' (e = 0)')+'; F<sub>Rd</sub> for the load = '+f1(s.FRdTot,1)+' kN':''}</div><div class="value">${f1(t.FRd,1)} kN</div><div class="status">6.2(1)</div>
+    <div>F<sub>Ed</sub> / F<sub>Rd</sub> &le; 1.0</div><div class="formula">${cs.P!==0&&s.support? 'P = '+f1(Math.abs(cs.P),1)+', R = '+f1(cs.R,1)+' kN: ':''}F<sub>Ed</sub> = ${f1(cs.F,1)} kN (${cs.combo}; ${cs.flange} flange, ${cs.flangeState}) / ${f1(s.FRdTot,1)}</div><div class="value">${g(cs.eta2,3)}</div>${st(cs.eta2<=1.0001,'OK')}
+    <div>&eta;<sub>2</sub> + 0.8&eta;<sub>1</sub> &le; 1.4 (&eta;<sub>1</sub> = M<sub>Ed</sub>/M<sub>c,Rd</sub>${W.NEd>1e-9? ' + N<sub>Ed</sub>/N<sub>pl,Rd</sub>':''})</div><div class="formula">${g(c72.eta2,3)} + 0.8&times;(${f1(c72.M,1)}/${f1(W.McRd0,1)}${W.NEd>1e-9? ' + '+f1(W.NEd,1)+'/'+f1(W.NplRd,1):''} = ${g(c72.eta1,3)}) = ${g(c72.u72raw,3)} &le; 1.4 (${c72.combo})${c72.flangeComp? '' : '; loaded flange in tension: 7.2(2) refers to 6.2.1(5), expression applied as a screen [verify]'}</div><div class="value">${g(c72.u72,3)}</div>${st(c72.u72<=1.0001,'OK')}`;
+  }
+  h+=`
+  </div>
+  <table class="force-table" style="font-size:12px">
+    <thead><tr><th>x (m)</th><th>Station</th><th>Type</th><th>s<sub>s</sub> (mm)</th><th>k<sub>F</sub></th><th>l<sub>y</sub> (mm)</th><th>&lambda;&#772;<sub>F</sub></th><th>&chi;<sub>F</sub></th><th>F<sub>Rd</sub> (kN)</th><th>F<sub>Ed</sub> (kN)</th><th>Load case</th><th>F<sub>Ed</sub>/F<sub>Rd</sub></th><th>(&eta;<sub>2</sub>+0.8&eta;<sub>1</sub>)/1.4</th><th></th></tr></thead>
+    <tbody>${W.stations.map(s=>{
+      if(s.stiff) return `<tr><td class="num">${g(s.x/1000,3)}</td><td>${s.label}</td><td colspan="11">${s.msg}</td><td>advisory</td></tr>`;
+      const t=s.gov, cs=s.cases[s.g2];
+      return `<tr><td class="num">${g(s.x/1000,3)}</td><td>${s.label}</td><td>(${t.type})</td><td class="num">${g(s.ss,1)}${s.ssDefault?'*':''}</td><td class="num">${g(t.kF,3)}</td><td class="num">${g(t.ly,1)}</td><td class="num">${g(t.lam,3)}</td><td class="num">${g(t.chi,3)}</td><td class="num">${f1(s.FRdTot,1)}</td><td class="num">${f1(cs.F,1)}</td><td>${cs.combo}</td><td class="num">${g(s.eta2,3)}</td><td class="num">${g(s.u72,3)}</td><td style="font-weight:700;color:${(s.eta2<=1.0001&&s.u72<=1.0001)?'#166534':'#b91c1c'}">${(s.eta2<=1.0001&&s.u72<=1.0001)? (s===W.gov2? 'governs':'OK') : 'FAIL'}</td></tr>`;
+    }).join('')}</tbody>
+  </table>
+  <div class="note" style="margin-left:0">${W.anyDefaultSs? '* s<sub>s</sub> = section flange width B taken as a typical seating length [verify: enter the actual stiff bearing length along the member in the support row]. ':''}Point loads act on the top flange (bottom flange for an upward load) and reactions on the bottom flange; s<sub>s</sub> &le; h<sub>w</sub> (6.3(1)); type (c) is evaluated whenever s<sub>s</sub> + c &lt; 2h<sub>w</sub>/3 (the value at which k<sub>F</sub>(c) reaches the long-panel 6) and the lower F<sub>Rd</sub> of types (a) and (c) governs; a point load over a support is type (b) with F<sub>Ed</sub> = max(P, R). &eta;<sub>1</sub> uses the unreduced class-consistent M<sub>c,Rd</sub> (${W.cls<=2? 'W<sub>pl,y</sub>':'W<sub>el,y</sub>'}) [verify: EN 1993-1-5 4.6 writes &eta;<sub>1</sub> with W<sub>eff</sub>]. Not evaluated: distributed loads as patch loads, loads hung from the bottom flange, the closely spaced total-load check (6.3(3)), flange-induced buckling (section 8); a declared bearing stiffener must be designed to 9.4.</div>`;
+  return h;
+}
+
 function render(){
   const rep=$("report");
   let a,c;
@@ -119,6 +161,7 @@ function render(){
   if((sci||sciU)&&c.tor&&c.tor.p385) notes.push("Open-section torsion per SCI P385: elastic Method B with fork ends and free warping, using Appendix C Cases 3/4/10. The rotation-induced minor moment is included. Plastic redistribution and growth of eccentricity as the section twists are not iterated. The EC3 destabilising switch does not add this second-order torsional effect.");
   if((sci||sciU)&&c.tor) notes.push("Torsion: each applied load acts at its own offset e from the shear centre; loads with e = 0 and applied moments generate no torque. Automatic self-weight acts through the centroid, so it has e = 0 for doubly symmetric sections but e = e<sub>sc</sub> for PFC channels. The verification conservatively assumes maximum shear, bending and torsion are coincident (SCI example note). All supports are assumed to prevent twist &mdash; fork supports; friction-grip connections or similar may be required. Torsion is evaluated on the EC3 code path only.");
   if((sci||sciU)&&c.coex&&c.coex.pureShearFail) notes.push("Coexistent M&ndash;V: V<sub>Ed</sub> exceeds V<sub>pl,Rd</sub> at the reported section, so the cl 6.2.8 reduced moment formula is bypassed; the section has already failed in pure shear.");
+  if((sci||sciU)&&c.web&&c.web.checked) notes.push("Web transverse forces (EN 1993-1-5 clause 6): F<sub>Rd</sub> = f<sub>yw</sub>L<sub>eff</sub>t<sub>w</sub>/&gamma;<sub>M1</sub> at every point load and every support reaction of every ULS combination, with the clause 7.2 interaction &eta;<sub>2</sub> + 0.8&eta;<sub>1</sub> &le; 1.4 at the same station; governing station x = "+g(c.web.gov2.x/1000,3)+" m ("+c.web.gov2.label+", type ("+c.web.gov2.type+")), F<sub>Ed</sub>/F<sub>Rd</sub> = "+g(c.web.util2,3)+". A failing station needs a bearing stiffener (tick \"bearing stiffener provided\" once it is designed to EN 1993-1-5 9.4) or a longer stiff bearing s<sub>s</sub>.");
   if(sci){
     if(c.hsNote) notes.push(c.hsNote+".");
     if(c.ax) notes.push(c.ax.tension
@@ -431,7 +474,8 @@ function render(){
     ${c.coex? (c.coex.pureShearFail
       ? `<div>Coexistent M&ndash;V along the span (cl 6.2.8)</div><div class="formula">@ x = ${g(c.coex.x/1000,2)} m: M = ${f1(c.coex.M,1)} kN&middot;m with V = ${f1(c.coex.V,0)} kN &gt; V<sub>pl${c.tor&&c.tor.VplTRd!=null?',T':''},Rd</sub> = ${f1(c.coex.VplRd,0)} kN; pure shear resistance fails, so M<sub>v,Rd</sub> is not evaluated</div><div class="value">V<sub>Ed</sub>/V<sub>pl${c.tor&&c.tor.VplTRd!=null?',T':''},Rd</sub> = ${f1(c.coex.u,3)}</div><div class="status fail">Shear FAIL</div>`
       : `<div>Coexistent M&ndash;V along the span (cl 6.2.8)</div><div class="formula">@ x = ${g(c.coex.x/1000,2)} m: M = ${f1(c.coex.M,1)} kN&middot;m with V = ${f1(c.coex.V,0)} kN &gt; 0.5V<sub>pl,Rd</sub>; M<sub>v,Rd</sub> = ${f1(c.coex.MvRd,0)} kN&middot;m</div><div class="value">${g(c.coex.u,2)}</div>${st(c.coex.u<=1.0001,'OK')}`):''}
-  </div>` : '';
+  </div>
+  ${renderWebTransverseBlock(c,sec,a)}` : '';
 
   const pvFormula = sec.isBox? (sec.D===sec.B? 'P<sub>v</sub>=0.6 p<sub>y</sub> A D/(D+B)=0.6 p<sub>y</sub> A/2' : 'P<sub>v</sub>=0.6 p<sub>y</sub> A D/(D+B)') : 'P<sub>v</sub>=0.6 p<sub>y</sub> t D';
   const VplFormula = sec.isBox? (sec.D===sec.B? 'V<sub>pl,Rd</sub>=A<sub>v</sub>f<sub>y</sub>/(v3?<sub>M0</sub>), A<sub>v</sub>=A D/(D+B)=A/2' : 'V<sub>pl,Rd</sub>=A<sub>v</sub>f<sub>y</sub>/(v3?<sub>M0</sub>), A<sub>v</sub>=A D/(D+B)')

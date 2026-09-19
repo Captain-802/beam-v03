@@ -201,6 +201,7 @@ function observedTriggers(a, c, o) {
   if (c.ltb) { ['3.1', '3.2', '3.3', '3.6'].forEach(x => t.add(x)); if (o.family === 'ub' || o.family === 'uc') t.add('3.5'); else t.add('3.4'); }
   else t.add('3.1');
   if ((o.ltbRestraints || []).length) t.add('3.17');
+  if (c.web && c.web.checked) t.add('2.18');
   if (c.coex || c.hsNote) t.add('2.10');
   if (c.sbOk === false) t.add('2.5');
   return [...t];
@@ -374,6 +375,37 @@ function runOne(cs, method) {
     const okC = negGov.every(r => { const sp = cs.overrides.supports[r.i - 1]; return sp && sp.holdDown ? true : (c.unsupported || []).some(m => new RegExp('^Hold-down required: .*at support ' + r.i + ' ').test(m)); });
     const okB = (a.uplift && a.uplift.supports.length) ? a.uplift.supports.every(u => msgs.some(m => new RegExp('at support ' + u.n + ' ').test(m))) : msgs.length === 0;
     add('vii-uplift', okA && okB && okC, negGov.length ? `governing combination lifts support(s) ${negGov.map(r => r.i + ' (' + fmt(r.V / 1000, 2) + ' kN)').join(', ')}; engine reports ${[...reported].join(', ') || 'none'}` : `no uplift in the governing combination; engine reports ${[...reported].join(', ') || 'none'} (${msgs.length} hold-down message(s))`);
+  }
+
+  // (viii) web transverse forces (EN 1993-1-5 clause 6, G2): F_Rd at the governing station recomputed
+  //        independently from the raw section table for rolled I/H sections (end reaction type (c) with
+  //        c = 0, interior point load type (a); the (a)/(c) pair in the end zone is evaluated and the
+  //        lower taken), s_s from the case (support default = B, load default = 0), a = L when no
+  //        stiffener is declared; util2 must equal the largest station ratio; a stiffened station never governs
+  if (c.web && c.web.checked && (o.family === 'ub' || o.family === 'uc')) {
+    const W = c.web, s = W.gov2;
+    const eps = Math.sqrt(235 / py), hw = sec.D - 2 * sec.tf, tw = sec.tw, tf = sec.tf, Lmm = a.L;
+    const bf = Math.min(sec.B, tw + 30 * eps * tf), m1 = bf / tw, m2f = 0.02 * Math.pow(hw / tf, 2);
+    const noStiff = !(o.supports || []).some(sp => sp.stiff) && !(o.loads || []).some(ld => ld.stiff);
+    const d = Math.min(s.x, Lmm - s.x);
+    const ssIn = s.kind === 'support' ? ((o.supports[s.n - 1] || {}).ss != null ? +o.supports[s.n - 1].ss : sec.B)
+               : s.kind === 'load' ? Math.min(...s.loadIdx.map(i => (o.loads[i - 1] || {}).ss != null ? +o.loads[i - 1].ss : 0)) : null;
+    if (ssIn != null && noStiff) {
+      const ss = Math.min(ssIn, hw), cc = Math.max(d - ss / 2, 0), endZone = (ss + cc) < 2 * hw / 3;
+      const FRdOf = (type) => {
+        const kF = type === 'a' ? 6 + 2 * Math.pow(hw / Lmm, 2) : Math.min(2 + 6 * (ss + cc) / hw, 6);
+        const Fcr = 0.9 * kF * E * Math.pow(tw, 3) / hw;
+        const le = type === 'c' ? Math.min(kF * E * tw * tw / (2 * py * hw), ss + cc) : null;
+        const ly = (m2) => type === 'c' ? Math.min(le + tf * Math.sqrt(m1 / 2 + Math.pow(le / tf, 2) + m2), le + tf * Math.sqrt(m1 + m2)) : Math.min(ss + 2 * tf * (1 + Math.sqrt(m1 + m2)), Lmm);
+        let l = ly(m2f), lam = Math.sqrt(l * tw * py / Fcr);
+        if (lam <= 0.5) { l = ly(0); lam = Math.sqrt(l * tw * py / Fcr); }
+        return py * Math.min(0.5 / lam, 1) * l * tw / 1000;
+      };
+      const exp = endZone ? Math.min(FRdOf('a'), FRdOf('c')) : FRdOf('a');
+      const maxEta = Math.max(...W.stations.filter(x => !x.stiff).map(x => x.eta2));
+      add('viii-FRd', rel(exp, s.FRdTot) <= TOL && Math.abs(W.util2 - maxEta) <= 1e-9 && !s.stiff,
+        `station x = ${fmt(s.x / 1000, 2)} m (${s.label}, type (${s.type}), s_s ${fmt(ss, 1)} mm): independent F_Rd ${fmt(exp, 1)} vs engine ${fmt(s.FRdTot, 1)} kN; F_Ed ${fmt(s.F, 1)} kN (${s.combo}); util ${fmt(W.util2, 3)} = max station ratio ${fmt(maxEta, 3)}`);
+    }
   }
 
   // (iv) eigen / standard ratio (same segment) - outlier flag, not an error

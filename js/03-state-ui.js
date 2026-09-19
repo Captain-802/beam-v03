@@ -103,6 +103,7 @@ function renderSupportList(){
   // fixity to the LTB model only - the SCI Mcr tool's dU = F / dtheta = F -
   // without touching the vertical bending model (unlike a Fixed support).
   const ltbBCOn = S.code==='EC3' && (S.restraint||'full')!=='full';
+  const webBearingOn = webBearingInputsOn(), secWB = activeSection();
   S.supports.forEach((sp,i)=>{
     const row=document.createElement("div"); row.className="row";
     row.innerHTML=`<div class="rowhead"><b style="font-size:12px">Support ${i+1}</b>
@@ -113,6 +114,10 @@ function renderSupportList(){
           <option value="pinned"${sp.type==='pinned'?' selected':''}>Pinned</option>
           <option value="fixed"${sp.type==='fixed'?' selected':''}>Fixed</option></select></div>
       </div>
+      ${webBearingOn? `<div class="grid2" style="margin-top:4px">
+        <div class="fld"><span>Stiff bearing s<sub>s</sub>, mm (blank = B = ${fmtMM(secWB.B)} [verify])</span><input type="number" step="1" min="0" placeholder="${fmtMM(secWB.B)}" value="${sp.ss!=null&&sp.ss!==''&&isFinite(+sp.ss)? sp.ss : ''}" data-sp="ss" data-i="${i}"></div>
+        <label class="checkline" style="align-self:end"><input type="checkbox" data-spc="stiff" data-i="${i}"${sp.stiff?' checked':''}> <span>bearing stiffener provided (EN 1993-1-5 9.4)</span></label>
+      </div>` : ''}
       <div class="ltb-checks" style="margin-top:4px">
         <label class="checkline"><input type="checkbox" data-spc="holdDown" data-i="${i}"${sp.holdDown?' checked':''}> <span>hold-down provided (uplift resisted)</span></label>${ltbBCOn? `
         <label class="checkline"><input type="checkbox" data-spc="vp" data-i="${i}"${sp.vp?' checked':''}> <span>lat. bending v&prime; fixed (LTB)</span></label>
@@ -122,7 +127,8 @@ function renderSupportList(){
   });
   c.querySelectorAll("[data-sp]").forEach(el=>el.addEventListener("input",e=>{
     const i=+e.target.dataset.i, k=e.target.dataset.sp;
-    S.supports[i][k]= k==='pos'? parseFloat(e.target.value) : e.target.value; recompute();
+    // ss: blank = default (section flange width B); a number is kept as entered
+    S.supports[i][k]= k==='pos'? parseFloat(e.target.value) : k==='ss'? (e.target.value===''? null : parseFloat(e.target.value)) : e.target.value; recompute();
   }));
   c.querySelectorAll("[data-spc]").forEach(el=>el.addEventListener("change",e=>{
     const i=+e.target.dataset.i, k=e.target.dataset.spc;
@@ -158,6 +164,15 @@ function loadFields(ld,i){
   if(ld.type==='trap') return `<div class="grid2">${f("Start x1, m","x1",ld.x1)}${f("End x2, m","x2",ld.x2)}</div><div class="grid3" style="margin-top:6px">${f("w1, kN/m","w1",ld.w1)}${f("w2, kN/m","w2",ld.w2)}${caseSel}</div>`;
   return "";
 }
+/* EN 1993-1-5 clause 6 inputs (EC3 path): per point load and per support a
+   stiff bearing length s_s and a "bearing stiffener provided" switch. */
+function webBearingInputsOn(){ return S.code==='EC3'; }
+function loadBearingFields(ld,i){
+  if(!webBearingInputsOn() || ld.type!=='point' || ld.isSelfWeight) return '';
+  const ssVal = (ld.ss!=null && ld.ss!=='' && isFinite(+ld.ss))? ld.ss : '';
+  return `<div class="grid2" style="margin-top:6px"><div class="fld"><span>Stiff bearing s<sub>s</sub>, mm (blank = 0)</span><input type="number" step="1" min="0" placeholder="0" value="${ssVal}" data-ld="ss" data-i="${i}"></div>
+    <label class="checkline" style="align-self:end"><input type="checkbox" data-ldc="stiff" data-i="${i}"${ld.stiff?' checked':''}> <span>bearing stiffener provided (EN 1993-1-5 9.4)</span></label></div>`;
+}
 function loadOffsetFields(ld,i){
   if(!S.eccOn || ld.type==='moment' || ld.isSelfWeight) return '';
   const eVal = ld.e??0;
@@ -175,13 +190,18 @@ function renderLoadList(){
     const tag = ld.isSelfWeight? ` <span style="font-size:10px;font-weight:700;color:#7a4;border:1px solid #bcd9a0;background:#f2f8ec;border-radius:4px;padding:1px 5px;">self-weight</span>` : '';
     row.innerHTML=`<div class="rowhead">
       <select data-lt="${i}">${Object.entries(types).map(([k,v])=>`<option value="${k}"${ld.type===k?' selected':''}>${v}</option>`).join("")}</select>${tag}
-      <button class="del" data-li="${i}">remove</button></div>${loadFields(ld,i)}${loadOffsetFields(ld,i)}`;
+      <button class="del" data-li="${i}">remove</button></div>${loadFields(ld,i)}${loadOffsetFields(ld,i)}${loadBearingFields(ld,i)}`;
     c.appendChild(row);
   });
   c.querySelectorAll("[data-ld]").forEach(el=>el.addEventListener(el.tagName==='SELECT'?"change":"input",e=>{
     const i=+e.target.dataset.i,k=e.target.dataset.ld;
-    S.loads[i][k]= k==='case'? e.target.value : parseFloat(e.target.value);
+    // ss: blank = default (0 mm at a point load); a number is kept as entered
+    S.loads[i][k]= k==='case'? e.target.value : k==='ss'? (e.target.value===''? null : parseFloat(e.target.value)) : parseFloat(e.target.value);
     recompute();
+  }));
+  c.querySelectorAll("[data-ldc]").forEach(el=>el.addEventListener("change",e=>{
+    const i=+e.target.dataset.i,k=e.target.dataset.ldc;
+    S.loads[i][k]=e.target.checked; recompute();
   }));
   c.querySelectorAll("[data-lt]").forEach(sel=>sel.addEventListener("change",e=>{
     const i=+e.target.dataset.lt, t=e.target.value, L=S.L, cs=S.loads[i].case||'Q';

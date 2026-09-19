@@ -93,7 +93,7 @@
       </div>
       <div class="list" id="supportList"></div>
       <div class="addbar"><button type="button" id="addSupport">+ Add support</button></div>
-      <div class="hint">Pinned = vertical restraint only. Fixed = vertical + rotational. Position measured from the left end (0&nbsp;m). A support that lifts in any combination (negative reaction) blocks PASS with a &ldquo;Hold-down required&rdquo; message unless <b>hold-down provided</b> is ticked for it, in which case the design hold-down force is printed as an advisory.</div>
+      <div class="hint">Pinned = vertical restraint only. Fixed = vertical + rotational. Position measured from the left end (0&nbsp;m). A support that lifts in any combination (negative reaction) blocks PASS with a &ldquo;Hold-down required&rdquo; message unless <b>hold-down provided</b> is ticked for it, in which case the design hold-down force is printed as an advisory. <b>Web transverse forces (EC3, EN 1993-1-5 clause 6):</b> every support reaction is checked as a patch load on the bottom flange with the entered <b>stiff bearing length s<sub>s</sub></b> along the member (blank = the section flange width B as a typical seating <b>[verify]</b>; capped at h<sub>w</sub>); a support at the member end is an end reaction (type c). Tick <b>bearing stiffener provided</b> to declare a stiffener at that support instead &mdash; the stiffener itself must then be designed to EN 1993-1-5 9.4.</div>
 
       <div style="margin-top:10px;font-size:11px;font-weight:700;color:#374151">Internal hinges (moment releases)</div>
       <div class="list" id="hingeList"></div>
@@ -111,7 +111,7 @@
         <button type="button" data-add="moment">+ Moment</button>
         <button type="button" id="addSelfWeight">Self-weight auto</button>
       </div>
-      <div class="hint">Forces positive <b>downward</b> (kN, kN/m). Moment positive anticlockwise (kN m). Enter <b>characteristic</b> (unfactored) values and tag each load's <b>case</b>   the partial factors come from the Load Combinations below, not from the load itself. Section self-weight is added automatically as Dead (G) from the selected section mass/m.</div>
+      <div class="hint">Forces positive <b>downward</b> (kN, kN/m). Moment positive anticlockwise (kN m). Enter <b>characteristic</b> (unfactored) values and tag each load's <b>case</b>   the partial factors come from the Load Combinations below, not from the load itself. Section self-weight is added automatically as Dead (G) from the selected section mass/m. <b>Point loads (EC3):</b> each is also checked as a transverse force on the web (EN 1993-1-5 clause 6, with the 7.2 interaction) using its own <b>stiff bearing length s<sub>s</sub></b> (blank = 0 mm); tick <b>bearing stiffener provided</b> where a stiffener will be designed (EN 1993-1-5 9.4). A load directly over a support is treated as transferred through the web (type b).</div>
       <label class="checkline"><input type="checkbox" id="eccOn"> <span>Load eccentricity</span></label>
       <div class="hint">When activated, each load row gains its own shear-centre offset <b>e (mm)</b>. In EC3 unrestrained mode each transverse load also gets its own <b>z<sub>g</sub></b> load height above the shear centre. Applied moments act through the shear centre. Automatic self-weight acts through the centroid: e = 0 for doubly symmetric sections, but e = e<sub>sc</sub> for PFC channels.</div>
     </details>

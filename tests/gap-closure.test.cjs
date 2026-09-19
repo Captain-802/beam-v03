@@ -103,7 +103,7 @@ test('pattern loading off reproduces the previous engine figures exactly (two-sp
     const on = analyseAll();
     assert.ok(on.a.n > 1 && on.a.patterns.active);
     assert.ok(Math.abs(on.a.Mmax) >= Math.abs(r.Mmax) - 1e-9 && Math.abs(on.a.Vmax) >= Math.abs(r.Vmax) - 1e-9, k + ': envelope with patterns is never smaller');
-    on.c.utils.forEach((v, i) => assert.ok(v >= r.utils[i] - 1e-9, k + ': utilisation ' + i + ' never lower with patterns on'));
+    r.utils.forEach((v, i) => assert.ok(on.c.utils[i] >= v - 1e-9, k + ': utilisation ' + i + ' never lower with patterns on'));   // the pre-G2 utilisations (web transverse-force entries follow them)
   }
   // single-span member: no segment boundary, nothing generated, nothing split (demo figures of AUDIT.md unchanged)
   c.reset({});

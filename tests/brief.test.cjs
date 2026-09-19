@@ -45,6 +45,7 @@ const num = s => parseFloat(String(s).replace(/<[^>]+>/g, '').replace(/&[a-z]+;/
 const near3 = (s, v, what) => assert.equal(num(s).toFixed(3), (+v).toFixed(3), what + ': printed ' + s + ' vs ' + v);
 // MasterSeries block order (docs/EC3_BEAM_TRIGGER_LIST.md section 4); only the blocks a variant prints are present
 const ORDER = [/^Member Loading and Member Forces$/, /^Classification and Effective Area \(EN 1993: 2006\)$/, /^(Local Capacity Check|Moment Capacity Check M\.c\.y\.Rd)/,
+  /^Web Transverse Forces \(EN 1993-1-5 cl 6\)$/,   // [beam-v03 addition, 19 Sep 2026 gap closure G2] after Local Capacity
   /^Compression Resistance N\.b\.Rd$/, /^Equivalent Uniform Moment Factors? C1/, /^Lateral Buckling Check M\.b\.Rd$/, /^Lateral Restraint Portions/,
   /^Buckling Resistance$/, /^Torsion Design$/, /^Deflection Check - Load Case /];
 function checkCommon(r, tag) {
@@ -95,7 +96,7 @@ test('demo beam, fully restrained: Beam-Portion brief with the Fully Restrained 
   assert.ok(!hs.some(h => /Equivalent Uniform/.test(h)), 'no C1 block when fully restrained');
   const fr = row(html, /^M<sub>b\.Rd<\/sub> = M<sub>c\.y\.Rd<\/sub>$/);
   assert.equal(fr.vals, 'Fully Restrained'); near3(fr.res, r.McRd, 'Mb.Rd = Mc.y.Rd');
-  assert.deepEqual(u.names, ['MA/Mc', 'M_(y.Ed)/M_(b.Rd)', 'Deflection', 'V/Vpl', 'Max']);
+  assert.deepEqual(u.names, ['MA/Mc', 'M_(y.Ed)/M_(b.Rd)', 'Deflection', 'V/Vpl', 'F/F_Rd', 'Web 7.2', 'Max']);   // F/F_Rd, Web 7.2: web transverse forces at the two support reactions (G2)
   near3(u.vals[0], r.momUtil, 'MA/Mc'); near3(u.vals[1], r.momUtil, 'Mb = Mc cell');
   assert.ok(row(html, /^V<sub>y\.Ed<\/sub>\/V<sub>pl\.y\.Rd<\/sub>$/).tag === 'Low Shear');
   assert.ok(row(html, /Deflection|In-span/) && row(html, /^In-span &delta; &le; Span\/360$/).tag === 'OK');
@@ -140,7 +141,7 @@ test('UB with axial compression and Mz: Axial with Moments brief with every bloc
     assert.ok(r.ax && r.buck && r.buck.Fc > 0);
     assert.ok(html.includes('Axial with Moments (Member)'));
     assert.deepEqual(hs, ['Member Loading and Member Forces', 'Classification and Effective Area (EN 1993: 2006)', 'Local Capacity Check',
-      'Compression Resistance N.b.Rd', 'Equivalent Uniform Moment Factors C1, C.mLT, C.mz, and C.my', 'Lateral Buckling Check M.b.Rd',
+      'Web Transverse Forces (EN 1993-1-5 cl 6)', 'Compression Resistance N.b.Rd', 'Equivalent Uniform Moment Factors C1, C.mLT, C.mz, and C.my', 'Lateral Buckling Check M.b.Rd',
       'Buckling Resistance', 'Deflection Check - Load Case 1 (SLS: Variable actions only (NA 2.23))']);
     ['V<sub>z\\.Ed</sub>/V<sub>pl\\.z\\.Rd</sub>', 'M<sub>c\\.z\\.Rd</sub> = ', 'N<sub>pl\\.Rd</sub> = A<sub>g</sub>', 'n = N<sub>Ed</sub>/N<sub>pl\\.Rd</sub>',
      'W<sub>pl\\.N\\.y</sub> = Fn', 'M<sub>N\\.y\\.Rd</sub> = ', 'W<sub>pl\\.N\\.z</sub> = Fn', 'M<sub>N\\.z\\.Rd</sub> = ',
