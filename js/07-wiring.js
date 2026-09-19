@@ -18,6 +18,7 @@ function printReport(){
 function readScalarInputs(){
   setDesignCode($("code").value);
   S.restraint=$("restraint").value;
+  if($("mcrMethod")) S.mcrMethod=$("mcrMethod").value;
   S.eccOn=$("eccOn").checked;
   S.za=parseFloat($("za").value);
   S.rootWarp=$("rootWarp").value;
@@ -97,6 +98,8 @@ function wire(){
     syncInputs(); recompute(); });
   $("restraint").addEventListener("change",()=>{
     S.restraint=$("restraint").value; syncInputs(); recompute(); });
+  if($("mcrMethod")) $("mcrMethod").addEventListener("change",()=>{
+    S.mcrMethod=$("mcrMethod").value; syncInputs(); recompute(); });
   $("shsType").addEventListener("change",()=>{
     S.shsType=$("shsType").value; syncInputs(); refreshAutoFields(); recompute(); });
   $("length").addEventListener("change",()=>{ // stretch full-span loads/supports that sat at old end

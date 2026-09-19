@@ -43,6 +43,7 @@ function validateInputs(py,E,ulsCombos,slsCombos){
   const area=activeSection().A;
   if(S.anet!=null && !(finite(S.anet)&&S.anet>0&&S.anet<=area)) errs.push('Net area must be greater than zero and no greater than the gross area.');
   ['Ke','robX','robY','C1o'].forEach(k=>{ if(S[k]!=null && !(finite(S[k])&&S[k]>0)) errs.push(`${k} override must be greater than zero.`); });
+  if(S.mcrMethod!=null && S.mcrMethod!=='eigen' && S.mcrMethod!=='standard') errs.push(`Unknown Mcr method "${S.mcrMethod}": use "eigen" (FE eigensolver) or "standard" (closed form).`);
   [['mLTo',0.44],['mxo',0.4]].forEach(([k,min])=>{ if(S[k]!=null && !(finite(S[k])&&S[k]>=min&&S[k]<=1)) errs.push(`${k} override must be between ${min} and 1.`); });
   if(S.mLTo!=null && (S.destab || (S.supports.length===1&&S.supports[0].type==='fixed')) && S.mLTo!==1) errs.push('mLT must be 1 for cantilevers and destabilising loading.');
   const seenSupports=new Set();
@@ -140,7 +141,10 @@ function analyse(){
   const gfb=governM.fb;
   const Mq=interpAt(gfb.xs,gfb.M,L*0.25), Mh=interpAt(gfb.xs,gfb.M,L*0.5), Mq3=interpAt(gfb.xs,gfb.M,L*0.75);
   let M24=0; gfb.xs.forEach((x,i)=>{ if(x>=L*0.25-1&&x<=L*0.75+1) M24=Math.max(M24,Math.abs(gfb.M[i])); });
-  const M0end=interpAt(gfb.xs,gfb.M,0), MLend=interpAt(gfb.xs,gfb.M,L);
+  // end moments read a fraction inside the member (as analysisForCombination does):
+  // the grid closes to zero at x = L beyond an end couple, and a fixed-end sample
+  // exactly at the support is the far side of the reaction jump
+  const M0end=interpAt(gfb.xs,gfb.M,1e-4), MLend=interpAt(gfb.xs,gfb.M,L-1e-4);
   const reactions=governM.r.reactions;
 
   // SLS deflection: worst of every enabled SLS combination

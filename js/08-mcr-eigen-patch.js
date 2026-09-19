@@ -12,20 +12,30 @@
    else in the file is touched, so the encoding of the existing source is
    preserved.
 
-   Once it is running and you have re-run your validation examples, the
-   following become dead and can be deleted in a cp1252-safe editor:
+   Mcr METHOD SWITCH  (S.mcrMethod: 'eigen' | 'standard')
+   ---------------------------------------------------------
+   The original closed-form function checksEC3UnrestrainedSCI() from
+   js/checks/eurocode-checks.js is captured BEFORE the reassignment as
+   window.checksEC3UnrestrainedStandard and the patched function delegates
+   to it when S.mcrMethod === 'standard'. That is the STANDARD method:
+   C1 from the NCCI SN003a tables / SCI end-moment curve / Serna quarter-point
+   expression, the SN003a closed-form Mcr with C2*zg where published, SN006a
+   for cantilevers and the P385/P362 channel kappa chain - as MasterSeries-
+   type software does. The eigen method (default) remains the FE eigenvalue
+   solution for the actual moment diagram, load heights, restraints and hinges.
+   Both methods expose ltb.McrStandard (closed form for the same segment) and
+   ltb.McrEigen (null in standard mode: the eigensolver is not run) so the
+   report can print "Mcr eigen / Mcr standard". The helpers below are
+   therefore the standard-method implementation and must STAY ALIVE:
 
-       C1_END_MOMENT        (~line 419)
-       SN006 / sn006C       (~lines 425-489)
-       sernaC1              (~line 495)
-       c1FromPsi            (~line 500)
-       computeC1            (~line 508)
-       mcrEC3               (~line 528)
-       checksEC3            (~lines 1828-1960)   <- already dead, never called
-       sn003aC1             (~lines 2282-2309)
+       C1_END_MOMENT, SN006 / sn006C, sernaC1, c1FromPsi, computeC1, mcrEC3
+                            (js/01-computation-engine.js)
+       sn003aC1, c1Inputs, c1Segment, mcrClosedForm, mcrSN006aFor,
+       mcrStandardFor, cmTableB3, annexB2, checksEC3UnrestrainedSCI
+                            (js/checks/eurocode-checks.js)
 
-   WHAT CHANGES IN THE NUMBERS
-   ---------------------------
+   WHAT CHANGES IN THE NUMBERS (eigen method vs the standard method)
+   -----------------------------------------------------------------
    * C1 is no longer an input. Mcr comes out of the eigenproblem directly
      and lamLT = sqrt(Wy*fy/Mcr).
    * The old `computeC1`/`sn003aC1` returned C1 = 1.0 for every combined
@@ -460,7 +470,16 @@
   /* ================================================================
      PART 4 - replacement LTB check
      ================================================================ */
+  /* The closed-form (standard) implementation from eurocode-checks.js is kept
+     under its own name; the patched binding delegates to it on request. */
+  var checksEC3UnrestrainedStandard = window.checksEC3UnrestrainedSCI;
+  if (typeof checksEC3UnrestrainedStandard !== 'function')
+    throw new Error('mcr-eigen-patch: checksEC3UnrestrainedSCI (the standard closed-form method) must be loaded before this patch.');
+  window.checksEC3UnrestrainedStandard = checksEC3UnrestrainedStandard;
+  function mcrMethod() { return (S.mcrMethod === 'standard') ? 'standard' : 'eigen'; }
+
   window.checksEC3UnrestrainedSCI = function (a) {
+    if (mcrMethod() === 'standard') return checksEC3UnrestrainedStandard(a);
     var b = checksEC3Restrained(a);
     var sec = a.sec, fy = a.py, gM1 = 1.0, Wy = b.Wy;
     var unsupported = b.unsupported.slice();
@@ -490,9 +509,14 @@
       });
     } catch (err) {
       unsupported.push('Elastic critical moment: ' + err.message);
+      var stdFail = null;
+      try { stdFail = mcrStandardFor(a, sec); } catch (e3) { stdFail = null; }
       ltb = { eigen: true, failed: true, err: err.message, MbRd: 0, Mcr: 0, C1: 1, kc: 1,
-              curve: ltbCurve(sec), ign: false, chi: 0, f: 1, chiMod: 0, lamLT: 0, warn: warn };
-      return Object.assign({}, b, { sci: false, sciU: true, unsupported: unsupported, ltb: ltb,
+              curve: ltbCurve(sec), ign: false, chi: 0, f: 1, chiMod: 0, lamLT: 0, warn: warn,
+              mcrMethod: 'eigen', McrEigen: null, McrRatio: null,
+              McrStandard: (stdFail && stdFail.Mcr != null) ? stdFail.Mcr : null,
+              std: stdFail, c1in: stdFail ? stdFail.c1in : null, c1seg: stdFail ? stdFail.seg : null, c1route: stdFail ? stdFail.route : null };
+      return Object.assign({}, b, { sci: false, sciU: true, mcrMethod: 'eigen', unsupported: unsupported, ltb: ltb,
         ltbUtil: 99, ltbBasis: 'Mcr could not be computed', C1: 1, c1label: 'n/a',
         LE: a.L, utils: [{ name: 'LTB', val: 99 }], gov: { name: 'LTB', val: 99 }, pass: false,
         annex: null, buck: null });
@@ -716,6 +740,26 @@
         '(Whole-member eigen M<sub>cr</sub> = ' + f1(ltb.Mcr, 1) + ' kN&middot;m retained for reference.)';
     }
 
+    /* ---- Standard-method comparison (no eigen solve): closed-form Mcr for
+       the same segment - the governing span when the span-by-span check
+       governs, otherwise the whole member - with C1 from sn003aC1 (SN006a
+       for a cantilever), LE = LE-factor x segment length and zg = S.za with
+       C2 where published. Also the MasterSeries-style C1 inputs. ---- */
+    var segC1 = spanGov ? { xa: spanGov.a, xb: spanGov.b, whole: false }
+                        : (typeof c1Segment === 'function' ? c1Segment(a) : { xa: 0, xb: a.L, whole: true });
+    var stdCmp = null;
+    try { stdCmp = mcrStandardFor(a, sec, segC1); }
+    catch (eStd) { stdCmp = { route: 'n/a', Mcr: null, C1: null, label: 'closed form not available: ' + eStd.message, c1in: null, seg: segC1 }; }
+    if (stdCmp && !stdCmp.c1in && typeof c1Inputs === 'function') stdCmp.c1in = c1Inputs(govEv.res.fb, segC1.xa, segC1.xb);
+    ltb.mcrMethod = 'eigen';
+    ltb.McrEigen = spanGov ? spanGov.Mcr : Mcr;          // kN.m, the design value's segment
+    ltb.McrStandard = (stdCmp && stdCmp.Mcr != null && isFinite(stdCmp.Mcr)) ? stdCmp.Mcr : null;
+    ltb.McrRatio = (ltb.McrStandard > 0) ? ltb.McrEigen / ltb.McrStandard : null;
+    ltb.std = stdCmp;
+    ltb.c1in = stdCmp ? stdCmp.c1in : null;
+    ltb.c1seg = segC1;
+    ltb.c1route = stdCmp ? stdCmp.route : null;
+
     /* ---- EN 1993-6 Annex A: LTB + minor-axis bending + torsion ---- */
     var annex = null;
     if (b.tor && b.tor.p385) {
@@ -807,7 +851,7 @@
     var gov = utils[0]; utils.forEach(function (u) { if (u.val > gov.val) gov = u; });
     var pass = unsupported.length === 0 && utils.every(function (u) { return u.val <= 1.0001; });
 
-    return Object.assign({}, b, { sci: false, sciU: true, unsupported: unsupported, ltb: ltb,
+    return Object.assign({}, b, { sci: false, sciU: true, mcrMethod: 'eigen', unsupported: unsupported, ltb: ltb,
       ltbUtil: ltbUtil, ltbBasis: ltbBasis, C1: C1, c1label: c1label, LE: a.L,
       utils: utils, gov: gov, pass: pass, annex: annex, buck: buck });
   };
@@ -859,9 +903,22 @@
       : 'z<sub>g</sub> = ' + zfmt(LT.zg || 0) + ' mm above the shear centre';
     rows += '<div>Load height</div><div class="formula">' + zgText + zrefText +
             (LT.zg > 0 ? ' (max value destabilising)' : LT.zg < 0 ? ' (max value stabilising)' : '') + '</div><div class="value">M<sub>cr</sub> (load reversed) = ' + f1(LT.McrRev, 1) + ' kN&middot;m</div><div></div>';
-    rows += '<div><b>M<sub>cr</sub></b></div><div class="formula">eigenvalue &times; max|M(x)| &mdash; no C<sub>1</sub>, C<sub>2</sub> or C<sub>3</sub> used' +
+    rows += '<div><b>M<sub>cr</sub></b> (FE eigenvalue method)</div><div class="formula">eigenvalue &times; max|M(x)| &mdash; no C<sub>1</sub>, C<sub>2</sub> or C<sub>3</sub> used' +
             (LT.nCombos > 1 ? '; each of the ' + LT.nCombos + ' ULS combinations solved with its own diagram &mdash; governing: ' + LT.governCombo : '') + '</div>' +
             '<div class="value"><b>' + f1(LT.Mcr, 1) + ' kN&middot;m</b></div><div></div>';
+    /* standard closed-form comparison for the same segment (informational) */
+    if (LT.std) {
+      var ci = LT.c1in, sg = LT.c1seg || {};
+      var segTxt = (sg.whole === false) ? 'segment ' + g(sg.xa / 1000, 2) + '&ndash;' + g(sg.xb / 1000, 2) + ' m' : 'whole member';
+      var ciTxt = ci ? 'M<sub>1</sub> = ' + f1(ci.M1, 1) + ', M<sub>2</sub> = ' + f1(ci.M2, 1) + ', M<sub>o</sub> = ' + f1(ci.Mo, 1) + ' kN&middot;m; &psi; = ' + f1(ci.psi, 3) + '; &mu; = ' + f1(ci.mu, 3) + '; ' : '';
+      rows += '<div>Standard closed-form M<sub>cr</sub> (comparison, not the design basis)</div><div class="formula">' +
+              (LT.std.route === 'sn006a' ? 'SN006a cantilever: C = ' : 'SN003a: C<sub>1</sub> = fn(M<sub>1</sub>, M<sub>2</sub>, M<sub>o</sub>, &psi;, &mu;) = ') +
+              (LT.std.C1 != null ? g(LT.std.C1, 3) : '&mdash;') + ' &mdash; ' + ciTxt + (LT.std.label || '') +
+              (LT.std.LE ? '; L<sub>E</sub> = ' + g(LT.std.LE / 1000, 2) + ' m (' + segTxt + ')' : '') +
+              (LT.std.zgUsed ? '; C<sub>2</sub>z<sub>g</sub> term applied' : '') + '</div>' +
+              '<div class="value">' + (LT.McrStandard != null ? f1(LT.McrStandard, 1) + ' kN&middot;m' : 'not covered') +
+              (LT.McrRatio != null ? '<br>eigen / standard = ' + f1(LT.McrRatio, 2) : '') + '</div><div></div>';
+    }
     rows += '<div>&lambda;&#772;<sub>LT</sub> = &radic;(W<sub>y</sub>f<sub>y</sub>/M<sub>cr</sub>)</div><div class="formula">&radic;(' + g(Wy, 0) + '&times;10&sup3;&times;' + g(a.py, 0) + '/' + f1(LT.Mcr, 1) + '&times;10<sup>6</sup>)</div><div class="value">' + f1(LT.lamLT, 3) + '</div><div></div>';
     rows += '<div>Buckling curve</div><div class="formula">' + (sec.isBox ? 'closed section, not listed in NA Table 6.3' : sec.kind === 'channel' ? 'not doubly symmetric' : 'NA Table 6.3, h/b = ' + g(sec.D / sec.B, 2)) +
             '</div><div class="value">curve ' + LT.curve.curve + ' (&alpha;<sub>LT</sub> = ' + g(LT.curve.alphaLT, 2) + ')</div><div></div>';
@@ -1022,9 +1079,17 @@
     var p = document.getElementById('ltbRestraintPanel');
     if (p) p.style.display = show ? '' : 'none';
     var c1h = document.getElementById('c1Hint');
-    if (c1h) c1h.innerHTML = 'M<sub>cr</sub> is solved directly by the FE eigensolver &mdash; C<sub>1</sub> is not an input. ' +
-      'It is back-calculated purely to form k<sub>c</sub> = 1/&radic;C<sub>1</sub> (NA 2.18). Override only to force k<sub>c</sub>; ' +
-      'the eigen value is printed alongside.';
+    if (c1h) c1h.innerHTML = (mcrMethod() === 'standard')
+      ? 'Standard method: C<sub>1</sub> is derived from the moment diagram (NCCI SN003a tables for a simply supported UDL / central point load, ' +
+        'the SCI end-moment curve for a linear gradient, otherwise the Serna quarter-point expression); it sets both M<sub>cr</sub> and ' +
+        'k<sub>c</sub> = 1/&radic;C<sub>1</sub>. Override with a verified value (e.g. LTBeam) if required.'
+      : 'M<sub>cr</sub> is solved directly by the FE eigensolver &mdash; C<sub>1</sub> is not an input. ' +
+        'It is back-calculated purely to form k<sub>c</sub> = 1/&radic;C<sub>1</sub> (NA 2.18). Override only to force k<sub>c</sub>; ' +
+        'the eigen value is printed alongside.';
+    /* the restraint panel is only meaningful to the eigen method; the standard
+       route ignores intermediate restraints (whole-member LE = k x L) */
+    var rp = document.getElementById('ltbRestraintPanel');
+    if (rp && show) rp.style.opacity = (mcrMethod() === 'standard') ? '0.55' : '';
   };
 
   /* validate restraint positions */

@@ -132,6 +132,12 @@
           <select id="restraint"><option value="full">Fully restrained</option><option value="ltb">Not fully restrained (LTB)</option></select>
         </label>
         <div class="hint">Fully restrained: the compression flange is held in position along its length (e.g. by a slab or decking), so lateral&ndash;torsional buckling cannot occur and the design follows the SCI restrained-beam procedure to EN 1993-1-1 (classification &rarr; shear &rarr; shear buckling &rarr; moment &rarr; deflection). Applies to the EC3 code path.</div>
+        <div id="mcrMethodRow" style="display:none">
+          <label><span>M<sub>cr</sub> method</span>
+            <select id="mcrMethod"><option value="eigen">FE eigenvalue (actual diagram, load heights, restraints, hinges)</option><option value="standard">Standard closed form (C<sub>1</sub> tables, SN003a / SN006a)</option></select>
+          </label>
+          <div class="hint"><b>Standard</b> = closed-form M<sub>cr</sub> = C<sub>1</sub>(&pi;&sup2;EI<sub>z</sub>/L<sub>E</sub>&sup2;)&radic;[I<sub>w</sub>/I<sub>z</sub> + L<sub>E</sub>&sup2;GI<sub>t</sub>/(&pi;&sup2;EI<sub>z</sub>)] with C<sub>1</sub> from the NCCI SN003a tables (simply supported UDL / central point load) or the end-moment formula (&psi; = M<sub>1</sub>/M<sub>2</sub>), the Serna quarter-point expression for a general diagram, C<sub>2</sub>&middot;z<sub>g</sub> where published, NCCI SN006a for cantilevers and the P385/P362 channel chain &mdash; as MasterSeries-type software does; L<sub>E</sub> = L<sub>E</sub>-factor &times; L over the whole member. <b>Eigen</b> = finite-element eigenvalue of the actual moment diagram with each load&rsquo;s height, the lateral restraints, support conditions and internal hinges (span by span for continuous beams). The report prints both values and their ratio.</div>
+        </div>
       </div>
       <label><span>Axial F, kN</span> <input id="axial" type="number" step="0.001"></label>
       <div class="hint">Positive = compression, negative = tension. Entered directly as the governing ULS design value   it is <b>not</b> run through the Load Combinations below. Leave 0 for a pure beam.</div>

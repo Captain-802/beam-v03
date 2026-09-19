@@ -581,36 +581,204 @@ function checksEC3Restrained(a){
     span,divisor,dlimit,dmax,defOk,utils,gov,pass};
 }
 
-function sn003aC1(a,isCant){
+/* ===========================================================================
+   STANDARD (closed-form) Mcr METHOD  -  S.mcrMethod === 'standard'
+   ---------------------------------------------------------------------------
+   Everything from here to the end of checksEC3UnrestrainedSCI() is the
+   standard-method implementation: C1 from the NCCI SN003a tables / SCI
+   end-moment curve / Serna quarter-point expression, the SN003a closed-form
+   Mcr with the C2*zg load-height term where C2 is published, the SN006a
+   cantilever C factors (sn006C in 01-computation-engine.js), and the P385/P362
+   channel kappa chain. This is how MasterSeries-type software derives Mcr.
+   js/08-mcr-eigen-patch.js keeps this function alive as
+   window.checksEC3UnrestrainedStandard and delegates to it when the user
+   selects the standard method; it is NOT dead code. The helpers it depends on
+   (C1_END_MOMENT, SN006/sn006C, sernaC1, c1FromPsi, computeC1, mcrEC3,
+   cmTableB3, annexB2) must stay in place.
+   =========================================================================== */
+
+// ---- C1 inputs in the MasterSeries convention (pure) ----
+// fb = {xs (mm), M (N.mm)} of one combination's BMD (sagging positive);
+// xa, xb = the segment ends (mm). Returns kN.m:
+//   M1, M2 = the end moments of the segment, M2 the larger in magnitude;
+//   Mo     = mid-segment moment above the chord joining M1 and M2 (the free
+//            bending moment from the loads inside the segment);
+//   psi    = M1/M2 (clamped to [-1, 1]);
+//   mu     = Mo/M2, capped at +/-300 (MasterSeries prints 300.000 when M2 ~ 0).
+// End moments are read a fraction inside the segment so that a point moment or
+// a support reaction exactly at the end does not pick the wrong side of the jump.
+function c1Inputs(fb,xa,xb){
+  const Ma=interpAt(fb.xs,fb.M,xa+1e-4)/1e6, Mb=interpAt(fb.xs,fb.M,xb-1e-4)/1e6;
+  const Mmid=interpAt(fb.xs,fb.M,(xa+xb)/2)/1e6;
+  let [M1,M2]= Math.abs(Mb)>=Math.abs(Ma)? [Ma,Mb] : [Mb,Ma];
+  const Mo=Mmid-(Ma+Mb)/2;
+  // end moments that are numerical noise next to the in-span moment (a pinned
+  // end) are reported as zero, so psi and mu are deterministic
+  const scale=Math.max(Math.abs(M1),Math.abs(M2),Math.abs(Mo),1e-9);
+  if(Math.abs(M2)<=1e-6*scale){ M1=0; M2=0; }
+  else if(Math.abs(M1)<=1e-6*scale) M1=0;
+  const eps=1e-9;
+  const psi= Math.abs(M2)>eps? Math.max(-1,Math.min(1,M1/M2)) : 1;
+  let mu= Math.abs(M2)>eps? Mo/M2 : (Math.abs(Mo)>eps? 300*Math.sign(Mo) : 0);
+  mu=Math.max(-300,Math.min(300,mu));
+  return {M1,M2,Mo,psi,mu,xa,xb};
+}
+// ---- Governing segment for the C1 inputs ----
+// Whole member for a single span or a cantilever. For a multi-span or
+// intermediately restrained member: the bay between adjacent lateral-restraint
+// points (supports and v-restraints) that contains the governing combination's
+// peak moment. Returns {xa, xb, whole} in mm.
+function c1Segment(a){
+  const L=a.L;
+  const isCant=(S.supports.length===1 && S.supports[0].type==='fixed');
+  const pts=[...new Set(S.supports.map(s=>+(((+s.pos)*1000).toFixed(3)))
+    .concat((S.ltbRestraints||[]).filter(r=>r.v!==false).map(r=>+(((+r.pos)*1000).toFixed(3))))
+    .filter(x=>isFinite(x)&&x>=-1e-6&&x<=L+1e-6))].sort((p,q)=>p-q);
+  if(isCant || pts.length<3) return {xa:0,xb:L,whole:true};
+  const xm=a.Mpos*1000;
+  for(let i=0;i<pts.length-1;i++) if(xm>=pts[i]-1e-6 && xm<=pts[i+1]+1e-6) return {xa:pts[i],xb:pts[i+1],whole:false};
+  if(xm<pts[0]) return {xa:0,xb:pts[0],whole:false};
+  return {xa:pts[pts.length-1],xb:L,whole:false};
+}
+// ---- SN003a closed-form Mcr (pure), N.mm ----
+// Doubly symmetric section, k = kw = 1, G = 81000 N/mm2 (SN003a / P385):
+// Mcr = C1 (pi^2 E Iz/LE^2) { sqrt[ Iw/Iz + LE^2 G It/(pi^2 E Iz) + (C2 zg)^2 ] - C2 zg }
+// The C2 zg term is applied only when zg is non-zero AND C2 is published for
+// the recognised diagram (C2 = null otherwise). Hollow sections have Iw = 0.
+function mcrClosedForm(sec,E,LE,C1,C2,zg){
+  const G=81000, Iz=sec.Iy*1e4, It=sec.J*1e4, Iw=(sec.Iw||0)*1e12;
+  const T1=Math.PI*Math.PI*E*Iz/(LE*LE);          // N
+  const IwIz=Iw/Iz;                                // mm2
+  const GIt=G*It;                                  // N.mm2
+  const zgUsed=(Math.abs(zg||0)>1e-9 && C2!=null && C2>0);
+  const zgTerm=zgUsed? C2*zg : 0;
+  const Mcr=C1*T1*(Math.sqrt(Math.max(IwIz+GIt/T1+zgTerm*zgTerm,0))-zgTerm);
+  return {Mcr,T1,IwIz,GIt,zgUsed,zgTerm};
+}
+function sn003aC1(a,isCant,seg){
   // C1 for the Mcr calculation (SN003a Table 3.1/3.2) and 1/sqrt(C1) for the
   // P362 Eq 6.55 simplified slenderness / NA 2.18 kc factor.
-  if(S.C1o!=null) return {C1:S.C1o, C2:null, label:'user override'};
-  if(isCant) return {C1:1.0, C2:null, label:'cantilever'};
-  const Mm=Math.abs(a.Mmax);
-  if(Mm<1e-9) return {C1:1.0, C2:0, label:'negligible moment'};
-  const endLevel=Math.max(Math.abs(a.M0end),Math.abs(a.MLend))/Mm;
+  // `seg` = {xa, xb} (mm) evaluates the diagram over that segment; omitted =
+  // the whole member, using the analysis quantities exactly as before.
+  // Returns {C1, C2, label, route, c1in}; route is one of 'override',
+  // 'cantilever', 'negligible', 'end-moment', 'uniform', 'point', 'serna'.
   const fbM=a.governM.fb;
+  const xa=seg? seg.xa : 0, xb=seg? seg.xb : a.L, Ls=xb-xa;
+  const c1in=c1Inputs(fbM,xa,xb);
+  if(S.C1o!=null) return {C1:S.C1o, C2:null, label:'user override', route:'override', c1in};
+  if(isCant) return {C1:1.0, C2:null, label:'cantilever', route:'cantilever', c1in};
   const Mat=x=>interpAt(fbM.xs,fbM.M,x)/1e6;
-  if(endLevel>0.98){
-    const psi=Math.max(-1,Math.min(1,a.MLend/(a.M0end||1e-9)));
+  // peak, end (read a fraction inside the segment) and quarter-point moments of
+  // the segment; for the whole member these equal the analysis quantities
+  let Mm=0; fbM.xs.forEach((x,i)=>{ if(x>=xa-1e-6&&x<=xb+1e-6) Mm=Math.max(Mm,Math.abs(fbM.M[i])/1e6); });
+  const M0=Mat(xa+1e-4), ML=Mat(xb-1e-4), Mq=Mat(xa+Ls/4), Mq3=Mat(xa+3*Ls/4);
+  if(Mm<1e-9) return {C1:1.0, C2:0, label:'negligible moment', route:'negligible', c1in};
+  const endLevel=Math.max(Math.abs(M0),Math.abs(ML))/Mm;
+  // The end-moment curve applies only to a diagram that IS a straight line
+  // between the segment ends: every grid value within 5% of Mmax of the chord
+  // (self-weight curvature alone stays "not loaded", as MasterSeries treats it;
+  // a real transverse load, e.g. a propped cantilever under UDL, does not).
+  const isLinear=fbM.xs.every((x,i)=> x<xa+1e-4 || x>xb-1e-4 || Math.abs(fbM.M[i]/1e6-(M0+(ML-M0)*(x-xa)/Ls))<=0.05*Mm);
+  if(endLevel>0.98 && isLinear){
+    // psi = smaller end moment / larger end moment (SN003a Table 3.1 convention;
+    // MasterSeries psi = M1/M2), so a larger moment at x = L does not clamp to 1.
+    const psi=c1in.psi;
     const c=Math.pow(1.33-0.33*psi,2); // SCI curve C1=(1.33-0.33psi)^2 = 1.77-0.88psi+0.11psi^2 (NA kc inverted)
-    return {C1:c, C2:0, label:'linear end-moment gradient, &psi; = '+psi.toFixed(2)+' (SCI curve, NA 2.18)'};
+    return {C1:c, C2:0, label:'linear end-moment gradient, &psi; = '+psi.toFixed(2)+' (SCI curve, NA 2.18)', route:'end-moment', c1in};
   }
-  if(endLevel<0.02){
+  // The two tabulated transverse-load shapes (SN003a Table 3.2) are recognised
+  // only on a simply supported segment: a support at each end and no support or
+  // hinge inside it. A continuous beam's whole-member diagram can mimic the
+  // quarter-point ratio of a central point load and must not borrow its C1/C2.
+  const supX=S.supports.map(s=>(+s.pos)*1000);
+  const endSupported=supX.some(x=>Math.abs(x-xa)<1e-6) && supX.some(x=>Math.abs(x-xb)<1e-6);
+  const interiorBreak=supX.some(x=>x>xa+1e-6&&x<xb-1e-6) || (S.hinges||[]).some(h=>(+h.pos)*1000>xa+1e-6&&(+h.pos)*1000<xb-1e-6);
+  if(endLevel<0.02 && endSupported && !interiorBreak){
     // identify the transverse-load shape from the governing BMD: quarter-point/midspan ratio
-    const r=(Math.abs(a.Mq)+Math.abs(a.Mq3))/(2*Mm);
-    if(Math.abs(r-0.75)<=0.02) return {C1:1.127, C2:0.454, label:'simply supported + uniformly distributed load (SN003a Table 3.2)'};
-    if(Math.abs(r-0.50)<=0.02) return {C1:1.348, C2:0.630, label:'simply supported + central point load (SN003a Table 3.2)'};
+    const r=(Math.abs(Mq)+Math.abs(Mq3))/(2*Mm);
+    if(Math.abs(r-0.75)<=0.02) return {C1:1.127, C2:0.454, label:'simply supported + uniformly distributed load (SN003a Table 3.2)', route:'uniform', c1in};
+    if(Math.abs(r-0.50)<=0.02) return {C1:1.348, C2:0.630, label:'simply supported + central point load (SN003a Table 3.2)', route:'point', c1in};
   }
   { // general diagram: Serna et al. quarter-point expression (SCI, NSC Nov 2013)
-    const L=a.L, Mm=Math.max(Math.abs(a.Mmax),1e-9);
-    const M2=Mat(L/4), M3=Mat(L/2), M4=Mat(3*L/4);
-    const c=sernaC1(Mm,M2,M3,M4);
-    return {C1:c, C2:null, label:'general moment diagram &mdash; Serna et al. quarter-point expression (SCI): M(L/4)='+M2.toFixed(1)+', M(L/2)='+M3.toFixed(1)+', M(3L/4)='+M4.toFixed(1)+', M<sub>max</sub>='+Mm.toFixed(1)+' kN&middot;m'};
+    const M2=Mat(xa+Ls/4), M3=Mat(xa+Ls/2), M4=Mat(xa+3*Ls/4);
+    const c=sernaC1(Math.max(Mm,1e-9),M2,M3,M4);
+    return {C1:c, C2:null, label:'general moment diagram &mdash; Serna et al. quarter-point expression (SCI): M(L/4)='+M2.toFixed(1)+', M(L/2)='+M3.toFixed(1)+', M(3L/4)='+M4.toFixed(1)+', M<sub>max</sub>='+Mm.toFixed(1)+' kN&middot;m', route:'serna', c1in};
   }
+}
+// ---- NCCI SN006a-EN-EU cantilever Mcr (doubly symmetric I/H), pure ----
+// Mcr = C * Mcr0, Mcr0 = (pi/L) sqrt(E Iz G It); C from Tables 3.1-3.3 via
+// sn006C() with kwt and eta; q + F combined by Eq (7). The SN006a boundary
+// conditions replace the effective-length machinery (LE factor and the
+// destabilising switch are NOT applied; load height enters through eta,
+// warping through the root condition). Returns Mcr = null with `reason`
+// (HTML) when the loading or the table range is not covered.
+function mcrSN006aFor(a,sec){
+  const E=a.E, G=81000, Iz=sec.Iy*1e4, It=sec.J*1e4, Iw=(sec.Iw||0)*1e12;
+  const Lc=a.L;
+  const Mcr0=Math.PI/Lc*Math.sqrt(E*Iz*G*It);        // N.mm
+  const kwt=Math.sqrt(E*Iw/(G*It))/Lc;
+  const hs=sec.D-sec.tf;
+  const eta=(+S.za||0)/(hs/2);
+  const warp=(S.rootWarp==='restrained')?'restr':'free';
+  // classify tip loading from the loads (2% de-minimis on the support moment)
+  let Mq=0,MF=0,Mm2=0,nF2=0,nM2=0,other=false;
+  const gfac=a.governM.combo.factors;
+  S.loads.forEach(ld=>{
+    if(ld.isSelfWeight) return;
+    const f=gfac[ld.case]??0; if(!f) return; // zero-factor loads do not shape this combination
+    if(ld.type==='udl'&&(+ld.x1)<=1e-6&&Math.abs((+ld.x2)-S.L)<=1e-6) Mq+=(ld.w||0)*f*S.L*S.L/2;
+    else if(ld.type==='point'&&Math.abs((+ld.pos)-S.L)<=0.02*S.L){ MF+=(ld.P||0)*f*S.L; nF2++; }
+    else if(ld.type==='moment'&&Math.abs((+ld.pos)-S.L)<=0.02*S.L){ Mm2+=Math.abs(ld.M||0)*f; nM2++; }
+    else other=true;
+  });
+  Mq+=(a.swPerM||0)*(gfac.G??0)*S.L*S.L/2;
+  const tot=Math.abs(Mq)+Math.abs(MF)+Mm2;
+  const dm=0.02*Math.max(tot,1e-9);
+  const hasQ=Math.abs(Mq)>dm, hasF=Math.abs(MF)>dm, hasM=Mm2>dm;
+  let C=null,Cq=null,CF=null,caseLbl='';
+  if(other||hasM&&(hasQ||hasF)||nM2>1){ C=null; caseLbl='loading outside SN006a Tables 3.1-3.3'; }
+  else if(hasM&&!hasQ&&!hasF){ C=sn006C('M',warp,kwt,0); caseLbl='external moment at the free end (Table 3.3)'; }
+  else if(hasQ&&hasF){ Cq=sn006C('q',warp,kwt,eta); CF=sn006C('F',warp,kwt,eta);
+    if(Cq!=null&&CF!=null) C=(Math.abs(Mq)+Math.abs(MF))/(Math.abs(Mq)/Cq+Math.abs(MF)/CF);
+    caseLbl='uniform load + tip point load, interaction Eq (7)'; }
+  else if(hasQ){ C=sn006C('q',warp,kwt,eta); caseLbl='uniformly distributed load (Table 3.1)'; }
+  else if(hasF){ C=sn006C('F',warp,kwt,eta); caseLbl='point load at the free end (Table 3.2)'; }
+  else { C=sn006C('q',warp,kwt,eta); caseLbl='self-weight only (Table 3.1)'; }
+  let reason=null;
+  if(C==null){
+    if(kwt>1) reason="Cantilever LTB: &kappa;<sub>wt</sub> = "+kwt.toFixed(2)+" exceeds the SN006a table range (0&ndash;1); use a longer cantilever, a torsionally stiffer section, or a specialist tool (LTBeam).";
+    else if(Math.abs(eta)>0&&(eta<-2||eta>3)) reason="Cantilever LTB: load-height parameter &eta; = "+eta.toFixed(2)+" is outside the SN006a table range (&minus;2 to +3).";
+    else reason="Cantilever LTB: "+caseLbl+" &mdash; not covered by SN006a; PASS is blocked (conservative C1=1.0 route removed in favour of the published method).";
+  }
+  return {Mcr0,kwt,hs,eta,warp,caseLbl,C,Cq,CF,Mq,MF,Mcr:(C==null? null : C*Mcr0),reason};
+}
+// ---- Standard (closed-form) Mcr for one segment, pure ----
+// Used by the eigen method for the "Mcr eigen / Mcr standard" comparison (no
+// eigen solve needed) and by the report. Cantilever (I/H) -> SN006a; otherwise
+// the SN003a form with C1 from sn003aC1 over the segment, LE = LE-factor
+// (x1.2 if destabilising) x segment length, zg = S.za with C2 where published.
+// Returns kN.m: {route, Mcr (null if not covered), C1, C2, label, c1in, seg, LE}.
+function mcrStandardFor(a,sec,seg){
+  const isCant=(S.supports.length===1 && S.supports[0].type==='fixed');
+  seg=seg||c1Segment(a);
+  if(isCant && sec.kind==='I'){
+    const r=mcrSN006aFor(a,sec);
+    const c1in=c1Inputs(a.governM.fb,seg.xa,seg.xb);
+    return {route:'sn006a', Mcr:(r.Mcr!=null? r.Mcr/1e6 : null), C1:r.C, C2:null,
+      label:'cantilever SN006a &mdash; '+r.caseLbl, c1in, seg, LE:a.L, sn006:r};
+  }
+  const c1r=sn003aC1(a,isCant,seg.whole? undefined : seg);
+  const LE=S.leFactor*(S.destab?1.2:1)*(seg.xb-seg.xa);
+  const cf=mcrClosedForm(sec,a.E,LE,c1r.C1,c1r.C2,+S.za||0);
+  const route= sec.kind==='channel'? 'channel' : sec.isBox? 'box' : c1r.route;
+  return {route, Mcr:cf.Mcr/1e6, C1:c1r.C1, C2:c1r.C2, label:c1r.label, c1in:c1r.c1in, seg, LE,
+    T1:cf.T1/1e3, zg:(+S.za||0), zgUsed:cf.zgUsed};
 }
 
 function checksEC3UnrestrainedSCI(a){
+  // STANDARD METHOD (closed-form Mcr). Kept alive by js/08-mcr-eigen-patch.js
+  // as window.checksEC3UnrestrainedStandard and used when S.mcrMethod ===
+  // 'standard'; the patch's own function (FE eigensolver) is the default.
   // SCI worked-example procedure: unrestrained beam to BS EN 1993-1-1 (UK NA).
   // Cross-section checks are identical to the restrained case; LTB is verified by
   // BOTH published routes: (A) simplified slenderness, P362 Expn (6.55)
@@ -624,11 +792,14 @@ function checksEC3UnrestrainedSCI(a){
   const b=checksEC3Restrained(a);
   const sec=a.sec, fy=a.py, E=a.E, gM1=1.0;
   const unsupported=b.unsupported.slice();
+  const advisory=(b.advisory||[]).slice();
   const Wy=b.Wy;
   const isCant=(S.supports.length===1 && S.supports[0].type==='fixed');
   const LE=S.leFactor*(S.destab?1.2:1)*a.L;
-  const c1r=sn003aC1(a,isCant);
+  const c1r=sn003aC1(a,isCant);   // whole member: the closed form treats the member as one segment
   const C1=c1r.C1, invSqrtC1=1/Math.sqrt(C1), kc=invSqrtC1;
+  const segStd=c1Segment(a);
+  if(!segStd.whole) advisory.push("Standard (closed-form) M<sub>cr</sub>: the member is treated as ONE segment of length L<sub>E</sub> = "+(S.leFactor*(S.destab?1.2:1)).toFixed(2)+"&times;L with C<sub>1</sub> from the whole-member moment diagram; intermediate lateral restraints and the span-by-span check of a continuous beam are not applied on this route (conservative on L<sub>E</sub>). Use the FE eigenvalue method for span-by-span M<sub>cr</sub>, or verify each span separately.");
   let ltb;
   if(sec.isBox){
     // SCI hollow-section example: check the slenderness explicitly. Warping is
@@ -649,45 +820,11 @@ function checksEC3UnrestrainedSCI(a){
     ltb={na:true, box:true, T1:T1/1e3, Mcr:Mcr/1e6, lamLTmcr:lamLT, ignM:ign,
       PhiM:Phi, chiM:chi, fM:f, chiModM:chiMod, MbSimp:Mb, MbMcr:Mb, MbRd:Mb};
   } else if(isCant && sec.kind==='I'){
-    // NCCI SN006a-EN-EU cantilever path (doubly symmetric I/H):
-    // Mcr = C*Mcr0; the SN006a boundary conditions replace the effective-length
-    // machinery (L_E factor / destabilising switch are NOT applied here; the
-    // load height enters through eta, warping via the root condition).
-    const G=81000, Iz=sec.Iy*1e4, It=sec.J*1e4, Iw=(sec.Iw||0)*1e12;
-    const Lc=a.L;
-    const Mcr0=Math.PI/Lc*Math.sqrt(E*Iz*G*It);        // N.mm
-    const kwt=Math.sqrt(E*Iw/(G*It))/Lc;
-    const hs=sec.D-sec.tf;
-    const eta=(+S.za||0)/(hs/2);
-    const warp=(S.rootWarp==='restrained')?'restr':'free';
-    // classify tip loading from the loads (2% de-minimis on the support moment)
-    let Mq=0,MF=0,Mm2=0,nF2=0,nM2=0,other=false;
-    const gfac=a.governM.combo.factors;
-    S.loads.forEach(ld=>{
-      if(ld.isSelfWeight) return;
-      const f=gfac[ld.case]??0; if(!f) return; // zero-factor loads do not shape this combination
-      if(ld.type==='udl'&&(+ld.x1)<=1e-6&&Math.abs((+ld.x2)-S.L)<=1e-6) Mq+=(ld.w||0)*f*S.L*S.L/2;
-      else if(ld.type==='point'&&Math.abs((+ld.pos)-S.L)<=0.02*S.L){ MF+=(ld.P||0)*f*S.L; nF2++; }
-      else if(ld.type==='moment'&&Math.abs((+ld.pos)-S.L)<=0.02*S.L){ Mm2+=Math.abs(ld.M||0)*f; nM2++; }
-      else other=true;
-    });
-    Mq+=(a.swPerM||0)*(gfac.G??0)*S.L*S.L/2;
-    const tot=Math.abs(Mq)+Math.abs(MF)+Mm2;
-    const dm=0.02*Math.max(tot,1e-9);
-    const hasQ=Math.abs(Mq)>dm, hasF=Math.abs(MF)>dm, hasM=Mm2>dm;
-    let C=null,Cq=null,CF=null,caseLbl='';
-    if(other||hasM&&(hasQ||hasF)||nM2>1){ C=null; caseLbl='loading outside SN006a Tables 3.1-3.3'; }
-    else if(hasM&&!hasQ&&!hasF){ C=sn006C('M',warp,kwt,0); caseLbl='external moment at the free end (Table 3.3)'; }
-    else if(hasQ&&hasF){ Cq=sn006C('q',warp,kwt,eta); CF=sn006C('F',warp,kwt,eta);
-      if(Cq!=null&&CF!=null) C=(Math.abs(Mq)+Math.abs(MF))/(Math.abs(Mq)/Cq+Math.abs(MF)/CF);
-      caseLbl='uniform load + tip point load, interaction Eq (7)'; }
-    else if(hasQ){ C=sn006C('q',warp,kwt,eta); caseLbl='uniformly distributed load (Table 3.1)'; }
-    else if(hasF){ C=sn006C('F',warp,kwt,eta); caseLbl='point load at the free end (Table 3.2)'; }
-    else { C=sn006C('q',warp,kwt,eta); caseLbl='self-weight only (Table 3.1)'; }
+    // NCCI SN006a-EN-EU cantilever path (doubly symmetric I/H): see mcrSN006aFor().
+    const sn=mcrSN006aFor(a,sec);
+    const {Mcr0,kwt,eta,warp,caseLbl,C,Cq,CF,Mq,MF}=sn;
     if(C==null){
-      if(kwt>1) unsupported.push("Cantilever LTB: &kappa;<sub>wt</sub> = "+kwt.toFixed(2)+" exceeds the SN006a table range (0&ndash;1); use a longer cantilever, a torsionally stiffer section, or a specialist tool (LTBeam).");
-      else if(Math.abs(eta)>0&&(eta<-2||eta>3)) unsupported.push("Cantilever LTB: load-height parameter &eta; = "+eta.toFixed(2)+" is outside the SN006a table range (&minus;2 to +3).");
-      else unsupported.push("Cantilever LTB: "+caseLbl+" &mdash; not covered by SN006a; PASS is blocked (conservative C1=1.0 route removed in favour of the published method).");
+      unsupported.push(sn.reason);
       ltb={na:false,cant:true,Mcr0:Mcr0/1e6,kwt,eta,warp,caseLbl,C:0,Cq,CF,Mq,MF,
         lamLTsimp:0,lamLTmcr:0,ignS:true,ignM:true,chiM:1,fM:1,chiModM:1,PhiM:null,
         curve:{alphaLT:0,curve:'-'},kc:1,invSqrtC1:1,MbSimp:0,MbMcr:0,MbRd:0,Mcr:0,T1:0,IwIz:0,GIt:0};
@@ -780,17 +917,11 @@ function checksEC3UnrestrainedSCI(a){
     const sA=chiChain(lamLTsimp);
     const MbSimp=sA.chiMod*Wy*fy/gM1/1e6;
     // (B) elastic critical moment (SN003a; k=kw=1; C2*zg load-height term when
-    // z_a is supplied and C2 is published for the recognised diagram)
-    const G=81000;
-    const Iz=sec.Iy*1e4, It=sec.J*1e4, Iw=(sec.Iw||0)*1e12;
-    const T1=Math.PI*Math.PI*E*Iz/(LE*LE);            // N
-    const IwIz=Iw/Iz;                                  // mm2
-    const GIt=G*It;                                    // N.mm2
+    // z_a is supplied and C2 is published for the recognised diagram) - mcrClosedForm()
     const zg=(+S.za||0);                               // mm, + above shear centre (destabilising for gravity loads)
     const C2=c1r.C2;
-    const zgUsed=(Math.abs(zg)>1e-9 && C2!=null && C2>0);
-    const zgTerm=zgUsed? C2*zg : 0;
-    const Mcr=C1*T1*(Math.sqrt(Math.max(IwIz+GIt/T1+zgTerm*zgTerm,0))-zgTerm); // N.mm
+    const cf=mcrClosedForm(sec,E,LE,C1,C2,zg);
+    const T1=cf.T1, IwIz=cf.IwIz, GIt=cf.GIt, zgUsed=cf.zgUsed, Mcr=cf.Mcr; // N, mm2, N.mm2, N.mm
     const lamLTmcr=Math.sqrt(Wy*fy/Mcr);
     const sB=chiChain(lamLTmcr);
     const MbMcr=sB.chiMod*Wy*fy/gM1/1e6;
@@ -800,6 +931,20 @@ function checksEC3UnrestrainedSCI(a){
       lamLTmcr,PhiM:sB.Phi,chiM:sB.chi,fM:sB.f,chiModM:sB.chiMod,ignM:sB.ign,MbMcr,
       MbRd:MbSimp};
   }
+  // ---- method tags and the MasterSeries-style C1 inputs (M1, M2, Mo, psi, mu) ----
+  // The closed form derives C1 from the WHOLE member, so the printed inputs are
+  // the whole-member values (segment 0..L); the eigen method fills the same
+  // fields for its governing span. McrEigen is null here: the eigensolver is
+  // not run on the standard route (keeps it fast).
+  ltb.mcrMethod='standard';
+  ltb.c1in=c1r.c1in;
+  ltb.c1seg={xa:0,xb:a.L,whole:true};
+  ltb.c1route= ltb.cant? 'sn006a' : ltb.channel? 'channel' : ltb.box? 'box' : c1r.route;
+  ltb.c1label= ltb.cant? ('cantilever SN006a &mdash; '+ltb.caseLbl) : ltb.channel? ('channel &mdash; P385/P362 kappa chain; '+c1r.label) : c1r.label;
+  ltb.C1show= ltb.cant? (ltb.C||0) : C1;
+  ltb.McrStandard= ltb.cant? (ltb.Mcr>0? ltb.Mcr : null) : ltb.channel? (ltb.chanMcr? ltb.chanMcr.Mcr : ltb.McrBack) : ltb.Mcr;
+  ltb.McrEigen=null;
+  ltb.segWhole=segStd.whole;
   const Mx=b.Mx;
   let ltbUtil = ltb.MbRd>0? Mx/ltb.MbRd : 0;
   let ltbBasis = ltb.na? 'closed section &mdash; not susceptible to LTB (cl 6.3.2.1(2)), M<sub>b,Rd</sub> = M<sub>c,Rd</sub>' : 'simplified slenderness (P362 Expn 6.55)';
@@ -870,6 +1015,6 @@ function checksEC3UnrestrainedSCI(a){
   }
   let gov=utils[0]; utils.forEach(u=>{ if(u.val>gov.val) gov=u; });
   const pass=unsupported.length===0 && utils.every(u=>u.val<=1.0001);
-  return Object.assign({},b,{sci:false,sciU:true,unsupported,ltb,ltbUtil,ltbBasis,C1,c1label:c1r.label,LE,utils,gov,pass,annex,buck});
+  return Object.assign({},b,{sci:false,sciU:true,mcrMethod:'standard',unsupported,advisory,ltb,ltbUtil,ltbBasis,C1,c1label:c1r.label,LE,utils,gov,pass,annex,buck});
 }
 

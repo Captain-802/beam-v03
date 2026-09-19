@@ -14,6 +14,10 @@ function render(){
   const sec=a.sec;
   const sci = S.code==='EC3' && (S.restraint||'full')==='full';
   const sciU = S.code==='EC3' && !sci;
+  // EC3 unrestrained Mcr method actually used by the check engine (c.mcrMethod is
+  // set by both routes; 'standard' = closed form, 'eigen' = FE eigensolver)
+  const mcrStd = sciU && c.mcrMethod==='standard';
+  const mcrMethodLabel = mcrStd? 'standard closed-form method (NCCI SN003a / SN006a, C<sub>1</sub> tables)' : 'FE eigenvalue method';
   const famLabel = sec.isBox? (S.family==='rhs'? 'RHS [Hot-finished]' : `SHS [${sec.boxType==='CF'?'Cold-formed':'Hot-finished'}]`) : S.family==='ub'? 'UB' : S.family==='uc'? 'UC' : 'PFC';
   const gradeTxt=`${S.grade} (p<sub>y</sub> = ${g(a.py,0)} N/mm )`;
   const vt=c.tor&&c.tor.vt ? c.tor.vt : null;
@@ -70,7 +74,7 @@ function render(){
     c.gov.name.startsWith('Shear')?a.governV.combo.label:
     c.gov.name.startsWith('Member buckling')&&c.buck?c.buck.combo||a.governM.combo.label:
     c.gov.name.startsWith('LTB ')&&c.ltb?c.ltb.governCombo||'':'');
-  const codeLabel = S.code==='EC3'? (sci? 'EN 1993-1-1 (UK NA) &mdash; fully restrained beam' : (c.ltb&&c.ltb.na? 'EN 1993-1-1 (UK NA) &mdash; closed section beam' : 'EN 1993-1-1 (UK NA) &mdash; unrestrained beam (LTB)')) : 'BS 5950-1:2000';
+  const codeLabel = S.code==='EC3'? (sci? 'EN 1993-1-1 (UK NA) &mdash; fully restrained beam' : (c.ltb&&c.ltb.na? 'EN 1993-1-1 (UK NA) &mdash; closed section beam' : 'EN 1993-1-1 (UK NA) &mdash; unrestrained beam (LTB, M<sub>cr</sub> '+(mcrStd?'standard closed form':'FE eigenvalue')+')')) : 'BS 5950-1:2000';
   const banner=`<div class="banner ${c.pass?'pass':'failb'}">
     <div><div class="verdict">${verdict}</div><div style="font-size:12px;color:#374151;font-family:Arial">${codeLabel} member check   ${sname(sec.key)} ${famLabel}   ${S.grade}</div></div>
     <div class="util">Governing: <b>${c.gov.name} = ${g(c.gov.val,3)}</b>${verdictCombo?' ('+verdictCombo+')':''}<br>
@@ -112,16 +116,23 @@ function render(){
   } else if(sciU){
     if(c.hsNote) notes.push(c.hsNote+".");
     if(c.ltb&&c.ltb.na){
-      notes.push("Closed hollow section: lateral-torsional buckling is not required by EN 1993-1-1 cl 6.3.2.1(2); M<sub>b,Rd</sub> is taken as M<sub>c,Rd</sub> and the FE M<sub>cr</sub> eigensolver is skipped.");
+      notes.push("Closed hollow section: lateral-torsional buckling is not required by EN 1993-1-1 cl 6.3.2.1(2); M<sub>b,Rd</sub> is taken as M<sub>c,Rd</sub>"+(mcrStd? " (standard closed-form route; the SN003a M<sub>cr</sub> with I<sub>w</sub> = 0 is printed for information)." : " and the FE M<sub>cr</sub> eigensolver is skipped."));
+    } else if(mcrStd){
+      const ci=c.ltb.c1in;
+      notes.push("Unrestrained beam: design follows BS EN 1993-1-1 (UK NA) with <b>M<sub>cr</sub> by the STANDARD closed-form method</b> (user selection): C<sub>1</sub> from the moment diagram &mdash; "+(c.ltb.c1label||c.c1label)+" &mdash; then "+(c.ltb.cant? "NCCI SN006a M<sub>cr</sub> = C&middot;M<sub>cr,0</sub> for the cantilever" : c.ltb.channel? "the P385/P362 channel &kappa; chain with the doubly symmetric M<sub>cr</sub> route where valid" : "M<sub>cr</sub> = C<sub>1</sub>(&pi;&sup2;EI<sub>z</sub>/L<sub>E</sub>&sup2;)&radic;[I<sub>w</sub>/I<sub>z</sub> + L<sub>E</sub>&sup2;GI<sub>t</sub>/(&pi;&sup2;EI<sub>z</sub>)] (NCCI SN003a, k = k<sub>w</sub> = 1, G = 81000 N/mm&sup2;"+(c.ltb.zgUsed? ", C<sub>2</sub>z<sub>g</sub> load-height term applied":"")+") with L<sub>E</sub> = "+g(S.leFactor*(S.destab?1.2:1),2)+"&times;L = "+g(c.LE/1000,2)+" m")+". This is the route MasterSeries-type software prints; the FE eigensolver was not run (M<sub>cr,eigen</sub> = n/a). Select the FE eigenvalue method under Axial &amp; LTB to compare.");
+      if(ci) notes.push("C<sub>1</sub> inputs (MasterSeries convention, "+(c.ltb.c1seg&&c.ltb.c1seg.whole===false? 'segment '+g(c.ltb.c1seg.xa/1000,2)+'&ndash;'+g(c.ltb.c1seg.xb/1000,2)+' m' : 'whole member')+"): M<sub>1</sub>, M<sub>2</sub> = segment end moments (M<sub>2</sub> the larger), M<sub>o</sub> = mid-segment moment above the chord, &psi; = M<sub>1</sub>/M<sub>2</sub>, &mu; = M<sub>o</sub>/M<sub>2</sub> (capped at 300): "+f1(ci.M1,1)+", "+f1(ci.M2,1)+", "+f1(ci.Mo,1)+" kN&middot;m, "+f1(ci.psi,3)+", "+f1(ci.mu,3)+".");
+      notes.push("Design basis for the LTB verdict: "+c.ltbBasis+".");
     } else {
-      notes.push("Unrestrained beam: design follows BS EN 1993-1-1 (UK NA) with M<sub>cr</sub> solved directly by the finite-element eigenvalue method over the governing moment diagram. Load height z<sub>g</sub>, mono-symmetry z<sub>j</sub>, lateral restraints, and cantilever root warping are included in M<sub>cr</sub>; no SN003a/SN006a C-table or P362 simplified slenderness route is used.");
+      notes.push("Unrestrained beam: design follows BS EN 1993-1-1 (UK NA) with <b>M<sub>cr</sub> by the FE eigenvalue method</b> solved directly over the governing moment diagram. Load height z<sub>g</sub>, mono-symmetry z<sub>j</sub>, lateral restraints, and cantilever root warping are included in M<sub>cr</sub>; no SN003a/SN006a C-table or P362 simplified slenderness route is used for the verdict.");
+      if(c.ltb&&c.ltb.McrStandard!=null) notes.push("Comparison with the standard closed-form method for the same segment ("+(c.ltb.c1seg&&c.ltb.c1seg.whole===false? g(c.ltb.c1seg.xa/1000,2)+'&ndash;'+g(c.ltb.c1seg.xb/1000,2)+' m' : 'whole member')+"): M<sub>cr,standard</sub> = "+f1(c.ltb.McrStandard,1)+" kN&middot;m ("+(c.ltb.std&&c.ltb.std.route==='sn006a'? 'SN006a, C = ' : 'C<sub>1</sub> = ')+g(c.ltb.std?c.ltb.std.C1:0,3)+", "+(c.ltb.std?c.ltb.std.label:'')+(c.ltb.std&&c.ltb.std.LE? ", L<sub>E</sub> = "+g(c.ltb.std.LE/1000,2)+" m":"")+"); <b>M<sub>cr,eigen</sub> / M<sub>cr,standard</sub> = "+f1(c.ltb.McrRatio,2)+"</b>. The eigen value is the design basis; the ratio shows what the closed form would give with its tabulated C<sub>1</sub>, whole-segment L<sub>E</sub> and single z<sub>g</sub>.");
+      else if(c.ltb&&c.ltb.std) notes.push("The standard closed-form M<sub>cr</sub> is not available for this arrangement ("+(c.ltb.std.label||'')+"), so no eigen/standard ratio is printed.");
       notes.push("Design basis for the LTB verdict: "+c.ltbBasis+".");
     }
     if(c.ax) notes.push("Axial + bending per EN 1993-1-1: cross-section by cl 6.2.9 ("+(c.ax.cls3?'elastic, Class 3':'plastic M<sub>N,Rd</sub>, Class 1/2')+"); "+(c.ax.tension
       ? "member buckling per cl 6.3.3 is not required because N<sub>Ed</sub> is tensile. Tension: N<sub>t,Rd</sub> = min(N<sub>pl,Rd</sub>, 0.9A<sub>net</sub>f<sub>u</sub>/&gamma;<sub>M2</sub>); the beneficial effect of tension on LTB is conservatively ignored"
       : "member buckling by cl 6.3.3 with Annex B Method 2 interaction factors (Table "+(c.buck&&c.buck.useB1?'B.1 &mdash; not susceptible to torsional deformation':'B.2 &mdash; susceptible')+", C<sub>m</sub> per Table B.3 from the governing moment diagram). Strut lengths: L<sub>cr,y</sub> = L<sub>E</sub>-factor &times; L"+(c.buck&&c.buck.lczFromRestraints?"; L<sub>cr,z</sub> = largest lateral-restraint spacing (SCI P360 6.2)":"; L<sub>cr,z</sub> = L<sub>E</sub>-factor &times; L")+". The destabilising &times;1.2 switch is an LTB concept and is NOT applied to strut buckling")+". N<sub>Ed</sub> is the direct design value (not run through the combinations). Validated against an independent commercial-software SHS beam-column worked example (C<sub>m</sub> 0.4, k<sub>zy</sub> 0.24, Eq 6.61 0.184, Eq 6.62 0.110).");
     if(c.coex&&!c.coex.pureShearFail) notes.push("Coexistent bending and shear are verified at every section along the span per cl 6.2.8(3) (rolled I/H, Class 1/2): where V<sub>Ed</sub> &gt; 0.5V<sub>pl"+((c.tor&&c.tor.VplTRd!=null)?",T":"")+",Rd</sub>, the moment is checked against the reduced M<sub>v,Rd</sub> = (W<sub>pl,y</sub> &minus; &rho;A<sub>v</sub>&sup2;/4t<sub>w</sub>)f<sub>y</sub>.");
-    if(!(c.ltb&&c.ltb.na)) notes.push("&chi;<sub>LT</sub> uses &lambda;&#772;<sub>LT,0</sub>=0.4, &beta;=0.75 and buckling curve per NA 2.17 (Table 6.3: h/b&le;2 &rarr; b; 2&lt;h/b&le;3.1 &rarr; c; h/b&gt;3.1 &rarr; d); &chi;<sub>LT,mod</sub>=&chi;<sub>LT</sub>/f with k<sub>c</sub>=1/&radic;C<sub>1</sub> (NA 2.18), where C<sub>1</sub> is back-calculated from the shape-only eigen result for k<sub>c</sub> only. The design strength f<sub>y</sub> from the flange thickness is used consistently in every expression, including Eq 6.56.");
+    if(!(c.ltb&&c.ltb.na)) notes.push("&chi;<sub>LT</sub> uses &lambda;&#772;<sub>LT,0</sub>=0.4, &beta;=0.75 and buckling curve per NA 2.17 (Table 6.3: h/b&le;2 &rarr; b; 2&lt;h/b&le;3.1 &rarr; c; h/b&gt;3.1 &rarr; d); &chi;<sub>LT,mod</sub>=&chi;<sub>LT</sub>/f with k<sub>c</sub>=1/&radic;C<sub>1</sub> (NA 2.18), where C<sub>1</sub> is "+(mcrStd? "the tabulated/derived value used for M<sub>cr</sub>" : "back-calculated from the shape-only eigen result for k<sub>c</sub> only")+". The design strength f<sub>y</sub> from the flange thickness is used consistently in every expression, including Eq 6.56.");
   } else if(S.code==='BS5950'){
   if(c.shearBuckle) notes.push("d/t &gt; 70e   shear buckling must be checked (cl 4.2.3 / 4.4.5); not covered here (none of the tabulated sections normally reach this limit).");
   if(c.hsNote) notes.push(c.hsNote+".");
@@ -241,8 +252,18 @@ function render(){
     <div>M<sub>b,Rd</sub> = ?<sub>LT,mod</sub>W<sub>y</sub>f<sub>y</sub>/?<sub>M1</sub> = M<sub>c,Rd</sub></div><div class="formula">${f1(c.chiLTmod,3)} ${g(c.cl.cls<=2?sec.Sx:sec.Zx,1)} ${g(a.py,0)}</div><div class="value">${f1(c.MbRd,2)} kN m</div>${st(c.ltbUtil<=1,'OK')}
   </div>`; }
   const LT=c.ltb||{};
+  // MasterSeries-style C1 line for the standard method:
+  //   C1 = fn(M1, M2, Mo, psi, mu) | M1, M2, Mo, psi, mu - derivation | C1 | route tag
+  const C1_ROUTE_TAG={uniform:'uniform load',point:'central point load','end-moment':'end-moment gradient',serna:'Serna general',sn006a:'cantilever SN006a',channel:'channel',box:'closed section',override:'user override',negligible:'negligible M',cantilever:'cantilever'};
+  const c1LineStd=()=>{ const ci=LT.c1in; if(!ci) return '';
+    const isC=!!LT.cant, sym=isC?'C':'C<sub>1</sub>';
+    const segTxt=(LT.c1seg&&LT.c1seg.whole===false)? ' [segment '+g(LT.c1seg.xa/1000,2)+'&ndash;'+g(LT.c1seg.xb/1000,2)+' m]' : '';
+    return `<div>${sym} = fn(M<sub>1</sub>, M<sub>2</sub>, M<sub>o</sub>, &psi;, &mu;)${isC?' &rarr; SN006a C = fn(&kappa;<sub>wt</sub>, &eta;)':''}</div><div class="formula">${f1(ci.M1,1)}, ${f1(ci.M2,1)}, ${f1(ci.Mo,1)}, ${f1(ci.psi,3)}, ${f1(ci.mu,3)}${segTxt} &mdash; ${LT.c1label||c.c1label}</div><div class="value">${sym} = ${g(LT.C1show!=null?LT.C1show:c.C1,3)}</div><div class="status">${C1_ROUTE_TAG[LT.c1route]||LT.c1route||''}</div>`; };
+  const stdHead='M<sub>cr</sub> method: STANDARD closed form';
   const sciUltbBlocks = !sciU? '' : LT.na? `
-  <div class="section-title smallgap">Buckling Resistance (Cl. 6.3.2, SN003a &mdash; warping neglected for a closed section)</div>
+  <div class="section-title smallgap">Equivalent Uniform Moment Factor C<sub>1</sub> (${stdHead})</div>
+  <div class="calc-block">${c1LineStd()}</div>
+  <div class="section-title smallgap">Buckling Resistance (Cl. 6.3.2, SN003a &mdash; warping neglected for a closed section; ${stdHead})</div>
   <div class="calc-block">
     <div>&pi;&sup2;EI<sub>z</sub>/L&sup2;</div><div class="formula">&pi;&sup2;&times;${g(a.E,0)}&times;${g(sec.Iy,0)}&times;10<sup>4</sup>/${g(c.LE,0)}&sup2;</div><div class="value">${f1(LT.T1,0)} kN</div><div></div>
     <div>M<sub>cr</sub> = C<sub>1</sub>(&pi;&sup2;EI<sub>z</sub>/L&sup2;)&radic;[L&sup2;GI<sub>t</sub>/(&pi;&sup2;EI<sub>z</sub>)]</div><div class="formula">C<sub>1</sub> = ${g(c.C1,3)}; G = 81000; I<sub>t</sub> = ${g(sec.J,0)} cm<sup>4</sup></div><div class="value">${f1(LT.Mcr,0)} kN&middot;m</div><div></div>
@@ -250,7 +271,9 @@ function render(){
     ${LT.ignM? `<div>&lambda;&#772;<sub>LT</sub> &lt; &lambda;&#772;<sub>LT,0</sub> = 0.4 (NA 2.17)</div><div class="formula">${f1(LT.lamLTmcr,2)} &lt; 0.4 &mdash; lateral&ndash;torsional buckling effects may be ignored (cl 6.3.2.2(4))</div><div class="value">&chi;<sub>LT,mod</sub> = 1.000</div><div class="status ok">Ignored</div>` : `<div>&Phi;<sub>LT</sub>; &chi;<sub>LT</sub>; f; &chi;<sub>LT,mod</sub> (curve d)</div><div class="formula">&Phi;=${g(LT.PhiM,3)}; &chi;<sub>LT</sub>=${g(LT.chiM,3)}; f=${g(LT.fM,3)}</div><div class="value">&chi;<sub>LT,mod</sub> = ${g(LT.chiModM,3)}</div><div></div>`}
     <div>M<sub>b,Rd</sub></div><div class="formula">${LT.ignM?'= M<sub>c,Rd</sub>':'&chi;<sub>LT,mod</sub>W<sub>y</sub>f<sub>y</sub>/&gamma;<sub>M1</sub>'}</div><div class="value">${f1(LT.MbRd,1)} kN&middot;m</div>${st(c.ltbUtil<=1,'OK')}
   </div>` : LT.cant? `
-  <div class="section-title smallgap">Lateral&ndash;Torsional Buckling &mdash; Cantilever (NCCI SN006a-EN-EU)</div>
+  <div class="section-title smallgap">Equivalent Uniform Moment Factor C (${stdHead})</div>
+  <div class="calc-block">${c1LineStd()}</div>
+  <div class="section-title smallgap">Lateral&ndash;Torsional Buckling &mdash; Cantilever (NCCI SN006a-EN-EU; ${stdHead})</div>
   <div class="calc-block">
     <div>M<sub>cr,0</sub> = (&pi;/L)&radic;(EI<sub>z</sub>GI<sub>t</sub>)</div><div class="formula">L = ${g(S.L,2)} m; SN006a boundary conditions &mdash; L<sub>E</sub> factor and destabilising switch not applied</div><div class="value">${f1(LT.Mcr0,1)} kN&middot;m</div><div></div>
     <div>&kappa;<sub>wt</sub> = (1/L)&radic;(EI<sub>w</sub>/GI<sub>t</sub>)</div><div class="formula">warping at root: ${LT.warp==='restr'? 'restrained':'free'}</div><div class="value">${g(LT.kwt,3)}</div><div></div>
@@ -261,7 +284,9 @@ function render(){
     <div>M<sub>b,Rd</sub> = &chi;<sub>LT</sub>W<sub>y</sub>f<sub>y</sub>/&gamma;<sub>M1</sub></div><div class="formula">${g(LT.chiM,3)}&times;${g(c.cl.cls<=2?sec.Sx:sec.Zx,0)}&times;${g(a.py,0)}/1.0</div><div class="value">${f1(LT.MbRd,1)} kN&middot;m</div><div></div>
     <div>M<sub>Ed</sub> / M<sub>b,Rd</sub></div><div class="formula">${f1(c.Mx,1)} / ${f1(LT.MbRd,1)}</div><div class="value">${g(c.Mx/Math.max(LT.MbRd,1e-9),2)}</div>${st(c.Mx<=LT.MbRd*1.0001,'OK','exceeded')}` : `<div>C &mdash; ${LT.caseLbl}</div><div class="formula">see the NOT COVERED note</div><div class="value">&mdash;</div><div class="status fail">BLOCKED</div>`}
   </div>` : LT.channel? `
-  <div class="section-title smallgap">Lateral&ndash;Torsional Buckling &mdash; Channel (P385/P362 chain)</div>
+  <div class="section-title smallgap">Equivalent Uniform Moment Factor C<sub>1</sub> (${stdHead})</div>
+  <div class="calc-block">${c1LineStd()}</div>
+  <div class="section-title smallgap">Lateral&ndash;Torsional Buckling &mdash; Channel (P385/P362 chain; ${stdHead})</div>
   <div class="calc-block">
     <div>&lambda;&#772;<sub>LT</sub> = (L/i<sub>z</sub>)/${g(LT.kappa,0)} (${S.grade})</div><div class="formula">(${g(c.LE,0)}/${g(LT.ry,1)})/${g(LT.kappa,0)}</div><div class="value">${g(LT.lamLTmcr,3)}</div><div></div>
     ${LT.ignM? `<div>&lambda;&#772;<sub>LT</sub> &le; 0.4</div><div class="formula">LTB may be ignored (cl 6.3.2.2(4))</div><div class="value">&chi;<sub>LT</sub> = 1.000</div><div></div>` : `<div>&chi;<sub>LT</sub> (curve d, &alpha;<sub>LT</sub>=0.76; no f-factor)</div><div class="formula">&Phi; = ${g(LT.PhiM,3)}</div><div class="value">${g(LT.chiM,3)}</div><div></div>`}
@@ -272,9 +297,13 @@ function render(){
     <div>M<sub>b,Rd</sub> (M<sub>cr</sub> route)</div><div class="formula">${g(LT.chanMcr.chiMod,3)}&times;${g(sec.Sx,0)}&times;${g(a.py,0)} &le; M<sub>c,Rd</sub></div><div class="value">${f1(LT.chanMcr.Mb,1)} kN&middot;m</div><div></div>` : ''}
     <div>M<sub>Ed</sub> / M<sub>b,Rd</sub></div><div class="formula">${f1(c.Mx,1)} / ${f1(LT.MbRd,1)}</div><div class="value">${g(c.Mx/Math.max(LT.MbRd,1e-9),2)}</div>${st(c.Mx<=LT.MbRd*1.0001,'OK','exceeded')}
   </div>` : `
+  <div class="section-title smallgap">Equivalent Uniform Moment Factor C<sub>1</sub> (${stdHead})</div>
+  <div class="calc-block">${c1LineStd()}
+    <div>1/&radic;C<sub>1</sub> = k<sub>c</sub> (NA 2.18)</div><div class="formula">1/&radic;${g(c.C1,3)}</div><div class="value">${g(LT.invSqrtC1,3)}</div><div></div>
+  </div>
+
   <div class="section-title smallgap">LTB &mdash; Non-Dimensional Slenderness, Simplified Method (P362 Expn 6.55)</div>
   <div class="calc-block">
-    <div>C<sub>1</sub> (loading shape)</div><div class="formula">${c.c1label}</div><div class="value">C<sub>1</sub> = ${g(c.C1,3)}; 1/&radic;C<sub>1</sub> = ${g(LT.invSqrtC1,2)}</div><div></div>
     <div>&lambda;<sub>z</sub> = L/i<sub>z</sub></div><div class="formula">${g(c.LE,0)}/${g(LT.ry,1)}</div><div class="value">${f1(LT.lamZ,1)}</div><div></div>
     <div>&lambda;<sub>1</sub> = &pi;&radic;(E/f<sub>y</sub>)</div><div class="formula">&pi;&radic;(${g(a.E,0)}/${g(a.py,0)})</div><div class="value">${f1(LT.lam1,1)}</div><div></div>
     <div>&lambda;&#772;<sub>z</sub> = &lambda;<sub>z</sub>/&lambda;<sub>1</sub></div><div class="formula">${f1(LT.lamZ,1)}/${f1(LT.lam1,1)}</div><div class="value">${g(LT.lamZbar,3)}</div><div></div>
@@ -294,7 +323,7 @@ function render(){
     <div>M<sub>Ed</sub> / M<sub>b,Rd</sub></div><div class="formula">${f1(c.Mx,1)} / ${f1(LT.MbSimp,0)}</div><div class="value">${g(c.Mx/Math.max(LT.MbSimp,1e-9),2)}</div>${st(c.Mx<=LT.MbSimp*1.0001,'OK','exceeded')}
   </div>
 
-  <div class="section-title smallgap">LTB &mdash; Elastic Critical Moment Method (SN003a; z<sub>g</sub>=0, k=k<sub>w</sub>=1, G=81000 N/mm&sup2;)</div>
+  <div class="section-title smallgap">LTB &mdash; Elastic Critical Moment, ${stdHead} (SN003a; ${LT.zgUsed? 'C<sub>2</sub>z<sub>g</sub> term applied' : 'z<sub>g</sub>=0'}, k=k<sub>w</sub>=1, G=81000 N/mm&sup2;; FE eigensolver not run)</div>
   <div class="calc-block">
     <div>&pi;&sup2;EI<sub>z</sub>/L&sup2;</div><div class="formula">&pi;&sup2;&times;${g(a.E,0)}&times;${g(sec.Iy,0)}&times;10<sup>4</sup>/${g(c.LE,0)}&sup2;</div><div class="value">${f1(LT.T1,0)} kN</div><div></div>
     <div>I<sub>w</sub>/I<sub>z</sub></div><div class="formula">${g((sec.Iw||0)*1e6,0)} cm<sup>6</sup> / ${g(sec.Iy,0)} cm<sup>4</sup></div><div class="value">${f1(LT.IwIz,1)} cm&sup2;</div><div></div>
@@ -317,7 +346,7 @@ function render(){
   <div class="section-title smallgap">Lateral&ndash;Torsional Buckling (Cl. 6.3.2.1)</div>
   <div class="calc-block">
     <div>Restraint condition</div><div class="formula">Beam fully laterally restrained &mdash; compression flange held in position throughout its length</div><div class="value">LTB cannot occur</div><div class="status ok">Not required</div>
-  </div>` : sciU? ltbEigenReport(c,a,sec) : ltbBlockBSfn();
+  </div>` : sciU? (mcrStd? sciUltbBlocks : ltbEigenReport(c,a,sec)) : ltbBlockBSfn();
 
   const sciAvFormula = sec.isBox? 'A<sub>v</sub> = AD/(D+B)'
     : sec.kind==='channel'? 'A<sub>v</sub> = A &minus; 2bt<sub>f</sub> + (t<sub>w</sub>+r)t<sub>f</sub>'

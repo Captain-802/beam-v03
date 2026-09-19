@@ -134,3 +134,65 @@ test('warping torsion consistently uses the entered elastic modulus', () => {
 test('hot-finished RHS selects the UK NA LTB curve by aspect ratio', () => {
   reset({family:'rhs',restraint:'ltb'});assert.equal(run('checks(analyse()).ltb.curve.curve'),'b');
 });
+
+// ---- Mcr method switch: 'eigen' (FE eigensolver, default) | 'standard' (closed form) ----
+test('Mcr method defaults to eigen and the demo results are unchanged', () => {
+  assert.equal(run('DEMO.mcrMethod'),'eigen');
+  reset({L:8,supports:[{pos:0,type:'pinned'},{pos:8,type:'pinned'}],loads:[{type:'udl',x1:0,x2:8,w:19.7,case:'G'},{type:'udl',x1:0,x2:8,w:19.8,case:'Q'}]});
+  assert.equal(run('S.mcrMethod'),'eigen');
+  const full=run('checks(analyse()).utils.map(u=>u.val)');     // restrained demo (AUDIT.md figures)
+  near(full[0],0.303499,1e-5); near(full[1],0.912166,1e-5); near(full[2],0.609935,1e-5);
+  run("S.restraint='ltb'");
+  const c=run('checks(analyse())');                             // unrestrained demo, eigen figures before the switch existed
+  assert.equal(c.mcrMethod,'eigen'); assert.equal(c.ltb.eigen,true); assert.equal(c.ltb.mcrMethod,'eigen');
+  near(c.ltb.Mcr,257.9741062880164,1e-6); near(c.ltb.MbRd,218.6910610529012,1e-6); near(c.ltbUtil,2.099068512326227,1e-6);
+  near(c.ltb.McrEigen,c.ltb.Mcr,1e-9); near(c.ltb.McrStandard,257.0619060555597,1e-6); near(c.ltb.McrRatio,c.ltb.Mcr/257.0619060555597,1e-9);
+  assert.equal(JSON.stringify([c.ltb.c1in.M1,c.ltb.c1in.M2,c.ltb.c1in.psi,c.ltb.c1in.mu]),'[0,0,1,300]'); near(c.ltb.c1in.Mo,Math.abs(c.Mx),1e-6);
+});
+test('standard Mcr method: demo UB 457x191x82 8 m UDL gives C1 = 1.127 and the SN003a closed form', () => {
+  reset({L:8,restraint:'ltb',mcrMethod:'standard',supports:[{pos:0,type:'pinned'},{pos:8,type:'pinned'}],loads:[{type:'udl',x1:0,x2:8,w:19.7,case:'G'},{type:'udl',x1:0,x2:8,w:19.8,case:'Q'}]});
+  const c=run('checks(analyse())'), sec=run('activeSection()');
+  assert.equal(c.mcrMethod,'standard'); assert.equal(c.ltb.mcrMethod,'standard'); assert.ok(!c.ltb.eigen);
+  near(c.C1,1.127,1e-9); assert.match(c.c1label,/simply supported \+ uniformly distributed load/); assert.equal(c.ltb.c1route,'uniform');
+  const E=210000,G=81000,L=8000,Iz=sec.Iy*1e4,It=sec.J*1e4,Iw=sec.Iw*1e12;
+  const expected=1.127*Math.PI**2*E*Iz/L**2*Math.sqrt(Iw/Iz+L**2*G*It/(Math.PI**2*E*Iz))/1e6;   // kN.m
+  near(c.ltb.Mcr,expected,1e-9); near(c.ltb.McrStandard,expected,1e-9); assert.equal(c.ltb.McrEigen,null); assert.equal(c.ltb.McrRatio,undefined);
+  near(c.ltb.lamLTmcr,Math.sqrt(sec.Sx*1e3*c.fy/(expected*1e6)),1e-9);
+  assert.equal(JSON.stringify([c.ltb.c1in.M1,c.ltb.c1in.M2,c.ltb.c1in.psi,c.ltb.c1in.mu]),'[0,0,1,300]'); near(c.ltb.c1in.Mo,Math.abs(c.Mx),1e-6);
+  assert.equal(JSON.stringify(c.ltb.c1seg),JSON.stringify({xa:0,xb:8000,whole:true}));
+});
+test('standard and eigen Mcr agree within 1% for a uniform moment (two equal end moments)', () => {
+  const fix={L:6,restraint:'ltb',supports:[{pos:0,type:'pinned'},{pos:6,type:'pinned'}],
+    loads:[{type:'moment',pos:0,M:100,case:'Q'},{type:'moment',pos:6,M:-100,case:'Q'}],
+    combos:[{id:'c1',label:'ULS: 1.5Q',factors:{G:0,Q:1.5,W:0,E:0},sls:false,on:true},{id:'s1',label:'SLS',factors:{G:0,Q:1,W:0,E:0},sls:true,on:true}]};
+  reset({...fix,mcrMethod:'standard'}); const s=run('checks(analyse())');
+  reset({...fix,mcrMethod:'eigen'});    const e=run('checks(analyse())');
+  assert.equal(s.ltb.c1route,'end-moment'); near(s.C1,1.0,1e-6); near(s.ltb.c1in.psi,1,1e-6); near(s.ltb.c1in.M2,-150,1e-6);
+  near(s.ltb.Mcr,e.ltb.Mcr,0.01); near(e.ltb.McrStandard,s.ltb.Mcr,1e-9); near(e.ltb.McrRatio,1,0.01);
+  const t=Math.PI**2*210000*1870e4/6000**2;                     // closed form, uniform moment, C1 = 1
+  near(s.ltb.Mcr,t*Math.sqrt(0.922e12/1870e4+81000*69.2e4/t)/1e6,1e-6);
+});
+test('standard Mcr method: cantilever with a tip load takes the SN006a route', () => {
+  reset({L:3,restraint:'ltb',mcrMethod:'standard',supports:[{pos:0,type:'fixed'}],loads:[{type:'point',pos:3,P:20,case:'Q'}]});
+  const c=run('checks(analyse())');
+  assert.equal(c.ltb.cant,true); assert.equal(c.ltb.c1route,'sn006a'); assert.ok(c.ltb.C>1); assert.ok(c.ltb.Mcr>0);
+  near(c.ltb.Mcr,c.ltb.C*c.ltb.Mcr0,1e-9); assert.equal(c.ltb.McrEigen,null); near(c.ltb.McrStandard,c.ltb.Mcr,1e-9);
+  assert.match(c.ltb.c1label,/cantilever SN006a/); near(c.ltb.c1in.M1,0,1e-6); assert.ok(c.ltb.c1in.M2<0);
+  reset({L:3,restraint:'ltb',mcrMethod:'eigen',supports:[{pos:0,type:'fixed'}],loads:[{type:'point',pos:3,P:20,case:'Q'}]});
+  const e=run('checks(analyse())'); assert.equal(e.ltb.eigen,true); near(e.ltb.McrStandard,c.ltb.Mcr,1e-9); assert.ok(Math.abs(e.ltb.McrRatio-1)<0.05);
+});
+test('mcrMethod survives a code switch and an unknown value is rejected', () => {
+  reset({mcrMethod:'standard'}); run("setDesignCode('BS5950')"); assert.equal(run('S.mcrMethod'),'standard');
+  run("setDesignCode('EC3')"); assert.equal(run('S.mcrMethod'),'standard');
+  reset({restraint:'ltb',mcrMethod:'bogus'}); assert.throws(()=>run('analyse()'),/Unknown Mcr method/);
+  reset({restraint:'ltb',mcrMethod:'standard'}); assert.equal(run('checks(analyse()).mcrMethod'),'standard');
+  reset({restraint:'ltb'}); run('delete S.mcrMethod'); assert.equal(run('checks(analyse()).mcrMethod'),'eigen');   // absent = default
+});
+test('standard C1 recognises the tabulated shapes only on a simply supported segment', () => {
+  reset({L:8,restraint:'ltb',mcrMethod:'standard',supports:[{pos:0,type:'pinned'},{pos:4,type:'pinned'},{pos:8,type:'pinned'}],loads:[{type:'udl',x1:0,x2:8,w:20,case:'Q'}]});
+  const c=run('checks(analyse())');                             // two-span: quarter-point ratio mimics a central point load
+  assert.equal(c.ltb.c1route,'serna'); assert.ok(c.C1>1&&c.C1<1.348); assert.ok(c.advisory.some(s=>/ONE segment/.test(s)));
+  reset({L:6,restraint:'ltb',mcrMethod:'standard',supports:[{pos:0,type:'fixed'},{pos:6,type:'pinned'}],loads:[{type:'udl',x1:0,x2:6,w:15,case:'Q'}]});
+  const p=run('checks(analyse())');                             // propped cantilever under UDL is not a linear end-moment diagram
+  assert.equal(p.ltb.c1route,'serna'); near(p.ltb.c1in.psi,0,1e-6); near(p.ltb.c1in.mu,-1,1e-3);
+});

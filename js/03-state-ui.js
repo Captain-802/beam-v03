@@ -18,6 +18,7 @@ const DEMO={
   axial:0, Mz:0, leFactor:1.0, destab:false, mLTo:null, mxo:null, C1o:null,
   divisor:360, E:210000, Ke:null, robX:null, robY:null,
   restraint:'full',
+  mcrMethod:'eigen',   // EC3 unrestrained Mcr: 'eigen' (FE eigensolver, default) | 'standard' (closed form, SN003a/SN006a)
   eccOn:false, za:0, rootWarp:'free',
   pfcMirror:false,
   plate:{on:false, side:'bottom', t:10, outL:0, outR:150}
@@ -281,6 +282,10 @@ function syncInputs(){
   $("zaRow").style.display = (S.code==='EC3' && !sciMode)? '' : 'none';
   syncLoadHeightHint(sec, S.code==='EC3' && !sciMode);
   $("warpRow").style.display = (S.code==='EC3' && !sciMode)? '' : 'none';
+  if($("mcrMethod")){
+    $("mcrMethod").value = S.mcrMethod==='standard'? 'standard' : 'eigen';
+    $("mcrMethodRow").style.display = (S.code==='EC3' && !sciMode)? '' : 'none';
+  }
   $("destabRow").style.display = sciMode? 'none' : '';
   $("robRow").style.display = S.code==='EC3'? 'none' : '';
 
