@@ -7,7 +7,10 @@
    rows and the case inputs) and the campaign finding on the standard-route
    C1 sampling at a moment jump (tests/batch/mcr-method-comparison.md).
    Single-span library since 19 Sep 2026 (the pattern-loading cases left with
-   the multi-span scope).
+   the multi-span scope); the closed forms of the six end presets, the strut
+   lengths from the end fixities, the end-restraint M_cr bounds and the
+   expected-error group were added with the rebuilt library (hand-checks.md
+   HC-01 .. HC-08, HC-21c, HC-23; tests/batch/README.md).
    =========================================================================== */
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
@@ -116,4 +119,62 @@ test('verdict directions of the campaign groups (eigen route)', () => {
   assert.deepEqual(['TOR-01', 'TOR-03', 'TOR-04', 'TOR-05'].map(v), ['PASS', 'PASS', 'PASS', 'PASS']);   // TOR-01 (PFC cantilever): PASS since the cantilever preset restrains the root warping (was FAIL with the root warping free)
   assert.deepEqual(['AEF-01', 'AEF-02', 'AEF-04'].map(v), ['PASS', 'FAIL', 'NOT VERIFIED']);
   assert.deepEqual(['BIX-01', 'BIX-02', 'BIX-05'].map(v), ['PASS', 'FAIL', 'FAIL']);
+});
+
+test('[hand-derived] closed forms of the presets: guided-fixed (UB-71 wL^2/3, wL^2/6, wL^4/24EI; UB-72 PL/2, PL^3/12EI), fixed-fixed (UB-21, UB-53), cantilever (UB-64, UB-19), pinned-guided (UB-76, UB-77), propped (UB-20)', () => {
+  // hand-checks.md HC-01 .. HC-07
+  const r = (id, code) => runCase(id, 'eigen', code);
+  const ends = '(a,c)=>({M1:Math.abs(a.reactions[0].M)/1e6, M2:a.reactions[1]?Math.abs(a.reactions[1].M)/1e6:null, R1:a.reactions[0].V/1000, R2:a.reactions[1]?a.reactions[1].V/1000:null, d:Math.abs(a.dmax), t2:a.reactions[1]?a.reactions[1].type:null})';
+  const g = r('UB-71', ends); near(g.M1, 127.004, 1e-4, 'UB-71 M_1 = wL^2/3'); near(g.M2, 63.5019, 1e-4, 'UB-71 M_2 = wL^2/6'); near(g.R1, 63.5019, 1e-4, 'UB-71 R_1 = wL'); assert.ok(Math.abs(g.R2) < 1e-9 && g.t2 === 'guided', 'no vertical reaction at the guided end'); near(g.d, 12.1008, 1e-4, 'UB-71 wL^4/24EI');
+  const g2 = r('UB-72', ends); near(g2.M1, 249.347, 1e-4, 'UB-72 PL/2 + wL^2/3'); near(g2.M2, 245.049, 1e-4, 'UB-72 PL/2 + wL^2/6'); near(g2.d, 18.3346, 1e-4, 'UB-72 PL^3/12EI');
+  const f = r('UB-21', ends); near(f.M1, 86.7547, 1e-4, 'UB-21 wL^2/12'); near(f.M2, 86.7547, 1e-4, 'UB-21 wL^2/12 at End 2'); near(f.R1, 65.0660, 1e-4, 'UB-21 wL/2'); near(f.d, 2.43810, 1e-4, 'UB-21 wL^4/384EI');
+  const f2 = r('UB-53', ends); near(f2.M1, 311.792, 1e-4, 'UB-53 PL/8 + wL^2/12'); near(f2.d, 5.13413, 1e-4, 'UB-53 PL^3/192EI');
+  const k = r('UB-64', ends); near(k.M1, 99.6014, 1e-4, 'UB-64 wL^2/2'); near(k.d, 5.10504, 1e-4, 'UB-64 wL^4/8EI'); assert.equal(k.M2, null, 'a free end has no reaction');
+  const k2 = r('UB-19', ends); near(k2.M1, 46.3110, 1e-4, 'UB-19 PL + wL^2/2'); near(k2.d, 15.0905, 1e-4, 'UB-19 PL^3/3EI');
+  const pg = r('UB-76', ends); near(pg.M2, 84.6692, 1e-4, 'UB-76 wL^2/2 at the guided end'); near(pg.R1, 42.3346, 1e-4, 'UB-76 R_1 = wL'); near(pg.d, 11.9514, 1e-4, 'UB-76 5wL^4/24EI'); assert.ok(Math.abs(pg.M1) < 1e-9, 'pinned End 1 carries no moment');
+  const pg2 = r('UB-77', ends); near(pg2.M2, 212.956, 1e-4, 'UB-77 PL + wL^2/2'); near(pg2.d, 21.2206, 1e-4, 'UB-77 PL^3/3EI');
+  const pr = r('UB-20', ends); near(pr.M1, 85.9052, 1e-4, 'UB-20 wL^2/8'); near(pr.R2, 42.9526, 1e-4, 'UB-20 3wL/8'); near(pr.d, 3.26327, 1e-3, 'UB-20 0.005416 wL^4/EI (grid station)');
+});
+
+test('[hand-derived] strut lengths from the end fixities: AX-04 guided-fixed L_cr,y = 1.2 L, L_cr,z = 0.7 L, N_b,y,Rd 1936.6 (curve b), N_b,z,Rd 1781.1 kN (curve c); the L_E input overrides both (AX-11)', () => {
+  // hand-checks.md HC-08
+  const b = runCase('AX-04', 'eigen', '(a,c)=>({LcrY:c.buck.LcrY, LcrZ:c.buck.LcrZ, NbY:c.buck.NbY, NbZ:c.buck.NbZ, pass:c.pass})');
+  near(b.LcrY, 7200, 1e-9, 'L_cr,y'); near(b.LcrZ, 4200, 1e-9, 'L_cr,z'); near(b.NbY, 1936.63, 1e-4, 'N_b,y,Rd'); near(b.NbZ, 1781.09, 1e-4, 'N_b,z,Rd'); assert.ok(b.pass);
+  const o = runCase('AX-11', 'eigen', '(a,c)=>({LcrY:c.buck.LcrY, LcrZ:c.buck.LcrZ})');
+  near(o.LcrY, 6000, 1e-9, 'AX-11 L_E/L = 1.0 entered: y-y'); near(o.LcrZ, 6000, 1e-9, 'AX-11 L_E/L = 1.0 entered overrides the 0.7 L z-z default');
+});
+
+test('end-restraint bounds (batch cross-check xvi): laterally clamped ends (CUS-01, CUS-03) and warping-fixed ends (CUS-02, CUS-04) raise the eigen M_cr above the fork-ended base; the clamped ratio is within 3 % of the SN003a k = 0.5 factor (HC-23)', () => {
+  const mcr = id => runCase(id, 'eigen', '(a,c)=>c.ltb.Mcr');
+  const fork = mcr('UB-03'), clamped = mcr('CUS-01'), warp = mcr('CUS-02'), both = mcr('CUS-10');
+  assert.ok(clamped > fork && warp > fork && both > clamped, 'bounds: ' + [fork, clamped, warp, both].map(v => v.toFixed(1)).join(' / '));
+  near(fork, 109.211, 5e-3, 'fork-ended eigen vs SN003a k = 1 (109.21)');
+  near(clamped / fork, 1.72493, 0.03, 'clamped / fork against the SN003a k = 0.5 factor 1.7249');
+  const fork7 = mcr('UB-07'), c3 = mcr('CUS-03'), c4 = mcr('CUS-04');
+  assert.ok(c3 > fork7 && c4 > fork7, 'central point load pairs: ' + [fork7, c3, c4].map(v => v.toFixed(1)).join(' / '));
+  const lc = mcr('CUS-06'), lcw = mcr('CUS-07');
+  assert.ok(lcw > lc, 'lateral cantilever: root warping fixed raises M_cr ' + lc.toFixed(1) + ' -> ' + lcw.toFixed(1));
+});
+
+test('cantilever M_cr: the eigen route reproduces NCCI SN006a within 2.1 % for every covered library cantilever (UB-18/19/49/64/68, UC-04, ZG-04/05, AX-03/13, TOR-05/07)', () => {
+  for (const id of ['UB-18', 'UB-19', 'UB-49', 'UB-64', 'UB-68', 'UC-04', 'ZG-04', 'ZG-05', 'AX-03', 'AX-13', 'TOR-05', 'TOR-07']) {
+    const r = runCase(id, 'eigen', '(a,c)=>({ratio:c.ltb.McrRatio, route:c.ltb.c1route})');
+    assert.equal(r.route, 'sn006a', id + ' route');
+    assert.ok(r.ratio > 0.99 && r.ratio < 1.021, id + ': eigen / SN006a = ' + r.ratio.toFixed(4));
+  }
+});
+
+test('[hand-derived] warping-free cantilever with a tip torque is pure St Venant: TOR-07 phi(L) = TL/GI_T = 0.17127 rad, B = 0 (HC-21c); the engine blocks it on its relative bimoment mesh measure (finding, hand-checks.md)', () => {
+  const t = runCase('TOR-07', 'eigen', '(a,c)=>({phi:c.tor.phiUmax, B:c.tor.BMax, Tt:c.tor.TtEnds[0], blocked:c.unsupported.some(m=>/mesh has not converged/.test(m))})');
+  near(t.phi, 0.171270, 1e-4, 'TOR-07 phi(L)'); assert.ok(Math.abs(t.B) < 1e-5, 'B is round-off: ' + t.B); near(t.Tt, 2.4, 1e-6, 'root St Venant torque = T');
+  assert.equal(t.blocked, true, 'documented finding: the vanishing-bimoment mesh measure blocks PASS');
+});
+
+test('expected-error group: every ERR case of the library throws the declared message (mechanisms, torque without a twist restraint, N_Ed with U_x free at both ends, lateral cantilever without R_z, hinge at an end)', () => {
+  const errs = cases.filter(c => c.expectError);
+  assert.ok(errs.length >= 6, 'at least six invalid layouts: ' + errs.length);
+  for (const cs of errs) {
+    ctx.reset(JSON.parse(JSON.stringify(cs.overrides)));
+    assert.throws(() => ctx.run('analyse()'), e => String(e && e.message ? e.message : e).replace(/<[^>]+>/g, '').includes(cs.expectError), cs.id + ' must throw "' + cs.expectError + '"');
+  }
 });

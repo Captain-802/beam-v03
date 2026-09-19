@@ -8,25 +8,39 @@
    ('eigen' and 'standard') when restraint === 'ltb' - and writes
      tests/batch/results.json   full records
      tests/batch/results.md     one row per run + summary tables
-   Thrown errors are caught and reported as verdict ERROR.
+   Thrown errors are caught and reported as verdict ERROR, except for the
+   cases that declare `expectError`: those must throw a message containing
+   the declared text (verdict THROWS when they do; a case that runs, or throws
+   something else, is a failure that sets the exit code).
 
    Independent cross-checks (computed here from the section data and the
    inputs, never from the check engine's own intermediate values):
-     (i)   simply supported / cantilever single-load closed forms for Mmax and
-           dmax (full-span UDL, central or tip point load; self-weight included)
+     (i)   closed forms of the six presets for Mmax, dmax, the end moments and
+           the End 1 reaction (full-span UDL incl. self-weight, one central
+           point load, or a point load at the free / guided tip): simply
+           supported, fixed-fixed, fixed-pinned, cantilever, guided-fixed,
+           pinned-guided; dmax from the sampled sum of the deflection curves
      (ii)  vertical equilibrium  sum(R) + sum(applied) = 0  for every case
      (iii) standard closed-form Mcr recomputed for doubly symmetric sections
            (I/H and box: SN003a with G = 81000, Iw = 0 for a box; cantilever:
            SN006a C*Mcr0) with C1, C2, z_g and LE derived HERE from the case
-           inputs (load list, support types, za / per-load zg, LE factor and
+           inputs (load list, end flags, za / per-load zg, LE factor and
            destabilising switch) and the analysis moment diagram - never from
            the engine's own C1 / C2 / zgUsed / LE; also checks that a
            destabilising z_g on a non-tabulated diagram is BLOCKED
      (iv)  eigen / standard Mcr ratio, flagged outside 0.85-1.25 (an outlier,
-           not necessarily an error)
+           not necessarily an error; the reason is tabulated)
      (v)   Mb,Rd <= Mc,Rd
      (vi)  the reported governing utilisation equals the maximum of the
            printed utilisations
+     (vii)-(xv) uplift, web bearing (F_Rd and the station moment at a fixed
+           end), A_eff, channel N_b,T,Rd, k_c floor, cl 6.2.10, warping-
+           torsion FE closed forms, high-shear M_v,Rd
+     (xvi) end-restraint bounds: a case declaring `pair` must give an eigen
+           Mcr >= that of its base case (R_z both ends, warping fixed both
+           ends, root warping on a lateral cantilever); the SN003a k = 0.5 /
+           k_w = 0.5 ratio is recorded beside the eigen ratio
+     (xvii) cantilevers: the ratio Mcr,eigen / Mcr,SN006a is recorded
    Mismatches beyond 0.5 % are flagged as check failures.
 
    Usage:  node tests/batch/run-batch.cjs [id-substring ...]
@@ -158,23 +172,77 @@ function stdInputsIndependent(o, fac, fb, xa, xb) {
   return { C1, C2, zg, zgApplied, LE, route, blockExpected: zg > 0 && !(C2 > 0) && !o.destab };
 }
 
-/* Applicability of the single-load closed forms (i). Returns null or
-   {kind:'ss'|'cant', udl: sum of full-span w by case, point: sum of P by case}. */
+/* In-plane type of one end from its flags (runner's own reading). */
+const endTypeOf = e => e.uz && e.ry ? 'fixed' : e.uz ? 'pinned' : e.ry ? 'guided' : 'free';
+/* Applicability of the preset closed forms (i). Returns null or {kind, udl:
+   sum of full-span w by case, point: sum of P by case, xP}: kind is one of
+   'ss' | 'fixfix' | 'propped' (End 1 fixed, End 2 pinned) | 'cant' |
+   'guided-fixed' (End 1 fixed, End 2 guided) | 'pinned-guided'; the point
+   loads sit at mid-span (ss, fixfix, propped) or at the End 2 tip (cant,
+   guided-fixed, pinned-guided); no hinges, no couples, no partial loads. */
 function closedFormLayout(o) {
-  const sup = endSupports(o), L = o.L, loads = o.loads;
+  const L = o.L, loads = o.loads;
   if ((o.hinges || []).length) return null;
-  const isSS = sup.length === 2 && sup.every(s => s.type === 'pinned');
-  const isCant = isCantCase(o);
-  if (!isSS && !isCant) return null;
+  const t1 = endTypeOf(endOf(o, 1)), t2 = endTypeOf(endOf(o, 2));
+  const kind = t1 === 'pinned' && t2 === 'pinned' ? 'ss' : t1 === 'fixed' && t2 === 'fixed' ? 'fixfix' : t1 === 'fixed' && t2 === 'pinned' ? 'propped'
+    : t1 === 'fixed' && t2 === 'free' ? 'cant' : t1 === 'fixed' && t2 === 'guided' ? 'guided-fixed' : t1 === 'pinned' && t2 === 'guided' ? 'pinned-guided' : null;
+  if (!kind) return null;
+  const tip = kind === 'cant' || kind === 'guided-fixed' || kind === 'pinned-guided';
+  const xP = tip ? L : L / 2;
   const udl = {}, point = {};
-  let nPoint = 0;
   for (const ld of loads) {
     if (ld.type === 'udl' && ld.x1 === 0 && Math.abs(ld.x2 - L) < 1e-9) udl[ld.case] = (udl[ld.case] || 0) + ld.w;
-    else if (ld.type === 'point' && Math.abs(ld.pos - (isSS ? L / 2 : L)) < 1e-9) { point[ld.case] = (point[ld.case] || 0) + ld.P; nPoint++; }
+    else if (ld.type === 'point' && Math.abs(ld.pos - xP) < 1e-9) point[ld.case] = (point[ld.case] || 0) + ld.P;   // several loads (G, Q) at the one position are summed
     else return null;
   }
-  if (isSS && nPoint > 1) return null;   // one central point load only (UDLs may accompany it)
-  return { kind: isSS ? 'ss' : 'cant', udl, point };
+  return { kind, udl, point, xP };
+}
+/* Closed-form maximum moment (kN.m), end moments [M1, M2] (kN.m, absolute),
+   End 1 reaction (kN) and the deflection maximum (mm) of one preset under a
+   full-span UDL w (kN/m = N/mm) plus a point load P (kN) at mid-span / the
+   tip. L in m for the moments, Lmm / EI (N.mm2) for the deflections. Standard
+   textbook forms (Roark / SCI P363 / AISC): the guided cases are the halves
+   of a fixed-fixed or simply supported beam of span 2L by symmetry, the
+   propped-cantilever curves are quoted with x from the pinned end; dmax is
+   the sampled maximum of the summed curves (2001 stations). */
+function closedFormsFor(kind, w, Pk, L, Lmm, EI) {
+  const P = Pk * 1000;   // N
+  const M = { ss: w * L * L / 8 + Pk * L / 4, fixfix: w * L * L / 12 + Pk * L / 8, propped: w * L * L / 8 + 3 * Pk * L / 16,
+    cant: w * L * L / 2 + Pk * L, 'guided-fixed': w * L * L / 3 + Pk * L / 2, 'pinned-guided': w * L * L / 2 + Pk * L }[kind];
+  const Mend = { ss: [0, 0], fixfix: [w * L * L / 12 + Pk * L / 8, w * L * L / 12 + Pk * L / 8], propped: [w * L * L / 8 + 3 * Pk * L / 16, 0],
+    cant: [w * L * L / 2 + Pk * L, 0], 'guided-fixed': [w * L * L / 3 + Pk * L / 2, w * L * L / 6 + Pk * L / 2], 'pinned-guided': [0, w * L * L / 2 + Pk * L] }[kind];
+  const R1 = { ss: w * L / 2 + Pk / 2, fixfix: w * L / 2 + Pk / 2, propped: 5 * w * L / 8 + 11 * Pk / 16, cant: w * L + Pk, 'guided-fixed': w * L + Pk, 'pinned-guided': w * L + Pk }[kind];
+  const d = x => {
+    const Lm = Lmm, xm = Math.min(x, Lm - x);
+    switch (kind) {
+      case 'ss': return (w * x * (Lm ** 3 - 2 * Lm * x * x + x ** 3) / 24 + P * xm * (3 * Lm * Lm - 4 * xm * xm) / 48) / EI;
+      case 'fixfix': return (w * x * x * (Lm - x) ** 2 / 24 + P * xm * xm * (3 * Lm - 4 * xm) / 48) / EI;
+      case 'propped': { const xi = Lm - x; const dP = xi <= Lm / 2 ? P * xi * (3 * Lm * Lm - 5 * xi * xi) / 96 : P * (xi - Lm) ** 2 * (11 * xi - 2 * Lm) / 96;
+        return (w * xi * (Lm ** 3 - 3 * Lm * xi * xi + 2 * xi ** 3) / 48 + dP) / EI; }
+      case 'cant': return (w * x * x * (6 * Lm * Lm - 4 * Lm * x + x * x) / 24 + P * x * x * (3 * Lm - x) / 6) / EI;
+      case 'guided-fixed': return (w * x * x * (2 * Lm - x) ** 2 / 24 + P * x * x * (3 * Lm - 2 * x) / 12) / EI;
+      case 'pinned-guided': return (w * x * (8 * Lm ** 3 - 4 * Lm * x * x + x ** 3) / 24 + P * x * (3 * Lm * Lm - x * x) / 6) / EI;
+    }
+    return 0;
+  };
+  let dmax = 0; for (let i = 0; i <= 2000; i++) dmax = Math.max(dmax, Math.abs(d(Lmm * i / 2000)));
+  return { M, Mend, R1, dmax };
+}
+/* Why an eigen / standard Mcr ratio can legitimately leave the 0.85-1.25
+   band (tabulated beside every outlier). */
+function outlierReason(rec, o) {
+  const e1 = endOf(o, 1), e2 = endOf(o, 2), r = [];
+  if (isCantCase(o)) r.push(o.family === 'ub' || o.family === 'uc' ? 'cantilever: SN006a (C x Mcr0 with the root warping condition and eta) against the eigenvalue of the actual root DOFs' : 'cantilever of a box / channel: closed form with C1 = 1 (kappa chain for a channel) against the eigenvalue');
+  if (o.destab) r.push('destabilising L_E x 1.2 device on the closed form (the eigenvalue carries z_g exactly)');
+  if (rec.zgStdBlocked) r.push('C2 unpublished for this diagram: closed form at the shear centre, PASS refused on the standard route');
+  if ((o.hinges || []).length) r.push('internal hinge: closed form takes the whole member as one fork-ended segment (Serna C1 on the released diagram)');
+  if ((e1.rz && e1.uy) || (e2.rz && e2.uy)) r.push('laterally clamped end(s) (R_z held): closed form keeps k = 1');
+  if (e1.warp || e2.warp) r.push('warping-fixed end(s): closed form keeps k_w = 1');
+  if ((e1.ry && !e1.uz) || (e2.ry && !e2.uz)) r.push('guided end: closed form on the whole member (Serna C1) with fork ends');
+  if (!isCantCase(o) && ((e1.uy && !e1.rx) || (e2.uy && !e2.rx) || !e1.uy || !e2.uy)) r.push('an end with U_y or R_x released: the closed form assumes fork ends at both ends (unconservative side)');
+  if ((o.ltbRestraints || []).length) r.push('intermediate restraints: the comparison isolates the governing bay with fork ends');
+  if (o.family === 'pfc') r.push('channel kappa chain (L/i_z)/kappa against the shear-centre eigenvalue');
+  return r.length ? r.join('; ') : 'see mcr-method-comparison.md';
 }
 
 /* Observed triggers derived from the check output (checkable subset only). */
@@ -217,9 +285,26 @@ function runOne(cs, method) {
         gM:a.governM.combo.factors, gD:a.governD.combo.factors, gLabel:a.governM.combo.label};
     })()`);
   } catch (e) {
-    rec.verdict = 'ERROR';
     rec.error = stripHtml(e && e.message ? e.message : e);
     rec.ms = Number(process.hrtime.bigint() - t0) / 1e6;
+    if (cs.expectError) {
+      // ERR group: the layout must throw a message containing the declared text
+      rec.expectError = cs.expectError;
+      rec.throwOk = rec.error.includes(cs.expectError);
+      rec.verdict = rec.throwOk ? 'THROWS' : 'WRONG THROW';
+      rec.checks = [{ id: 'err-throws', ok: rec.throwOk, kind: 'check', detail: `expected "${cs.expectError}", got "${rec.error.slice(0, 160)}"` }];
+      rec.checkFailures = rec.throwOk ? [] : ['err-throws'];
+    } else rec.verdict = 'ERROR';
+    return rec;
+  }
+  if (cs.expectError) {
+    // the layout was expected to throw but analysed: a failure of the validation
+    rec.verdict = 'NO THROW';
+    rec.expectError = cs.expectError;
+    rec.throwOk = false;
+    rec.error = 'expected the message "' + cs.expectError + '" but analyse() returned';
+    rec.checks = [{ id: 'err-throws', ok: false, kind: 'check', detail: rec.error }];
+    rec.checkFailures = ['err-throws'];
     return rec;
   }
   rec.ms = Number(process.hrtime.bigint() - t0) / 1e6;
@@ -283,10 +368,11 @@ function runOne(cs, method) {
   const checks = [];
   const add = (id, ok, detail, kind = 'check') => checks.push({ id, ok, kind, detail });
 
-  // (i) closed forms
+  // (i) closed forms of the six presets: Mmax, dmax, the end moments and the End 1 reaction
   const cf = closedFormLayout(cs.overrides);
+  rec.closedForm = cf ? cf.kind : null;
   if (cf) {
-    const Lmm = cs.overrides.L * 1000, I = sec.Ix * 1e4;
+    const Lmm = cs.overrides.L * 1000, I = sec.Ix * 1e4, Lm = cs.overrides.L;
     const tot = fac => {
       let w = sw * (fac.G || 0), Pt = 0;
       for (const k in cf.udl) w += cf.udl[k] * (fac[k] || 0);
@@ -294,12 +380,18 @@ function runOne(cs, method) {
       return { w, Pt };   // kN/m (= N/mm), kN
     };
     const m = tot(gM), d = tot(gD);
-    const Mexp = cf.kind === 'ss' ? (m.w * cs.overrides.L ** 2 / 8 + m.Pt * cs.overrides.L / 4) : (m.w * cs.overrides.L ** 2 / 2 + m.Pt * cs.overrides.L);
-    const dexp = cf.kind === 'ss' ? (5 * d.w * Lmm ** 4 / 384 + d.Pt * 1000 * Lmm ** 3 / 48) / (E * I) : (d.w * Lmm ** 4 / 8 + d.Pt * 1000 * Lmm ** 3 / 3) / (E * I);
-    const okM = rel(Math.abs(a.Mmax), Math.abs(Mexp)) <= TOL;
-    const okD = rel(Math.abs(a.dmax), Math.abs(dexp)) <= TOL;
-    add('i-Mmax', okM, `${cf.kind}: closed form ${fmt(Math.abs(Mexp), 2)} vs engine ${fmt(Math.abs(a.Mmax), 2)} kN.m`);
-    add('i-dmax', okD, `${cf.kind}: closed form ${fmt(Math.abs(dexp), 3)} vs engine ${fmt(Math.abs(a.dmax), 3)} mm`);
+    const cfM = closedFormsFor(cf.kind, m.w, m.Pt, Lm, Lmm, E * I), cfD = closedFormsFor(cf.kind, d.w, d.Pt, Lm, Lmm, E * I);
+    // absolute values: an uplift combination (net upward w) governs some cases
+    add('i-Mmax', rel(Math.abs(a.Mmax), Math.abs(cfM.M)) <= TOL, `${cf.kind}: closed form ${fmt(Math.abs(cfM.M), 2)} vs engine ${fmt(Math.abs(a.Mmax), 2)} kN.m`);
+    add('i-dmax', rel(Math.abs(a.dmax), Math.abs(cfD.dmax)) <= TOL, `${cf.kind}: closed form ${fmt(Math.abs(cfD.dmax), 3)} vs engine ${fmt(Math.abs(a.dmax), 3)} mm`);
+    // end moments as the solver reports them (reaction M of a fixed / guided end, N.mm)
+    const rEnd = n => a.reactions.find(r => r.end === n) || null;
+    [1, 2].forEach((n, i) => {
+      const r = rEnd(n), exp = Math.abs(cfM.Mend[i]);
+      if (exp > 1e-9 && r) add('i-Mend', rel(Math.abs(r.M) / 1e6, exp) <= TOL, `${cf.kind}: End ${n} (${r.type}) moment closed form ${fmt(exp, 2)} vs engine ${fmt(Math.abs(r.M) / 1e6, 2)} kN.m`);
+    });
+    const r1 = rEnd(1);
+    if (r1 && r1.type !== 'guided') add('i-Rend', rel(Math.abs(r1.V) / 1000, Math.abs(cfM.R1)) <= TOL, `${cf.kind}: End 1 reaction closed form ${fmt(Math.abs(cfM.R1), 2)} vs engine ${fmt(Math.abs(r1.V) / 1000, 2)} kN`);
   }
 
   // (ii) equilibrium of the governing-moment combination
@@ -414,6 +506,16 @@ function runOne(cs, method) {
         `station x = ${fmt(s.x / 1000, 2)} m (${s.label}, type (${s.type}), s_s ${fmt(ss, 1)} mm${isBox ? ', two webs, share ' + fmt(share, 3) : chan ? ', channel' : ''}): independent F_Rd ${fmt(exp, 1)} vs engine ${fmt(s.FRdTot, 1)} kN; F_Ed ${fmt(s.F, 1)} kN (${s.combo}${s.kind === 'both' ? ', = max(P, R)' : ''}); util ${fmt(W.util2, 3)} = max station ratio ${fmt(maxEta, 3)}`);
     }
   }
+  // (viii-Mend) the 7.2 interaction at an end station reads M_Ed at the station: at a fixed or guided end that must be the
+  //   end reaction moment of the same combination (the diagram closes to zero beyond the end, so a sample taken exactly on
+  //   the closing grid value would drop eta_1). Checked on the governing-moment combination against the solver's reaction M.
+  if (c.web && c.web.stations) {
+    c.web.stations.filter(st => st.kind !== 'load' && !st.stiff && st.cases).forEach(st => {
+      const r = a.reactions.find(x => x.end === st.n); if (!r || !(Math.abs(r.M) > 1e-6)) return;
+      const cse = st.cases.find(k => k.combo === gLabel); if (!cse) return;
+      add('viii-Mend', rel(cse.M, Math.abs(r.M) / 1e6) <= TOL, `End ${st.n} (${r.type}) web station M_Ed ${fmt(cse.M, 2)} vs the end reaction moment ${fmt(Math.abs(r.M) / 1e6, 2)} kN.m (${gLabel}); eta_1 ${fmt(cse.eta1, 3)}`);
+    });
+  }
   // (xv) G3 item 12: coexistent shear and moment at the engine's worst high-shear station (cl 6.2.8): rho from the station V
   //      and V_pl(,T),Rd, M_v,y,Rd by family and class recomputed from the raw table, M/M_v,Rd vs the engine's value
   if (c.coex && c.coex.red && !c.coex.pureShearFail && c.coex.MvRd != null) {
@@ -503,22 +605,26 @@ function runOne(cs, method) {
     const IT = (tp && tp.IT ? tp.IT : sec.J) * 1e4, Iw = ((tp && tp.Iw != null ? tp.Iw : sec.Iw) || 0) * 1e12;
     const GIt = G * IT, aa = Math.sqrt(E * Iw / GIt);
     const sup = endSupports(o), loads = o.loads.filter(l => l.type !== 'moment' && Math.abs(+l.e || 0) > 0);
-    const isCant = isCantCase(o) && !!endOf(o, 1).warp;   // the closed forms below take a warping-fixed root
+    const isCantAny = isCantCase(o), isCant = isCantAny && !!endOf(o, 1).warp;   // the closed forms below take a warping-fixed root
+    // root warping FREE (phi'' = 0 at the root, natural at the tip): the Vlasov solution is pure St Venant, phi_tip = TL/GI_T, B = 0
+    const tipFree = isCantAny && !endOf(o, 1).warp && loads.length && loads.every(l => l.type === 'point' && Math.abs(l.pos - o.L) < 1e-9) && o.loads.every(l => l.type !== 'udl' && l.type !== 'trap' || Math.abs(+l.e || 0) === 0);
     const tipOnly = isCant && loads.length && loads.every(l => l.type === 'point' && Math.abs(l.pos - o.L) < 1e-9) && o.loads.every(l => l.type !== 'udl' && l.type !== 'trap' || Math.abs(+l.e || 0) === 0);
     // cantilever with full-span uniform torque only (root warping fixed, tip free): phi_tip = (m/GI_T)[L^2/2 + a^2(1 - sech(L/a)) - a L tanh(L/a)]
     // (solution of E I_w phi'''' - G I_T phi'' = m with phi(0) = phi'(0) = 0, B(L) = 0, T(L) = 0; hand-derived, tests/batch/hand-checks.md)
     const udlOnly = isCant && loads.length && loads.every(l => l.type === 'udl' && l.x1 === 0 && Math.abs(l.x2 - o.L) < 1e-9) && o.loads.every(l => l.type === 'udl' || Math.abs(+l.e || 0) === 0);
     const bothFix = sup.length === 2 && sup.every(s => s.warpFix && s.rx) && loads.length && loads.every(l => l.type === 'udl' && l.x1 === 0 && l.x2 === o.L) && o.loads.every(l => l.type === 'udl' || Math.abs(+l.e || 0) === 0);
-    if (tipOnly || udlOnly || bothFix) {
+    if (tipOnly || udlOnly || bothFix || tipFree) {
       const fac = gM;   // governing-moment combination = the only ULS combination of these single-segment layouts
       let T = 0, t = 0;
       loads.forEach(l => { const f = fac[l.case] || 0; if (l.type === 'point') T += f * l.P * 1000 * l.e; else t += f * l.w * l.e; });
       let phiExp, label, ttZero;
-      if (tipOnly) { phiExp = (T / GIt) * (Lmm - aa * Math.tanh(Lmm / aa)); label = `cantilever tip torque T = ${fmt(T / 1e6, 3)} kN.m: phi_tip = (T/GI_T)[L - a tanh(L/a)] = ${fmt(phiExp, 5)} rad`; ttZero = Math.abs(c.tor.TtEnds[0]) <= 1e-9 && Math.abs(Math.abs(c.tor.TEnds[1]) - T / 1e6) <= 1e-6; }
+      if (tipFree) { phiExp = T * Lmm / GIt; label = `cantilever with the root warping free, tip torque T = ${fmt(T / 1e6, 3)} kN.m: phi_tip = TL/GI_T = ${fmt(phiExp, 5)} rad (St Venant only, B = 0)`; ttZero = Math.abs(Math.abs(c.tor.TtEnds[0]) - T / 1e6) <= 1e-6 + T / 1e6 * 1e-6 && Math.abs(c.tor.BMax) <= 1e-6 * Math.max(T * Lmm / 1e9, 1e-9); }
+      else if (tipOnly) { phiExp = (T / GIt) * (Lmm - aa * Math.tanh(Lmm / aa)); label = `cantilever tip torque T = ${fmt(T / 1e6, 3)} kN.m: phi_tip = (T/GI_T)[L - a tanh(L/a)] = ${fmt(phiExp, 5)} rad`; ttZero = Math.abs(c.tor.TtEnds[0]) <= 1e-9 && Math.abs(Math.abs(c.tor.TEnds[1]) - T / 1e6) <= 1e-6; }
       else if (udlOnly) { const X = Lmm / aa; phiExp = (t / GIt) * (Lmm * Lmm / 2 + aa * aa * (1 - 1 / Math.cosh(X)) - aa * Lmm * Math.tanh(X)); label = `cantilever uniform torque m = ${fmt(t, 1)} N.mm/mm: phi_tip = (m/GI_T)[L^2/2 + a^2(1 - sech(L/a)) - aL tanh(L/a)] = ${fmt(phiExp, 5)} rad`; ttZero = Math.abs(c.tor.TtEnds[0]) <= 1e-9 && Math.abs(Math.abs(c.tor.TEnds[0]) - t * Lmm / 1e6) <= 1e-6 + Math.abs(c.tor.TEnds[0]) * 1e-6 && Math.abs(c.tor.TEnds[1]) <= 1e-6; }
       else { phiExp = (t / GIt) * (Lmm * Lmm / 8 - Lmm * aa / 2 * Math.tanh(Lmm / (4 * aa))); label = `warping-fixed ends, uniform torque t = ${fmt(t, 1)} N.mm/mm: phi_mid = (t/GI_T)[L^2/8 - (La/2) tanh(L/4a)] = ${fmt(phiExp, 5)} rad`; ttZero = Math.abs(c.tor.TtEnds[0]) <= 1e-9 && Math.abs(c.tor.TtEnds[1]) <= 1e-9; }
-      add('xiii-torsionFE', rel(phiExp, c.tor.phiUmax) <= 1e-4 && ttZero && c.tor.meshConverged && c.tor.meshError <= 1e-3,
-        `${label} vs engine phi_max ${fmt(c.tor.phiUmax, 5)} rad (${c.tor.methodLabel}, mesh error ${(c.tor.meshError * 100).toExponential(2)} %); St Venant torque zero at the warping-fixed end(s): ${ttZero}`);
+      const meshOk = tipFree ? true : (c.tor.meshConverged && c.tor.meshError <= 1e-3);   // pure St Venant: B is numerical noise and the engine's relative bimoment measure is meaningless (finding, README)
+      add('xiii-torsionFE', rel(phiExp, c.tor.phiUmax) <= 1e-4 && ttZero && meshOk,
+        `${label} vs engine phi_max ${fmt(c.tor.phiUmax, 5)} rad (${c.tor.methodLabel}, mesh error ${(c.tor.meshError * 100).toExponential(2)} %${tipFree ? ' - the relative change of a vanishing bimoment, not a convergence measure' : ''}); ${tipFree ? 'root St Venant torque = T and B = 0' : 'St Venant torque zero at the warping-fixed end(s)'}: ${ttZero}`);
     }
   }
   // (xi) G3 item 8: k_c floor - printed k_c = max(1/sqrt(C1), 1/sqrt(2.76)) on both routes
@@ -532,6 +638,13 @@ function runOne(cs, method) {
     const r = L.McrRatio;
     add('iv-McrRatio', r >= RATIO_LO && r <= RATIO_HI, `Mcr eigen / standard = ${fmt(r, 3)} (${fmt(rec.Mcr, 1)} / ${fmt(L.McrStandard, 1)} kN.m, route ${L.c1route || '-'})`, 'flag');
   }
+
+  // (xvii) cantilever: the ratio Mcr,eigen / Mcr,SN006a recorded (I/H, root warping condition from the flag)
+  if (method === 'eigen' && L && !L.failed && isCantCase(cs.overrides) && L.std && L.std.route === 'sn006a') {
+    rec.cantSN006a = L.std.Mcr != null ? { ratio: L.McrRatio, McrEigen: L.McrEigen, McrSN006a: L.std.Mcr, C: L.std.sn006 && L.std.sn006.C, kwt: L.std.sn006 && L.std.sn006.kwt, eta: L.std.sn006 && L.std.sn006.eta, warp: L.std.sn006 && L.std.sn006.warp, caseLbl: L.std.sn006 && L.std.sn006.caseLbl } : { ratio: null, McrEigen: L.McrEigen, McrSN006a: null, reason: L.std.sn006 && L.std.sn006.reason ? stripHtml(L.std.sn006.reason) : 'not covered' };
+    add('xvii-cantSN006a', true, rec.cantSN006a.ratio != null ? `Mcr eigen ${fmt(L.McrEigen, 1)} / SN006a ${fmt(L.std.Mcr, 1)} = ${fmt(L.McrRatio, 3)} (C ${fmt(rec.cantSN006a.C, 3)}, kwt ${fmt(rec.cantSN006a.kwt, 3)}, eta ${fmt(rec.cantSN006a.eta, 2)}, root warping ${rec.cantSN006a.warp}, ${rec.cantSN006a.caseLbl})` : `SN006a not covered: ${rec.cantSN006a.reason}; Mcr eigen ${fmt(L.McrEigen, 1)}`, 'info');
+  }
+  rec.zgStdBlocked = !!(L && L.std && L.std.zgBlocked);
 
   // (v) Mb,Rd <= Mc,Rd
   if (L && !L.failed && rec.MbRd != null && rec.McRd != null) {
@@ -561,10 +674,11 @@ function runOne(cs, method) {
 const runs = [];
 const t00 = Date.now();
 for (const cs of selected) {
-  const methods = cs.overrides.restraint === 'ltb' ? ['eigen', 'standard'] : ['n/a'];
+  const methods = cs.expectError ? ['err'] : cs.overrides.restraint === 'ltb' ? ['eigen', 'standard'] : ['n/a'];
   for (const m of methods) {
-    const rec = runOne(cs, m === 'n/a' ? 'eigen' : m);
+    const rec = runOne(cs, m === 'n/a' || m === 'err' ? 'eigen' : m);
     if (m === 'n/a') rec.method = 'n/a (restrained)';
+    if (m === 'err') rec.method = 'n/a (invalid)';
     runs.push(rec);
     process.stdout.write(`${rec.id.padEnd(8)} ${rec.method.padEnd(16)} ${rec.verdict.padEnd(13)} ${rec.gov ? (rec.gov.name + ' = ' + fmt(rec.gov.val, 3)).padEnd(52) : (rec.error || '').slice(0, 52).padEnd(52)} ${fmt(rec.ms, 0).padStart(6)} ms${rec.checkFailures && rec.checkFailures.length ? '  CHECK FAIL: ' + rec.checkFailures.join(',') : ''}${rec.outlier ? '  [ratio outlier]' : ''}\n`);
   }
@@ -576,29 +690,64 @@ runs.forEach(r => { (byId[r.id] = byId[r.id] || {})[r.method] = r; });
 runs.forEach(r => {
   if (r.method === 'eigen' && byId[r.id].standard && r.Mcr > 0 && byId[r.id].standard.Mcr > 0) r.McrRatioRuns = r.Mcr / byId[r.id].standard.Mcr;
 });
+// (xvi) end-restraint bounds: eigen Mcr of a `pair` case >= that of its base case (whole-member design values);
+//   beside it the SN003a k = 0.5 (R_z both ends) or k_w = 0.5 (warping both ends) closed-form ratio computed here
+//   from the raw section table for the two tabulated diagrams (UDL C1 1.127 -> 0.972, central point load 1.348 -> 1.05)
+const pairRows = [];
+selected.filter(cs => cs.pair).forEach(cs => {
+  const me = byId[cs.id] && byId[cs.id].eigen, base = byId[cs.pair.base] && byId[cs.pair.base].eigen;
+  if (!me || !base) return;
+  const ok = me.Mcr > 0 && base.Mcr > 0 && me.Mcr >= base.Mcr * (1 - 1e-6);
+  const o = cs.overrides, e1 = endOf(o, 1), e2 = endOf(o, 2), bo = cases.find(x => x.id === cs.pair.base).overrides, b1 = endOf(bo, 1), b2 = endOf(bo, 2);
+  let closed = null;
+  const shape = closedFormLayout(o), sec = ctx.run(`(()=>{ S.family=${JSON.stringify(o.family)}; S.ubKey=${JSON.stringify(o.ubKey || 'x')}; S.ucKey=${JSON.stringify(o.ucKey || 'x')}; return activeSection(); })()`);
+  if (shape && shape.kind === 'ss' && (o.family === 'ub' || o.family === 'uc')) {
+    const E = 210000, Iz = sec.Iy * 1e4, It = sec.J * 1e4, Iw = (sec.Iw || 0) * 1e12, Lmm = o.L * 1000;
+    const cfk = (k, kw, C1) => C1 * Math.PI ** 2 * E * Iz / (k * Lmm) ** 2 * Math.sqrt((k / kw) ** 2 * Iw / Iz + (k * Lmm) ** 2 * G_STEEL * It / (Math.PI ** 2 * E * Iz));
+    const isUdl = Object.keys(shape.point).length === 0, isPt = Object.keys(shape.udl).length === 0 && Object.keys(shape.point).length > 0;
+    const C1k1 = isUdl ? 1.127 : isPt ? 1.348 : null, C1k05 = isUdl ? 0.972 : isPt ? 1.05 : null;
+    const clampBoth = e1.rz && e2.rz && !(b1.rz || b2.rz), warpBoth = e1.warp && e2.warp && !(b1.warp || b2.warp);
+    if (C1k1 && clampBoth && !warpBoth) closed = { label: 'SN003a k = 0.5, k_w = 1 (C1 ' + C1k05 + ' / ' + C1k1 + ')', ratio: cfk(0.5, 1, C1k05) / cfk(1, 1, C1k1) };
+    else if (C1k1 && warpBoth && !clampBoth) closed = { label: 'SN003a k = 1, k_w = 0.5 (C1 ' + C1k1 + ')', ratio: cfk(1, 0.5, C1k1) / cfk(1, 1, C1k1) };
+  }
+  const row = { id: cs.id, base: cs.pair.base, why: cs.pair.why, Mcr: me.Mcr, McrBase: base.Mcr, ratio: me.Mcr / base.Mcr, closed, ok };
+  pairRows.push(row);
+  me.checks.push({ id: 'xvi-McrPair', ok, kind: 'check', detail: `Mcr ${fmt(me.Mcr, 1)} (${cs.id}) vs ${fmt(base.Mcr, 1)} (${cs.pair.base}): ratio ${fmt(row.ratio, 3)}${closed ? ', closed-form ' + closed.label + ' ratio ' + fmt(closed.ratio, 3) : ''} - ${cs.pair.why}` });
+  if (!ok) me.checkFailures.push('xvi-McrPair');
+});
 
 // ---------------------------------------------------------------------------
 // summaries
 // ---------------------------------------------------------------------------
-const VERDICTS = ['PASS', 'FAIL', 'NOT VERIFIED', 'ERROR'];
+const VERDICTS = ['PASS', 'FAIL', 'NOT VERIFIED', 'ERROR', 'THROWS', 'WRONG THROW', 'NO THROW'];
+const VERDICTS_MAIN = ['PASS', 'FAIL', 'NOT VERIFIED', 'ERROR'];
+const groupOf = id => id.replace(/-.*$/, '');
 const FAMS = ['ub', 'uc', 'pfc', 'shs', 'rhs'];
 const count = (list, key) => { const o = {}; list.forEach(r => { o[key(r)] = (o[key(r)] || 0) + 1; }); return o; };
 const tableFam = {}, tableMethod = {};
-FAMS.forEach(f => { tableFam[f] = {}; VERDICTS.forEach(v => tableFam[f][v] = runs.filter(r => r.family === f && r.verdict === v).length); tableFam[f].runs = runs.filter(r => r.family === f).length; tableFam[f].cases = selected.filter(c => c.overrides.family === f).length; });
-['eigen', 'standard', 'n/a (restrained)'].forEach(m => { tableMethod[m] = {}; VERDICTS.forEach(v => tableMethod[m][v] = runs.filter(r => r.method === m && r.verdict === v).length); tableMethod[m].runs = runs.filter(r => r.method === m).length; });
+FAMS.forEach(f => { tableFam[f] = {}; VERDICTS.forEach(v => tableFam[f][v] = runs.filter(r => r.family === f && r.verdict === v && !r.expectError).length); tableFam[f].runs = runs.filter(r => r.family === f && !r.expectError).length; tableFam[f].cases = selected.filter(c => c.overrides.family === f && !c.expectError).length; });
+['eigen', 'standard', 'n/a (restrained)', 'n/a (invalid)'].forEach(m => { tableMethod[m] = {}; VERDICTS.forEach(v => tableMethod[m][v] = runs.filter(r => r.method === m && r.verdict === v).length); tableMethod[m].runs = runs.filter(r => r.method === m).length; });
 const checkFails = runs.filter(r => r.checkFailures && r.checkFailures.length);
 const outliers = runs.filter(r => r.outlier);
 const outliersRuns = runs.filter(r => r.McrRatioRuns != null && (r.McrRatioRuns < RATIO_LO || r.McrRatioRuns > RATIO_HI));
 const errors = runs.filter(r => r.verdict === 'ERROR');
+const throwsOk = runs.filter(r => r.verdict === 'THROWS'), throwsBad = runs.filter(r => r.verdict === 'WRONG THROW' || r.verdict === 'NO THROW');
+const GROUPS = [...new Set(selected.map(c => groupOf(c.id)))];
+const tableGroup = {};
+GROUPS.forEach(g => { tableGroup[g] = {}; VERDICTS.forEach(v => tableGroup[g][v] = runs.filter(r => groupOf(r.id) === g && r.verdict === v).length); tableGroup[g].runs = runs.filter(r => groupOf(r.id) === g).length; tableGroup[g].cases = selected.filter(c => groupOf(c.id) === g).length; });
+const cantRows = runs.filter(r => r.cantSN006a);
 const checkTotals = {};
 runs.forEach(r => (r.checks || []).forEach(k => { const t = checkTotals[k.id] = checkTotals[k.id] || { run: 0, ok: 0, fail: 0 }; t.run++; if (k.ok) t.ok++; else t.fail++; }));
 const triggerMismatches = runs.filter(r => r.triggerMismatch && (r.triggerMismatch.missing.length || r.triggerMismatch.extra.length));
+const checkFailsAll = runs.filter(r => r.checkFailures && r.checkFailures.length);
 
 const summary = {
   generated: new Date().toISOString(), node: process.version, cases: selected.length, runs: runs.length,
-  verdicts: count(runs, r => r.verdict), byFamily: tableFam, byMethod: tableMethod,
+  verdicts: count(runs, r => r.verdict), byFamily: tableFam, byMethod: tableMethod, byGroup: tableGroup,
+  expectedErrors: { ok: throwsOk.length, failed: throwsBad.map(r => ({ id: r.id, verdict: r.verdict, error: r.error })) },
+  pairs: pairRows, cantileverSN006a: cantRows.map(r => Object.assign({ id: r.id }, r.cantSN006a)),
   checkTotals, checkFailures: checkFails.map(r => ({ id: r.id, method: r.method, failed: r.checkFailures })),
-  ratioOutliersSameSegment: outliers.map(r => ({ id: r.id, ratio: r.McrRatio, route: r.c1route })),
+  ratioOutliersSameSegment: outliers.map(r => ({ id: r.id, ratio: r.McrRatio, route: r.c1route, reason: outlierReason(r, cases.find(c => c.id === r.id).overrides) })),
   ratioOutliersAcrossRuns: outliersRuns.map(r => ({ id: r.id, ratio: r.McrRatioRuns })),
   errors: errors.map(r => ({ id: r.id, method: r.method, error: r.error })),
   triggerMismatches: triggerMismatches.map(r => ({ id: r.id, method: r.method, missing: r.triggerMismatch.missing, extra: r.triggerMismatch.extra })),
@@ -616,13 +765,21 @@ md.push('# Batch verification results');
 md.push('');
 md.push(`Generated ${summary.generated} with Node ${process.version}; ${summary.cases} cases, ${summary.runs} runs (LTB cases run with both Mcr methods), ${(summary.totalMs / 1000).toFixed(1)} s.`);
 md.push('');
-md.push('Verdicts: ' + VERDICTS.map(v => `${v} ${summary.verdicts[v] || 0}`).join(' | ') + `. Cross-check failures: ${checkFails.length} runs. Eigen/standard Mcr ratio outliers (outside ${RATIO_LO}-${RATIO_HI}, same segment): ${outliers.length}; across the two runs (whole-member standard vs design eigen): ${outliersRuns.length}.`);
+md.push('Verdicts: ' + VERDICTS_MAIN.map(v => `${v} ${summary.verdicts[v] || 0}`).join(' | ') + `. Expected-error group: ${throwsOk.length} THROWS as declared, ${throwsBad.length} failed. Cross-check failures: ${checkFails.length} runs (${checkFails.filter(r => r.checkFailures.every(k => k === 'viii-Mend')).length} of them only the viii-Mend finding: the web-bearing station at a fixed End 2 reads the closing grid value M = 0 instead of the end reaction moment, so eta_1 = 0 there; ${checkFails.filter(r => !r.checkFailures.every(k => k === 'viii-Mend')).length} other). Eigen/standard Mcr ratio outliers (outside ${RATIO_LO}-${RATIO_HI}, same segment): ${outliers.length}; across the two runs (whole-member standard vs design eigen): ${outliersRuns.length}.`);
+md.push('');
+md.push('## Verdict counts per group');
+md.push('');
+md.push('| Group | Cases | Runs | PASS | FAIL | NOT VERIFIED | ERROR | THROWS | failed throw |');
+md.push('|---|---|---|---|---|---|---|---|---|');
+GROUPS.forEach(g => md.push(`| ${g} | ${tableGroup[g].cases} | ${tableGroup[g].runs} | ${tableGroup[g].PASS} | ${tableGroup[g].FAIL} | ${tableGroup[g]['NOT VERIFIED']} | ${tableGroup[g].ERROR} | ${tableGroup[g].THROWS} | ${tableGroup[g]['WRONG THROW'] + tableGroup[g]['NO THROW']} |`));
 md.push('');
 md.push('## Verdict counts per section family');
 md.push('');
 md.push('| Family | Cases | Runs | PASS | FAIL | NOT VERIFIED | ERROR |');
 md.push('|---|---|---|---|---|---|---|');
 FAMS.forEach(f => md.push(`| ${f.toUpperCase()} | ${tableFam[f].cases} | ${tableFam[f].runs} | ${tableFam[f].PASS} | ${tableFam[f].FAIL} | ${tableFam[f]['NOT VERIFIED']} | ${tableFam[f].ERROR} |`));
+md.push('');
+md.push('(The family counts exclude the ERR group: ' + throwsOk.length + ' invalid layouts threw the declared message' + (throwsBad.length ? ', ' + throwsBad.length + ' did not' : '') + '.)');
 md.push('');
 md.push('## Verdict counts per Mcr method');
 md.push('');
@@ -636,12 +793,34 @@ md.push('| Check | Runs | OK | Mismatch |');
 md.push('|---|---|---|---|');
 Object.keys(checkTotals).forEach(k => md.push(`| ${k} | ${checkTotals[k].run} | ${checkTotals[k].ok} | ${checkTotals[k].fail} |`));
 md.push('');
+md.push('## Expected-error group (invalid layouts)');
+md.push('');
+md.push('| Case | Layout | Expected message contains | Verdict | Thrown message |');
+md.push('|---|---|---|---|---|');
+runs.filter(r => r.expectError).forEach(r => md.push(`| ${r.id} | ${mdEsc(r.title)} | ${mdEsc(r.expectError)} | ${r.verdict} | ${mdEsc((r.error || '').slice(0, 160))} |`));
+md.push('');
+if (pairRows.length) {
+  md.push('## End-restraint bounds (xvi): eigen Mcr of the case against its base');
+  md.push('');
+  md.push('| Case | Base | Mcr case | Mcr base | Eigen ratio | Closed-form ratio | OK | Why |');
+  md.push('|---|---|---|---|---|---|---|---|');
+  pairRows.forEach(r => md.push(`| ${r.id} | ${r.base} | ${fmt(r.Mcr, 1)} | ${fmt(r.McrBase, 1)} | ${fmt(r.ratio, 3)} | ${r.closed ? fmt(r.closed.ratio, 3) + ' (' + r.closed.label + ')' : '-'} | ${r.ok ? 'yes' : 'NO'} | ${mdEsc(r.why)} |`));
+  md.push('');
+}
+if (cantRows.length) {
+  md.push('## Cantilevers (xvii): Mcr eigen against NCCI SN006a');
+  md.push('');
+  md.push('| Case | Root warping | SN006a case | C | kwt | eta | Mcr SN006a | Mcr eigen | Ratio | Title |');
+  md.push('|---|---|---|---|---|---|---|---|---|---|');
+  cantRows.forEach(r => { const k = r.cantSN006a; md.push(`| ${r.id} | ${k.warp || '-'} | ${mdEsc(k.caseLbl || k.reason || '-')} | ${fmt(k.C, 3)} | ${fmt(k.kwt, 3)} | ${fmt(k.eta, 2)} | ${fmt(k.McrSN006a, 1)} | ${fmt(k.McrEigen, 1)} | ${fmt(k.ratio, 3)} | ${mdEsc(r.title)} |`); });
+  md.push('');
+}
 if (outliers.length) {
   md.push('## Eigen / standard Mcr outliers (same segment, from the eigen run)');
   md.push('');
-  md.push('| Case | Ratio | Standard route | Mcr eigen | Mcr standard | Note |');
-  md.push('|---|---|---|---|---|---|');
-  outliers.forEach(r => md.push(`| ${r.id} | ${fmt(r.McrRatio, 3)} | ${r.c1route || '-'} | ${fmt(r.Mcr, 1)} | ${fmt(r.McrStd, 1)} | ${mdEsc(r.title)} |`));
+  md.push('| Case | Ratio | Standard route | Mcr eigen | Mcr standard | Reason | Title |');
+  md.push('|---|---|---|---|---|---|---|');
+  outliers.forEach(r => md.push(`| ${r.id} | ${fmt(r.McrRatio, 3)} | ${r.c1route || '-'} | ${fmt(r.Mcr, 1)} | ${fmt(r.McrStd, 1)} | ${mdEsc(outlierReason(r, cases.find(c => c.id === r.id).overrides))} | ${mdEsc(r.title)} |`));
   md.push('');
 }
 if (checkFails.length) {
@@ -670,7 +849,7 @@ md.push('## Runs');
 md.push('');
 md.push('| Id | Title | Section | Method | Verdict | Governing check (util) | Combos | Mcr kN.m | C1 | lamLT | chiLT | Mb,Rd | Mc,Rd | Vpl,Rd | d/dlim | Unsupported / blocking | ms |');
 md.push('|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|');
-runs.forEach(r => {
+runs.filter(r => !r.expectError).forEach(r => {
   const msgs = r.verdict === 'ERROR' ? r.error : (r.unsupported || []).map(s => s.slice(0, 120)).join(' / ');
   md.push(`| ${r.id} | ${mdEsc(r.title)} | ${r.section} | ${r.method} | ${r.verdict}${r.checkFailures && r.checkFailures.length ? ' (check: ' + r.checkFailures.join(',') + ')' : ''}${r.outlier ? ' (ratio outlier)' : ''} | ${r.gov ? mdEsc(r.gov.name) + ' (' + fmt(r.gov.val, 3) + ')' : '-'} | ${r.nCombos != null ? r.nCombos + (r.patterns && r.patterns.active ? ' (' + r.patterns.nUls + ' patt.)' : '') : '-'} | ${fmt(r.Mcr, 1)} | ${fmt(r.C1, 3)} | ${fmt(r.lamLT, 3)} | ${fmt(r.chiLT, 3)} | ${fmt(r.MbRd, 1)} | ${fmt(r.McRd, 1)} | ${fmt(r.VplRd, 1)} | ${fmt(r.deflRatio, 3)} | ${mdEsc(msgs || '-')} | ${fmt(r.ms, 0)} |`);
 });
@@ -678,7 +857,8 @@ md.push('');
 fs.writeFileSync(path.join(outDir, 'results.md'), md.join('\n'));
 
 console.log('');
-console.log(`cases ${summary.cases}, runs ${summary.runs}: ` + VERDICTS.map(v => `${v} ${summary.verdicts[v] || 0}`).join(', '));
-console.log(`cross-check failures: ${checkFails.length}; ratio outliers: ${outliers.length} (same segment), ${outliersRuns.length} (across runs); errors: ${errors.length}; trigger mismatches: ${triggerMismatches.length}; ${(summary.totalMs / 1000).toFixed(1)} s`);
+console.log(`cases ${summary.cases}, runs ${summary.runs}: ` + VERDICTS_MAIN.map(v => `${v} ${summary.verdicts[v] || 0}`).join(', ') + `; expected-error group: ${throwsOk.length} threw as declared, ${throwsBad.length} failed`);
+const mendOnly = checkFails.filter(r => r.checkFailures.every(k => k === 'viii-Mend')).length;
+console.log(`cross-check failures: ${checkFails.length} (${mendOnly} are the viii-Mend End 2 fixed-end station finding only, ${checkFails.length - mendOnly} other); pair bounds: ${pairRows.filter(r => !r.ok).length} violated of ${pairRows.length}; ratio outliers: ${outliers.length} (same segment), ${outliersRuns.length} (across runs); errors: ${errors.length}; trigger mismatches: ${triggerMismatches.length}; ${(summary.totalMs / 1000).toFixed(1)} s`);
 console.log('written: ' + path.join(outDir, 'results.json') + ', ' + path.join(outDir, 'results.md'));
-process.exitCode = errors.length ? 1 : 0;
+process.exitCode = (errors.length || throwsBad.length) ? 1 : 0;

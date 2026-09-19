@@ -1,218 +1,369 @@
-# Independent hand checks - 19 Sep 2026 verification campaign
+# Hand checks - single-span verification library (19 Sep 2026 scope)
 
-Every quantity below is recomputed from first principles or from published tables,
-step by step, using only the section table rows quoted from `js/sections/*.js`
-(and the SCI P385 torsion constants stored beside them), the case inputs of
-`tests/batch/cases.cjs`, E = 210 000 N/mm², G = 81 000 N/mm² (SN003a / P385), the
-UK NA partial factors γ<sub>M0</sub> = γ<sub>M1</sub> = 1.0 and the combination
-1.35G + 1.5Q. The engine value is what the check object prints for the same case
-(read through `tests/harness.cjs`). The arithmetic is reproduced by
-`node tests/batch/hand-checks.cjs`, which prints the same steps and the table at
-the end; `tests/campaign.test.cjs` pins the figures as regression values.
+Independent recomputation of 59 quantities over 24 cases of `cases.cjs`,
+written out step by step from the section table rows quoted from
+`js/sections/*.js` and the case inputs; no engine function is used for the hand
+value. `node tests/batch/hand-checks.cjs` reproduces every number below and
+prints the comparison table (exit code 1 when a difference above 1 % is not one
+of the two expected findings). Constants: E = 210 000 N/mm², G = 81 000 N/mm²
+(SN003a / P385), γ<sub>M0</sub> = γ<sub>M1</sub> = 1.0, self-weight = mass × 9.81/1000
+rounded to 4 decimals as the engine stores it.
 
-Anything above 1 % is a finding. Result: **29 comparisons, none above 0.001 %**
-(pre-change campaign). **19 Sep 2026 single-span scope:** HC-05 / HC-06 (the
-two- and three-span pattern moments, PAT-01 / PAT-03) left with the multi-span
-scope and HC-03 was re-derived for the rewritten WEB-07 (3 m simply supported,
-300 kN directly over End 2: the end station evaluates type (b) with the end-zone
-type (c) alongside, c = 0, s<sub>s</sub> + c = 100 < 2h<sub>w</sub>/3 = 188.7,
-the lower F<sub>Rd</sub> = 202.226 kN (type (c)) governs; F<sub>Ed</sub> =
-R<sub>2</sub> = 1.35(5 + 0.3953) &times; 3/2 + 450 = 460.926 kN); `node
-tests/batch/hand-checks.cjs` now prints **24 comparisons, none above 0.001 %**,
-the other entries unchanged.
-The one difference met on the way (HC-13b, a factor 1000 on the bimoment) was a
-unit slip in the first draft of the hand calculation (1 kN·m² = 10⁹ N·mm², not
-10⁶), corrected here; the engine value was right.
+Result (2026-09-19, Node 24): 56 of 59 comparisons agree to better than 0.01 %
+(the propped-cantilever deflection maximum to 0.008 %, a sampling effect of the
+120-element grid against the exact station). Three differences above 1 % are
+expected and explained: HC-17c is an **engine finding** (the web-bearing
+station at a fixed End 2 reads M<sub>Ed</sub> = 0), HC-23b / HC-23c are a
+**method difference** (the SN003a k = 0.5 column against the eigenvalue of the
+laterally clamped member, 1.8 % on the ratio).
 
-## Summary table
+## A. Statics and deflections of the presets
+
+### HC-01  UB-71  UB 305x165x40, 6 m guided-fixed, UDL 3 G + 4 Q
+
+End 1 fixed (U<sub>z</sub> + R<sub>y</sub>), End 2 sliding (R<sub>y</sub> held, U<sub>z</sub>
+free). By symmetry the member is one half of a fixed-fixed beam of span 2L:
+M<sub>fixed</sub> = wL²/3, M<sub>guided</sub> = wL²/6 (sagging), R<sub>1</sub> = wL,
+R<sub>2</sub> = 0, tip deflection w(2L)⁴/(384EI) = wL⁴/(24EI). Row: mass 40.3 kg/m,
+I<sub>x</sub> = 8500 cm⁴.
+
+- w<sub>ULS</sub> = 1.35 (3 + 0.3953) + 1.5 × 4 = 10.5837 kN/m
+- M<sub>1</sub> = 10.5837 × 36/3 = **127.004 kN·m**, M<sub>2</sub> = 10.5837 × 36/6 = **63.502 kN·m**, R<sub>1</sub> = 10.5837 × 6 = **63.502 kN**
+- δ<sub>tip</sub> (SLS, Q only, w = 4 N/mm) = 4 × 6000⁴/(24 × 210 000 × 8500 × 10⁴) = **12.101 mm**
+
+Engine: 127.004 / 63.502 kN·m, R<sub>1</sub> 63.502 kN, R<sub>2</sub> 0.000 kN, δ 12.101 mm (0.000 %).
+
+### HC-02  UB-72  UB 406x178x54, 6 m guided-fixed, point load 15 G + 40 Q at the guided end
+
+A tip load P on the guided end is the central load 2P of the fixed-fixed beam
+of span 2L: M<sub>fixed</sub> = M<sub>guided</sub> = 2P(2L)/8 = PL/2, δ<sub>tip</sub> =
+2P(2L)³/(192EI) = PL³/(12EI). Self-weight (0.7164 kN/m × 1.35) adds wL²/3 and
+wL²/6. Row: mass 54.1, I<sub>x</sub> = 18 700 cm⁴.
+
+- P<sub>ULS</sub> = 1.35 × 15 + 1.5 × 40 = 80.25 kN; w<sub>sw</sub> = 1.35 × 0.5307 = 0.7164 kN/m
+- M<sub>1</sub> = 80.25 × 3 + 0.7164 × 12 = **249.347 kN·m**; M<sub>2</sub> = 240.75 + 0.7164 × 6 = **245.049 kN·m**
+- δ<sub>tip</sub> = 40 000 × 6000³/(12 × 210 000 × 18 700 × 10⁴) = **18.335 mm**
+
+Engine: 249.347 / 245.049 kN·m, 18.335 mm (0.000 %).
+
+### HC-03  UB-21  UB 406x140x39, 8 m fixed-fixed, UDL 5 G + 6 Q
+
+M<sub>end</sub> = wL²/12, R = wL/2, δ<sub>mid</sub> = wL⁴/(384EI). Row: mass 39.0, I<sub>x</sub> = 12 500 cm⁴.
+
+- w<sub>ULS</sub> = 1.35 (5 + 0.3826) + 9 = 16.2665 kN/m; M<sub>end</sub> = 16.2665 × 64/12 = **86.755 kN·m**; R = **65.066 kN**
+- δ<sub>mid</sub> (SLS w = 6) = 6 × 8000⁴/(384 × 210 000 × 12 500 × 10⁴) = **2.438 mm**
+
+Engine: 86.755 kN·m at both ends, 65.066 kN, 2.438 mm (0.000 %).
+
+### HC-04  UB-53  UB 457x191x82, 8 m fixed-fixed, central point load 60 G + 150 Q
+
+M<sub>end</sub> = PL/8 + w<sub>sw</sub>L²/12, δ<sub>mid</sub> = PL³/(192EI). Row: mass 82.0, I<sub>x</sub> = 37 100 cm⁴.
+
+- P<sub>ULS</sub> = 81 + 225 = 306 kN; w<sub>sw</sub> = 1.35 × 0.8044 = 1.0859 kN/m
+- M<sub>end</sub> = 306 × 8/8 + 1.0859 × 64/12 = **311.792 kN·m**
+- δ<sub>mid</sub> (SLS P = 150 kN) = 150 000 × 8000³/(192 × 210 000 × 37 100 × 10⁴) = **5.134 mm**
+
+Engine: 311.792 kN·m, 5.134 mm (0.000 %).
+
+### HC-05  UB-64 / UB-19  cantilevers
+
+UB-64: UB 305x165x40, 3 m, UDL 6 G + 9 Q: M<sub>root</sub> = wL²/2, δ<sub>tip</sub> = wL⁴/(8EI).
+w<sub>ULS</sub> = 1.35 (6 + 0.3953) + 13.5 = 22.1337 kN/m → M = 22.1337 × 9/2 = **99.601 kN·m**;
+δ = 9 × 3000⁴/(8 × 210 000 × 8500 × 10⁴) = **5.105 mm** (limit L/180 = 16.67 mm).
+
+UB-19: UB 254x102x22, 3 m, tip load 10 Q: M<sub>root</sub> = PL + w<sub>sw</sub>L²/2 =
+15 × 3 + 0.2913 × 4.5 = **46.311 kN·m**; δ = 10 000 × 3000³/(3 × 210 000 × 2840 × 10⁴) = **15.091 mm**.
+
+Engine: 99.601 / 5.105, 46.311 / 15.091 (0.000 %).
+
+### HC-06  UB-76 / UB-77  pinned-guided
+
+One half of a simply supported beam of span 2L: M<sub>guided</sub> = wL²/2 (+ PL for a
+tip load), R<sub>1</sub> = wL (+ P), δ<sub>tip</sub> = 5wL⁴/(24EI) (+ PL³/(3EI)).
+
+UB-76 (UB 305x165x40, 4 m, UDL 3 G + 4 Q): w<sub>ULS</sub> = 10.5837 → M<sub>2</sub> = 10.5837 × 16/2 =
+**84.669 kN·m**, R<sub>1</sub> = **42.335 kN**, δ = 5 × 4 × 4000⁴/(24 × 210 000 × 8500 × 10⁴) = **11.951 mm**.
+
+UB-77 (UB 406x178x54, 5 m, tip load 8 G + 20 Q): P<sub>ULS</sub> = 40.80 kN → M<sub>2</sub> =
+40.8 × 5 + 0.7164 × 12.5 = **212.956 kN·m**; δ = 20 000 × 5000³/(3 × 210 000 × 18 700 × 10⁴) = **21.221 mm**.
+
+Engine: all five values to 0.000 %.
+
+### HC-07  UB-20  UB 305x127x37, 6 m propped cantilever (End 1 fixed, End 2 pinned), UDL 6 G + 7 Q
+
+M<sub>fixed</sub> = wL²/8, R<sub>pinned</sub> = 3wL/8, R<sub>fixed</sub> = 5wL/8. Deflection curve
+with ξ from the pinned end: y = wξ(L³ − 3Lξ² + 2ξ³)/(48EI); dy/dξ = 0 gives
+1 − 9t² + 8t³ = 0, t = ξ/L = 0.42154, so y<sub>max</sub> = 0.005416 wL⁴/EI
+(= wL⁴/184.6EI; the textbook "wL⁴/185EI"). Row: mass 37.0, I<sub>x</sub> = 7170 cm⁴.
+
+- w<sub>ULS</sub> = 1.35 (6 + 0.363) + 10.5 = 19.0900 kN/m → M<sub>1</sub> = **85.905 kN·m**, R<sub>2</sub> = **42.953 kN**, R<sub>1</sub> = 71.588 kN
+- δ<sub>max</sub> (SLS w = 7) = 7 × 2529.2 × (6000³ − 3 × 6000 × 2529.2² + 2 × 2529.2³)/(48 × 210 000 × 7170 × 10⁴) = **3.263 mm** at 3.471 m from End 1
+
+Engine: 85.905 kN·m, 42.953 kN, 3.263 mm at x = 3.45 m (−0.008 %: the engine reports its 120-element node nearest the exact station).
+
+## B. Strut effective lengths from the end fixities
+
+### HC-08  AX-04  UC 254x254x73, 6 m guided-fixed, N = 300 kN
+
+`lcrDefaults()` (P360 Table 6.2 / BS 5950 Table 22 style [verify]): y-y from
+U<sub>z</sub>/R<sub>y</sub> - held in position and direction at End 1, held in direction
+only at End 2 (sway permitted, guided) - L<sub>cr,y</sub> = 1.2 L = 7.2 m; z-z from
+U<sub>y</sub>/R<sub>z</sub> - held in position and direction at both ends - L<sub>cr,z</sub> = 0.7 L = 4.2 m.
+EN 1993-1-1 6.3.1.2 with λ<sub>1</sub> = π√(E/f<sub>y</sub>) = 86.815 (f<sub>y</sub> = 275, t<sub>f</sub> 14.2), Table 6.2 rolled
+H (h/b ≤ 1.2, t<sub>f</sub> ≤ 100): y-y curve b (α 0.34), z-z curve c (α 0.49). Row: A 93.1 cm², i<sub>y</sub> 11.1 cm, i<sub>z</sub> 6.48 cm
+(Blue Book radii of gyration, as the engine reads them).
+
+- λ̄<sub>y</sub> = 7200/111/86.815 = 0.7472 → Φ = 0.5[1 + 0.34(0.5472) + 0.5583] = 0.8722 → χ<sub>y</sub> = 0.7564 → N<sub>b,y,Rd</sub> = 0.7564 × 9310 × 275 = **1936.6 kN**
+- λ̄<sub>z</sub> = 4200/64.8/86.815 = 0.7466 → Φ = 0.5[1 + 0.49(0.5466) + 0.5574] = 0.9126 → χ<sub>z</sub> = 0.6957 → N<sub>b,z,Rd</sub> = **1781.1 kN**
+
+Engine: L<sub>cr,y</sub> 7200, L<sub>cr,z</sub> 4200 mm, N<sub>b,y,Rd</sub> 1936.63, N<sub>b,z,Rd</sub> 1781.09 kN (0.000 %).
+
+## C. Web transverse forces (EN 1993-1-5 clause 6)
+
+### HC-09  WEB-01  UB 610x229x101, 3 m SS, 600 kN (Q) at mid-span, s<sub>s</sub> = 0, type (a)
+
+Row: D 602.6, B 227.6, t<sub>w</sub> 10.5, t<sub>f</sub> 14.8 (< 16 → f<sub>y</sub> = 275).
+
+- h<sub>w</sub> = 573.0; b<sub>f</sub> = min(227.6, t<sub>w</sub> + 30εt<sub>f</sub> = 421.0) = 227.6; m<sub>1</sub> = 21.676; m<sub>2</sub> = 0.02 (573/14.8)² = 29.979
+- k<sub>F</sub> = 6 + 2(h<sub>w</sub>/a)² with a = L = 3000 (no stiffener) = 6.0730; F<sub>cr</sub> = 0.9 × 6.073 × 210 000 × 10.5³/573 = 2318.9 kN
+- l<sub>y</sub> = s<sub>s</sub> + 2t<sub>f</sub>(1 + √(m<sub>1</sub> + m<sub>2</sub>)) = 242.34 mm; λ̄<sub>F</sub> = √(242.34 × 10.5 × 275/2 318 900) = 0.5493 (> 0.5, m<sub>2</sub> retained)
+- χ<sub>F</sub> = 0.5/0.5493 = 0.9102; L<sub>eff</sub> = 220.58 mm; F<sub>Rd</sub> = 275 × 220.58 × 10.5/1000 = **636.9 kN**; F<sub>Ed</sub> = 900 kN → 1.413
+
+Engine: 636.914 kN (0.000 %).
+
+### HC-10  WEB-04  UB 533x210x92, 6 m SS, UDL 30 G + 40 Q, end reaction on s<sub>s</sub> = 40, type (c)
+
+Row: D 533.1, B 209.3, t<sub>w</sub> 10.1, t<sub>f</sub> 15.6, mass 92.1. h<sub>w</sub> = 501.9, m<sub>1</sub> = 20.723,
+m<sub>2</sub> = 20.702; end station c = 0, s<sub>s</sub> + c = 40 < 2h<sub>w</sub>/3 = 334.6 → end zone, types (c) and (a) both evaluated.
+
+- type (c): k<sub>F</sub> = 2 + 6(40/501.9) = 2.4782; F<sub>cr</sub> = 961.5 kN; l<sub>e</sub> = min(k<sub>F</sub>Et<sub>w</sub>²/(2f<sub>y</sub>h<sub>w</sub>) = 192.4, s<sub>s</sub> + c = 40) = 40;
+  l<sub>y</sub> = min(l<sub>e</sub> + t<sub>f</sub>√(m<sub>1</sub>/2 + (l<sub>e</sub>/t<sub>f</sub>)² + m<sub>2</sub>), l<sub>e</sub> + t<sub>f</sub>√(m<sub>1</sub> + m<sub>2</sub>)) = 135.71; λ̄<sub>F</sub> = 0.6261; F<sub>Rd</sub> = **301.0 kN**
+- type (a) alongside: 663.9 kN → (c) governs
+- R = wL/2 with w = 1.35 (30 + 0.9035) + 60 = 101.720 kN/m → **305.16 kN**; F<sub>Ed</sub>/F<sub>Rd</sub> = 1.014
+
+Engine: 301.001 kN, 305.159 kN (0.000 %).
+
+### HC-11  WEB-07  UB 305x165x40, 3 m SS, 300 kN (Q) directly over End 2, s<sub>s</sub> = 100
+
+Load through the web at the end station: type (b) with the end-zone type (c)
+alongside (s<sub>s</sub> + c = 100 < 2h<sub>w</sub>/3 = 188.7), lower governs;
+F<sub>Ed</sub> = max(P, R) = R<sub>2</sub>. Row: D 303.4, B 165.0, t<sub>w</sub> 6.0, t<sub>f</sub> 10.2, mass 40.3.
+
+- type (b): k<sub>F</sub> = 3.5 + 2(283/3000)² = 3.5178, F<sub>cr</sub> = 507.5 kN, l<sub>y</sub> = 254.01, λ̄<sub>F</sub> = 0.9088, χ<sub>F</sub> = 0.5502, F<sub>Rd</sub> = 230.6 kN
+- type (c): k<sub>F</sub> = 4.1201, F<sub>cr</sub> = 594.3 kN, l<sub>y</sub> = 166.80, λ̄<sub>F</sub> = 0.6805, χ<sub>F</sub> = 0.7348, F<sub>Rd</sub> = **202.2 kN** (governs)
+- R<sub>2</sub> = 1.35 (5 + 0.3953) × 3/2 + 1.5 × 300 = **460.93 kN**; F<sub>Ed</sub>/F<sub>Rd</sub> = 2.279
+
+Engine: 202.226 kN (type c), 460.925 kN (0.000 %).
+
+### HC-12  WEB-06  RHS 250x150x6.3, 3 m SS, 80 kN (Q) at mid-span at e = 40 mm, s<sub>s</sub> = 60
+
+Two webs of thickness t with the tabulated flat depth h<sub>w</sub> = d/t × t = 36.7 × 6.3 =
+231.21; flange share per web b<sub>f</sub> = min(B/2 = 75, t + 15εt = 93.66) = 75; m<sub>1</sub> = 11.905,
+m<sub>2</sub> = 26.94; k<sub>F</sub> = 6.0119, F<sub>cr</sub> = 1228.8 kN; first pass λ̄<sub>F</sub> ≤ 0.5 so m<sub>2</sub> = 0:
+l<sub>y</sub> = 116.07, λ̄<sub>F</sub> = 0.4045, χ<sub>F</sub> = 1.0, F<sub>Rd</sub> per web = 201.1 kN; lever-rule share of the
+eccentric load to the near web 0.5 + 40/(150 − 6.3) = 0.7784 → F<sub>Rd</sub> = 201.1/0.7784 = **258.4 kN**.
+
+Engine: 258.362 kN, share 0.778 (0.000 %).
+
+### HC-17  WEB-09  UB 533x210x92, 6 m fixed-fixed, UDL 30 G + 40 Q, end reactions on s<sub>s</sub> = 40 (WEB-04 with fixed ends)
+
+F<sub>Rd</sub> (type c, 301.0 kN) and R = wL/2 (305.16 kN) are those of HC-10; what changes
+at a fixed end is the 7.2 interaction, η<sub>2</sub> + 0.8η<sub>1</sub> ≤ 1.4, with
+η<sub>1</sub> = M<sub>Ed</sub>/M<sub>c,Rd</sub> at the station taken from the hogging end moment:
+
+- η<sub>2</sub> = 305.16/301.0 = 1.0138; M<sub>end</sub> = wL²/12 = 101.720 × 36/12 = 305.16 kN·m; M<sub>c,Rd</sub> = W<sub>pl</sub>f<sub>y</sub> = 2360 × 10³ × 275 = 649.0 kN·m → η<sub>1</sub> = 0.4702
+- (η<sub>2</sub> + 0.8η<sub>1</sub>)/1.4 = **0.9928 at both ends** (the loading and the ends are symmetric)
+
+Engine: End 1 station M<sub>Ed</sub> = 305.16 kN·m = the reaction moment, 0.9928 (0.000 %).
+**End 2 station: M<sub>Ed</sub> = 0.00, η<sub>1</sub> = 0, 0.7242 (−27 %): engine finding.**
+`webTransverseCheck()` samples the combination diagram with `interpAt(fb.xs, fb.M, s.x)`
+exactly at the station; at x = L the grid closes to zero beyond the end reaction
+moment (the last two grid values are −305.16 at 5999.9999 and 0 at 6000), so the
+End 2 station of any member with R<sub>y</sub> held at End 2 loses its η<sub>1</sub>.
+At End 1 the first grid value already carries the reaction moment, so End 1 is
+right. The symmetric library cases still get the correct governing station from
+End 1; an asymmetric member whose larger hogging moment is at End 2 is
+under-checked on the 7.2 interaction. Fix: read the station moment a fraction
+inside the member (`s.x >= L - tol ? s.x - 1e-4 : s.x`), as `analyse()` already
+does for M<sub>Lend</sub>. Batch cross-check viii-Mend flags it on 71 runs.
+
+## D. Elastic critical moment
+
+### HC-13  UB-04 (standard route)  UB 305x165x40, 6 m SS, UDL 5 G + 6 Q, z<sub>g</sub> = +152 mm
+
+SN003a Table 3.2, simply supported + UDL: C<sub>1</sub> = 1.127, C<sub>2</sub> = 0.454, k = k<sub>w</sub> = 1.
+Row: I<sub>z</sub> 764 cm⁴, I<sub>T</sub> 14.7 cm⁴, I<sub>w</sub> 0.164 dm⁶.
+
+- π²EI<sub>z</sub>/L² = 439 855 N; I<sub>w</sub>/I<sub>z</sub> = 21 466 mm²; GI<sub>T</sub>/(π²EI<sub>z</sub>/L²) = 27 070 mm²; C<sub>2</sub>z<sub>g</sub> = 69.008 mm
+- M<sub>cr</sub> = 1.127 × 439 855 × [√(21 466 + 27 070 + 69.008²) − 69.008] = **80.23 kN·m** (109.21 kN·m at the shear centre: the load height costs 26.5 %)
+
+Engine: 80.2349 kN·m, C<sub>1</sub> 1.127, C<sub>2</sub> 0.454, z<sub>g</sub> +152 applied (0.000 %).
+
+### HC-14  UB-45 / UB-43 (standard route)  fixed-ended rows of SN003a Table 3.2
+
+UB-45: UC 203x203x60, 6 m fixed-fixed, central point load, z<sub>g</sub> = +105: C<sub>1</sub> = 1.683,
+C<sub>2</sub> = 1.645 (I<sub>z</sub> 2060, I<sub>T</sub> 47.2 cm⁴, I<sub>w</sub> 0.197 dm⁶) → **189.46 kN·m**.
+UB-43: UB 406x140x39, 8 m fixed-fixed, UDL, z<sub>g</sub> = +203: C<sub>1</sub> = 2.578, C<sub>2</sub> = 1.554
+(I<sub>z</sub> 410, I<sub>T</sub> 10.7 cm⁴, I<sub>w</sub> 0.155 dm⁶) → **46.09 kN·m**.
+
+Engine: 189.461 and 46.0888 kN·m (0.000 %).
+
+### HC-15  UB-19 (standard route)  UB 254x102x22, 3 m cantilever, 10 kN tip load, root warping restrained
+
+NCCI SN006a: M<sub>cr</sub> = C × M<sub>cr0</sub>, M<sub>cr0</sub> = (π/L)√(EI<sub>z</sub>GI<sub>T</sub>), κ<sub>wt</sub> = √(EI<sub>w</sub>/GI<sub>T</sub>)/L,
+η = z<sub>g</sub>/(h<sub>s</sub>/2) = 0. Row: I<sub>z</sub> 119, I<sub>T</sub> 4.15 cm⁴, I<sub>w</sub> 0.0182 dm⁶, mass 22.0.
+Tables (js/01-computation-engine.js SN006, 'restr', η = 0, κ<sub>wt</sub> rows 0.3 / 0.4): F 2.35 / 2.72, q 4.57 / 5.45.
+
+- M<sub>cr0</sub> = **30.351 kN·m**; κ<sub>wt</sub> = 0.3554 → C<sub>F</sub> = 2.5551, C<sub>q</sub> = 5.0578
+- factored self-weight moment M<sub>q</sub> = 1.35 × 0.2158 × 4.5 = 1.311 kN·m = 2.8 % of the total (> 2 % de-minimis) → Eq (7): C = (1.311 + 45)/(1.311/5.058 + 45/2.555) = 2.5914
+- M<sub>cr</sub> = 2.5914 × 30.351 = **78.65 kN·m**
+
+Engine: 78.6527 kN·m, C 2.5914 (0.000 %). The eigen route gives 79.20 kN·m (ratio 1.007, recorded in results.md, table "Cantilevers (xvii)").
+
+### HC-23  CUS-01 vs UB-03  UB 305x165x40, 6 m SS, UDL 5 G + 6 Q: laterally clamped ends against the SN003a k = 0.5 factor
+
+SN003a Eq (3): M<sub>cr</sub> = C<sub>1</sub>π²EI<sub>z</sub>/(kL)² √[(k/k<sub>w</sub>)² I<sub>w</sub>/I<sub>z</sub> + (kL)²GI<sub>T</sub>/(π²EI<sub>z</sub>)].
+Fork ends k = 1, C<sub>1</sub> = 1.127; R<sub>z</sub> restrained at both ends (v′ = 0) k = 0.5, C<sub>1</sub> = 0.972
+(Table 3.2, k = 0.5 column), k<sub>w</sub> = 1 (warping free at both ends).
+
+- fork: **109.21 kN·m**; clamped: 0.972 × 4 × 439 855 × √(21 466 + 27 070/4)/10⁶ = **188.38 kN·m**; ratio **1.7249**
+- eigen (whole member, actual UDL diagram): fork 109.62 (+0.38 %), clamped 192.44 (+2.16 %); ratio 1.7555 (+1.77 %)
+
+The fork-ended eigenvalue agrees with the closed form to 0.4 %. The 2.2 % on
+the clamped member (1.8 % on the ratio) is a method difference: the k = 0.5
+column of SN003a Table 3.2 is a tabulated approximation of the v′ = 0 boundary
+condition, the eigenvalue is the exact solution of the same equations with that
+boundary condition on the same diagram; the closed form is on the conservative
+side. Not an engine defect; the batch pair check xvi-McrPair (results.md,
+"End-restraint bounds") records the two ratios beside each other for every pair.
+
+## E. Channel torsional-flexural buckling, high shear, A<sub>eff</sub>
+
+### HC-18  TFB-01  PFC 200x90x30, 4 m SS, N = 80 kN, L<sub>T</sub> = L<sub>cr,z</sub> = 4 m
+
+EN 1993-1-1 6.3.1.4. Row: A 37.9 cm², I<sub>y</sub> 2520 cm⁴, i<sub>y</sub> 8.16, i<sub>z</sub> 2.88 cm; P385 Table: I<sub>T</sub> 19.1 cm⁴,
+I<sub>w</sub> 0.0197 dm⁶, e<sub>sc</sub> = y<sub>0</sub> = 63.7 mm.
+
+- i<sub>0</sub>² = 81.6² + 28.8² + 63.7² = 11 545.7 mm²; N<sub>cr,T</sub> = (GI<sub>T</sub> + π²EI<sub>w</sub>/L<sub>T</sub>²)/i<sub>0</sub>² = (1.5471 × 10¹⁰ + 2.5519 × 10⁹)/11 545.7 = **1561.0 kN**
+- N<sub>cr,y</sub> = π²EI<sub>y</sub>/L² = 3264.4 kN; β = 1 − (y<sub>0</sub>/i<sub>0</sub>)² = 0.6486; N<sub>cr,TF</sub> = (N<sub>cr,y</sub> + N<sub>cr,T</sub>)/(2β) [1 − √(1 − 4βN<sub>cr,y</sub>N<sub>cr,T</sub>/(N<sub>cr,y</sub> + N<sub>cr,T</sub>)²)] = **1274.3 kN**
+- λ̄<sub>T</sub> = √(3790 × 275/1 274 260) = 0.9044; curve c: Φ = 1.0815, χ<sub>T</sub> = 0.5971; N<sub>b,T,Rd</sub> = **622.4 kN**; N<sub>Ed</sub>/N<sub>b,T,Rd</sub> = 0.128
+
+Engine: 1561.01, 1274.26, 622.363 kN (0.000 %).
+
+### HC-19  HSV-04  RHS 300x100x10, 2 m SS, 470 kN (Q) at 0.3 m: high-shear M<sub>v,y,Rd</sub>
+
+Row: A 74.9 cm², W<sub>pl,y</sub> 666 cm³, mass 58.8. A<sub>v</sub> = A h/(b + h) = 5617.5 mm²,
+V<sub>pl,Rd</sub> = **891.9 kN**. At x = 0.3 m (support side): R<sub>1</sub> = 705 × 1.7/2 + w<sub>sw</sub> = 600.03 kN,
+V = 599.80 kN, M = 179.97 kN·m; ρ = (2 × 599.8/891.9 − 1)² = 0.1190;
+M<sub>v,y,Rd</sub> = (666 000 − 0.1190 × 10 × 280²/2) × 275 = **170.32 kN·m** (two webs); M/M<sub>v</sub> = **1.0567**.
+
+Engine: 170.320 kN·m, 891.898 kN, 1.05668 (0.000 %).
+
+### HC-20  AEF-01  UB 1016x305x222, S275 (t<sub>f</sub> 21.1 → 265 N/mm²), N = 1500 kN
+
+EN 1993-1-5 4.4, ψ = 1, k<sub>σ</sub> = 4: ε = 0.9417, 42ε = 39.55 < d/t = 54.3 → Class 4;
+λ̄<sub>p</sub> = 54.3/(28.4 × 0.9417 × 2) = 1.0152; ρ = (1.0152 − 0.22)/1.0152² = 0.7716;
+A<sub>eff</sub> = 28 300 − 0.2284 × 868.1 × 16 = **25 127 mm²** (0.888 A); N<sub>c,Rd</sub> = 6658.7 kN; N<sub>Ed</sub>/N<sub>c,Rd</sub> = **0.2253**.
+
+Engine: 25 127.3 mm², 0.225268 (0.000 %).
+
+## F. Warping torsion (Vlasov closed forms)
+
+### HC-21  UB-49 / TOR-07  UB 457x191x82, 4 m cantilever, 20 kN (Q) at the tip at e = 80 mm
+
+T = 1.5 × 20 × 80 = 2400 kN·mm. P385 Table: I<sub>T</sub> 69.2 cm⁴, I<sub>w</sub> 0.922 dm⁶ → GI<sub>T</sub> = 5.6052 × 10¹⁰ N·mm²,
+EI<sub>w</sub> = 1.9362 × 10¹⁷ N·mm⁴, a = √(EI<sub>w</sub>/GI<sub>T</sub>) = 1858.6 mm (P385: 1.86 m), L/a = 2.1522, tanh = 0.97334.
+
+- root warping fixed (UB-49): φ(L) = (T/GI<sub>T</sub>)[L − a tanh(L/a)] = 4.2817 × 10⁻⁵ × (4000 − 1809.0) = **0.09381 rad**; B(0) = T a tanh(L/a) = **4.3417 kN·m²**
+- root warping free (TOR-07): the solution of EI<sub>w</sub>φ⁗ − GI<sub>T</sub>φ″ = 0 with φ(0) = 0, φ″(0) = 0 (natural), φ″(L) = 0, torque T at L is linear, φ = Tx/GI<sub>T</sub>: pure St Venant, **φ(L) = TL/GI<sub>T</sub> = 0.17127 rad**, B ≡ 0
+
+Engine: 0.0938118 rad, 4.34166 kN·m² (UB-49); 0.171270 rad, B<sub>max</sub> 6.7 × 10⁻⁸ kN·m² (noise), root St Venant torque 2.400 kN·m = T (TOR-07), 0.000 %.
+**TOR-07 finding:** the engine's mesh measure reports 43 % and blocks PASS ("mesh has not converged"):
+`warpingTorsionFE()` takes the largest relative change of max|φ|, max|φ′| and max|B|
+between the 120- and 240-element meshes, and with B being round-off (10⁻⁸ against a
+physical scale T·a ≈ 4.5 kN·m²) the relative change of B is meaningless. Fix: normalise
+the bimoment part by a physical scale (e.g. max(T<sub>max</sub>·a, max|B|)) or drop it when
+max|B| is below 10⁻⁶ of that scale. Every other warping-free case in the library carries
+a distributed torque or a mid-span torque, where B is real and the measure converges.
+
+### HC-22  TOR-05 / UB-51  distributed torques
+
+TOR-05: UB 305x165x40, 3 m cantilever, UDL 3 G + 5 Q at e = 80 mm: uniform torque
+m = (1.35 × 3 + 1.5 × 5) × 80 = 924 N·mm/mm; root warping fixed, tip free. Solving
+EI<sub>w</sub>φ⁗ − GI<sub>T</sub>φ″ = m with φ(0) = φ′(0) = 0, B(L) = 0, T(L) = 0: the particular
+solution is −mx²/(2GI<sub>T</sub>); with the homogeneous part A + Bx + C cosh(x/a) + D sinh(x/a)
+the four conditions give φ(L) = (m/GI<sub>T</sub>)[L²/2 + a²(1 − sech(L/a)) − aL tanh(L/a)].
+a = 1700.7 mm, L/a = 1.7640 → **φ(L) = 0.12559 rad** (St Venant alone 0.3492 rad);
+root torque mL = **2.772 kN·m**.
+
+UB-51: UB 457x191x82, 8 m SS, UDL 5 G + 8 Q at e = 100 mm, both ends warping fixed:
+t = 1875 N·mm/mm, φ = φ′ = 0 at both ends: φ(L/2) = (t/GI<sub>T</sub>)[L²/8 − (La/2) tanh(L/4a)],
+L/(4a) = 1.0761 → **0.07071 rad** (fork ends would give 0.1786 rad).
+
+Engine: 0.125587 rad, 2.772 kN·m, 0.0707132 rad (0.000 %).
+
+## Comparison table
 
 | # | Case / quantity | Hand value | Engine value | Diff % |
 |---|---|---|---|---|
-| HC-01 | WEB-01 F<sub>Rd</sub> type (a), mid-span point load, s<sub>s</sub> = 0 | 636.914 kN | 636.914 kN | +0.000 |
-| HC-02 | WEB-04 F<sub>Rd</sub> type (c) end reaction, s<sub>s</sub> = 40 | 301.001 kN | 301.001 kN | +0.000 |
-| HC-02b | WEB-04 end reaction F<sub>Ed</sub> (statics) | 305.159 kN | 305.159 kN | 0.000 |
-| HC-03 | WEB-07 F<sub>Rd</sub> type (b), load through the web over support 2 | 230.150 kN | 230.150 kN | +0.000 |
-| HC-03b | WEB-07 F<sub>Ed</sub> = R<sub>2</sub> (two-span statics) | 477.314 kN | 477.314 kN | 0.000 |
-| HC-04 | WEB-06 RHS two-web F<sub>Rd</sub> with the lever-rule share | 258.362 kN | 258.362 kN | +0.000 |
-| HC-05 | PAT-01 M<sub>B</sub> hogging, Q on span 1 only | −133.137 kN·m | −133.137 kN·m | 0.000 |
-| HC-05b | PAT-01 M<sub>max</sub> sagging, Q on span 1 only | 139.590 kN·m | 139.589 kN·m | −0.001 |
-| HC-05c | PAT-01 R<sub>C</sub> (far end), Q on span 1 only | 21.568 kN | 21.568 kN | 0.000 |
-| HC-06 | PAT-03 M<sub>C</sub> hogging, Q on spans 2+3 only | −152.924 kN·m | −152.924 kN·m | 0.000 |
-| HC-06b | PAT-03 M<sub>B</sub> hogging, Q on spans 2+3 only | −74.799 kN·m | −74.799 kN·m | 0.000 |
-| HC-07 | UB-04 standard M<sub>cr</sub>, SS UDL, C<sub>1</sub> 1.127 / C<sub>2</sub> 0.454, z<sub>g</sub> +152 | 80.235 kN·m | 80.235 kN·m | +0.000 |
-| HC-08 | UB-45 standard M<sub>cr</sub>, fixed-ended central point load, C<sub>1</sub> 1.683 / C<sub>2</sub> 1.645, z<sub>g</sub> +105 | 189.461 kN·m | 189.461 kN·m | +0.000 |
-| HC-16 | UB-43 standard M<sub>cr</sub>, fixed-ended UDL, C<sub>1</sub> 2.578 / C<sub>2</sub> 1.554, z<sub>g</sub> +203 | 46.089 kN·m | 46.089 kN·m | +0.000 |
-| HC-09 | UB-19 SN006a M<sub>cr</sub> = C M<sub>cr0</sub>, tip load + self-weight, warping restrained | 78.653 kN·m | 78.653 kN·m | +0.000 |
-| HC-09b | UB-19 M<sub>cr0</sub> = (π/L)√(EI<sub>z</sub>GI<sub>t</sub>) | 30.351 kN·m | 30.351 kN·m | +0.000 |
-| HC-10 | TFB-01 N<sub>cr,T</sub> | 1561.01 kN | 1561.01 kN | +0.000 |
-| HC-10b | TFB-01 N<sub>cr,TF</sub> (coupled with the y-y mode) | 1274.26 kN | 1274.26 kN | +0.000 |
-| HC-10c | TFB-01 N<sub>b,T,Rd</sub> (curve c) | 622.363 kN | 622.363 kN | 0.000 |
-| HC-11 | HSV-04 M<sub>v,y,Rd</sub> (RHS two-web form) at x = 0.3 m | 170.320 kN·m | 170.320 kN·m | +0.000 |
-| HC-11b | HSV-04 V<sub>pl,Rd</sub> (A<sub>v</sub> = A h/(b + h)) | 891.898 kN | 891.898 kN | +0.000 |
-| HC-11c | HSV-04 M/M<sub>v,y,Rd</sub> | 1.05668 | 1.05668 | 0.000 |
-| HC-12 | AEF-01 A<sub>eff</sub> (EN 1993-1-5 4.4) | 25127.3 mm² | 25127.3 mm² | +0.000 |
-| HC-12b | AEF-01 N<sub>Ed</sub>/N<sub>c,Rd</sub> with A<sub>eff</sub> | 0.22527 | 0.22527 | +0.000 |
-| HC-13 | UB-49 cantilever tip twist φ(L), tip torque | 0.093812 rad | 0.093812 rad | +0.000 |
-| HC-13b | UB-49 root bimoment B(0) = T a tanh(L/a) | 4.3417 kN·m² | 4.3417 kN·m² | 0.000 |
-| HC-14 | TOR-05 cantilever tip twist, uniform torque | 0.125587 rad | 0.125587 rad | +0.000 |
-| HC-14b | TOR-05 root torque m L | 2.772 kN·m | 2.772 kN·m | +0.000 |
-| HC-15 | UB-51 mid-span twist, warping-fixed ends | 0.070713 rad | 0.070713 rad | 0.000 |
+| HC-01 | UB-71 guided-fixed: M at the fixed End 1 = wL²/3 | 127.004 kN·m | 127.004 kN·m | +0.000 |
+| HC-01b | UB-71 guided-fixed: M at the guided End 2 = wL²/6 | 63.5019 kN·m | 63.5019 kN·m | +0.000 |
+| HC-01c | UB-71 guided-fixed: R<sub>1</sub> = wL | 63.5019 kN | 63.5019 kN | +0.000 |
+| HC-01d | UB-71 guided-fixed: tip deflection wL⁴/24EI (SLS Q) | 12.1008 mm | 12.1008 mm | +0.000 |
+| HC-02 | UB-72 guided-fixed tip load: M<sub>1</sub> = PL/2 + wL²/3 | 249.347 kN·m | 249.347 kN·m | +0.000 |
+| HC-02b | UB-72 guided-fixed tip load: M<sub>2</sub> = PL/2 + wL²/6 | 245.049 kN·m | 245.049 kN·m | +0.000 |
+| HC-02c | UB-72 guided-fixed tip load: deflection PL³/12EI | 18.3346 mm | 18.3346 mm | +0.000 |
+| HC-03 | UB-21 fixed-fixed UDL: M<sub>end</sub> = wL²/12 (End 1) | 86.7547 kN·m | 86.7547 kN·m | −0.000 |
+| HC-03b | UB-21 fixed-fixed UDL: R = wL/2 | 65.0660 kN | 65.0660 kN | −0.000 |
+| HC-03c | UB-21 fixed-fixed UDL: d<sub>mid</sub> = wL⁴/384EI | 2.43810 mm | 2.43810 mm | −0.000 |
+| HC-04 | UB-53 fixed-fixed central P: M<sub>end</sub> = PL/8 + wL²/12 | 311.792 kN·m | 311.792 kN·m | +0.000 |
+| HC-04b | UB-53 fixed-fixed central P: d<sub>mid</sub> = PL³/192EI | 5.13413 mm | 5.13413 mm | +0.000 |
+| HC-05 | UB-64 cantilever UDL: M<sub>root</sub> = wL²/2 | 99.6014 kN·m | 99.6014 kN·m | +0.000 |
+| HC-05b | UB-64 cantilever UDL: d<sub>tip</sub> = wL⁴/8EI | 5.10504 mm | 5.10504 mm | +0.000 |
+| HC-05c | UB-19 cantilever tip load: M<sub>root</sub> = PL + wL²/2 | 46.3110 kN·m | 46.3110 kN·m | +0.000 |
+| HC-05d | UB-19 cantilever tip load: d<sub>tip</sub> = PL³/3EI | 15.0905 mm | 15.0905 mm | +0.000 |
+| HC-06 | UB-76 pinned-guided UDL: M<sub>2</sub> = wL²/2 | 84.6692 kN·m | 84.6692 kN·m | −0.000 |
+| HC-06b | UB-76 pinned-guided UDL: R<sub>1</sub> = wL | 42.3346 kN | 42.3346 kN | −0.000 |
+| HC-06c | UB-76 pinned-guided UDL: d<sub>tip</sub> = 5wL⁴/24EI | 11.9514 mm | 11.9514 mm | −0.000 |
+| HC-06d | UB-77 pinned-guided tip load: M<sub>2</sub> = PL + wL²/2 | 212.956 kN·m | 212.956 kN·m | −0.000 |
+| HC-06e | UB-77 pinned-guided tip load: d<sub>tip</sub> = PL³/3EI | 21.2206 mm | 21.2206 mm | −0.000 |
+| HC-07 | UB-20 propped UDL: M<sub>fixed</sub> = wL²/8 | 85.9052 kN·m | 85.9052 kN·m | +0.000 |
+| HC-07b | UB-20 propped UDL: R<sub>pinned</sub> = 3wL/8 | 42.9526 kN | 42.9526 kN | +0.000 |
+| HC-07c | UB-20 propped UDL: d<sub>max</sub> = 0.005416 wL⁴/EI at 0.4215 L from the pin | 3.26327 mm | 3.26302 mm | −0.008 |
+| HC-08 | AX-04 guided-fixed: L<sub>cr,y</sub> = 1.2 L | 7200.00 mm | 7200.00 mm | +0.000 |
+| HC-08b | AX-04 guided-fixed: L<sub>cr,z</sub> = 0.7 L | 4200.00 mm | 4200.00 mm | +0.000 |
+| HC-08c | AX-04 N<sub>b,y,Rd</sub> (curve b, 1.2 L) | 1936.63 kN | 1936.63 kN | +0.000 |
+| HC-08d | AX-04 N<sub>b,z,Rd</sub> (curve c, 0.7 L) | 1781.09 kN | 1781.09 kN | +0.000 |
+| HC-09 | WEB-01 F<sub>Rd</sub> type (a) mid-span point load, s<sub>s</sub> = 0 | 636.914 kN | 636.914 kN | +0.000 |
+| HC-10 | WEB-04 F<sub>Rd</sub> type (c) end reaction, s<sub>s</sub> = 40 | 301.001 kN | 301.001 kN | +0.000 |
+| HC-10b | WEB-04 end reaction F<sub>Ed</sub> (statics) | 305.159 kN | 305.159 kN | −0.000 |
+| HC-11 | WEB-07 F<sub>Rd</sub> at the end station, load through the web over End 2 (lower of (b) and (c)) | 202.226 kN | 202.226 kN | +0.000 |
+| HC-11b | WEB-07 F<sub>Ed</sub> = R<sub>2</sub> (simply supported statics) | 460.926 kN | 460.925 kN | −0.000 |
+| HC-12 | WEB-06 RHS two-web F<sub>Rd</sub> with the lever-rule share | 258.362 kN | 258.362 kN | +0.000 |
+| HC-17 | WEB-09 F<sub>Rd</sub> type (c) at the fixed end, s<sub>s</sub> = 40 | 301.001 kN | 301.001 kN | +0.000 |
+| HC-17b | WEB-09 7.2 interaction (η<sub>2</sub> + 0.8η<sub>1</sub>)/1.4 at End 1 with M<sub>Ed</sub> = wL²/12 | 0.992839 | 0.992839 | −0.000 |
+| HC-17c | WEB-09 7.2 interaction at End 2 (engine finding: the station reads M = 0) | 0.992839 | 0.724154 | −27.062 (FINDING) |
+| HC-13 | UB-04 standard M<sub>cr</sub>, SS UDL, C<sub>1</sub> 1.127 / C<sub>2</sub> 0.454, z<sub>g</sub> +152 | 80.2349 kN·m | 80.2349 kN·m | +0.000 |
+| HC-14 | UB-45 standard M<sub>cr</sub>, fixed-ended central point load, C<sub>1</sub> 1.683 / C<sub>2</sub> 1.645, z<sub>g</sub> +105 | 189.461 kN·m | 189.461 kN·m | +0.000 |
+| HC-14b | UB-43 standard M<sub>cr</sub>, fixed-ended UDL, C<sub>1</sub> 2.578 / C<sub>2</sub> 1.554, z<sub>g</sub> +203 | 46.0888 kN·m | 46.0888 kN·m | +0.000 |
+| HC-15 | UB-19 SN006a M<sub>cr</sub> = C M<sub>cr0</sub>, tip load + self-weight, warping restrained | 78.6527 kN·m | 78.6527 kN·m | +0.000 |
+| HC-15b | UB-19 M<sub>cr0</sub> = (π/L)√(EI<sub>z</sub>GI<sub>T</sub>) | 30.3514 kN·m | 30.3514 kN·m | +0.000 |
+| HC-23 | UB-03 fork-ended eigen M<sub>cr</sub> against the SN003a k = 1 closed form | 109.211 kN·m | 109.623 kN·m | +0.377 |
+| HC-23b | CUS-01 laterally clamped eigen M<sub>cr</sub> against the SN003a k = 0.5 closed form | 188.382 kN·m | 192.445 kN·m | +2.157 (method difference) |
+| HC-23c | ratio M<sub>cr</sub>(clamped)/M<sub>cr</sub>(fork): SN003a k = 0.5 factor against the eigen ratio | 1.72493 | 1.75551 | +1.773 (method difference) |
+| HC-18 | TFB-01 N<sub>cr,T</sub> | 1561.01 kN | 1561.01 kN | +0.000 |
+| HC-18b | TFB-01 N<sub>cr,TF</sub> (coupled with the y-y mode) | 1274.26 kN | 1274.26 kN | +0.000 |
+| HC-18c | TFB-01 N<sub>b,T,Rd</sub> (curve c) | 622.363 kN | 622.363 kN | −0.000 |
+| HC-19 | HSV-04 M<sub>v,y,Rd</sub> (RHS two-web form) at x = 0.3 m | 170.320 kN·m | 170.320 kN·m | +0.000 |
+| HC-19b | HSV-04 V<sub>pl,Rd</sub> (A<sub>v</sub> = A h/(b + h)) | 891.898 kN | 891.898 kN | +0.000 |
+| HC-19c | HSV-04 M/M<sub>v,y,Rd</sub> | 1.05668 | 1.05668 | −0.000 |
+| HC-20 | AEF-01 A<sub>eff</sub> (EN 1993-1-5 4.4) | 25127.3 mm² | 25127.3 mm² | +0.000 |
+| HC-20b | AEF-01 N<sub>Ed</sub>/N<sub>c,Rd</sub> with A<sub>eff</sub> | 0.225268 | 0.225268 | +0.000 |
+| HC-21 | UB-49 cantilever tip twist φ(L), tip torque, root warping fixed | 0.0938118 rad | 0.0938118 rad | +0.000 |
+| HC-21b | UB-49 root bimoment B(0) = T a tanh(L/a) | 4.34166 kN·m² | 4.34166 kN·m² | +0.000 |
+| HC-21c | TOR-07 cantilever tip twist, root warping FREE: φ(L) = TL/GI<sub>T</sub> | 0.171270 rad | 0.171270 rad | +0.000 |
+| HC-22 | TOR-05 cantilever tip twist, uniform torque | 0.125587 rad | 0.125587 rad | +0.000 |
+| HC-22b | TOR-05 root torque mL | 2.77200 kN·m | 2.77200 kN·m | +0.000 |
+| HC-22c | UB-51 mid-span twist, warping-fixed ends | 0.0707132 rad | 0.0707132 rad | −0.000 |
 
-## HC-01  WEB-01: F<sub>Rd</sub> of an interior point load, type (a), s<sub>s</sub> = 0
-
-UB 610x229x101, S275, 3 m simply supported, 600 kN (Q) at mid-span, no stiff bearing.
-Row: `["610 x 229 x 101",101.2,602.6,227.6,10.5,14.8,12.7,547.6,...]` → h = 602.6, b = 227.6,
-t<sub>w</sub> = 10.5, t<sub>f</sub> = 14.8 (< 16 mm → f<sub>y</sub> = 275, ε = √(235/275) = 0.9244).
-
-1. h<sub>w</sub> = h − 2t<sub>f</sub> = 602.6 − 29.6 = 573.0 mm.
-2. Flange width contributing to m<sub>1</sub> (6.5(1), 15εt<sub>f</sub> each side): b<sub>f</sub> = min(227.6, 10.5 + 30 × 0.9244 × 14.8 = 421.0) = 227.6 mm.
-3. m<sub>1</sub> = f<sub>yf</sub>b<sub>f</sub>/(f<sub>yw</sub>t<sub>w</sub>) = 227.6/10.5 = 21.676; m<sub>2</sub> = 0.02(h<sub>w</sub>/t<sub>f</sub>)² = 0.02 × 38.72² = 29.979 (kept if λ̄<sub>F</sub> > 0.5).
-4. Type (a), no stiffener → a = L = 3000: k<sub>F</sub> = 6 + 2(h<sub>w</sub>/a)² = 6 + 2 × 0.191² = 6.0730.
-5. F<sub>cr</sub> = 0.9 k<sub>F</sub> E t<sub>w</sub>³/h<sub>w</sub> = 0.9 × 6.0730 × 210000 × 1157.6/573.0 = 2 318 900 N = 2318.9 kN.
-6. l<sub>y</sub> = s<sub>s</sub> + 2t<sub>f</sub>(1 + √(m<sub>1</sub> + m<sub>2</sub>)) = 0 + 29.6 × (1 + √51.655) = 29.6 × 8.187 = 242.34 mm (≤ a).
-7. λ̄<sub>F</sub> = √(l<sub>y</sub>t<sub>w</sub>f<sub>yw</sub>/F<sub>cr</sub>) = √(242.34 × 10.5 × 275/2 318 900) = 0.5493 > 0.5 → m<sub>2</sub> stays.
-8. χ<sub>F</sub> = 0.5/0.5493 = 0.9102; L<sub>eff</sub> = 0.9102 × 242.34 = 220.58 mm.
-9. **F<sub>Rd</sub> = f<sub>yw</sub>L<sub>eff</sub>t<sub>w</sub>/γ<sub>M1</sub> = 275 × 220.58 × 10.5/1000 = 636.9 kN.** F<sub>Ed</sub> = 1.5 × 600 = 900 kN → 1.413 (FAIL, as designed). Engine 636.914 kN.
-
-## HC-02  WEB-04: F<sub>Rd</sub> of an end reaction, type (c) with (a) alongside, s<sub>s</sub> = 40
-
-UB 533x210x92, 6 m SS, UDL 30 G + 40 Q, s<sub>s</sub> = 40 mm at both supports.
-Row: `["533 x 210 x 92",92.1,533.1,209.3,10.1,15.6,12.7,476.5,...]`, f<sub>y</sub> = 275.
-
-1. h<sub>w</sub> = 533.1 − 31.2 = 501.9; b<sub>f</sub> = min(209.3, 10.1 + 30 × 0.9244 × 15.6 = 442.7) = 209.3; m<sub>1</sub> = 209.3/10.1 = 20.723; m<sub>2</sub> = 0.02 × (501.9/15.6)² = 20.702.
-2. End station: d = 0, c = max(d − s<sub>s</sub>/2, 0) = 0; s<sub>s</sub> + c = 40 < 2h<sub>w</sub>/3 = 334.6 → end zone, types (c) and (a) both evaluated, lower governs.
-3. Type (c): k<sub>F</sub> = 2 + 6(s<sub>s</sub> + c)/h<sub>w</sub> = 2 + 6 × 40/501.9 = 2.4782 (≤ 6); F<sub>cr</sub> = 0.9 × 2.4782 × 210000 × 10.1³/501.9 = 961.5 kN.
-4. l<sub>e</sub> = k<sub>F</sub>Et<sub>w</sub>²/(2f<sub>yw</sub>h<sub>w</sub>) = 2.4782 × 210000 × 102.01/(2 × 275 × 501.9) = 192.4 → ≤ s<sub>s</sub> + c = 40 → l<sub>e</sub> = 40.
-5. l<sub>y</sub> = min[ l<sub>e</sub> + t<sub>f</sub>√(m<sub>1</sub>/2 + (l<sub>e</sub>/t<sub>f</sub>)² + m<sub>2</sub>), l<sub>e</sub> + t<sub>f</sub>√(m<sub>1</sub> + m<sub>2</sub>) ] = min[40 + 15.6√(10.36 + 6.57 + 20.70) = 135.71, 40 + 15.6√41.43 = 140.41] = 135.71 mm.
-6. λ̄<sub>F</sub> = √(135.71 × 10.1 × 275/961 500) = 0.6261 > 0.5; χ<sub>F</sub> = 0.5/0.6261 = 0.7986; F<sub>Rd,c</sub> = 275 × 0.7986 × 135.71 × 10.1/1000 = 301.0 kN.
-7. Type (a) alongside (k<sub>F</sub> = 6.014, l<sub>y</sub> = 40 + 31.2(1 + √41.43) = 271.8): F<sub>Rd,a</sub> = 663.9 kN. **F<sub>Rd</sub> = min = 301.0 kN.** Engine 301.001 kN.
-8. Reaction: w = 1.35(30 + 92.1 × 9.81/1000 = 0.9035) + 1.5 × 40 = 101.720 kN/m; R = wL/2 = 305.16 kN (engine 305.159); F<sub>Ed</sub>/F<sub>Rd</sub> = 1.014 (FAIL by 1.4 %, as designed; WEB-05 with s<sub>s</sub> = 100 gives F<sub>Rd</sub> = 415.4 kN, 0.735).
-
-## HC-03  WEB-07: F<sub>Rd</sub> of a point load over the interior support, type (b)
-
-UB 305x165x40, 2 × 3 m continuous, G 5 kN/m, 300 kN (Q) at x = 3 m directly over support 2, s<sub>s</sub> = 100.
-Row: `["305 x 165 x 40",40.3,303.4,165.0,6.0,10.2,8.9,265.2,...]`.
-
-1. h<sub>w</sub> = 303.4 − 20.4 = 283.0; b<sub>f</sub> = min(165, 6 + 30 × 0.9244 × 10.2 = 288.9) = 165; m<sub>1</sub> = 165/6 = 27.50; m<sub>2</sub> = 0.02 × (283/10.2)² = 15.396.
-2. Interior station (d = 3000, not an end zone). Type (b): k<sub>F</sub> = 3.5 + 2(h<sub>w</sub>/a)² with a = L = 6000: 3.5 + 2 × 0.04717² = 3.5044; F<sub>cr</sub> = 0.9 × 3.5044 × 210000 × 216/283 = 505.5 kN.
-3. l<sub>y</sub> = 100 + 2 × 10.2 × (1 + √42.896) = 100 + 20.4 × 7.5495 = 254.01 mm.
-4. λ̄<sub>F</sub> = √(254.01 × 6 × 275/505 500) = 0.9105; χ<sub>F</sub> = 0.5491; **F<sub>Rd</sub> = 275 × 0.5491 × 254.01 × 6/1000 = 230.2 kN.** Engine 230.150 kN.
-5. F<sub>Ed</sub> = max(P, R<sub>2</sub>): two equal spans under w = 1.35(5 + 0.3953) = 7.2837 kN/m give R<sub>2</sub> = 2 × (5/8)wL = 27.31 kN, plus the 1.5 × 300 = 450 kN applied at the support → R<sub>2</sub> = 477.31 kN (engine 477.314). F<sub>Ed</sub>/F<sub>Rd</sub> = 2.074 (FAIL, as designed).
-
-## HC-04  WEB-06: RHS with two webs and the lever-rule load share
-
-RHS 250x150x6.3, 3 m SS, 80 kN (Q) at mid-span at e = 40 mm from the shear centre, s<sub>s</sub> = 60.
-Row: `["250 x 150 x 6.3",38.0,250.0,150.0,6.3,48.4,20.8,36.7,...]` → h = 250, b = 150, t = 6.3, flat web depth d = (d/t) × t = 36.7 × 6.3 = 231.21 mm.
-
-1. Per web: t<sub>w</sub> = t<sub>f</sub> = 6.3, h<sub>w</sub> = 231.21; b<sub>f</sub> = min(b/2 = 75, t + 15εt = 6.3 + 87.36 = 93.66) = 75; m<sub>1</sub> = 75/6.3 = 11.905; m<sub>2</sub> = 0.02 × (231.21/6.3)² = 26.94.
-2. Type (a), k<sub>F</sub> = 6 + 2(231.21/3000)² = 6.0119; F<sub>cr</sub> = 0.9 × 6.0119 × 210000 × 250.05/231.21 = 1228.8 kN.
-3. First pass l<sub>y</sub> = 60 + 12.6(1 + √38.85) = 151.1 → λ̄<sub>F</sub> = √(151.1 × 6.3 × 275/1 228 800) = 0.4615 ≤ 0.5 → m<sub>2</sub> = 0, second pass l<sub>y</sub> = 60 + 12.6(1 + √11.905) = 116.07, λ̄<sub>F</sub> = 0.4045, χ<sub>F</sub> = 1.
-4. F<sub>Rd</sub> per web = 275 × 116.07 × 6.3/1000 = 201.1 kN.
-5. Lever rule: the near web carries 0.5 + e/(b − t) = 0.5 + 40/143.7 = 0.7784 of the load, so the station resistance is F<sub>Rd</sub> = 201.1/0.7784 = **258.4 kN**. Engine 258.362 kN, share 0.778.
-
-## HC-05  PAT-01: two-span pattern "Q on span 1 only" (Clapeyron)
-
-UB 457x191x82, 2 × 6 m, UDL 10 G + 20 Q, self-weight 82.0 × 9.81/1000 = 0.80442 kN/m on both spans at γ<sub>G</sub>.
-
-1. w<sub>1</sub> = 1.35(10 + 0.80442) + 1.5 × 20 = 44.586 kN/m; w<sub>2</sub> = 14.586 kN/m.
-2. Three-moment equation at B (M<sub>A</sub> = M<sub>C</sub> = 0): 2M<sub>B</sub>(2L) = −(w<sub>1</sub> + w<sub>2</sub>)L³/4 → M<sub>B</sub> = −(w<sub>1</sub> + w<sub>2</sub>)L²/16 = −59.172 × 36/16 = **−133.137 kN·m** (engine −133.137).
-3. R<sub>A</sub> = w<sub>1</sub>L/2 + M<sub>B</sub>/L = 133.758 − 22.190 = 111.568 kN; x<sub>max</sub> = R<sub>A</sub>/w<sub>1</sub> = 2.502 m; M<sub>max</sub> = R<sub>A</sub>²/(2w<sub>1</sub>) = **139.590 kN·m** (engine 139.589, the grid station nearest 2.502 m).
-4. R<sub>C</sub> = w<sub>2</sub>L/2 + M<sub>B</sub>/L = 43.758 − 22.190 = **21.568 kN** (engine 21.568); the Q-only SLS pattern lifts it by −wL/16 = −7.5 kN (engine −7.50, advisory).
-
-## HC-06  PAT-03: three-span pattern "Q on spans 2+3 only"
-
-UB 533x210x92, 3 × 5 m, UDL 12 G + 25 Q. w<sub>G</sub> = 1.35(12 + 0.9035) = 17.420 kN/m on every span, w<sub>Q</sub> = 37.5 kN/m on spans 2 and 3.
-
-1. Clapeyron at B and C (M<sub>A</sub> = M<sub>D</sub> = 0, equal spans): 4M<sub>B</sub> + M<sub>C</sub> = −(w<sub>1</sub> + w<sub>2</sub>)L²/4 = −(17.420 + 54.920) × 6.25 = −452.122; M<sub>B</sub> + 4M<sub>C</sub> = −(w<sub>2</sub> + w<sub>3</sub>)L²/4 = −109.840 × 6.25 = −686.497.
-2. Determinant 15: M<sub>B</sub> = (4 × (−452.122) + 686.497)/15 = **−74.799 kN·m**; M<sub>C</sub> = (4 × (−686.497) + 452.122)/15 = **−152.924 kN·m** (engine −74.799 / −152.924).
-3. Coefficient check: G on all spans 0.100 w<sub>G</sub>L² = 43.549 plus Q on two adjacent spans 0.11667 w<sub>Q</sub>L² = 109.375 at C → 152.92 ✓ (Steel Designers' Manual continuous-beam coefficients).
-
-## HC-07  UB-04: standard M<sub>cr</sub> with the C<sub>2</sub>z<sub>g</sub> term, simply supported UDL
-
-UB 305x165x40, 6 m SS, UDL, load on the top flange z<sub>g</sub> = +152 mm. Row: I<sub>z</sub> = 764 cm⁴, I<sub>t</sub> = 14.7 cm⁴, I<sub>w</sub> = 0.164 dm⁶. SN003a Table 3.2 (k = k<sub>w</sub> = 1): C<sub>1</sub> = 1.127, C<sub>2</sub> = 0.454.
-
-1. π²EI<sub>z</sub>/L² = π² × 210000 × 7.64 × 10⁶/6000² = 439 855 N.
-2. I<sub>w</sub>/I<sub>z</sub> = 1.64 × 10¹¹/7.64 × 10⁶ = 21 466 mm²; GI<sub>t</sub>/(π²EI<sub>z</sub>/L²) = 81000 × 1.47 × 10⁵/439 855 = 27 070 mm²; C<sub>2</sub>z<sub>g</sub> = 0.454 × 152 = 69.01 mm.
-3. M<sub>cr</sub> = C<sub>1</sub>(π²EI<sub>z</sub>/L²){√(21466 + 27070 + 69.01²) − 69.01} = 1.127 × 439 855 × (√53298 − 69.01) = 1.127 × 439 855 × (230.86 − 69.01) = **80.23 kN·m** (engine 80.235). At the shear centre the same chain gives 109.21 kN·m: the load height costs 26.5 %.
-
-## HC-08  UB-45: standard M<sub>cr</sub> with C<sub>2</sub>z<sub>g</sub>, fixed-ended central point load
-
-UC 203x203x60, 6 m fixed-fixed, central point load on the top flange z<sub>g</sub> = +105 mm. Row `["203 x 203 x 60",...]`: I<sub>z</sub> = 2060 cm⁴, I<sub>t</sub> = 47.2 cm⁴, I<sub>w</sub> = 0.197 dm⁶. SN003a Table 3.2 fixed-ended + central point load: C<sub>1</sub> = 1.683, C<sub>2</sub> = 1.645.
-
-π²EI<sub>z</sub>/L² = 1 185 998 N; I<sub>w</sub>/I<sub>z</sub> = 9563 mm²; GI<sub>t</sub>/T<sub>1</sub> = 32 236 mm²; C<sub>2</sub>z<sub>g</sub> = 172.73 mm;
-M<sub>cr</sub> = 1.683 × 1 185 998 × (√(9563 + 32236 + 29834) − 172.73) = 1.683 × 1 185 998 × (267.64 − 172.73) = **189.46 kN·m** (engine 189.461).
-
-## HC-16  UB-43: standard M<sub>cr</sub> with C<sub>2</sub>z<sub>g</sub>, fixed-ended UDL
-
-UB 406x140x39, 8 m fixed-fixed, UDL on the top flange z<sub>g</sub> = +203. Row `["406 x 140 x 39",39.0,398.0,141.8,6.4,8.6,10.2,360.4,6.69,56.3,12500.0,410.0,...,10.7,49.7,0.155]`: I<sub>z</sub> = 410 cm⁴, I<sub>t</sub> = 10.7 cm⁴, I<sub>w</sub> = 0.155 dm⁶; C<sub>1</sub> = 2.578, C<sub>2</sub> = 1.554.
-
-π²EI<sub>z</sub>/L² = 132 777 N; I<sub>w</sub>/I<sub>z</sub> = 37 805; GI<sub>t</sub>/T<sub>1</sub> = 65 275; C<sub>2</sub>z<sub>g</sub> = 315.46 mm; M<sub>cr</sub> = 2.578 × 132 777 × (√(37805 + 65275 + 99515) − 315.46) = 2.578 × 132 777 × (450.11 − 315.46) = **46.09 kN·m** (engine 46.089).
-
-## HC-09  UB-19: NCCI SN006a cantilever, tip point load, root warping restrained
-
-UB 254x102x22, 3 m cantilever, 10 kN (Q) at the tip, z<sub>g</sub> = 0. Row `["254 x 102 x 22",...]`: I<sub>z</sub> = 119 cm⁴, I<sub>t</sub> = 4.15 cm⁴, I<sub>w</sub> = 0.0182 dm⁶, mass 22.0 kg/m.
-
-1. M<sub>cr0</sub> = (π/L)√(EI<sub>z</sub>GI<sub>t</sub>) = (π/3000)√(210000 × 1.19 × 10⁶ × 81000 × 4.15 × 10⁴) = 30.351 kN·m.
-2. κ<sub>wt</sub> = √(EI<sub>w</sub>/(GI<sub>t</sub>))/L = √(3.822 × 10¹⁵/3.3615 × 10⁹)/3000 = 1066.3/3000 = 0.3554; η = z<sub>g</sub>/(h<sub>s</sub>/2) = 0.
-3. Table 3.2 (F, warping restrained), η = 0 column, rows κ<sub>wt</sub> = 0.3 → 2.35 and 0.4 → 2.72 (`SN006.F.restr` in js/01-computation-engine.js): C<sub>F</sub> = 2.35 + 0.37 × 0.554 = 2.5551. Table 3.1 (q, restrained): 4.57 / 5.45 → C<sub>q</sub> = 5.0578.
-4. The factored self-weight is a uniform load on the cantilever: M<sub>q</sub> = 1.35 × 0.2158 × 3²/2 = 1.311 kN·m against M<sub>F</sub> = 1.5 × 10 × 3 = 45 kN·m (2.8 % of the total, above the engine's 2 % de-minimis), so SN006a Eq (7) combines them: C = (M<sub>q</sub> + M<sub>F</sub>)/(M<sub>q</sub>/C<sub>q</sub> + M<sub>F</sub>/C<sub>F</sub>) = 46.311/(0.2592 + 17.612) = 2.5914.
-5. **M<sub>cr</sub> = 2.5914 × 30.351 = 78.65 kN·m** (engine 78.653, C 2.5914).
-
-## HC-10  TFB-01: channel torsional and torsional-flexural buckling (cl 6.3.1.4)
-
-PFC 200x90x30, 4 m SS, N = 80 kN, L<sub>T</sub> = L<sub>cr,z</sub> = L<sub>cr,y</sub> = 4 m. Row `["200x90x30",29.7,200,90,7,14,12,148,...,Ix 2520,Iy 314,rx 8.16,ry 2.88,...,A 37.9]`; `TP385_PFC["200x90x30"] = [IT 19.1 cm⁴, a 0.508, Iw 0.0197 dm⁶, ..., e0 36, esc 63.7]` → y<sub>0</sub> = e<sub>sc</sub> = 63.7 mm.
-
-1. i<sub>0</sub>² = i<sub>y</sub>² + i<sub>z</sub>² + y<sub>0</sub>² = 81.6² + 28.8² + 63.7² = 11 545.7 mm².
-2. N<sub>cr,T</sub> = (GI<sub>T</sub> + π²EI<sub>w</sub>/L<sub>T</sub>²)/i<sub>0</sub>² = (1.5471 × 10¹⁰ + 2.5519 × 10⁹)/11 545.7 = 1 561 010 N = **1561.0 kN**.
-3. N<sub>cr,y</sub> = π²EI<sub>y</sub>/L² = π² × 210000 × 2.52 × 10⁷/4000² = 3264.4 kN; β = 1 − y<sub>0</sub>²/i<sub>0</sub>² = 0.6486.
-4. N<sub>cr,TF</sub> = (N<sub>cr,y</sub> + N<sub>cr,T</sub>)/(2β) [1 − √(1 − 4βN<sub>cr,y</sub>N<sub>cr,T</sub>/(N<sub>cr,y</sub> + N<sub>cr,T</sub>)²)] = 3719.8 × [1 − √(1 − 0.5679)] = 3719.8 × 0.34257 = **1274.3 kN** (governs over N<sub>cr,T</sub>).
-5. λ̄<sub>T</sub> = √(Af<sub>y</sub>/N<sub>cr,TF</sub>) = √(3790 × 275/1 274 260) = 0.9044; curve c (α = 0.49): Φ = 0.5[1 + 0.49(0.9044 − 0.2) + 0.9044²] = 1.0815; χ<sub>T</sub> = 1/(1.0815 + √(1.0815² − 0.9044²)) = 0.5971.
-6. **N<sub>b,T,Rd</sub> = 0.5971 × 3790 × 275/1000 = 622.4 kN**; N<sub>Ed</sub>/N<sub>b,T,Rd</sub> = 0.1285 (engine 622.363, 0.129).
-
-## HC-11  HSV-04: RHS high-shear M<sub>v,y,Rd</sub> at the point load
-
-RHS 300x100x10, 2 m SS, 470 kN (Q) at x = 0.3 m. Row `["300 x 100 x 10.0",58.8,300,100,10,A 74.9,...,Sx 666 cm³,...]`.
-
-1. A<sub>v</sub> = Ah/(b + h) = 7490 × 300/400 = 5617.5 mm²; V<sub>pl,Rd</sub> = A<sub>v</sub>f<sub>y</sub>/√3 = 891.9 kN.
-2. Self-weight 1.35 × 0.5768 = 0.7787 kN/m; R<sub>1</sub> = 705 × 1.7/2 + 0.7787 = 600.03 kN; V(0.3⁻) = 600.03 − 0.7787 × 0.3 = 599.80 kN; M(0.3) = 600.03 × 0.3 − 0.7787 × 0.045 = 179.97 kN·m.
-3. ρ = (2V/V<sub>pl,Rd</sub> − 1)² = (1.3450 − 1)² = 0.1190.
-4. **M<sub>v,y,Rd</sub> = (W<sub>pl,y</sub> − ρt(h − 2t)²/2)f<sub>y</sub> = (666 000 − 0.1190 × 10 × 280²/2) × 275 = 170.32 kN·m** (M<sub>c,Rd</sub> = 183.15); M/M<sub>v,y,Rd</sub> = 1.0567 → FAIL as designed (engine 170.320, 1.0567).
-
-## HC-12  AEF-01: effective area of a Class-4 web in uniform compression
-
-UB 1016x305x222, S275, t<sub>f</sub> = 21.1 mm → f<sub>y</sub> = 265, ε = 0.9417. Row `["1016 x 305 x 222",222.0,970.3,300.0,16.0,21.1,30.0,868.1,5.31,54.3,...,A 283]`.
-
-1. d/t<sub>w</sub> = 54.3 > 42ε = 39.55 → Class 4 in uniform compression.
-2. λ̄<sub>p</sub> = (b̄/t)/(28.4ε√k<sub>σ</sub>) = 54.3/(28.4 × 0.9417 × 2) = 1.0152.
-3. ρ = (λ̄<sub>p</sub> − 0.055(3 + ψ))/λ̄<sub>p</sub>² = (1.0152 − 0.22)/1.0306 = 0.7716.
-4. **A<sub>eff</sub> = A − (1 − ρ)b̄t<sub>w</sub> = 28 300 − 0.2284 × 868.1 × 16 = 25 127 mm² (0.888A)**; N<sub>c,Rd</sub> = 6658.7 kN; N<sub>Ed</sub>/N<sub>c,Rd</sub> = 1500/6658.7 = 0.2253 (engine 25127.3, 0.2253).
-
-## HC-13  UB-49: warping-torsion cantilever, tip torque (Vlasov closed form)
-
-UB 457x191x82, 4 m cantilever, 20 kN (Q) at the tip at e = 80 mm → T = 1.5 × 20 × 80 = 2400 kN·mm = 2.4 × 10⁶ N·mm. `TP385_UB["457 x 191 x 82"] = [IT 69.2 cm⁴, a 1.86 m, Iw 0.922 dm⁶, ...]`.
-
-1. GI<sub>T</sub> = 81000 × 6.92 × 10⁵ = 5.6052 × 10¹⁰ N·mm²; EI<sub>w</sub> = 210000 × 9.22 × 10¹¹ = 1.9362 × 10¹⁷ N·mm⁴; a = √(EI<sub>w</sub>/GI<sub>T</sub>) = 1858.6 mm (P385 table 1.86 m).
-2. Root warping fixed, tip free: φ(L) = (T/GI<sub>T</sub>)[L − a tanh(L/a)] = 4.2817 × 10⁻⁵ × (4000 − 1858.6 × 0.97334) = 4.2817 × 10⁻⁵ × 2190.97 = **0.09381 rad** (engine 0.093812, mesh error 7 × 10⁻⁸).
-3. Root bimoment B(0) = T a tanh(L/a) = 2.4 × 10⁶ × 1809.0 = 4.3417 × 10⁹ N·mm² = **4.342 kN·m²** (engine 4.3417).
-
-## HC-14  TOR-05: warping-torsion cantilever under a uniform torque
-
-UB 305x165x40, 3 m cantilever, UDL 3 G + 5 Q at e = 80 mm → m = (1.35 × 3 + 1.5 × 5) × 80 = 924 N·mm/mm. `TP385_UB["305 x 165 x 40"] = [IT 14.7, a 1.7, Iw 0.164, ...]` → GI<sub>T</sub> = 1.1907 × 10¹⁰, a = 1700.7 mm.
-
-Derivation (root warping fixed, tip free): the general solution of EI<sub>w</sub>φ⁗ − GI<sub>T</sub>φ″ = m is φ = C<sub>1</sub> + C<sub>2</sub>x + C<sub>3</sub>cosh(x/a) + C<sub>4</sub>sinh(x/a) − mx²/(2GI<sub>T</sub>). The total torque T(x) = GI<sub>T</sub>φ′ − EI<sub>w</sub>φ‴ reduces to GI<sub>T</sub>C<sub>2</sub> − mx (the hyperbolic parts cancel because EI<sub>w</sub>/a² = GI<sub>T</sub>), so T(L) = 0 gives C<sub>2</sub> = mL/GI<sub>T</sub> (T(0) = mL, the statics of the root). φ′(0) = 0 gives C<sub>4</sub> = −aC<sub>2</sub>; B(L) = EI<sub>w</sub>φ″(L) = 0 gives C<sub>3</sub> = (ma²/GI<sub>T</sub>)[1 + (L/a)sinh(L/a)]/cosh(L/a); φ(0) = 0 gives C<sub>1</sub> = −C<sub>3</sub>. Substituting at x = L:
-
-φ(L) = (m/GI<sub>T</sub>)[L²/2 + a²(1 − sech(L/a)) − aL tanh(L/a)]
-
-(a → 0 recovers the St Venant value mL²/2GI<sub>T</sub>). With L/a = 1.7640, sech = 0.33295, tanh = 0.94294:
-φ(L) = 7.7601 × 10⁻⁸ × [4.5000 × 10⁶ + 1.9294 × 10⁶ − 4.8110 × 10⁶] = **0.12559 rad** (St Venant alone 0.3492 rad; engine 0.125587, mesh error 1.5 × 10⁻⁵). The root torque mL = 2.772 kN·m is printed as the total end torque (engine 2.772). This closed form is also used by the batch cross-check (xiii) for TOR-05.
-
-## HC-15  UB-51: warping-fixed ends, uniform torque
-
-UB 457x191x82, 8 m, UDL 5 G + 8 Q at e = 100 mm → t = (6.75 + 12) × 100 = 1875 N·mm/mm; both supports φ = 0 and φ′ = 0.
-φ(L/2) = (t/GI<sub>T</sub>)[L²/8 − (La/2)tanh(L/4a)] = 3.3451 × 10⁻⁸ × [8.000 × 10⁶ − 5.8861 × 10⁶] = **0.07071 rad** (fork ends would give 0.1786 rad; engine 0.070713).
-
-## Conclusions
-
-- Every hand value agrees with the engine to better than 0.001 % (the engine's grid station nearest x<sub>max</sub> accounts for the −0.001 % of HC-05b).
-- No hand-check difference above 1 % → no adjustment was made to any case or engine value on account of the hand checks. The one engine change of this campaign (the two-sided moment sample at a jump on the standard C<sub>1</sub> route) came from the M<sub>cr</sub> method comparison, see `tests/batch/mcr-method-comparison.md`.
-- Still due (unchanged from the G2 audit): a digit-for-digit comparison of the clause-6 chain against a published SCI P363/P364 or MasterSeries worked example; the values above are first-principles arithmetic, not a published benchmark.
+59 comparisons, 3 above 1 % (0 unexpected: HC-17c is the End 2 station finding, HC-23b / HC-23c the SN003a k = 0.5 method difference).

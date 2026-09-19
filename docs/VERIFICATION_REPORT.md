@@ -17,6 +17,8 @@ Status at the end of the branch: `node --test tests/*.test.cjs` 113 tests pass (
 >
 > **Addendum, 19 Sep 2026 (scope change, UI half):** `index.html` now carries the End conditions panel (preset drop-list, End 1 / End 2 columns with the seven boxes, glyphs, hold-down and s<sub>s</sub> entries) in place of the support list, the pattern-loading switch and the root-warping select; the brief and the report open with an "End conditions" line and the Member Forces table prints the End 1 / End 2 reactions ("guided: M only"); the reaction moment is printed in the diagram convention at both ends (the old note flipped the sign at End 2). AUDIT.md "19 Sep 2026 scope change, UI half" records the details, the hand-derived reaction figures and the browser smoke test; `tests/ui-state.test.cjs` and the preset test in `tests/brief.test.cjs` pin them.
 
+> **Addendum, 19 Sep 2026 (single-span verification library):** the batch library was rebuilt for the single-span scope (`tests/batch/cases.cjs`: 279 cases / 479 runs - every preset in every section family under the load types, the feature groups ECC / ZG / AX / MZ / RES / HNG / CUS, the gap-closure groups with their pinned inputs, and an ERR group of 14 invalid layouts that must throw), the runner gained the closed forms of the six presets (M<sub>max</sub>, d<sub>max</sub>, end moments, End 1 reaction), the end-restraint pair bounds (xvi), the cantilever eigen-vs-SN006a record (xvii), the fixed-end station moment check (viii-Mend) and the expected-error assertion, and the hand checks were rewritten (24 cases, 59 quantities: guided-fixed, fixed-fixed, cantilever, pinned-guided and propped closed forms, the 1.2 L / 0.7 L strut lengths, web bearing at a fixed-end reaction, SN003a with C<sub>2</sub>z<sub>g</sub>, SN006a, PFC N<sub>cr,T</sub>, A<sub>eff</sub>, the warping-torsion cantilever with the root warping fixed and free, the laterally clamped member against the SN003a k = 0.5 factor). Result: PASS 352 / FAIL 82 / NOT VERIFIED 31 / ERROR 0, 14 THROWS as declared; every cross-check agrees except viii-Mend, which found engine finding **F-A** (the web-bearing station at a fixed End 2 reads M<sub>Ed</sub> = 0, so the EN 1993-1-5 7.2 interaction there loses η<sub>1</sub>; 71 runs, End 1 correct, symmetric cases unaffected); the hand checks agree to 0.01 % except that finding and the expected 1.8 % method difference of the k = 0.5 factor. Four further engine findings are recorded, none corrected here: **F-B** the warping-torsion FE blocks a warping-free cantilever under a tip torque on a relative bimoment change that is round-off (TOR-07), **F-C** the standard (closed-form) M<sub>cr</sub> route keeps fork ends for end flag sets that release U<sub>y</sub> or R<sub>x</sub> and is then unconservative by a factor 1.5-2.4 (CUS-05/06/07/12: PASS at 0.50 where the eigen route gives 0.90 - the route should refuse those flags), **F-D** an in-span couple off a mesh node raises the eigen mesh error to 2.3 % (UB-57), **F-E** box cantilevers sit at the 0.5 % eigen mesh limit (RHS-07). The eigen route reproduces SN006a within 2.1 % for every covered cantilever. Details: `tests/batch/README.md` ("Findings"), `tests/batch/hand-checks.md`, `tests/batch/mcr-method-comparison.md`; the figures are pinned in `tests/campaign.test.cjs` (14 tests).
+
 ---
 
 ## 1. What changed on the branch
@@ -373,10 +375,10 @@ A FAIL with a utilisation of 99.000 (PFC-16, MIX-10 on the standard route) is th
 From the repository root (`E:/FINAL AI SOFTWARES/beam-v03`, branch `ms-brief-standard-mcr`, Node 22+; the campaign was run on v24.14.1):
 
 ```text
-node --test tests/*.test.cjs            # regression suite, 113 tests, ~13 s; includes the dist parity test
-node tests/batch/run-batch.cjs          # campaign: 170 cases / 296 runs, ~50 s; rewrites tests/batch/results.json and results.md
-node tests/batch/run-batch.cjs PFC PAT  # subset: ids containing any of the substrings
-node tests/batch/hand-checks.cjs        # the 29 hand-check chains step by step; exit 1 above 1 %
+node --test tests/*.test.cjs            # regression suite, 121 tests, ~15 s; includes the dist parity test
+node tests/batch/run-batch.cjs          # single-span campaign: 279 cases / 479 runs, ~55 s; rewrites tests/batch/results.json and results.md
+node tests/batch/run-batch.cjs PFC CUS  # subset: ids containing any of the substrings
+node tests/batch/hand-checks.cjs        # the 59 hand-check comparisons step by step; exit 1 above 1 % (two explained findings excepted)
 pwsh ./build-single-html.ps1            # regenerates dist/beam-design-single.html from index.html + css + js (run before the suite after any source edit)
 ```
 
