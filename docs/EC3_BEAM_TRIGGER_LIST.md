@@ -29,7 +29,7 @@ Status vocabulary for the coverage matrix: IMPLEMENTED (computed and in the verd
 | 2.3 | Shear, each axis, Vpl,Rd = Av fy/√3, Av by section type (I, channel, tee, welded, RHS, CHS) | 6.2.6(2-3) | always |
 | 2.4 | Elastic shear verification τEd = VS/It where Vpl,Rd cannot be used | 6.2.6(4-5) | non-standard, tapered or perforated sections |
 | 2.5 | Shear buckling of unstiffened web when hw/tw > 72ε/η; contribution of flanges, rigid or non-rigid end post | 6.2.6(6), EN 1993-1-5 §5 | slender webs, plate girders, deep cellular tees |
-| 2.6 | Torsion TEd ≤ TRd: split into St Venant and warping by elastic analysis of the member and its end warping conditions; stresses τt, σw, τw; bimoment BEd | 6.2.7(1-6), SCI P385 | any torque |
+| 2.6 | Torsion TEd ≤ TRd: split into St Venant and warping by elastic analysis of the member and its end warping conditions; stresses τt, σw, τw; bimoment BEd | 6.2.7(1-6), SCI P385 | any torque. beam-v03: with N<sub>Ed</sub> or an imposed M<sub>z</sub> the combination is verified by 2.14 at the cross-section, 3.12 (6.61/6.62) and 3.8 ((A.1)) with M<sub>z,Ed</sub> = M<sub>z</sub> + φM<sub>y</sub> (20 Sep 2026 torsion + N/Mz); no Eurocode expression combines N<sub>Ed</sub> with the bimoment at member level (basis printed) |
 | 2.7 | Torsion simplifications: hollow sections neglect warping, open sections may neglect St Venant; hollow-section TRd from plate shear strength | 6.2.7(7-8) | by section type |
 | 2.8 | Shear reduced for torsion Vpl,T,Rd (separate formulae for I, channel, hollow) | 6.2.7(9), 6.2.6(8) | torque with shear |
 | 2.9 | Cross-section distortion excluded from 6.2.7; distortional check required otherwise | 6.2.7(1), EN 1993-1-3 | thin-walled boxes, cold-formed, slender open sections |
@@ -37,7 +37,7 @@ Status vocabulary for the coverage matrix: IMPLEMENTED (computed and in the verd
 | 2.11 | Bending with axial: MN,Rd (I, H, RHS, box, solid); no-reduction limits 6.33 to 6.35; Class 3 stress check; Class 4 with eN shift moments | 6.2.9.1-3 | any axial force |
 | 2.12 | Biaxial bending (My/MN,y)^α + (Mz/MN,z)^β ≤ 1, exponents by section type, only for the biaxial case | 6.2.9.1(6) | inclined, horizontal or minor-axis loads |
 | 2.13 | Bending, shear and axial together: reduced fy when VEd > 0.5 Vpl,Rd | 6.2.10 | all three present |
-| 2.14 | Elastic yield criterion σx, σz, τ at a critical point (von Mises) | 6.2.1(5) | torsion plus bending, transverse loads, Class 3 and 4, anywhere resultants cannot be combined |
+| 2.14 | Elastic yield criterion σx, σz, τ at a critical point (von Mises) | 6.2.1(5) | torsion plus bending, transverse loads, Class 3 and 4, anywhere resultants cannot be combined. beam-v03 (20 Sep 2026 torsion + N/Mz): applied with torsion through 6.2.7(5) at every torsion station and section point with σ<sub>x</sub> = N/A + M<sub>y</sub>/W<sub>el,y</sub> + M<sub>z,tot</sub>/W<sub>el,z</sub> + σ<sub>w</sub>, τ = τ<sub>V</sub> + τ<sub>t</sub> + τ<sub>w</sub>; verdict-binding for Class 3 and for open sections with N<sub>Ed</sub>, information otherwise (6.2.7(5) "may be applied"; 6.2.7(6) plastic route) |
 | 2.15 | Linear summation N/NRd + My/My,Rd + Mz/Mz,Rd ≤ 1 as the conservative fallback | 6.2.1(7) | any combination |
 | 2.16 | Transverse forces on the web: Fy, ly, χF, load types a, b, c, length of stiff bearing ss; bearing stiffener if it fails | EN 1993-1-5 §6, 9.4 | every point load, reaction, prop, hanger |
 | 2.17 | Interaction of shear, moment and axial in plated webs (η̄3 > 0.5 rule) | EN 1993-1-5 §7.1 | slender webs with high V and M |

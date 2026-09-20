@@ -383,7 +383,7 @@ function annexB2(a,sec,fy,cl,MbRdI,useB1,isCant,aeff){
   const cm=cmTableB3(a);
   let Cmy=cm.Cm, CmLT=cm.Cm, swayNote=false;
   if(isCant && Fc>1e-6 && Cmy<0.9){ Cmy=0.9; CmLT=0.9; swayNote=true; } // Table B.3 note: sway buckling mode -> Cm = 0.9
-  const Cmz=1.0;                                   // Mz = 0 in this single-plane solver
+  const Cmz=1.0;                                   // 20 Sep 2026 review: Table B.3 upper bound - exact for the imposed constant M_z (psi = 1), conservative for the twist-induced phi.M_y diagram (M_z,Ed = M_z + phi.M_y below)
   // k_ij column: Class 1/2 plastic forms only for a Class 1/2 section that is not
   // a channel (elastic column, conservative) and has no Class-4 web in
   // compression (Table 6.7 Class-4 column -> the Class 3/4 rows of Table B.1/B.2)
@@ -412,13 +412,19 @@ function annexB2(a,sec,fy,cl,MbRdI,useB1,isCant,aeff){
   const Mrd=Math.max(MbRdI*wFac,1e-9), Mx=Math.abs(a.Mmax);
   // Minor-axis moment terms (fully biaxial 6.61/6.62). Mz,Ed is the direct design
   // input; its resistance Mc,z,Rd carries no LTB reduction (chi_LT is major-axis only).
-  const MzEd=Math.abs(S.Mz||0);
+  // 20 Sep 2026 torsion + N/Mz: M_z,Ed = imposed M_z + max over the member of |phi.M_y|,
+  // the second-order minor-axis moment of this combination's torsion solution (EN 1993-1-1
+  // 5.2.1(3); SCI P385 3.1.2 M_z = phi.M_y); zero without torsion, so nothing changes then.
+  const MzImp=Math.abs(S.Mz||0);
+  const cb0=(a.ulsResults&&a.ulsResults[0])? a.ulsResults[0].combo : (a.governM? a.governM.combo : null);
+  const MzTwist=cb0? torsionMzTwistMax(a,cb0) : 0;
+  const MzEd=MzImp+MzTwist;
   const Mcz=Math.max((c12? sec.Sy : sec.Zy)*1e3*fy/gM1/1e6, 1e-9);   // Mc,z,Rd
   const mzTerm = MzEd>1e-9 ? MzEd/Mcz : 0;                            // Mz,Ed / Mc,z,Rd
   const u1=ny + kyy*Mx/Mrd + kyz*mzTerm;           // Eq 6.61
   const u2=nz + kzy*Mx/Mrd + kzz*mzTerm;           // Eq 6.62
   return {Fc,Mx,Lcr,LcrY,LcrZ,Ky,Kz,KzEnd,cantStrut,leOverride,lcrBasis,lcrBasisY:lcr.basisY,lcrBasisZ:lcr.basisZ,lczFromRestraints,lam1,lamY,lamZ,cvY,cvZ,chiY,chiZ,NbY,NbZ,NbYeff,NbZeff,ny,nz,
-    Cmy,Cmz,CmLT,cmLabel:cm.label,swayNote,useB1,c12,rhsRow,kyy,kzz,kyz,kzy,kzyLbl,MbRdI,MbRdEff:Mrd,wFac,Mcz,MzEd,mzTerm,biax:MzEd>1e-9,u1,u2,
+    Cmy,Cmz,CmLT,cmLabel:cm.label,swayNote,useB1,c12,rhsRow,kyy,kzz,kyz,kzy,kzyLbl,MbRdI,MbRdEff:Mrd,wFac,Mcz,MzEd,MzImp,MzTwist,mzTerm,biax:MzImp>1e-9,u1,u2,
     aeffOn,Aeff,Ag,aeffFac,tfb};
 }
 /* ---------------------------------------------------------------------------
@@ -693,6 +699,295 @@ function restraintForces(a,sec){
   const Fmax=rows.reduce((m,r)=>Math.max(m,r.F),0);
   return {h,rows,Fmax,basis:'N<sub>f,Ed</sub> = M<sub>Ed</sub>/h at the restraint station (h = overall depth, EN 1993-1-1 5.3.3(3)); restraint design force 2.5 % N<sub>f,Ed</sub> (6.3.5.2(5)(b), SCI practice) &mdash; advisory, not part of the member verdict; the bracing system must also satisfy the 5.3.3 stiffness/imperfection requirements. A station with M<sub>Ed</sub> = 0 (simply supported end) gets no flange force from this rule; its torsional restraint must still prevent twist.'};
 }
+/* ===========================================================================
+   20 Sep 2026 torsion + N/Mz: combined torsion with direct axial force N_Ed
+   and an imposed minor-axis moment M_z,Ed, verified "as Eurocode advises".
+   The former block ("Combined torsion with direct axial force or imposed
+   minor-axis bending is not implemented as one interaction") is replaced by
+   the checks below; torsionCombinedBasis() states the basis in the brief.
+   20 Sep 2026 review (reviewer findings on the first implementation): the
+   binding policy of (6.1), the closed-section shear flow, the flange shear
+   flow at P2, the channel points P1b/P2 and the per-path basis text below.
+   ---------------------------------------------------------------------------
+   FORMULAE IMPLEMENTED (units: N, mm, N/mm2 unless stated; E = a.E N/mm2,
+   G = 81000 N/mm2, gamma_M0 = gamma_M1 = 1.0 UK NA, f_yd = f_y/gamma_M0)
+   (1) CROSS-SECTION, EN 1993-1-1 cl 6.2.7(4)-(5) with the yield criterion
+       6.2.1(5) Eq (6.1), sigma_z,Ed = 0:
+         (sigma_x,Ed/f_yd)^2 + 3 (tau_Ed/f_yd)^2 <= 1
+       at every station x of the torsion solution of every ULS combination
+       and at the critical points of the section, every contribution taken at
+       its worst (|values|, additive - conservative):
+         sigma_x,Ed = N_Ed/A + M_y,Ed/W_el,y + M_z,tot/W_el,z + sigma_w,Ed
+         tau_Ed     = tau_V + tau_t,Ed + tau_w,Ed
+         N_Ed [kN] -> N_Ed*1e3/(A*100)            A = sec.A cm2
+         M_z,tot(x) = |M_z,Ed| + |phi(x) M_y,Ed(x)|  imposed S.Mz [kN.m] plus the
+                      second-order minor-axis moment of the twist (SCI P385
+                      3.1.2 "M_z = phi M_y"; EN 1993-1-1 5.2.1(3): second-order
+                      effects included where they increase the action effects)
+         sigma_w  = E W_n phi''      W_n = tp.Wn0*100 mm2 (flange tip); channel
+                                     tp.Wn2*100 mm2 at the web-flange junction;
+                                     I/H: omega = 0 at the junction (web line)
+         tau_t    = G t phi'          t = t_f on the flange, t_w on the web
+                                     (= T_t t/I_T with T_t = G I_T phi')
+         tau_w    = E S_w phi'''/t    S_w = tp.Sw1*1e4 mm4 at the flange centre
+                                     (I/H: the junction, where omega = 0);
+                                     channel: Sw1 at the flange point where
+                                     W_n = 0 (P1b), Sw2 at the junction (flange
+                                     side t = t_f, web side t = t_w), Sw3 at the
+                                     web mid-depth (P385 Table A.2 points 1/2/3)
+         tau_V    = V S/(I_y t)       EN 1993-1-1 6.2.6(4) Eq (6.20), I_y =
+                                     sec.Ix*1e4 mm4 (major axis), the first
+                                     moment of the area beyond the point:
+                                     flange at the junction S_fF = S_f/2 (I/H,
+                                     half flange one side of the web) or S_f
+                                     (channel, the whole flange), t = t_f;
+                                     web at the junction S_f = B t_f (D - t_f)/2,
+                                     web mid-depth S_max = S_f + t_w (D/2 - t_f)^2/2,
+                                     t = t_w (channel: its own B)
+       Points (I/H and channel):
+         P1 flange tip:         sigma = N/A + M_y/W_el,y + M_z,tot/W_el,z + E Wn0 phi''
+                                tau   = G t_f phi'
+         P1b flange, W_n = 0    (channel only) at s_1 = B' Wn0/(Wn0 + Wn2) from
+                                the toe, B' = B - t_w/2 (omega is linear along
+                                the flange: W_n0 at the toe and W_n2 at the web
+                                line have opposite signs, so s_1 = B' - e_0):
+                                sigma = N/A + M_y (D/2 - t_f/2)/I_y + M_z,tot |y_toe - s_1|/I_z
+                                tau   = V s_1 t_f (D - t_f)/2/(I_y t_f) + G t_f phi' + E Sw1 phi'''/t_f
+         P2 junction, flange:   sigma = N/A + M_y (D/2 - t_f/2)/I_y + M_z,tot y_web/I_z + E Wn2 phi''
+                                tau   = V S_fF/(I_y t_f) + G t_f phi' + E S_w,J phi'''/t_f
+                                (S_w,J = Sw1 for I/H, Sw2 for a channel)
+         P3 junction, web:      sigma = N/A + M_y (D/2 - t_f)/I_y + M_z,tot y_web/I_z + E Wn2 phi''
+                                tau   = V S_f/(I_y t_w) + G t_w phi' + E Sw2 phi'''/t_w
+         P4 web mid-depth:      sigma = N/A + M_z,tot y_web/I_z
+                                tau   = V S_max/(I_y t_w) + G t_w phi' + E Sw3 phi'''/t_w
+         y_web = distance of the web plane from the minor axis: t_w/2 (I/H);
+         channel: the web back c_y = B - I_z/W_el,z (W_el,z tabulated at the
+         toe, y_toe = I_z/W_el,z) - the M_z stress on the web (M_z y/I_z),
+         omitted by a flange-tip-only summation, is ~44 % of the toe stress for
+         a PFC and is kept; the Wn2 and Sw2/Sw3 terms are zero for a doubly
+         symmetric I/H.
+       Hollow sections, cl 6.2.7(7): warping neglected, tau_t = T_Ed/W_t
+         (W_t = tp.Wt*1e3 mm3 or the EN 10210-2 value already used), t = wall;
+         the shear flow of V_Ed round the closed mid-line (Eq 6.20, q = 0 at
+         the flange mid-width by symmetry): Q_c = ((B - t)/2) t ((D - t)/2) at
+         the corner, Q_m = Q_c + t (D - t)^2/8 at the web mid-depth:
+         corner:            sigma = N/A + M_y/W_el,y + M_z,tot/W_el,z; tau = tau_t + V Q_c/(I_y t)
+         web mid-depth:     sigma = N/A + M_z,tot/W_el,z (the webs are the
+                            extreme minor-axis fibres); tau = tau_t + V Q_m/(I_y t)
+         flange mid-width:  sigma = N/A + M_y/W_el,y;                  tau = tau_t
+         phi(x) of the St Venant solution (a.tors.uls) gives M_z,tot.
+       Utilisation "Elastic yield criterion (6.1) with torsion, cl 6.2.7(5)"
+       = the largest (6.1) value; reported with the station, point and every
+       stress component (tor.elastic). BINDING POLICY (elasticBindingPolicy):
+       6.2.7(5) is permissive ("the yield criterion in 6.2.1(5) MAY be
+       applied") and 6.2.7(6) permits the plastic moment resistance under
+       bending + torsion for Class 1/2 sections with B_Ed from the elastic
+       analysis, so (6.1) enters the verdict (c.utils) only where the code
+       gives no plastic route: Class 3 sections, and Class 1/2 OPEN sections
+       with N_Ed != 0 (no expression of EN 1993-1-1 or P385 combines N_Ed with
+       the bimoment plastically). Class 1/2 open sections with N_Ed = 0 are
+       verified plastically by the P385 3.1.2 interaction under 6.2.7(6);
+       Class 1/2 hollow sections by 6.2.7(7)/(9) (Eq 6.28), 6.2.8(4) and
+       6.2.9.1/6.2.10 with V_pl,T,Rd: there (6.1) is computed and printed as
+       information (c.info; an advisory when it exceeds 1). The P385 3.1.2
+       plastic interaction, V/V_pl,T,Rd (6.2.7(9)), T_Ed/T_Rd and the 6.2.9/
+       6.2.10 N-M interactions are kept; 3.1.2 now carries M_z,tot in its
+       M_z term.
+   (2) MEMBER, EN 1993-6 Annex A Eq (A.1) (informative; stated for I
+       sections, applied to channels on the SCI P385 basis), P385 6.2/8.2 form:
+         M_y,Ed/M_b,Rd + C_mz M_z,tot/M_z,Rd + k_w k_zw k_alpha M_w,Ed/M_f,Rd <= 1
+         k_w = 0.7 - 0.2 M_w,Ed/M_f,Rd, k_zw = 1 - M_z,tot/M_z,Rd,
+         k_alpha = 1/(1 - M_y,Ed,max/M_cr); M_z,tot = M_z,Ed + phi M_y per station;
+         C_mz = 1.0 whenever an imposed M_z exists (constant diagram, psi = 1,
+         Table B.3); otherwise the existing proxy (0.9 / 0.95 / 1.0).
+   (3) MEMBER, EN 1993-1-1 cl 6.3.3 Eq 6.61/6.62 (annexB2): M_z,Ed = M_z,Ed
+       (imposed) + max over the member of |phi M_y| of the combination's own
+       torsion solution; C_mz = 1.0 (Table B.3 upper bound: exact for the
+       imposed constant M_z, psi = 1, conservative for the twist-induced
+       diagram); everything else unchanged.
+   (4) ADVISORY (information only, NOT a utilisation), N_Ed > 0 with torsion:
+         N_Ed/(chi_z N_Rk/gM1) + k_zy M_y,Ed/(chi_LT M_y,Rk/gM1)
+           + k_zz M_z,tot/(M_z,Rk/gM1) + k_w k_zw k_alpha M_w,Ed/M_f,Rd
+       = Eq 6.62 as evaluated (buck.u2, its M_z,Ed already M_z,tot) + the
+       largest station value of the (A.1) warping term; k_alpha = 1 when no
+       LTB check exists (fully restrained, M_cr -> infinity). "Superposition
+       of Eq 6.62 and (A.1) - not a Eurocode expression, information only."
+   No Eurocode expression combines N_Ed with warping torsion at member level;
+   nothing beyond the clauses named above is invented.
+   =========================================================================== */
+// 20 Sep 2026: the k_alpha-unbounded state is a FAIL row (LTB governs), printed with the FAIL: prefix
+const KALPHA_UNBOUNDED_FAIL='FAIL: M_y,Ed reaches the elastic critical moment M_cr (M_y,Ed >= M_cr): lateral-torsional buckling governs before the torsion interaction can be evaluated - the EN 1993-6 Annex A amplifier k_alpha = 1/(1 - M_y,Ed/M_cr) is unbounded and the utilisation is carried as 99; the member is inadequate as arranged (larger section, shorter unrestrained length or compression-flange restraint).';
+const ELASTIC_TORSION_UTIL_NAME="Elastic yield criterion (6.1) with torsion, cl 6.2.7(5)";
+const SUPERPOSITION_LABEL="superposition of Eq 6.62 and (A.1) - not a Eurocode expression, information only";
+/* 20 Sep 2026 review: is the (6.1) value verdict-binding? (see the comment block, item (1) BINDING POLICY)
+   Returns {binding, basis}. */
+function elasticBindingPolicy(sec,cl,NEd){
+  const cls=cl.cls, hasN=Math.abs(NEd)>1e-9;
+  if(cls>=3) return {binding:true, basis:'Class 3 section: no plastic resistance exists, so the elastic verification of EN 1993-1-1 6.2.7(5) with the yield criterion 6.2.1(5) Eq (6.1) is the cross-section check (verdict-binding)'};
+  if(!sec.isBox && hasN) return {binding:true, basis:'Class 1/2 open section with N_Ed: EN 1993-1-1 6.2.7(6) admits the plastic resistance for bending + torsion only and no expression of EN 1993-1-1 or SCI P385 combines N_Ed with the bimoment plastically, so the elastic verification 6.2.7(5)/(6.1) is the cross-section check (verdict-binding)'};
+  if(sec.isBox) return {binding:false, basis:'Class 1/2 hollow section: the cross-section is verified by the plastic route the code gives - T_Ed/T_Rd (6.2.7(1)/(7), warping neglected), V_Ed/V_pl,T,Rd (6.2.7(9), Eq 6.28), rho from V_pl,T,Rd (6.2.8(4)) and the 6.2.9.1/6.2.10 N-M_y-M_z interaction; the elastic verification of 6.2.7(5) is permissive ("may be applied") and is printed for information'};
+  return {binding:false, basis:'Class 1/2 open section without N_Ed: EN 1993-1-1 6.2.7(6) permits the plastic moment resistance under bending + torsion with B_Ed from the elastic analysis (the SCI P385 3.1.2 interaction with M_z,tot); the elastic verification of 6.2.7(5) is permissive ("may be applied") and is printed for information'};
+}
+/* 20 Sep 2026 review: the basis text of the combined verification, per path (the former single sentence
+   named warping torsion and (A.1) for hollow sections and 6.61/6.62 where they are not evaluated).
+   o = {box, tension, hasN, hasMz, restrained, buckEvaluated, annexEvaluated, binding} */
+function torsionCombinedBasis(o){
+  const buckTxt= o.buckEvaluated? ', cl 6.3.3 (6.61/6.62) with the second-order minor-axis moment phi.M_y added to M_z,Ed'
+    : o.tension? '; cl 6.3.3 (6.61/6.62) is not evaluated for axial tension (N_t,Rd and the 6.2.9 cross-section interaction apply)'
+    : o.restrained? '; cl 6.3.3 (6.61/6.62) does not apply to a fully restrained member without axial compression (the 6.2.9 cross-section interaction with M_z,tot applies)'
+    : '';
+  if(o.box){
+    return 'EN 1993-1-1 6.2.7(7): warping neglected for the hollow section; the verification is 6.2.7(5)/(6.1) at the cross-section with tau_t = T_Ed/W_t, the V_Ed shear flow and N/A + M_y/W_el,y + M_z,tot/W_el,z'+(o.binding? '' : ' (information only: the Class 1/2 plastic route governs)')+', T_Ed/T_Rd (6.2.7(1)), V_Ed/V_pl,T,Rd (6.2.7(9), Eq 6.28), 6.2.8(4)/6.2.9.1/6.2.10 with V_pl,T,Rd'+buckTxt+'; EN 1993-6 (A.1) does not apply to a closed section';
+  }
+  return 'No expression in EN 1993-1-1 or EN 1993-6 combines N_Ed with warping torsion at member level; the verification is EN 1993-1-1 6.2.7(5)/(6.1) at the cross-section with all stresses'+(o.binding? '' : ' (information only: the Class 1/2 plastic route of 6.2.7(6) / SCI P385 3.1.2 with M_z,tot governs)')+buckTxt+(o.annexEvaluated? ', and EN 1993-6 (A.1) with M_z,Ed = M_z + phi.M_y' : (o.restrained? '; EN 1993-6 (A.1) is not evaluated for a fully restrained member (no lateral-torsional buckling)' : ''));
+}
+// EN 1993-1-1 6.2.1(5) Eq (6.1) with sigma_z,Ed = 0
+function yieldCriterion61(sigmaX,tau,fyd){ return Math.pow(sigmaX/fyd,2)+3*Math.pow(tau/fyd,2); }
+// one station's points -> totals and (6.1); pts = [{point, sigmaN, sigmaMy, sigmaMz, sigmaW, tauV, tauT, tauW}]
+function elasticPoints61(pts,fyd){
+  return pts.map(p=>{ const sigmaX=p.sigmaN+p.sigmaMy+p.sigmaMz+p.sigmaW, tau=p.tauV+p.tauT+p.tauW;
+    return Object.assign({},p,{sigmaX,tau,u:yieldCriterion61(sigmaX,tau,fyd)}); });
+}
+// worst point of a station into the running record (st = {x, combo, ...station data})
+function elasticGovern(worst,pts,st){
+  let w=worst;
+  pts.forEach(p=>{ if(p.u>w.u) w=Object.assign({},st,p,{points:pts}); });
+  return w;
+}
+/* (1) open sections: the P385 Method B solution O = a.torsO (sols per ULS
+   combination: sol.xs mm, phi rad, p1 = phi' rad/mm, p2 = phi'' rad/mm2,
+   p3 = phi''' rad/mm3; fb.xs/fb.M N.mm/fb.V N coincident). NEd kN (design
+   value, |.| taken), MzImp kN.m (imposed |S.Mz|). Returns tor.elastic. */
+function torsionElasticOpen(a,sec,fy,gM0,O,NEd,MzImp){
+  const E=a.E, G=81000, fyd=fy/gM0;
+  const A=sec.A*100, Iy=sec.Ix*1e4, Iz=sec.Iy*1e4, Wely=sec.Zx*1e3, Welz=sec.Zy*1e3;   // mm2, mm4, mm3
+  const D=sec.D, B=sec.B, tf=sec.tf, tw=sec.tw, chan=sec.kind==='channel', tp=sec.tp||{};
+  const Wn0=(tp.Wn0||0)*100, Wn2=chan? (tp.Wn2||0)*100 : 0;                       // mm2 (cm2 -> mm2)
+  const Sw1=(tp.Sw1||0)*1e4, Sw2=chan? (tp.Sw2||0)*1e4 : 0, Sw3=chan? (tp.Sw3||0)*1e4 : 0;   // mm4 (cm4 -> mm4)
+  const SwJ=chan? Sw2 : Sw1;                                                       // junction, flange side (20 Sep 2026 review: Sw2 for a channel, not max(Sw1,Sw2,Sw3))
+  const Sf=B*tf*(D-tf)/2, Smax=Sf+tw*Math.pow(D/2-tf,2)/2;                        // mm3, first moments about y-y (web values, Eq 6.20)
+  const SfF=chan? Sf : Sf/2;                                                       // mm3, flange at the junction: one side of the web (20 Sep 2026 review)
+  const yWeb=chan? Math.max(B-Iz/Welz,0) : tw/2;                                   // mm, web plane from the minor axis
+  // channel point P1b: the flange point where W_n = 0 (P385 point 1, S_w1), s_1 from the toe (omega linear along the flange)
+  const Bf=B-tw/2, s1=(chan && Wn0+Wn2>0)? Bf*Wn0/(Wn0+Wn2) : 0, yToe=Iz/Welz, y1b=Math.abs(yToe-s1);
+  const sN=Math.abs(NEd)*1e3/A;
+  let worst={u:-1}, MzTwistMax=0, MzTotMax=0, nSt=0;
+  O.sols.forEach(se=>{ const g=se.sol, fb=se.fb;
+    g.xs.forEach((x,i)=>{
+      const MyN=Math.abs(interpAt(fb.xs,fb.M,x)), VN=Math.abs(interpAt(fb.xs,fb.V,x));   // N.mm, N
+      const phi=g.phi[i], p1=Math.abs(g.p1[i]), p2=Math.abs(g.p2[i]), p3=Math.abs(g.p3[i]);
+      const MzTw=Math.abs(phi*MyN), MzTot=MzImp*1e6+MzTw;                          // N.mm
+      const sMyTip=MyN/Wely, sMyFm=MyN*(D/2-tf/2)/Iy, sMyJ=MyN*(D/2-tf)/Iy;
+      const sMzTip=MzTot/Welz, sMzWeb=MzTot*yWeb/Iz, sMz1b=MzTot*y1b/Iz;
+      const sW0=E*Wn0*p2, sW2=E*Wn2*p2;
+      const tTf=G*tf*p1, tTw=G*tw*p1;
+      const tWJ=E*SwJ*p3/tf, tW1b=chan? E*Sw1*p3/tf : 0, tW3=chan? E*Sw2*p3/tw : 0, tW4=chan? E*Sw3*p3/tw : 0;
+      const tV2=VN*SfF/(Iy*tf), tV1b=chan? VN*s1*tf*(D-tf)/2/(Iy*tf) : 0, tV3=VN*Sf/(Iy*tw), tV4=VN*Smax/(Iy*tw);
+      const list=[
+        {point:'P1 flange tip',                 sigmaN:sN, sigmaMy:sMyTip, sigmaMz:sMzTip, sigmaW:sW0, tauV:0,    tauT:tTf, tauW:0}];
+      if(chan) list.push({point:'P1b flange at W_n = 0',   sigmaN:sN, sigmaMy:sMyFm,  sigmaMz:sMz1b,  sigmaW:0,   tauV:tV1b, tauT:tTf, tauW:tW1b});
+      list.push(
+        {point:'P2 web-flange junction, flange',sigmaN:sN, sigmaMy:sMyFm,  sigmaMz:sMzWeb, sigmaW:sW2, tauV:tV2,  tauT:tTf, tauW:tWJ},
+        {point:'P3 web-flange junction, web',   sigmaN:sN, sigmaMy:sMyJ,   sigmaMz:sMzWeb, sigmaW:sW2, tauV:tV3,  tauT:tTw, tauW:tW3},
+        {point:'P4 web mid-depth',              sigmaN:sN, sigmaMy:0,      sigmaMz:sMzWeb, sigmaW:0,   tauV:tV4,  tauT:tTw, tauW:tW4});
+      const pts=elasticPoints61(list,fyd);
+      worst=elasticGovern(worst,pts,{x,combo:se.combo.label,My:MyN/1e6,V:VN/1e3,phi,p1:g.p1[i],p2:g.p2[i],p3:g.p3[i],MzImp,MzTwist:MzTw/1e6,MzTot:MzTot/1e6});
+      MzTwistMax=Math.max(MzTwistMax,MzTw/1e6); MzTotMax=Math.max(MzTotMax,MzTot/1e6); nSt++;
+    });
+  });
+  if(worst.u<0) return null;
+  return Object.assign(worst,{box:false,fy:fyd,NEd,MzTwistMax,MzTotMax,nStations:nSt,
+    geom:{A,Iy,Iz,Wely,Welz,Wn0,Wn2,Sw1,Sw2,Sw3,SwJ,Sf,SfF,Smax,yWeb,yToe,s1,y1b,E,G,tf,tw,D,B,chan},
+    basis:'EN 1993-1-1 6.2.7(5): elastic verification of the cross-section with the yield criterion 6.2.1(5) Eq (6.1), sigma_x = N/A + M_y/W_el,y + M_z,tot/W_el,z + sigma_w and tau = tau_V + tau_t + tau_w at the flange tip, '+(chan? 'the flange point where W_n = 0 (S_w1), ' : '')+'the web-flange junction (flange and web side) and the web mid-depth, every station of every ULS combination, every contribution at its worst; M_z,tot = M_z,Ed + phi.M_y'});
+}
+/* (1) hollow sections, cl 6.2.7(7): warping neglected; the St Venant solution
+   a.tors.uls per ULS combination (r.xs/r.T N.mm torque diagram, r.nodes/r.phi
+   twist); Wt mm3. The V_Ed shear flow round the closed mid-line (Eq 6.20):
+   Q_c at the corner, Q_m at the web mid-depth (20 Sep 2026 review: the corner
+   carried tau_V = 0 and the web the mean V/(2(D - 2t)t)). Returns tor.elastic. */
+function torsionElasticBox(a,sec,fy,gM0,Wt,NEd,MzImp){
+  const fyd=fy/gM0, A=sec.A*100, Iy=sec.Ix*1e4, Wely=sec.Zx*1e3, Welz=sec.Zy*1e3, t=sec.tf, D=sec.D, B=sec.B;
+  const Qc=((B-t)/2)*t*((D-t)/2), Qm=Qc+t*Math.pow(D-t,2)/8;                       // mm3, mid-line first moments (cut at the flange mid-width, q = 0)
+  const sN=Math.abs(NEd)*1e3/A;
+  const torsUls=(a.tors&&a.tors.uls)||[];
+  let worst={u:-1}, MzTwistMax=0, MzTotMax=0, nSt=0;
+  a.ulsResults.forEach(res=>{
+    const tr=torsUls.find(u=>u.combo===res.combo); if(!tr) return;
+    const xs=[...new Set([...res.fb.xs,...tr.r.xs].map(x=>+x.toFixed(4)))].sort((p,q)=>p-q);
+    xs.forEach(x=>{
+      const MyN=Math.abs(interpAt(res.fb.xs,res.fb.M,x)), VN=Math.abs(interpAt(res.fb.xs,res.fb.V,x));
+      const T=Math.abs(interpAt(tr.r.xs,tr.r.T,x)), phi=interpAt(tr.r.nodes,tr.r.phi,x);
+      const MzTw=Math.abs(phi*MyN), MzTot=MzImp*1e6+MzTw;
+      const tauT=T/Wt, tauVc=VN*Qc/(Iy*t), tauVm=VN*Qm/(Iy*t), sMy=MyN/Wely, sMz=MzTot/Welz;
+      const pts=elasticPoints61([
+        {point:'corner',           sigmaN:sN, sigmaMy:sMy, sigmaMz:sMz, sigmaW:0, tauV:tauVc, tauT, tauW:0},
+        {point:'web mid-depth',    sigmaN:sN, sigmaMy:0,   sigmaMz:sMz, sigmaW:0, tauV:tauVm, tauT, tauW:0},
+        {point:'flange mid-width', sigmaN:sN, sigmaMy:sMy, sigmaMz:0,   sigmaW:0, tauV:0,     tauT, tauW:0}],fyd);
+      worst=elasticGovern(worst,pts,{x,combo:res.combo.label,My:MyN/1e6,V:VN/1e3,T:T/1e6,phi,MzImp,MzTwist:MzTw/1e6,MzTot:MzTot/1e6});
+      MzTwistMax=Math.max(MzTwistMax,MzTw/1e6); MzTotMax=Math.max(MzTotMax,MzTot/1e6); nSt++;
+    });
+  });
+  if(worst.u<0) return null;
+  return Object.assign(worst,{box:true,fy:fyd,NEd,MzTwistMax,MzTotMax,nStations:nSt,geom:{A,Iy,Wely,Welz,Wt,t,D,B,Qc,Qm},
+    basis:'EN 1993-1-1 6.2.7(5) with 6.2.7(7) (warping neglected, tau_t = T_Ed/W_t): yield criterion 6.2.1(5) Eq (6.1) at the corner (tau_t + V Q_c/(I_y t)), the web mid-depth (tau_t + V Q_m/(I_y t)) and the flange mid-width, the V_Ed shear flow round the closed mid-line per Eq (6.20), every station of every ULS combination, every contribution at its worst; M_z,tot = M_z,Ed + phi.M_y'});
+}
+/* (3) max over the member of |phi(x) M_y,Ed(x)| (kN.m) for ONE ULS combination:
+   the P385 solution for open sections, the St Venant twist for hollow ones. */
+function torsionMzTwistMax(a,combo){
+  let m=0;
+  if(a.torsO&&a.torsO.ok&&a.torsO.sols){
+    const se=a.torsO.sols.find(s=>s.combo===combo);
+    if(se) se.sol.xs.forEach((x,i)=>{ m=Math.max(m,Math.abs(se.sol.phi[i]*interpAt(se.fb.xs,se.fb.M,x))/1e6); });
+  } else if(a.tors&&a.tors.on&&a.tors.uls){
+    const tr=a.tors.uls.find(u=>u.combo===combo), res=(a.ulsResults||[]).find(r=>r.combo===combo);
+    if(tr&&res) tr.r.nodes.forEach((x,i)=>{ m=Math.max(m,Math.abs(tr.r.phi[i]*interpAt(res.fb.xs,res.fb.M,x))/1e6); });
+  }
+  return m;
+}
+/* (2) EN 1993-6 Annex A Eq (A.1) over the P385 station grids of tor (rows
+   carry My, Mw, Mz = phi.My, MzImp, MzTot kN.m); MbA = chi_LT W_y f_y/gM1
+   (no f-factor, P385 basis), McrA kN.m, CmzProxy the caller's diagram proxy.
+   Shared by the standard (closed-form Mcr) and eigen paths. */
+function annexAEval(tor,MbA,McrA,CmzProxy){
+  const MzImp=tor.MzImp||0;
+  const Cmz= MzImp>1e-9? 1.0 : CmzProxy;
+  const CmzBasis= MzImp>1e-9? 'C_mz = 1.0: the imposed M_z is a constant diagram (psi = 1, Table B.3); the twist-induced part carries no proxy'
+                            : 'C_mz = '+CmzProxy.toFixed(2)+' for the twist-induced M_z = phi.M_y diagram (no M_z imposed; the caller\'s load-case proxy or override)';
+  let MyMax=0; tor.grids.forEach(g2=>g2.rows.forEach(r2=>{ MyMax=Math.max(MyMax,r2.My); }));
+  // resistances CLASS-CONSISTENT (elastic for Class 3)
+  const MzR=tor.cls12? tor.Mplz : tor.Melz;
+  const MfR=tor.cls12? tor.Mplf : tor.Melf;
+  if(MyMax>=McrA*0.999) return {u:99,kAlpha:Infinity,Cmz,CmzBasis,MbA,McrA,MzR,MfR,MzImp,MzTwist:tor.MzMax,MzTot:tor.MzTot,unbounded:true};
+  const kAlpha=1/(1-MyMax/McrA);
+  let worst={u:-1};
+  tor.grids.forEach(g2=>g2.rows.forEach(r2=>{
+    const MzT=r2.MzTot;                                     // M_z,tot = M_z,Ed + phi.M_y at the station
+    const kw=Math.max(0.7-0.2*r2.Mw/MfR,0);
+    const kzw=Math.max(1-MzT/MzR,0);
+    const u=r2.My/MbA + Cmz*MzT/MzR + kw*kzw*kAlpha*r2.Mw/MfR;
+    if(u>worst.u) worst={u,x:r2.x,My:r2.My,Mz:MzT,MzImp,MzTwist:r2.Mz,MzTot:MzT,Mw:r2.Mw,kw,kzw,combo:g2.combo.label};
+  }));
+  return Object.assign(worst,{kAlpha,Cmz,CmzBasis,MbA,McrA,MzR,MfR,unbounded:false});
+}
+/* (4) advisory superposition, N_Ed > 0 with an open-section torsion solution;
+   annex = null when no LTB check exists (k_alpha = 1). Returns null or
+   {u, u62, uw, kAlpha, at, text}; the caller pushes text as an advisory. */
+function torsionSuperposition(tor,annex,buck){
+  if(!(tor&&tor.p385&&tor.grids&&buck&&buck.Fc>1e-9)) return null;
+  if(annex&&annex.unbounded) return null;
+  const MzR=tor.cls12? tor.Mplz : tor.Melz, MfR=tor.cls12? tor.Mplf : tor.Melf;
+  const kAlpha=(annex&&isFinite(annex.kAlpha))? annex.kAlpha : 1;
+  let uw=0, at=null;
+  tor.grids.forEach(g2=>g2.rows.forEach(r2=>{
+    const kw=Math.max(0.7-0.2*r2.Mw/MfR,0), kzw=Math.max(1-r2.MzTot/MzR,0);
+    const t=kw*kzw*kAlpha*r2.Mw/MfR;
+    if(t>uw){ uw=t; at={x:r2.x,kw,kzw,Mw:r2.Mw,MzTot:r2.MzTot,combo:g2.combo.label}; }
+  }));
+  const u=buck.u2+uw;
+  const text='ADVISORY - '+SUPERPOSITION_LABEL+': N<sub>Ed</sub>/(&chi;<sub>z</sub>N<sub>Rk</sub>/&gamma;<sub>M1</sub>) + k<sub>zy</sub>M<sub>y,Ed</sub>/(&chi;<sub>LT</sub>M<sub>y,Rk</sub>/&gamma;<sub>M1</sub>) + k<sub>zz</sub>M<sub>z,tot</sub>/(M<sub>z,Rk</sub>/&gamma;<sub>M1</sub>) + k<sub>w</sub>k<sub>zw</sub>k<sub>&alpha;</sub>M<sub>w,Ed</sub>/M<sub>f,Rd</sub> = '
+    +buck.u2.toFixed(3)+' (Eq 6.62 with M<sub>z,tot</sub> = '+buck.MzEd.toFixed(2)+' kN&middot;m) + '+uw.toFixed(3)+' (warping term of (A.1)'+(at? ' at x = '+(at.x/1000).toFixed(2)+' m, k<sub>w</sub> = '+at.kw.toFixed(3)+', k<sub>zw</sub> = '+at.kzw.toFixed(3)+', k<sub>&alpha;</sub> = '+kAlpha.toFixed(3)+(annex? '' : ' (no LTB check: M<sub>cr</sub> unbounded)') : '')+') = '+u.toFixed(3)+'. Not a utilisation; the verdict rests on (6.1), 6.61/6.62, (A.1), V/V<sub>pl,T,Rd</sub> and P385 3.1.2.';
+  return {u,u62:buck.u2,uw,kAlpha,at,text,label:SUPERPOSITION_LABEL};
+}
 function checksEC3Restrained(a){
   // SCI worked-example procedure: fully laterally restrained beam to BS EN 1993-1-1 (UK NA).
   // Sequence: classification -> shear (6.2.6) -> shear buckling screen (6.2.6(6)) ->
@@ -852,9 +1147,13 @@ function checksEC3Restrained(a){
       const TEd=a.tors.Tmax;
       const tauMax=TEd*1e6/Wt;                                  // N/mm2, shear stress due to peak torsion
       const vt=boxShearTorsionSweep(Wt);
+      // 20 Sep 2026 torsion + N/Mz: elastic yield criterion (6.1) with N_Ed, M_y, M_z,tot and
+      // tau_t = T_Ed/W_t (cl 6.2.7(5)/(7)), every station of every ULS combination (helper above)
+      const elastic=torsionElasticBox(a,sec,fy,gM0,Wt,F,MzEd);
       tor={box:true,Wt,WtSrc,ItShow,TRd,TEd,
         tau:vt.tau, tauMax, VplTRd:vt.VplTRd, vt,
         torUtil:TRd>0? TEd/TRd:0, vtUtil:vt.u, vtZeroCapacity:!!vt.zeroCapacity,
+        elastic, MzImp:MzEd, MzTot:elastic? elastic.MzTotMax : MzEd, MzTwistMax:elastic? elastic.MzTwistMax : 0,
         GIt:a.tors.GIt,TmaxSLS:a.tors.TmaxSLS,phiMax:a.tors.phiMax,phiDeg:a.tors.phiMax*180/Math.PI,phiPos:a.tors.phiPos,governT:a.tors.governT,governTw:a.tors.governTw};
       if(sec.boxType==='CF') unsupported.push("Torsional constants are computed with hot-finished (EN 10210-2) corner geometry; cold-formed (EN 10219-2) corners differ slightly - verify W_t for a cold-formed section.");
     } else if(a.torsO && a.torsO.ok){
@@ -864,12 +1163,17 @@ function checksEC3Restrained(a){
       const chan=sec.kind==='channel';
       const Mply=sec.Sx*1e3*fy/1e6, Mplz=sec.Sy*1e3*fy/1e6; // kNm
       const Mely=sec.Zx*1e3*fy/1e6, Melz=sec.Zy*1e3*fy/1e6;
-      const Mplf=chan? sec.B*sec.B*sec.tf/4*fy/1e6 : Mplz/2;  // one flange (plastic)
-      const Melf=Melz/2;
+      // 20 Sep 2026 accuracy: M_f,Rd = the resistance of ONE FLANGE bending about its own axis in the flange
+      // plane (SCI P385 3.1.2 / 6.2, W_pl,f = t_f b^2/4, W_el,f = t_f b^2/6) for I/H AND channels; formerly
+      // M_pl,z/2 for I/H, which carried half the web's minor-axis share (UB 457x191x82: 41.80 vs 40.255 kN.m,
+      // MasterSeries prints 40.255) - affects P385 3.1.2, the (A.1) warping term and k_w by up to 4 %
+      const Mplf=sec.B*sec.B*sec.tf/4*fy/1e6;               // one flange (plastic), kN.m
+      const Melf=sec.B*sec.B*sec.tf/6*fy/1e6;               // one flange (elastic), kN.m
       const cls12=cl.cls<=2;
       // evaluate effects on each ULS combo's own coincident (My, phi, Mw) fields
       const SwChan=(chan&&sec.tp)? Math.max(sec.tp.Sw2||0,sec.tp.Sw3||0)*1e4 : 0;
-      let cross={u:-1}, grids=[], tauT=0, tauW=0, TtEnds=[0,0], TEnds=[0,0], BMaxAbs=0, BMaxPos=0, MwMaxAbs=0, MzMax=0, phiUmax=0, MyAtCross=0;
+      const MzImp=MzEd;                                       // 20 Sep 2026 torsion + N/Mz: imposed constant M_z,Ed (kN.m, S.Mz)
+      let cross={u:-1}, grids=[], tauT=0, tauW=0, TtEnds=[0,0], TEnds=[0,0], BMaxAbs=0, BMaxPos=0, MwMaxAbs=0, MzMax=0, MzTotMax=0, phiUmax=0, MyAtCross=0;
       let vt={u:-1,x:0,V:0,T:0,tauT:0,tauW:0,VplTRd:VcRd,combo:'',zeroCapacity:false};
       O.sols.forEach(se=>{
         const g=se.sol, fb=se.fb;
@@ -878,7 +1182,8 @@ function checksEC3Restrained(a){
           const Vx=Math.abs(interpAt(fb.xs,fb.V,x))/1000;        // kN, coincident shear
           const phi=g.phi[i];
           const Mw=Math.abs(EIw*g.p2[i]/hh)/1e6;                 // kNm, per flange
-          const Mz=Math.abs(phi*interpAt(fb.xs,fb.M,x)/1e6);     // kNm (phi*My)
+          const Mz=Math.abs(phi*interpAt(fb.xs,fb.M,x)/1e6);     // kNm (phi*My), second-order minor-axis moment of the twist
+          const MzTot=MzImp+Mz;                                  // 20 Sep 2026 torsion + N/Mz: M_z,tot = M_z,Ed + phi.M_y (P385 3.1.2 M_z term; = Mz when no M_z is imposed)
           const Tt=Math.abs(O.GIt*g.p1[i])/1e6;                  // kNm, coincident St Venant torque
           const tauTi=Tt*1e6*sec.tw/O.IT;                        // N/mm2
           const tauWi=SwChan? Math.abs(a.E*SwChan*g.p3[i]/sec.tw) : 0;
@@ -889,12 +1194,13 @@ function checksEC3Restrained(a){
           if(vu>vt.u) vt={u:vu,x,V:Vx,T:Tt,tauT:tauTi,tauW:tauWi,VplTRd:VplTRdi,combo:se.combo.label,zeroCapacity:VplTRdi<=1e-9&&Vx>1e-9};
           tauT=Math.max(tauT,tauTi);
           tauW=Math.max(tauW,tauWi);
-          const u=cls12? Math.pow(My/Mply,2)+Mw/Mplf+Mz/Mplz
-                        : My/Mely+Mz/Melz+Mw/Melf;
-          return {x,My,phi,Mw,Mz,u};
+          // P385 3.1.2 cross-section interaction, Class 1/2 plastic, Class 3 elastic; M_z term = M_z,tot
+          const u=cls12? Math.pow(My/Mply,2)+Mw/Mplf+MzTot/Mplz
+                        : My/Mely+MzTot/Melz+Mw/Melf;
+          return {x,My,phi,Mw,Mz,MzImp,MzTot,u};
         });
-        rows.forEach(r2=>{ if(r2.u>cross.u) cross={...r2,combo:se.combo.label}; 
-          MwMaxAbs=Math.max(MwMaxAbs,r2.Mw); MzMax=Math.max(MzMax,r2.Mz); phiUmax=Math.max(phiUmax,Math.abs(r2.phi)); });
+        rows.forEach(r2=>{ if(r2.u>cross.u) cross={...r2,combo:se.combo.label};
+          MwMaxAbs=Math.max(MwMaxAbs,r2.Mw); MzMax=Math.max(MzMax,r2.Mz); MzTotMax=Math.max(MzTotMax,r2.MzTot); phiUmax=Math.max(phiUmax,Math.abs(r2.phi)); });
         g.p2.forEach((v,i)=>{ const Bi=Math.abs(EIw*v)/1e9; if(Bi>BMaxAbs){ BMaxAbs=Bi; BMaxPos=g.xs[i]; } });   // bimoment B = EI_w phi'', kN.m2
         grids.push({combo:se.combo,rows});
         const n=g.xs.length;
@@ -921,7 +1227,12 @@ function checksEC3Restrained(a){
       // the change exceeds the tool threshold TORSION_FE_MESH_BLOCK.
       const feMethod=O.method==='fe';
       if(feMethod && !O.converged) unsupported.push('Warping-torsion FE mesh has not converged: doubling the mesh ('+O.nElemCoarse+' to '+O.nElem+' elements) changed the peak twist / St Venant torque / bimoment by '+(O.meshError*100).toFixed(2)+' % (limit '+(O.meshBlock*100).toFixed(1)+' %). The torsion effects are printed but PASS is blocked; refine the load layout or report the case.');
+      // 20 Sep 2026 torsion + N/Mz: elastic yield criterion (6.1) with N_Ed, M_y, M_z,tot, sigma_w,
+      // tau_V, tau_t, tau_w at the four section points (cl 6.2.7(5); helper torsionElasticOpen above)
+      const elastic=torsionElasticOpen(a,sec,fy,gM0,O,F,MzImp);
+      if(elastic && !(elastic.geom.Wn0>0 && elastic.geom.Sw1>0)) unsupported.push('Torsion: the P385 warping table (W_n0, S_w1'+(chan? ', W_n2, S_w2, S_w3' : '')+') is not tabulated for this section, so the warping stresses of the elastic yield criterion (6.1) cannot be evaluated; PASS is blocked.');
       tor={box:false,p385:true,TEd:a.tors.Tmax,governT:a.tors.governT,tp:sec.tp||null,
+        elastic,MzImp,MzTot:MzTotMax,MzTwistMax:MzMax,
         method:O.method||'closed',methodLabel:O.methodLabel||'SCI P385 App C closed forms (Cases 3/4/10)',fe:feMethod,
         nElem:O.nElem||null,nElemCoarse:O.nElemCoarse||null,meshError:feMethod? O.meshError:null,meshBlock:O.meshBlock||null,meshConverged:feMethod? !!O.converged:true,
         bcText:O.bcText||'',feReasons:O.feReasons||[],
@@ -943,7 +1254,17 @@ function checksEC3Restrained(a){
     }
   }
   if(a.torsErr) unsupported.push("Eccentric loads are active but torsion cannot be evaluated: "+a.torsErr+".");
-  if(tor && (Math.abs(F)>1e-9 || MzEd>1e-9)) unsupported.push('Combined torsion with direct axial force or imposed minor-axis bending is not implemented as one interaction. Separate checks do not establish adequacy; PASS is blocked.');
+  // 20 Sep 2026 torsion + N/Mz: the former block "Combined torsion with direct axial force or
+  // imposed minor-axis bending is not implemented as one interaction" is removed; the
+  // verification is the (6.1) elastic check above, 6.61/6.62 with M_z,Ed = M_z + phi.M_y
+  // (annexB2) and EN 1993-6 (A.1) with M_z,tot (unrestrained paths); the basis is printed
+  // (torsionCombinedBasis, set per path once buck / annex are known - below and in the
+  // unrestrained paths). 20 Sep 2026 review: the binding policy of (6.1) (elasticBindingPolicy).
+  if(tor && (tor.p385 || tor.box)){
+    tor.combinedActive=(Math.abs(F)>1e-9 || MzEd>1e-9);
+    if(!tor.elastic) unsupported.push('Torsion: the elastic yield criterion (6.1) could not be evaluated (no coincident station data); PASS is blocked.');
+    else { const pol=elasticBindingPolicy(sec,cl,F); tor.elastic.binding=pol.binding; tor.elastic.bindingBasis=pol.basis; }
+  }
   // SLS twist guideline: SCI P385 suggests limiting the serviceability rotation
   // to about 2 degrees; flagged as a non-blocking advisory (guideline, not a
   // code limit) - matches common commercial-software practice.
@@ -1103,9 +1424,26 @@ function checksEC3Restrained(a){
     utils.push({name:"Bending+torsion cross-section (P385 3.1.2)",val:tor.cross.u});
     utils.push({name:"Shear+torsion  V_Ed/V_pl,T,Rd",val:tor.vtUtil});
   }
+  // 20 Sep 2026 torsion + N/Mz: elastic yield criterion (6.1), cl 6.2.7(5), computed in every torsion case;
+  // 20 Sep 2026 review: verdict-binding (utils) only where the code gives no plastic route (Class 3, or an
+  // open Class 1/2 section with N_Ed - elasticBindingPolicy), otherwise information (c.info; an advisory
+  // when it exceeds 1 - 6.2.7(5) is permissive and 6.2.7(6) admits the plastic route)
+  const info=[];
+  if(tor&&tor.elastic){
+    if(tor.elastic.binding) utils.push({name:ELASTIC_TORSION_UTIL_NAME,val:tor.elastic.u});
+    else {
+      info.push({name:ELASTIC_TORSION_UTIL_NAME,val:tor.elastic.u,note:tor.elastic.bindingBasis});
+      if(tor.elastic.u>1.0001) advisory.push('ADVISORY - elastic yield criterion (6.1) with torsion, cl 6.2.7(5) = '+tor.elastic.u.toFixed(3)+' at x = '+(tor.elastic.x/1000).toFixed(2)+' m ('+tor.elastic.point+'): first yield is reached under the design actions (information only, not a utilisation: '+tor.elastic.bindingBasis+').');
+    }
+  }
+  // 20 Sep 2026 torsion + N/Mz: advisory superposition of Eq 6.62 and (A.1) (fully restrained: k_alpha = 1);
+  // the unrestrained paths recompute it with their own k_alpha and print their own text
+  if(tor&&tor.p385){ tor.superposition=torsionSuperposition(tor,null,buck); if(tor.superposition && (S.restraint||'full')==='full') advisory.push(tor.superposition.text); }
+  // 20 Sep 2026 review: the basis text of this (fully restrained) path; the unrestrained paths overwrite it with theirs
+  if(tor&&(tor.p385||tor.box)) tor.combinedBasis=torsionCombinedBasis({box:!!tor.box,tension:!!(ax&&ax.tension),hasN:Math.abs(F)>1e-9,hasMz:MzEd>1e-9,restrained:true,buckEvaluated:!!(buck&&buck.Fc>1e-9),annexEvaluated:false,binding:!!(tor.elastic&&tor.elastic.binding)});
   let gov=utils[0]; utils.forEach(u=>{ if(u.val>gov.val) gov=u; });
   const pass=unsupported.length===0 && utils.every(u=>u.val<=1.0001);
-  return {sci:true,tor,coex,mvn,web,ax,aeff,buck,eps,cl,clsName,unsupported,advisory,fy,eta,hw,cOut,Av,AvRaw,avFloor,VcRd,Fv,shearUtil,
+  return {sci:true,tor,coex,mvn,web,ax,aeff,buck,eps,cl,clsName,unsupported,advisory,info,fy,eta,hw,cOut,Av,AvRaw,avFloor,VcRd,Fv,shearUtil,
     sbRatio,sbLimit,sbOk,Zx,Sx,Wy,McRd,hsNote,mvForm,rhoAtM,VatM,halfVpl,lowShearAtM,Mx,momUtil,F,
     span,divisor,dlimit,dmax,defOk,deflCant,deflAbsGoverns,holdDown,restraintForces:null,utils,gov,pass};
 }
@@ -1716,28 +2054,17 @@ function checksEC3UnrestrainedSCI(a){
     const McrA=ltb.channel? ltb.McrBack : ltb.Mcr;
     // Cmz proxy for the minor-axis diagram: the tabulated load case behind C1
     // (central point load 0.9, UDL 0.95, otherwise 1.0 conservative)
-    const Cmz = (c1r.route==='point')? 0.9 : (c1r.route==='uniform')? 0.95 : 1.0;
-    let MyMax=0; b.tor.grids.forEach(g2=>g2.rows.forEach(r2=>{ MyMax=Math.max(MyMax,r2.My); }));
+    const CmzProxy = (c1r.route==='point')? 0.9 : (c1r.route==='uniform')? 0.95 : 1.0;
     // resistances CLASS-CONSISTENT (elastic for Class 3) - required: with plastic
     // values a Class 3 member scores unconservatively (exposed by an independent commercial-software
     // UC 152x152x23 warping-torsion example: elastic gives 1.03-1.05 FAIL, plastic
     // would have shown 0.91 PASS).
-    const MzR=b.tor.cls12? b.tor.Mplz : b.tor.Melz;
-    const MfR=b.tor.cls12? b.tor.Mplf : b.tor.Melf;
-    if(MyMax>=McrA*0.999){
-      unsupported.push("M_y,Ed reaches the elastic critical moment M_cr: the Annex A amplifier k_alpha is unbounded; the member is inadequate as arranged.");
-      annex={u:99,kAlpha:Infinity,Cmz,MbA,McrA,MzR,MfR};
-    } else {
-      const kAlpha=1/(1-MyMax/McrA);
-      let worst={u:-1};
-      b.tor.grids.forEach(g2=>g2.rows.forEach(r2=>{
-        const kw=Math.max(0.7-0.2*r2.Mw/MfR,0);
-        const kzw=Math.max(1-r2.Mz/MzR,0);
-        const u=r2.My/MbA + Cmz*r2.Mz/MzR + kw*kzw*kAlpha*r2.Mw/MfR;
-        if(u>worst.u) worst={u,x:r2.x,My:r2.My,Mz:r2.Mz,Mw:r2.Mw,kw,kzw,combo:g2.combo.label};
-      }));
-      annex={...worst,kAlpha,Cmz,MbA,McrA,MzR,MfR};
-    }
+    // 20 Sep 2026 torsion + N/Mz: Eq (A.1) per station with M_z,Ed = M_z,tot = imposed M_z + phi.M_y
+    // in both the C_mz M_z/M_z,Rd term and k_zw; C_mz = 1.0 when an M_z is imposed (annexAEval above)
+    annex=annexAEval(b.tor,MbA,McrA,CmzProxy);
+    // 20 Sep 2026: M_y,Ed >= M_cr is a FAILURE (LTB governs, the Annex A utilisation is carried as 99), not an
+    // unverified check - reported through advisory with the FAIL: prefix so the brief prints a Warning row
+    if(annex.unbounded) advisory.push(KALPHA_UNBOUNDED_FAIL);
   }
   // member buckling: susceptible to torsional deformation unless closed section
   // or LTB plays no part (chiLT = 1); cantilever/channel handled per path.
@@ -1779,6 +2106,13 @@ function checksEC3UnrestrainedSCI(a){
     utils.push({name:"Bending+torsion cross-section (P385 3.1.2)",val:b.tor.cross.u});
     utils.push({name:"Shear+torsion  V_Ed/V_pl,T,Rd",val:b.tor.vtUtil});
   }
+  // 20 Sep 2026 torsion + N/Mz: elastic yield criterion (6.1), cl 6.2.7(5); 20 Sep 2026 review: in utils only when
+  // verdict-binding (elasticBindingPolicy in checksEC3Restrained), otherwise in b.info (carried over) with its advisory
+  if(b.tor&&b.tor.elastic&&b.tor.elastic.binding) utils.push({name:ELASTIC_TORSION_UTIL_NAME,val:b.tor.elastic.u});
+  // 20 Sep 2026 torsion + N/Mz: advisory superposition of Eq 6.62 and (A.1) with this path's k_alpha (information only)
+  if(b.tor&&b.tor.p385){ b.tor.superposition=torsionSuperposition(b.tor,annex,buck); if(b.tor.superposition) advisory.push(b.tor.superposition.text); }
+  // 20 Sep 2026 review: the basis text of this path (6.61/6.62 and (A.1) as evaluated here)
+  if(b.tor&&(b.tor.p385||b.tor.box)) b.tor.combinedBasis=torsionCombinedBasis({box:!!b.tor.box,tension:!!(b.ax&&b.ax.tension),hasN:Math.abs(S.axial||0)>1e-9,hasMz:Math.abs(S.Mz||0)>1e-9,restrained:false,buckEvaluated:!!(!(b.ax&&b.ax.tension)&&buck&&(buck.Fc>1e-9||buck.biax)),annexEvaluated:!!annex,binding:!!(b.tor.elastic&&b.tor.elastic.binding)});
   let gov=utils[0]; utils.forEach(u=>{ if(u.val>gov.val) gov=u; });
   const pass=unsupported.length===0 && utils.every(u=>u.val<=1.0001);
   return Object.assign({},b,{sci:false,sciU:true,mcrMethod:'standard',unsupported,advisory,ltb,ltbUtil,ltbBasis,C1,c1label:c1r.label,LE,utils,gov,pass,annex,buck,restraintForces:restraintF});

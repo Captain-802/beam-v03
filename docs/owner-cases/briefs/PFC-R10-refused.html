@@ -106,6 +106,12 @@
   .diagcard .dt{font-family:Arial; font-size:12px; font-weight:800; color:#374151; letter-spacing:.4px; text-transform:uppercase; margin-bottom:2px;}
   .diagrow{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
   svg.diag{width:100%; height:auto; display:block;}
+  /* 20 Sep 2026 hover readout (js/05-diagrams.js installDiagramHover): the
+     crosshair cursor on every value diagram; the guide/marker/readout group
+     never catches the pointer and never prints */
+  svg.diag-hover{cursor:crosshair;}
+  .diag-hover .hover{pointer-events:none;}
+  .diag-hover .hover text{font:700 11px Arial,Helvetica,sans-serif;}
 
   .force-table{width:100%; border-collapse:collapse; table-layout:fixed; margin:7px 0; font-size:13px; font-weight:400;}
   .force-table th{font-weight:700;}
@@ -149,12 +155,33 @@
   .ms-row.ms-nv{background:#fbe9e9; border-left:3px solid #c00000; margin:2px 0;}
   .ms-row.ms-nv .ms-l{color:#c00000; font-weight:700;}
   .ms-row.ms-nv .ms-nv-msg{color:#7a0000;}
+  /* 20 Sep 2026 review: advisory rows (LTB notes of the eigen route, support restraint design forces) */
+  .ms-row.ms-advrow{background:#f4f6fb; border-left:3px solid #6b7280; margin:2px 0; font-size:11px;}
+  .ms-row.ms-advrow .ms-l{color:#374151; font-weight:700;}
+  .ms-row.ms-advrow .ms-adv-msg{color:#374151;}
+  /* 20 Sep 2026 torsion + N/Mz: the indented section-points row under the (6.1) elastic yield criterion */
+  .ms-row.ms-pts{font-size:11px; color:#444; padding-left:24px;}
   .ms-inline-tag{float:right; padding-left:10px; color:#111;}
   .ms-warn{color:#c00000; font-weight:700;}
   .ms-loading{display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:10px; align-items:start;}
+  .ms-loading.ms-loading-plain{grid-template-columns:1fr;}   /* 20 Sep 2026: load list alone (no section load-lines figure) */
   .ms-loadlist{font-family:"Courier New",monospace; font-size:12px; line-height:1.45; margin:2px 0 4px 8px; white-space:normal;}
   .ms-loadlist br+*{display:inline;}
   .ms-sketch svg.diag{width:100%; height:auto; display:block;}
+  /* 20 Sep 2026 diagram panel of the Member Loading block (js/06-brief-masterseries.js msbDiagramPanel):
+     loading sketch full width, then the V / M / delta (/ T) hover diagrams two per row */
+  .ms-diagrams{margin:8px 0 4px; padding:6px 8px 4px; border:1px solid #c9c9c9; background:#fff;}
+  .ms-diagrams .ms-dt{font-size:11px; font-weight:700; color:#1a237e; letter-spacing:.3px; text-transform:uppercase; margin:2px 0 1px;}
+  .ms-diag-full{margin-bottom:6px;}
+  .ms-diag-full svg.diag{max-width:640px; margin:0 auto;}
+  /* 20 Sep 2026 review: the buckled mode shape of the eigen route, inside the Lateral Buckling block */
+  .ms-mode{margin:6px 0 4px 8px; padding:4px 8px; border:1px solid #c9c9c9; background:#fff;}
+  .ms-mode .ms-dt{font-size:11px; color:#1a237e; margin:0 0 2px;}
+  .ms-mode svg.diag{width:100%; height:auto; display:block; max-width:640px; margin:0 auto;}
+  .ms-diag-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px 14px;}
+  .ms-diag-grid>div{min-width:0;}
+  .ms-diagrams svg.diag{width:100%; height:auto; display:block;}
+  .ms-diag-note{margin:4px 0 0; font-style:italic;}
   .ms-forces,.ms-combos{width:100%; border-collapse:collapse; margin:8px 0 4px; font-size:12px; table-layout:fixed;}
   .ms-forces th,.ms-forces td,.ms-combos th,.ms-combos td{border:1px solid #333; padding:2px 5px; vertical-align:middle;}
   .ms-forces th{font-weight:400; text-align:center; line-height:1.1;}
@@ -172,9 +199,6 @@
   .ms-footer{font-size:11.5px; margin-top:4px; line-height:1.4;}
   .ms-footer div{margin:2px 0;}
   .ms-footer.ms-adv{color:#333;}
-  .ms-detail{margin-top:10px; border-top:1px solid var(--rule);}
-  .ms-detail>summary{cursor:pointer; font-family:Arial,Helvetica,sans-serif; font-weight:800; font-size:18px; padding:6px 0; color:#111;}
-  .brief-title{font-family:Arial,Helvetica,sans-serif; font-weight:800; font-size:18px; margin:6px 0 4px;}
 
   @media (max-width:900px){
     .app{grid-template-columns:1fr; height:auto; overflow:visible;}
@@ -183,6 +207,7 @@
     .report{min-width:0;}
     .report-head{grid-template-columns:1fr;}
     .ms-loading{grid-template-columns:1fr;}
+    .ms-diag-grid{grid-template-columns:1fr;}
   }
   @media print{
     @page{size:A4 landscape; margin:8mm;}
@@ -208,11 +233,12 @@
     .note{margin-top:3px;}
     .report{width:auto; max-width:none; min-width:0; min-height:auto; border:0; box-shadow:none; padding:0;}
     .section-view-modal{display:none !important;}
+    .diag-hover .hover{display:none !important;}
     .ms-brief{border:0; padding:0; background:#fff;}
     .ms-brief.ms-fail{background:#dbe6f5;}
-    .ms-row,.ms-unity,.ms-forces,.ms-combos,.ms-title,.ms-loading{break-inside:avoid; page-break-inside:avoid;}
+    .ms-row,.ms-unity,.ms-forces,.ms-combos,.ms-title,.ms-loading,.ms-diag-full,.ms-diag-grid>div{break-inside:avoid; page-break-inside:avoid;}
     .ms-h,.ms-sub{break-after:avoid; page-break-after:avoid;}
-    .ms-detail>summary{list-style:none;}
+    .ms-diag-full svg.diag{max-width:540px;}
   }
 
   /* ---- owner-cases brief page (tests/batch/run-owner-cases.cjs) ---- */

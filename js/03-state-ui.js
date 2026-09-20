@@ -350,7 +350,7 @@ const DEMO={
   mcrMethod:'eigen',   // EC3 unrestrained Mcr: 'eigen' (FE eigensolver, default) | 'standard' (closed form, SN003a/SN006a)
   eccOn:false, za:0,
   ltbRestraints:[],   // intermediate lateral restraints [{pos (m), v, phi, vp, phip}] of the LTB eigen model (js/08-mcr-eigen-patch.js); present here so that a Reset (S = copy of DEMO) keeps the field the patch expects (19 Sep 2026 review)
-  zj:0, Cmzo:null,    // eigen patch inputs: monosymmetry z_j (0 for every library section) and the verified C_mz override (null = conservative 1.0)
+  zj:0, Cmzo:null,    // eigen patch inputs: monosymmetry z_j (0 for every library section) and the verified C_mz override (null = conservative 1.0; 20 Sep 2026 review: applies to the twist-induced M_z = phi.M_y diagram of EN 1993-6 (A.1) only - with an imposed M_z (constant diagram, psi = 1) C_mz = 1.0 is used whatever the override)
   pfcMirror:false,
   plate:{on:false, side:'bottom', t:10, outL:0, outR:150}
 };

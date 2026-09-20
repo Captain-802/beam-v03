@@ -114,9 +114,13 @@ test('verdict directions of the campaign groups (eigen route)', () => {
   const v = id => runCase(id, 'eigen', "(a,c)=>c.pass?'PASS':(c.utils.some(u=>!Number.isFinite(u.val)||u.val>1.0001)?'FAIL':'NOT VERIFIED')");
   assert.deepEqual(['WEB-01', 'WEB-02', 'WEB-03', 'WEB-07'].map(v), ['FAIL', 'PASS', 'FAIL', 'FAIL']);
   assert.deepEqual(['UPL-01', 'UPL-02', 'UPL-03', 'UPL-04', 'UPL-05'].map(v), ['NOT VERIFIED', 'PASS', 'PASS', 'PASS', 'NOT VERIFIED']);
-  assert.deepEqual(['TFB-01', 'TFB-03', 'TFB-04'].map(v), ['PASS', 'FAIL', 'NOT VERIFIED']);
+  assert.deepEqual(['TFB-01', 'TFB-03', 'TFB-04'].map(v), ['PASS', 'FAIL', 'PASS']);   // TFB-04: PASS since 20 Sep 2026 torsion + N/Mz (the 'not implemented as one interaction' block is gone; (6.1) 0.14, Eq 6.62 0.35 with M_z,Ed = phi.M_y = 0.73 kN.m)
   assert.deepEqual(['HSV-01', 'HSV-03', 'HSV-05', 'HSV-06'].map(v), ['PASS', 'FAIL', 'FAIL', 'PASS']);
-  assert.deepEqual(['TOR-01', 'TOR-03', 'TOR-04', 'TOR-05'].map(v), ['PASS', 'PASS', 'PASS', 'PASS']);   // TOR-01 (PFC cantilever): PASS since the cantilever preset restrains the root warping (was FAIL with the root warping free)
+  // TOR-01 / TOR-05 (cantilevers, root warping fixed): PASS - the elastic yield criterion (6.1) exceeds 1 at the root flange tip (sigma_My + sigma_w
+  // = 198 + 114 = 313 and 97 + 196 = 294 N/mm2 > 275: (6.1) = 1.29 / 1.14) but these are Class 1 sections with N_Ed = 0, for which EN 1993-1-1
+  // 6.2.7(6) permits the plastic resistance (P385 3.1.2: 0.72 / 0.57; Annex A 0.98 / 0.62); (6.1) is printed as information with an advisory
+  // (20 Sep 2026 review, elasticBindingPolicy). TOR-01 is PASS since the cantilever preset restrains the root warping (FAIL on Annex A with it free).
+  assert.deepEqual(['TOR-01', 'TOR-03', 'TOR-04', 'TOR-05'].map(v), ['PASS', 'PASS', 'PASS', 'PASS']);
   assert.deepEqual(['AEF-01', 'AEF-02', 'AEF-04'].map(v), ['PASS', 'FAIL', 'NOT VERIFIED']);
   assert.deepEqual(['BIX-01', 'BIX-02', 'BIX-05'].map(v), ['PASS', 'FAIL', 'FAIL']);
 });

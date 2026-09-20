@@ -159,6 +159,8 @@
   .ms-row.ms-advrow{background:#f4f6fb; border-left:3px solid #6b7280; margin:2px 0; font-size:11px;}
   .ms-row.ms-advrow .ms-l{color:#374151; font-weight:700;}
   .ms-row.ms-advrow .ms-adv-msg{color:#374151;}
+  /* 20 Sep 2026 torsion + N/Mz: the indented section-points row under the (6.1) elastic yield criterion */
+  .ms-row.ms-pts{font-size:11px; color:#444; padding-left:24px;}
   .ms-inline-tag{float:right; padding-left:10px; color:#111;}
   .ms-warn{color:#c00000; font-weight:700;}
   .ms-loading{display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:10px; align-items:start;}

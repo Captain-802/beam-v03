@@ -32,6 +32,17 @@
    (+ the "Torq in Case n" twist line with torsion) -> unity bar -> verdict.
    A MasterSeries line beam-v03 has no value for prints its label with
    "n/a - not evaluated by beam-v03" once; nothing is recomputed here.
+   20 Sep 2026 torsion + N/Mz (engine: combined torsion with N_Ed and / or an
+   imposed M_z verified as Eurocode advises, the former "not implemented as one
+   interaction" block gone): the Local Capacity / Moment Capacity block prints
+   the EN 1993-1-1 6.2.7(5) elastic yield criterion (6.1) row with its stress
+   build-up and the section points (c.tor.elastic, every torsion case); the
+   Torsion Design block prints M_z,tot = M_z,Ed + phi.M_y, the (A.1) rows with
+   M_z,tot and C_mz = 1.0 with its reason, the basis text (tor.combinedBasis)
+   and - N_Ed > 0 - the superposition of Eq 6.62 and (A.1) as an information-only
+   row (tor.superposition, class ms-advrow); the Buckling Resistance U_M.z row
+   and the C_mz row print M_z,Ed as imposed + twist = total; the unity bar
+   carries the "Yield 6.1" cell.
    =========================================================================== */
 
 /* ---- formatting (docs/BRIEF_MAPPING.md section 3) ---- */
@@ -165,6 +176,75 @@ function msbBlockFor(msg){
   if(/critical moment|LTB|eigensolver|mesh|Cantilever|lateral/i.test(s)) return 'ltb';
   return 'general';
 }
+/* ---- [20 Sep 2026 torsion + N/Mz] elastic yield criterion (6.1) rows, c.tor.elastic ----
+   EN 1993-1-1 cl 6.2.7(5) with 6.2.1(5) Eq (6.1), (sigma_x/f_yd)^2 + 3(tau/f_yd)^2 <= 1,
+   evaluated by torsionElasticOpen / torsionElasticBox (js/checks/eurocode-checks.js)
+   at every station of every ULS combination and at the section points: open
+   sections P1 flange tip, P2 / P3 the web-flange junction (flange / web side), P4
+   the web mid-depth; hollow sections (6.2.7(7), warping neglected) the corner,
+   the web mid-depth and the flange mid-width. msbElasticTerms lists, point by
+   point, the formula term of every stress component the engine stored (a term
+   the engine sets to zero for the section - W_n2 / S_w2 / S_w3 of a doubly
+   symmetric I/H - is not printed); the printed sum is the engine's sigmaX / tau
+   and the value its u. Nothing is recomputed here.
+   20 Sep 2026 review: P2 carries the flange shear flow V S_f/(2 I_y t_f) (I/H, half flange) or V S_f/(I_y t_f)
+   (channel, whole flange) and - channel - E S_w2 phi'''/t_f at the junction; the channel point P1b (flange point
+   where W_n = 0, S_w1) prints its own terms; the box corner carries V Q_c/(I_y t) and the box web mid-depth
+   V Q_m/(I_y t) (the closed-section shear flow, Eq 6.20). */
+function msbElasticTerms(p,el){
+  const chan=!!(el.geom && el.geom.chan), box=!!el.box, mz= el.MzImp>1e-9? 'M<sub>z,tot</sub>' : 'M<sub>z</sub>';
+  const sN={l:'N/A',k:'sigmaN'}, sMyW={l:'M<sub>y</sub>/W<sub>el.y</sub>',k:'sigmaMy'}, sMzW={l:mz+'/W<sub>el.z</sub>',k:'sigmaMz'}, sMzWeb={l:mz+'y<sub>w</sub>/I<sub>z</sub>',k:'sigmaMz'};
+  const sW0={l:'EW<sub>n0</sub>&phi;&Prime;',k:'sigmaW'}, sW2={l:'EW<sub>n2</sub>&phi;&Prime;',k:'sigmaW'};
+  const tTf={l:'Gt<sub>f</sub>&phi;&prime;',k:'tauT'}, tTw={l:'Gt<sub>w</sub>&phi;&prime;',k:'tauT'}, tT={l:'T<sub>Ed</sub>/W<sub>t</sub>',k:'tauT'};
+  const sMyFm={l:'M<sub>y</sub>(D/2&minus;t<sub>f</sub>/2)/I<sub>y</sub>',k:'sigmaMy'};
+  if(box){
+    if(/^corner/.test(p.point)) return {sig:[sN,sMyW,sMzW], tau:[tT,{l:'VQ<sub>c</sub>/(I<sub>y</sub>t)',k:'tauV'}]};
+    if(/^web mid/.test(p.point)) return {sig:[sN,sMzW], tau:[tT,{l:'VQ<sub>m</sub>/(I<sub>y</sub>t)',k:'tauV'}]};
+    return {sig:[sN,sMyW], tau:[tT]};
+  }
+  if(/^P1b/.test(p.point)) return {sig:[sN,sMyFm,{l:mz+'y<sub>1</sub>/I<sub>z</sub>',k:'sigmaMz'}], tau:[{l:'Vs<sub>1</sub>t<sub>f</sub>(D&minus;t<sub>f</sub>)/(2I<sub>y</sub>t<sub>f</sub>)',k:'tauV'},tTf,{l:'ES<sub>w1</sub>&phi;&#8244;/t<sub>f</sub>',k:'tauW'}]};
+  if(/^P1/.test(p.point)) return {sig:[sN,sMyW,sMzW,sW0], tau:[tTf]};
+  if(/^P2/.test(p.point)) return {sig:[sN,sMyFm,sMzWeb].concat(chan? [sW2] : []),
+                                  tau:[{l:chan? 'VS<sub>f</sub>/(I<sub>y</sub>t<sub>f</sub>)' : 'VS<sub>f</sub>/(2I<sub>y</sub>t<sub>f</sub>)',k:'tauV'},tTf,{l:chan? 'ES<sub>w2</sub>&phi;&#8244;/t<sub>f</sub>' : 'ES<sub>w1</sub>&phi;&#8244;/t<sub>f</sub>',k:'tauW'}]};
+  if(/^P3/.test(p.point)) return {sig:[sN,{l:'M<sub>y</sub>(D/2&minus;t<sub>f</sub>)/I<sub>y</sub>',k:'sigmaMy'},sMzWeb].concat(chan? [sW2] : []),
+                                  tau:[{l:'VS<sub>f</sub>/(I<sub>y</sub>t<sub>w</sub>)',k:'tauV'},tTw].concat(chan? [{l:'ES<sub>w2</sub>&phi;&#8244;/t<sub>w</sub>',k:'tauW'}] : [])};
+  return {sig:[sN,sMzWeb], tau:[{l:'VS<sub>max</sub>/(I<sub>y</sub>t<sub>w</sub>)',k:'tauV'},tTw].concat(chan? [{l:'ES<sub>w3</sub>&phi;&#8244;/t<sub>w</sub>',k:'tauW'}] : [])};
+}
+// "N/A + M_y/W_el.y + ... = a + b + ... = total" (one term: "label = value"); total = the engine's sigmaX / tau
+function msbElasticSum(p,terms,total){
+  if(terms.length===1) return terms[0].l+' = '+f1(total,2);
+  return terms.map(t=>t.l).join(' + ')+' = '+terms.map(t=>f1(p[t.k],2)).join(' + ')+' = '+f1(total,2);
+}
+// the two rows of the Local Capacity block: the governing station / point with its stress build-up MasterSeries-style,
+// then the compact values of every section point at that station (class ms-pts)
+function msbElasticRows(T){
+  const el=T.elastic, pts=el.points||[], gov=pts.find(p=>p.point===el.point)||el, fyd=el.fy;
+  const imp=el.MzImp>1e-9;
+  const stn='@ x = '+msbM(el.x/1000)+' m ('+msbEsc(el.combo)+'): M<sub>y</sub> = '+msbKNm(el.My)+' kN.m, V = '+msbKN(el.V)+' kN, '+
+    (el.box? 'T = '+msbKNm(el.T||0)+' kN.m, &phi; = '+f1(el.phi,5)+' rad'
+           : '&phi; = '+f1(el.phi,5)+' rad, &phi;&prime; = '+Math.abs(el.p1).toExponential(3)+' rad/mm, &phi;&Prime; = '+Math.abs(el.p2).toExponential(3)+' rad/mm&sup2;, &phi;&#8244; = '+Math.abs(el.p3).toExponential(3)+' rad/mm&sup3;')+
+    '; '+(imp? 'M<sub>z,tot</sub> = M<sub>z.Ed</sub> + &phi;M<sub>y</sub> = '+msbKNm(el.MzImp)+' + '+msbKNm(el.MzTwist)+' = '+msbKNm(el.MzTot) : 'M<sub>z</sub> = &phi;M<sub>y</sub> = '+msbKNm(el.MzTwist))+' kN.m';
+  const tm=msbElasticTerms(gov,el);
+  const vals=stn+'; '+msbEsc(gov.point)+': &sigma;<sub>x</sub> = '+msbElasticSum(gov,tm.sig,gov.sigmaX)+' N/mm&sup2;; &tau; = '+msbElasticSum(gov,tm.tau,gov.tau)+' N/mm&sup2;; '+
+    '('+f1(gov.sigmaX,2)+'/'+msbInt(fyd)+')&sup2; + 3('+f1(gov.tau,2)+'/'+msbInt(fyd)+')&sup2; =';
+  // 20 Sep 2026 review: the tag says whether (6.1) binds the verdict (elasticBindingPolicy: Class 3, or an open Class 1/2
+  // section with N_Ed) or is printed for information (Class 1/2 with the plastic route of 6.2.7(6) / 6.2.7(7)-(9))
+  const bind=!!el.binding;
+  const tag= bind? msbWarn(el.u<=1.0001)+' 6.2.7(5)' : (el.u<=1.0001? '&le; 1' : '<span class="ms-warn">&gt; 1</span>')+' information 6.2.7(5)';
+  let h=msbRow('Elastic yield criterion with torsion (cl 6.2.7(5), Eq 6.1) @ '+msbM(el.x/1000)+' m, '+msbEsc(el.point), vals, msbR(el.u), tag);
+  const cmp=(p)=>{ const t=msbElasticTerms(p,el); return msbEsc(p.point)+': &sigma;<sub>x</sub> = '+(t.sig.length>1? t.sig.map(q=>f1(p[q.k],2)).join(' + ')+' = ' : '')+f1(p.sigmaX,2)+', &tau; = '+(t.tau.length>1? t.tau.map(q=>f1(p[q.k],2)).join(' + ')+' = ' : '')+f1(p.tau,2)+' &rarr; '+msbR(p.u)+(p.point===el.point? ' (governs)' : ''); };
+  const gm=el.geom||{};
+  h+=msbRow('&sigma;<sub>x</sub>, &tau;, (6.1) at the '+pts.length+' section points', pts.map(cmp).join('; ')+(el.box? ' (Q<sub>c</sub> = '+g((gm.Qc||0)/1e3,1)+', Q<sub>m</sub> = '+g((gm.Qm||0)/1e3,1)+' cm&sup3;: the V<sub>Ed</sub> shear flow round the closed mid-line, Eq 6.20)' : gm.chan? ' (y<sub>w</sub> = web back from the minor axis = '+msbMM(gm.yWeb)+' mm; P1b at s<sub>1</sub> = '+msbMM(gm.s1)+' mm from the toe, y<sub>1</sub> = '+msbMM(gm.y1b)+' mm; S<sub>w1</sub>, S<sub>w2</sub>, S<sub>w3</sub> = P385 Table A.2 points 1, 2, 3)' : ' (y<sub>w</sub> = t<sub>w</sub>/2 = '+msbMM(gm.yWeb)+' mm; S<sub>f</sub>/2 = half flange one side of the web)'),
+    '', 'f<sub>y</sub>/&gamma;<sub>M0</sub> = '+msbInt(fyd), 'ms-pts');
+  if(el.bindingBasis) h+=msbRow('Elastic verification (6.1): '+(bind? 'verdict-binding' : 'information only'), msbEsc(el.bindingBasis), '', bind? '6.2.7(5)' : '6.2.7(5)-(6)', 'ms-basis');
+  return h;
+}
+// [20 Sep 2026 torsion + N/Mz] the grid row of the largest |phi.M_y| (the M_z,tot line of the Torsion block), a lookup in c.tor.grids
+function msbMzTwistRow(T){
+  let best=null;
+  (T.grids||[]).forEach(g2=>g2.rows.forEach(r2=>{ if(!best || r2.Mz>best.Mz) best=Object.assign({combo:g2.combo.label},r2); }));
+  return best;
+}
 
 /* ---- row / block builders ---- */
 function msbWarn(ok){ return ok? 'OK' : '<span class="ms-warn">Warning</span>'; }
@@ -176,7 +256,10 @@ function msbNotVerifiedRows(list){
 }
 // 20 Sep 2026 review: advisory rows (engine notes that do not enter the verdict), one per message
 function msbAdvisoryRows(list){
-  return (list||[]).map(m=>'<div class="ms-row ms-advrow"><div class="ms-l">Advisory</div><div class="ms-v ms-adv-msg">'+msbEsc(m)+'</div><div class="ms-r"></div><div class="ms-t">advisory</div></div>').join('');
+  // 20 Sep 2026: an engine note opening with "FAIL:" (k_alpha unbounded, M_y,Ed >= M_cr) is a failure row, printed with the Warning tag
+  return (list||[]).map(m=> /^FAIL:/.test(String(m))
+    ? '<div class="ms-row ms-nv"><div class="ms-l">FAIL</div><div class="ms-v ms-nv-msg">'+msbEsc(String(m).replace(/^FAIL:\s*/,''))+'</div><div class="ms-r">&ge; 99</div><div class="ms-t"><span class="ms-warn">Warning</span></div></div>'
+    : '<div class="ms-row ms-advrow"><div class="ms-l">Advisory</div><div class="ms-v ms-adv-msg">'+msbEsc(m)+'</div><div class="ms-r"></div><div class="ms-t">advisory</div></div>').join('');
 }
 // 20 Sep 2026 review: the eigen route's buckled mode shape (LT.mode: x mm, phi and v normalised to their own
 // peaks; LT.vPoints the lateral restraint stations), formerly a figure of the deleted CED report. Pure SVG string,
@@ -505,6 +588,10 @@ function renderMasterSeriesBrief(a,c,sec){
         msbR(AX.mUtil), msbWarn(AX.mUtil<=1.0001));
     }
   }
+  // [20 Sep 2026 torsion + N/Mz] EN 1993-1-1 6.2.7(5): the elastic yield criterion 6.2.1(5) Eq (6.1) with every stress
+  // of the torsion solution (c.tor.elastic) - a code check in every torsion case (N_Ed = 0, M_z = 0 included), printed
+  // after the plastic N-M-Mz interaction rows; the twist-induced phi.M_y enters M_z,tot (msbElasticRows above)
+  if(T && T.elastic) h+=msbElasticRows(T);
   h+=msbNotVerifiedRows(nv.local);
 
   /* ---- [beam-v03 addition, 19 Sep 2026] Web Transverse Forces (EN 1993-1-5 cl 6), after Local Capacity;
@@ -587,7 +674,9 @@ function renderMasterSeriesBrief(a,c,sec){
       const pTxt='M<sub>h</sub> = '+f1(p.Mh,2)+', M<sub>s</sub> = '+f1(p.Ms,2)+', &psi; = '+f1(p.psi,3)+', '+(p.alphaS!=null? '&alpha;<sub>s</sub> = '+f1(p.alphaS,3) : '&alpha;<sub>h</sub> = '+f1(p.alphaH,3));
       const form=msbCmB3Form(B.cmLabel,p.alphaS)+(B.swayNote? ' &ge; 0.9 (sway mode)' : '');
       h+=msbRow('C<sub>mLT</sub> = '+form, pTxt, msbR(B.CmLT), 'Table B.3');
-      h+=msbRow('C<sub>mz</sub> = Max(0.6+0.4&psi;, 0.4)', 'M = '+msbKNm(B.MzEd)+', &psi; = 1.000', msbR(B.Cmz), 'Table B.3');
+      // 20 Sep 2026 torsion + N/Mz: with torsion M_z,Ed of the cl 6.3.3 interaction = imposed M_z + max |phi.M_y| (annexB2)
+      // 20 Sep 2026 review: psi = 1 describes the imposed constant M_z only; the twist part phi(x)M_y(x) is a hump diagram taken at the Table B.3 upper bound C_mz = 1.0
+      h+=msbRow('C<sub>mz</sub> = Max(0.6+0.4&psi;, 0.4)', (T && B.MzTwist>1e-9? 'M<sub>z.Ed</sub> = '+msbKNm(B.MzImp)+' imposed + '+msbKNm(B.MzTwist)+' twist &phi;.M<sub>y</sub> = '+msbKNm(B.MzEd)+'; &psi; = 1 for the imposed constant M<sub>z</sub>, the twist part taken at C<sub>mz</sub> = 1.0 (Table B.3 upper bound, conservative)' : 'M = '+msbKNm(B.MzEd)+', &psi; = 1.000'), msbR(B.Cmz), 'Table B.3');
       h+=msbRow('C<sub>my</sub> = '+form, pTxt, msbR(B.Cmy), 'Table B.3');
     }
   }
@@ -750,7 +839,8 @@ function renderMasterSeriesBrief(a,c,sec){
     h+=msbRow('U<sub>N.y</sub> = N<sub>Ed</sub>/(&chi;<sub>y</sub>.N<sub>Rk</sub>/&gamma;<sub>M1</sub>)', msbKN(B.Fc)+' / '+msbKN(B.NbYeff!=null? B.NbYeff : B.NbY)+' (N<sub>Rk</sub> = '+msbKN(NRk)+tfT+')', msbR(B.ny), nTag(B.ny));
     h+=msbRow('U<sub>N.z</sub> = N<sub>Ed</sub>/(&chi;<sub>z</sub>.N<sub>Rk</sub>/&gamma;<sub>M1</sub>)', msbKN(B.Fc)+' / '+msbKN(B.NbZeff!=null? B.NbZeff : B.NbZ)+(tfT? ' ('+tfT.slice(2)+')' : ''), msbR(B.nz), nTag(B.nz));
     h+=msbRow('U<sub>M.y</sub> = M<sub>y.Ed</sub>/(&chi;<sub>LT</sub>.M<sub>y.Rk</sub>/&gamma;<sub>M1</sub>)', msbKNm(B.Mx)+' / '+msbKNm(MbEff)+' (M<sub>y.Rk</sub> = '+msbKNm(B.aeffOn? sec.Zx*1e3*c.fy/1e6 : msbMyRk(c.Wy,c.fy))+(B.aeffOn&&B.wFac!==1? '; W<sub>el.y</sub>/W<sub>pl.y</sub> = '+msbR(B.wFac)+' applied to M<sub>b.Rd</sub>' : '')+')', msbR(UMy), msbWarn(UMy<=1.0001));
-    h+=msbRow('U<sub>M.z</sub> = M<sub>z.Ed</sub>/(M<sub>z.Rk</sub>/&gamma;<sub>M1</sub>)', msbKNm(B.MzEd)+' / '+msbKNm(B.Mcz), msbR(B.mzTerm), msbWarn(B.mzTerm<=1.0001));
+    // 20 Sep 2026 torsion + N/Mz: M_z,Ed = imposed M_z + max |phi.M_y| of the torsion solution (annexB2, EN 1993-1-1 5.2.1(3)); printed as its two parts with torsion
+    h+=msbRow('U<sub>M.z</sub> = M<sub>z.Ed</sub>/(M<sub>z.Rk</sub>/&gamma;<sub>M1</sub>)', (T && B.MzTwist>1e-9? '('+msbKNm(B.MzImp)+' imposed + '+msbKNm(B.MzTwist)+' twist &phi;.M<sub>y</sub> = '+msbKNm(B.MzEd)+')' : msbKNm(B.MzEd))+' / '+msbKNm(B.Mcz), msbR(B.mzTerm), msbWarn(B.mzTerm<=1.0001));
     // 20 Sep 2026: the MasterSeries "kzy method" line (the engine's Table B.1 / B.2 choice)
     h+=msbRow('k<sub>zy</sub> method', B.useB1? 'not susceptible to torsional deformation (closed section, fully restrained, or M<sub>b.Rd</sub> = M<sub>c.y.Rd</sub>), using Table B.1' : 'M<sub>b.Rd</sub> &lt; M<sub>c.y.Rd</sub> therefore susceptible to LTB, using Table B.2', '', B.useB1? 'Table B.1' : 'Table B.2', 'ms-basis');
     if(B.c12){
@@ -796,18 +886,41 @@ function renderMasterSeriesBrief(a,c,sec){
       h+=msbRow('&phi;<sub>max</sub> (ULS)', T.fe? 'warping-torsion FE, '+T.bcText : 'L/a = '+f1(T.X,2)+'; fork ends, warping free (P385 Cases 3/4/10)', f1(T.phiUmax,4)+' rad = '+f1(T.phiUmax*180/Math.PI,2)+'&deg;', '');
       h+=msbRow('B<sub>Ed</sub> = EI<sub>w</sub>&phi;&Prime; (max)', '@ x = '+msbM((T.BMaxPos||0)/1000)+' m', f1(T.BMax,3)+' kN.m&sup2;', '');
       h+=msbRow('M<sub>w.Ed</sub> = EI<sub>w</sub>&phi;&Prime;/(h&minus;t<sub>f</sub>)', 'max over span', msbKNm(T.MwMax)+' kN.m', '');
-      h+=msbRow('M<sub>z.Ed</sub> = &phi;.M<sub>y.Ed</sub>', 'max coincident', msbKNm(T.MzMax)+' kN.m', '');
+      // 20 Sep 2026 torsion + N/Mz: with an imposed M_z the line becomes M_z,tot = M_z,Ed + phi.M_y (imposed constant
+      // moment + the largest coincident second-order minor-axis moment of the twist, SCI P385 3.1.2 / EN 1993-1-1
+      // 5.2.1(3)); the station's M_y and phi are looked up in c.tor.grids (msbMzTwistRow), nothing recomputed
+      const mzImp=(T.MzImp||0)>1e-9;
+      if(mzImp){
+        const rz=msbMzTwistRow(T);
+        h+=msbRow('M<sub>z,tot</sub> = M<sub>z.Ed</sub> + &phi;.M<sub>y.Ed</sub>', msbKNm(T.MzImp)+' + '+(rz? msbKNm(rz.My)+' x '+g(Math.abs(rz.phi)*1000,2)+'e-3 (@ x = '+msbM(rz.x/1000)+' m)' : msbKNm(T.MzMax))+' = '+msbKNm(T.MzImp)+' + '+msbKNm(T.MzMax)+' (imposed constant M<sub>z.Ed</sub> + max coincident twist moment)', msbKNm(T.MzTot)+' kN.m', 'P385 3.1.2');
+      } else h+=msbRow('M<sub>z.Ed</sub> = &phi;.M<sub>y.Ed</sub>', 'max coincident', msbKNm(T.MzMax)+' kN.m', '');
       const cr=T.cross;
-      h+=msbRow(T.cls12? '(M<sub>y</sub>/M<sub>pl.y</sub>)&sup2; + M<sub>w</sub>/M<sub>pl.f</sub> + M<sub>z</sub>/M<sub>pl.z</sub>' : 'M<sub>y</sub>/M<sub>el.y</sub> + M<sub>z</sub>/M<sub>el.z</sub> + M<sub>w</sub>/M<sub>f.Rd</sub>',
-        '@ x = '+msbM(cr.x/1000)+' m: '+msbKNm(cr.My)+', '+msbKNm(cr.Mw)+', '+msbKNm(cr.Mz)+' kN.m; '+(T.cls12? 'M<sub>pl.y</sub> = '+msbKNm(T.Mply)+', M<sub>pl.f</sub> = '+msbKNm(T.Mplf)+', M<sub>pl.z</sub> = '+msbKNm(T.Mplz) : 'M<sub>el.y</sub> = '+msbKNm(T.Mely)+', M<sub>el.z</sub> = '+msbKNm(T.Melz)+', M<sub>f.Rd</sub> = '+msbKNm(T.Melf)),
+      // 20 Sep 2026 torsion + N/Mz: the 3.1.2 M_z term is M_z,tot (cross.MzTot; = phi.M_y when no M_z is imposed)
+      const crMz=(cr.MzTot!=null? cr.MzTot : cr.Mz), mzLbl=mzImp? 'M<sub>z,tot</sub>' : 'M<sub>z</sub>';
+      h+=msbRow(T.cls12? '(M<sub>y</sub>/M<sub>pl.y</sub>)&sup2; + M<sub>w</sub>/M<sub>pl.f</sub> + '+mzLbl+'/M<sub>pl.z</sub>' : 'M<sub>y</sub>/M<sub>el.y</sub> + '+mzLbl+'/M<sub>el.z</sub> + M<sub>w</sub>/M<sub>f.Rd</sub>',
+        '@ x = '+msbM(cr.x/1000)+' m: '+msbKNm(cr.My)+', '+msbKNm(cr.Mw)+', '+msbKNm(crMz)+' kN.m'+(mzImp? ' ('+mzLbl+' = '+msbKNm(cr.MzImp)+' + '+msbKNm(cr.Mz)+')' : '')+'; '+(T.cls12? 'M<sub>pl.y</sub> = '+msbKNm(T.Mply)+', M<sub>pl.f</sub> = '+msbKNm(T.Mplf)+', M<sub>pl.z</sub> = '+msbKNm(T.Mplz) : 'M<sub>el.y</sub> = '+msbKNm(T.Mely)+', M<sub>el.z</sub> = '+msbKNm(T.Melz)+', M<sub>f.Rd</sub> = '+msbKNm(T.Melf)),
         msbR(cr.u), msbWarn(cr.u<=1.0001)+' P385 3.1.2');
       // MasterSeries "Combined Torsion buckling": the EN 1993-6 Annex A interaction with its amplifier k = kw.kzw.k_alpha (c.annex)
       if(AN){
         const unb = !isFinite(AN.kAlpha);
-        h+=msbRow('k = k<sub>w</sub>.k<sub>zw</sub>.k<sub>&alpha;</sub>', msbR(AN.kw)+' x '+msbR(AN.kzw)+' x '+(unb? '&infin; (M<sub>y.Ed</sub> &ge; M<sub>cr</sub> = '+msbKNm(AN.McrA)+' kN.m)' : msbR(AN.kAlpha)), unb? '&mdash;' : msbR(AN.kw*AN.kzw*AN.kAlpha), 'EN 1993-6 A');
-        h+=msbRow('M<sub>y</sub>/M<sub>b.Rd</sub> + C<sub>mz</sub>M<sub>z</sub>/M<sub>z.Rk</sub> + k<sub>w</sub>k<sub>zw</sub>k<sub>&alpha;</sub>M<sub>w</sub>/M<sub>f.Rk</sub>',
-          unb? 'k<sub>&alpha;</sub> unbounded: M<sub>y.Ed</sub> reaches M<sub>cr</sub> = '+msbKNm(AN.McrA)+' kN.m' : '@ x = '+msbM((AN.x||0)/1000)+' m: '+msbKNm(AN.My)+'/'+msbKNm(AN.MbA)+' + '+msbR(AN.Cmz)+'x'+msbKNm(AN.Mz)+'/'+msbKNm(AN.MzR)+' + '+msbR(AN.kw)+'x'+msbR(AN.kzw)+'x'+msbR(AN.kAlpha)+'x'+msbKNm(AN.Mw)+'/'+msbKNm(AN.MfR),
-          unb? '&mdash;' : msbR(AN.u), unb? '<span class="ms-warn">BLOCKED</span>' : msbWarn(AN.u<=1.0001)+' EN 1993-6 A');
+        // 20 Sep 2026 torsion + N/Mz: M_z,Ed of (A.1) = M_z,tot = imposed M_z + phi.M_y at the station, in the C_mz term and in
+        // k_zw = 1 - M_z,tot/M_z,Rk (annexAEval); C_mz = 1.0 with an imposed M_z (constant diagram, psi = 1) - its reason printed
+        const anImp=(AN.MzImp||0)>1e-9;
+        if(anImp) h+=msbRow('C<sub>mz</sub> (EN 1993-6 A.1)', msbEsc(AN.CmzBasis||''), msbR(AN.Cmz), 'Table B.3');
+        h+=msbRow('k = k<sub>w</sub>.k<sub>zw</sub>.k<sub>&alpha;</sub>', msbR(AN.kw)+' x '+msbR(AN.kzw)+' x '+(unb? '&infin; (M<sub>y.Ed</sub> &ge; M<sub>cr</sub> = '+msbKNm(AN.McrA)+' kN.m)' : msbR(AN.kAlpha))+(anImp&&!unb? ' (k<sub>zw</sub> = 1 &minus; M<sub>z,tot</sub>/M<sub>z.Rk</sub> = 1 &minus; '+msbKNm(AN.MzTot)+'/'+msbKNm(AN.MzR)+')' : ''), unb? '&mdash;' : msbR(AN.kw*AN.kzw*AN.kAlpha), 'EN 1993-6 A');
+        h+=msbRow('M<sub>y</sub>/M<sub>b.Rd</sub> + C<sub>mz</sub>'+(anImp? 'M<sub>z,tot</sub>' : 'M<sub>z</sub>')+'/M<sub>z.Rk</sub> + k<sub>w</sub>k<sub>zw</sub>k<sub>&alpha;</sub>M<sub>w</sub>/M<sub>f.Rk</sub>',
+          unb? 'k<sub>&alpha;</sub> unbounded: M<sub>y.Ed</sub> reaches M<sub>cr</sub> = '+msbKNm(AN.McrA)+' kN.m' : '@ x = '+msbM((AN.x||0)/1000)+' m: '+msbKNm(AN.My)+'/'+msbKNm(AN.MbA)+' + '+msbR(AN.Cmz)+'x'+msbKNm(AN.Mz)+'/'+msbKNm(AN.MzR)+' + '+msbR(AN.kw)+'x'+msbR(AN.kzw)+'x'+msbR(AN.kAlpha)+'x'+msbKNm(AN.Mw)+'/'+msbKNm(AN.MfR)+(anImp? ' (M<sub>z,tot</sub> = '+msbKNm(AN.MzImp)+' imposed + '+msbKNm(AN.MzTwist)+' twist &phi;.M<sub>y</sub>)' : ''),
+          unb? '&ge; 99' : msbR(AN.u), unb? '<span class="ms-warn">Warning</span> FAIL: M<sub>y.Ed</sub> &ge; M<sub>cr</sub>' : msbWarn(AN.u<=1.0001)+' EN 1993-6 A');   // 20 Sep 2026: k_alpha unbounded is a FAIL (utilisation 99), not a blocked check
+        // 20 Sep 2026 review: EN 1993-6 Annex A states (A.1) for I-section members; the channel application is the SCI P385 basis
+        if(T.chan) h+=msbRow('(A.1) scope', 'EN 1993-6 Annex A (informative) states (A.1) for members with an I section; applied to the channel on the SCI P385 basis (P385 6.2/8.2 form with M<sub>f.Rd</sub> = t<sub>f</sub>b&sup2;f<sub>y</sub>/4) [verify]', '', 'EN 1993-6 A', 'ms-basis');
+      }
+      // 20 Sep 2026 torsion + N/Mz: the basis of the combined verification (tor.combinedBasis, engine text) with N_Ed
+      // and / or an imposed M_z, then - N_Ed > 0 - the superposition of Eq 6.62 and (A.1) as the engine labels it:
+      // information only, no OK / Warning tag, never a utilisation (tor.superposition)
+      if(T.combinedActive && T.combinedBasis) h+=msbRow('Basis with N<sub>Ed</sub> / M<sub>z.Ed</sub>', msbEsc(T.combinedBasis), '', 'EN 1993-1-1, EN 1993-6', 'ms-basis');
+      if(T.superposition){
+        const sp=T.superposition, at=sp.at;
+        h+=msbRow(msbEsc(sp.label), 'N<sub>Ed</sub>/(&chi;<sub>z</sub>N<sub>Rk</sub>/&gamma;<sub>M1</sub>) + k<sub>zy</sub>M<sub>y.Ed</sub>/(&chi;<sub>LT</sub>M<sub>y.Rk</sub>/&gamma;<sub>M1</sub>) + k<sub>zz</sub>M<sub>z,tot</sub>/(M<sub>z.Rk</sub>/&gamma;<sub>M1</sub>) + k<sub>w</sub>k<sub>zw</sub>k<sub>&alpha;</sub>M<sub>w</sub>/M<sub>f.Rd</sub> = '+msbR(sp.u62)+' (Eq 6.62'+(B? ' with M<sub>z,tot</sub> = '+msbKNm(B.MzEd) : '')+') + '+msbR(sp.uw)+' (warping term of (A.1)'+(at? ' @ x = '+msbM(at.x/1000)+' m: k<sub>w</sub> = '+msbR(at.kw)+', k<sub>zw</sub> = '+msbR(at.kzw)+', k<sub>&alpha;</sub> = '+msbR(sp.kAlpha)+(AN? '' : ' (no LTB check: M<sub>cr</sub> unbounded)')+', M<sub>w</sub> = '+msbKNm(at.Mw)+' kN.m' : '')+') =', msbR(sp.u), 'information only', 'ms-advrow');
       }
       h+=msbRow('End torques T<sub>t</sub>', 'St Venant part GI<sub>T</sub>&phi;&prime; at x = 0 / x = L'+(T.TEnds? '; total T = GI<sub>T</sub>&phi;&prime; &minus; EI<sub>w</sub>&phi;&#8244; = '+msbKNm(Math.abs(T.TEnds[0]))+' / '+msbKNm(Math.abs(T.TEnds[1]))+' kN.m' : ''), msbKNm(Math.abs(T.TtEnds[0]))+' / '+msbKNm(Math.abs(T.TtEnds[1]))+' kN.m', '');
       // Torsion Shear Design @ x (MasterSeries sub-block): St Venant (+ warping, channel) shear stress at the governing V-T station, the shear-torsion reduction and the ratio
@@ -823,7 +936,15 @@ function renderMasterSeriesBrief(a,c,sec){
       h+=msbRow('T<sub>Rd</sub> = f<sub>y</sub>W<sub>t</sub>/(&radic;3&gamma;<sub>M0</sub>)', msbInt(c.fy)+' x '+g(T.Wt/1e3,1)+'/(&radic;3 x 1)', msbKNm(T.TRd)+' kN.m', '6.2.7(7)');
       h+=msbRow('T<sub>Ed</sub>/T<sub>Rd</sub>', msbKNm(T.TEd)+' / '+msbKNm(T.TRd), msbR(T.torUtil), msbWarn(T.torUtil<=1.0001));
       if(T.tauMax!=null) h+=msbRow('&tau;<sub>t.Ed</sub> = T<sub>Ed</sub>/W<sub>t</sub>', msbKNm(T.TEd)+' x 10&sup3;/'+g(T.Wt/1e3,1), f1(T.tauMax,2)+' N/mm&sup2;', '6.2.7(7)');
-      h+=msbRow('Modified Local Capacity (M<sub>y.Ed</sub>/(M<sub>pl.y.Rd</sub>.S<sub>mod</sub>))<sup>&alpha;</sup> + (M<sub>z.Ed</sub>/(M<sub>pl.z.Rd</sub>.S<sub>mod</sub>))<sup>&beta;</sup>', 'n/a - not evaluated by beam-v03 (the cl 6.2.7 T<sub>Ed</sub>/T<sub>Rd</sub> and V<sub>pl.T.Rd</sub> checks are the verdict basis)', '&mdash;', 'not evaluated');
+      // 20 Sep 2026 review: the verdict basis of a hollow section is the code's plastic route (T_Ed/T_Rd, V_pl.T.Rd with 6.2.8(4) rho and
+      // 6.2.9.1/6.2.10); the elastic (6.1) check binds only for a Class 3 section (elasticBindingPolicy) and is information otherwise
+      h+=msbRow('Modified Local Capacity (M<sub>y.Ed</sub>/(M<sub>pl.y.Rd</sub>.S<sub>mod</sub>))<sup>&alpha;</sup> + (M<sub>z.Ed</sub>/(M<sub>pl.z.Rd</sub>.S<sub>mod</sub>))<sup>&beta;</sup>', 'n/a - not evaluated by beam-v03 (the cl 6.2.7 T<sub>Ed</sub>/T<sub>Rd</sub>, V<sub>pl.T.Rd</sub> with the 6.2.8(4) &rho; in 6.2.9.1/6.2.10'+(T.elastic&&T.elastic.binding? ' and the elastic (6.1) check (Class 3) are' : ' checks are')+' the verdict basis'+(T.elastic&&!T.elastic.binding? '; the elastic (6.1) check is printed for information' : '')+')', '&mdash;', 'not evaluated');
+      // 20 Sep 2026 torsion + N/Mz: with N_Ed and / or an imposed M_z the hollow section prints M_z,tot (St Venant twist) and the basis text
+      // (20 Sep 2026 review: phi.M_y is the SCI P385 second-order term admitted through 5.2.1(3), not a 6.2.7(5) quantity - tagged so)
+      if(T.combinedActive){
+        if((T.MzImp||0)>1e-9) h+=msbRow('M<sub>z,tot</sub> = M<sub>z.Ed</sub> + &phi;.M<sub>y.Ed</sub>', msbKNm(T.MzImp)+' + '+msbKNm(T.MzTwistMax||0)+' (imposed constant M<sub>z.Ed</sub> + max coincident twist moment of the St Venant solution)', msbKNm(T.MzTot)+' kN.m', 'P385 3.1.2 / 5.2.1(3)');
+        if(T.combinedBasis) h+=msbRow('Basis with N<sub>Ed</sub> / M<sub>z.Ed</sub>', msbEsc(T.combinedBasis), '', 'EN 1993-1-1, EN 1993-6', 'ms-basis');
+      }
       const vt=T.vt||{};
       h+=msbSub('Torsion Shear Design @ '+msbM((vt.x||0)/1000)+' m');
       h+=msbRow('V<sub>pl.T.Rd</sub> = [1 &minus; &tau;<sub>t</sub>/(f<sub>y</sub>/&radic;3)].V<sub>pl.Rd</sub>', '@ x = '+msbM((vt.x||0)/1000)+' m'+(vt.combo? ' ('+msbEsc(vt.combo)+')' : '')+': T = '+msbKNm(vt.T!=null? vt.T : 0)+' kN.m, &tau;<sub>t</sub> = '+f1(vt.tau||0,2)+' N/mm&sup2;; V<sub>pl.Rd</sub> = '+msbKN(c.VcRd)+'; S<sub>mod</sub> = V<sub>pl.T.Rd</sub>/V<sub>pl.Rd</sub> = '+msbR(T.VplTRd/Math.max(c.VcRd,1e-9)), msbKN(T.VplTRd)+' kN', '6.2.7(9) Eq 6.28');
@@ -883,23 +1004,32 @@ function renderMasterSeriesBrief(a,c,sec){
   const coexU=findU(/6\.2\.8|Pure shear failure/), torU=findU(/^Torsion|Bending\+torsion cross-section/), vtU=findU(/Shear\+torsion/), anU=findU(/LTB\+torsion/);
   const webU=findU(/^Web transverse force  F_Ed/), web72U=findU(/^Web transverse force \+ bending/);
   const mvnU=findU(/6\.2\.10/), tfU=findU(/6\.3\.1\.4/);
+  // 20 Sep 2026 torsion + N/Mz: its own cell, every torsion case; 20 Sep 2026 review: from c.utils when verdict-binding, else from
+  // c.info (labelled "(info)", outside Max - 6.2.7(5) is permissive and the Class 1/2 plastic route governs)
+  const elU=findU(/^Elastic yield criterion \(6\.1\) with torsion/);
+  const elI=(c.info||[]).find(u=>/^Elastic yield criterion \(6\.1\) with torsion/.test(u.name));
   if(coexU!=null) push('M-V', coexU);
   if(mvnU!=null) push('M-V-N', mvnU);
   if(tfU!=null) push('N_b.T', tfU);
   if(webU!=null) push('F/F_Rd', webU);
   if(web72U!=null) push('Web 7.2', web72U);
   if(torU!=null) push('Torsion', torU);
+  if(elU!=null) push('Yield 6.1', elU); else if(elI && isFinite(elI.val)) cells.push({name:'Yield 6.1 (info)', val:elI.val, info:true});
   if(vtU!=null) push('V+T', vtU);
   if(anU!=null) push('LTB+T', anU);
   const maxU=msbMaxExclDeflection(utils);
   cells.push({name:'Max', val:maxU, max:true});
   h+='<div class="ms-unity"><div class="ms-unity-head">'+cells.map(x=>'<div'+(x.max? ' class="ms-max"':'')+'>'+x.name+'</div>').join('')+'</div>'+
-     '<div class="ms-unity-vals">'+cells.map(x=>'<div class="'+(x.max? 'ms-max ':'')+(x.val!=null&&x.val>1.0001? 'ms-warn':'')+'">'+(x.val==null? '&mdash;' : msbR(x.val))+'</div>').join('')+'</div></div>';
+     '<div class="ms-unity-vals">'+cells.map(x=>'<div class="'+(x.max? 'ms-max ':'')+(x.val!=null&&x.val>1.0001&&!x.info? 'ms-warn':'')+'">'+(x.val==null? '&mdash;' : msbR(x.val))+'</div>').join('')+'</div></div>';
 
   /* ---- verdict footer ---- */
   h+='<div class="ms-verdict '+(c.pass? 'ms-pass' : 'ms-failv')+'">'+verdict+(c.gov? ' &mdash; governing '+msbEsc(c.gov.name)+' = '+msbR(c.gov.val) : '')+'</div>';
   if(unsupported.length) h+='<div class="ms-footer">'+unsupported.map(m=>'<div><span class="ms-warn">NOT COVERED:</span> '+msbEsc(m)+'</div>').join('')+'</div>';
-  if(c.advisory && c.advisory.length) h+='<div class="ms-footer ms-adv">'+c.advisory.map(m=>'<div><b>ADVISORY:</b> '+msbEsc(m)+'</div>').join('')+'</div>';
+  // 20 Sep 2026 torsion + N/Mz: an engine note that already opens with "ADVISORY - " (the superposition text) is not prefixed twice
+  // 20 Sep 2026: a "FAIL:" note (k_alpha unbounded) is printed as a failure line in the footer, the rest as advisories
+  if(c.advisory && c.advisory.length) h+='<div class="ms-footer ms-adv">'+c.advisory.map(m=> /^FAIL:/.test(String(m))
+    ? '<div><span class="ms-warn">FAIL:</span> '+msbEsc(String(m).replace(/^FAIL:\s*/,''))+'</div>'
+    : '<div><b>ADVISORY:</b> '+msbEsc(m).replace(/^ADVISORY\s*-\s*/,'')+'</div>').join('')+'</div>';
 
   return '<div class="ms-brief'+(c.pass? '' : ' ms-fail')+'">'+h+'</div>';
 }

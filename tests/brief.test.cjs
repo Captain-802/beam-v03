@@ -28,7 +28,10 @@ function render(over, method) {
   c.reset(Object.assign({}, over, method ? {mcrMethod: method} : {}));
   return run(`(()=>{ const a=analyse(); const ch=checks(a); const html=renderMasterSeriesBrief(a,ch,a.sec);
     return {html, utils:ch.utils, unsupported:ch.unsupported, McRd:ch.McRd, ltbUtil:ch.ltbUtil, momUtil:ch.momUtil, pass:ch.pass,
-            ax:!!ch.ax, axVplZ:ch.ax? ch.ax.VplZ : null, axMcz:ch.ax? ch.ax.Mcz : null, buck:ch.buck? {Fc:ch.buck.Fc, biax:ch.buck.biax} : null, tor:!!ch.tor, mcrMethod:ch.mcrMethod, eigen:!!(ch.ltb&&ch.ltb.eigen),
+            ax:!!ch.ax, axVplZ:ch.ax? ch.ax.VplZ : null, axMcz:ch.ax? ch.ax.Mcz : null, buck:ch.buck? {Fc:ch.buck.Fc, biax:ch.buck.biax, MzEd:ch.buck.MzEd, MzImp:ch.buck.MzImp, MzTwist:ch.buck.MzTwist, Mcz:ch.buck.Mcz, mzTerm:ch.buck.mzTerm, Cmz:ch.buck.Cmz, u2:ch.buck.u2} : null, tor:!!ch.tor, mcrMethod:ch.mcrMethod, eigen:!!(ch.ltb&&ch.ltb.eigen),
+            // 20 Sep 2026 torsion + N/Mz: the engine fields the new brief rows print (c.tor.elastic / MzImp / MzTot / MzTwistMax / cross / superposition / combinedBasis, c.annex)
+            torE:ch.tor? {elastic:ch.tor.elastic||null, MzImp:ch.tor.MzImp, MzTot:ch.tor.MzTot, MzTwistMax:ch.tor.MzTwistMax, MzMax:ch.tor.MzMax, cross:ch.tor.cross||null, superposition:ch.tor.superposition||null, combinedBasis:ch.tor.combinedBasis||null, combinedActive:!!ch.tor.combinedActive} : null,
+            annex:ch.annex||null, advisory:ch.advisory||[], info:ch.info||[],   // 20 Sep 2026 review: c.info carries the informational (6.1) value
             ltbMbRd:ch.ltb? ch.ltb.MbRd : null, ltbMbMcr:ch.ltb? ch.ltb.MbMcr : null, ltbMbSimp:ch.ltb? ch.ltb.MbSimp : null}; })()`);
 }
 // ---- HTML readers ----
@@ -519,4 +522,193 @@ test('review fixes: unity-bar cells carry what the block rows print (N_c.Rd labe
   const c1f = row(pf.html, /^C<sub>1<\/sub> = fn\(M<sub>1<\/sub>/);
   assert.ok(c1f && c1f.res === '1.127' && c1f.tag === 'Uniform' && row(pf.html, /^M<sub>cr<\/sub> route \(load through the shear centre\)/), JSON.stringify(c1f));
   assert.equal(row(pf.html, /^C<sub>1<\/sub> basis$/).tag, 'SN003a');
+});
+
+// ---- 20 Sep 2026 torsion + N/Mz: combined torsion with N_Ed and an imposed M_z, verified as Eurocode advises ----
+// The engine (js/checks/eurocode-checks.js) replaced the "Combined torsion with direct axial force or imposed minor-axis
+// bending is not implemented as one interaction" block by the EN 1993-1-1 6.2.7(5) elastic yield criterion (6.1) at every
+// torsion station (tor.elastic), Eq 6.61/6.62 and EN 1993-6 (A.1) with M_z,Ed = M_z + phi.M_y, the basis text
+// tor.combinedBasis and the information-only superposition tor.superposition. The brief prints them in MasterSeries
+// block order; every printed number below is read back against the check object.
+const TORS_COMBOS = [
+  { id: 'c1', label: 'ULS 1.35G+1.5Q', factors: { G: 1.35, Q: 1.5, W: 0, E: 0 }, sls: false, on: true },
+  { id: 's1', label: 'SLS 1.0G+1.0Q', factors: { G: 1, Q: 1, W: 0, E: 0 }, sls: true, on: true }];
+// UB 457x191x82 S275, 6 m, G 10 + Q 8 kN/m and Q 30 kN at 2 m, all at e = 40 mm (the UB6-L2 owner case of tests/torsion-axial-mz.test.cjs)
+const UB6 = (extra) => Object.assign({ family: 'ub', ubKey: '457 x 191 x 82', grade: 'S275', L: 6, restraint: 'ltb', combos: TORS_COMBOS, eccOn: true, ends: E('ss'),
+  loads: [{ type: 'udl', x1: 0, x2: 6, w: 10, case: 'G', e: 40, zg: 0 }, { type: 'udl', x1: 0, x2: 6, w: 8, case: 'Q', e: 40, zg: 0 }, { type: 'point', pos: 2, P: 30, case: 'Q', e: 40, zg: 0 }] }, extra || {});
+const f2 = v => (Math.abs(v) < 5e-7 ? 0 : v).toFixed(2), f3 = v => (Math.abs(v) < 5e-7 ? 0 : v).toFixed(3);
+const EL_ROW = /^Elastic yield criterion with torsion \(cl 6\.2\.7\(5\), Eq 6\.1\) @ /;
+const SUP_LABEL = 'superposition of Eq 6.62 and (A.1) - not a Eurocode expression, information only';
+const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+test('torsion + N_Ed + imposed M_z (e = 40, N = 300, M_z = 30): the (6.1) row with its stress build-up, the M_z,tot row, C_mz = 1.000 with its reason, the basis note, the information-only superposition row, no blocking text; both methods', () => {
+  for (const m of ['standard', 'eigen']) {
+    const r = render(UB6({axial: 300, Mz: 30}), m);
+    const {html, hs, u} = checkCommon(r, 'ubTorNMz/' + m);
+    const el = r.torE.elastic, T = r.torE, AN = r.annex, B = r.buck;
+    assert.ok(el && T.combinedActive && T.superposition && AN && B && B.Fc > 0, m + ': engine fields present');
+    // the old block is gone: no NOT VERIFIED / NOT COVERED anywhere, the title carries (FAIL) from the utilisations and the torsion line
+    // (the web-bearing note's generic sentence "one failing at 0 is NOT VERIFIED until s_s is entered" is explanatory text, not a row or verdict)
+    assert.ok(!/not implemented as one interaction/.test(html) && !/ms-nv|\(NOT VERIFIED\)|>NOT VERIFIED<|NOT COVERED/.test(html), m + ': no blocking row, title suffix, verdict or footer');
+    assert.ok(/<div class="ms-verdict ms-failv">FAIL /.test(html), m + ': verdict FAIL (utilisations), not NOT VERIFIED');
+    assert.equal(r.unsupported.length, 0);
+    assert.ok(html.includes('<div>Axial with Moments (Member) (FAIL)</div><div>Includes Design for Torsion with Span Warping, Ends Free to Warp</div>'), m + ': title lines');
+    assert.ok(hs.includes('Local Capacity Check') && hs.includes('Buckling Resistance') && hs.includes('Torsion Design'));
+    // (6.1) row in the Local Capacity block after the plastic N-M-Mz interaction row, before Web Transverse Forces
+    const rw = rows(html), iEl = rw.findIndex(x => EL_ROW.test(x.label)), iPl = rw.findIndex(x => /^\(M<sub>y\.Ed<\/sub>\/M<sub>N\.y\.Rd<\/sub>\)<sup>&alpha;<\/sup>/.test(x.label));
+    assert.ok(iEl > iPl && iPl >= 0, m + ': (6.1) row after the 6.2.9 interaction row');
+    assert.ok(html.indexOf('Elastic yield criterion with torsion') < html.indexOf('Web Transverse Forces (EN 1993-1-5 cl 6)'), m + ': (6.1) row inside the Local Capacity block');
+    const e1 = rw[iEl];
+    assert.equal(el.point, 'P1 flange tip');
+    assert.ok(e1.label.endsWith(' m, ' + el.point) && e1.label.includes('@ ' + run('msbM(' + el.x / 1000 + ')') + ' m'), m + ': governing station / point in the label: ' + e1.label);
+    near3(e1.res, el.u, m + ': (6.1) value = c.tor.elastic.u'); assert.ok(/Warning/.test(e1.tag) && /6\.2\.7\(5\)/.test(e1.tag), m + ': tag ' + e1.tag);
+    assert.ok(e1.vals.includes('M<sub>z,tot</sub> = M<sub>z.Ed</sub> + &phi;M<sub>y</sub> = ' + f3(el.MzImp) + ' + ' + f3(el.MzTwist) + ' = ' + f3(el.MzTot) + ' kN.m'), m + ': M_z,tot at the station: ' + e1.vals);
+    assert.ok(e1.vals.includes('&sigma;<sub>x</sub> = N/A + M<sub>y</sub>/W<sub>el.y</sub> + M<sub>z,tot</sub>/W<sub>el.z</sub> + EW<sub>n0</sub>&phi;&Prime; = ' + f2(el.sigmaN) + ' + ' + f2(el.sigmaMy) + ' + ' + f2(el.sigmaMz) + ' + ' + f2(el.sigmaW) + ' = ' + f2(el.sigmaX) + ' N/mm&sup2;'), m + ': sigma build-up: ' + e1.vals);
+    assert.ok(e1.vals.includes('&tau; = Gt<sub>f</sub>&phi;&prime; = ' + f2(el.tau) + ' N/mm&sup2;; (' + f2(el.sigmaX) + '/' + el.fy + ')&sup2; + 3(' + f2(el.tau) + '/' + el.fy + ')&sup2; ='), m + ': tau and the (6.1) expression: ' + e1.vals);
+    assert.ok(e1.vals.includes('&phi;&Prime; = ' + Math.abs(el.p2).toExponential(3) + ' rad/mm&sup2;'), m + ': phi\'\' printed for the hand check');
+    // hand check of the printed governing point from the engine's own components (sigma_x = sum, (6.1) = (sigma/fy)^2 + 3(tau/fy)^2)
+    assert.ok(Math.abs(el.sigmaN + el.sigmaMy + el.sigmaMz + el.sigmaW - el.sigmaX) < 1e-9 && Math.abs(Math.pow(el.sigmaX / el.fy, 2) + 3 * Math.pow(el.tau / el.fy, 2) - el.u) < 1e-12);
+    // the indented points row: all four points, the engine's sums and values, the governing one marked
+    const pr = rw[iEl + 1];
+    assert.ok(/^&sigma;<sub>x<\/sub>, &tau;, \(6\.1\) at the 4 section points$/.test(pr.label) && html.includes('<div class="ms-row ms-pts">'), m + ': points row');
+    el.points.forEach(p => assert.ok(pr.vals.includes(p.point + ': &sigma;<sub>x</sub> = ') && pr.vals.includes('= ' + f2(p.sigmaX) + ', &tau; = ') && pr.vals.includes(' &rarr; ' + f3(p.u)), m + ': point ' + p.point + ' in ' + pr.vals));
+    assert.ok(pr.vals.includes(' &rarr; ' + f3(el.u) + ' (governs)'));
+    // Torsion Design block: M_z,tot row = imposed + max coincident phi.M_y, the 3.1.2 row with M_z,tot, C_mz = 1.000 and its reason, (A.1) with M_z,tot
+    const mz = row(html, /^M<sub>z,tot<\/sub> = M<sub>z\.Ed<\/sub> \+ &phi;\.M<sub>y\.Ed<\/sub>$/);
+    assert.ok(mz && mz.vals.startsWith(f3(T.MzImp) + ' + ') && mz.vals.includes(' = ' + f3(T.MzImp) + ' + ' + f3(T.MzMax) + ' (imposed constant'), m + ': M_z,tot row: ' + (mz && mz.vals));
+    near3(mz.res, T.MzTot, m + ': M_z,tot = c.tor.MzTot'); assert.equal(mz.tag, 'P385 3.1.2');
+    assert.equal(row(html, /^M<sub>z\.Ed<\/sub> = &phi;\.M<sub>y\.Ed<\/sub>$/), null, m + ': the plain phi.M_y row is replaced');
+    const cr = row(html, /^\(M<sub>y<\/sub>\/M<sub>pl\.y<\/sub>\)&sup2; \+ M<sub>w<\/sub>\/M<sub>pl\.f<\/sub> \+ M<sub>z,tot<\/sub>\/M<sub>pl\.z<\/sub>$/);
+    assert.ok(cr && cr.vals.includes(f3(T.cross.MzTot) + ' kN.m (M<sub>z,tot</sub> = ' + f3(T.cross.MzImp) + ' + ' + f3(T.cross.Mz) + ')'), m + ': 3.1.2 row carries M_z,tot: ' + (cr && cr.vals));
+    near3(cr.res, T.cross.u, m + ': 3.1.2 value');
+    const cmz = row(html, /^C<sub>mz<\/sub> \(EN 1993-6 A\.1\)$/);
+    assert.ok(cmz && cmz.res === '1.000' && cmz.vals === AN.CmzBasis && /constant diagram/.test(cmz.vals) && cmz.tag === 'Table B.3', m + ': C_mz reason row: ' + JSON.stringify(cmz));
+    const an = row(html, /^M<sub>y<\/sub>\/M<sub>b\.Rd<\/sub> \+ C<sub>mz<\/sub>M<sub>z,tot<\/sub>\/M<sub>z\.Rk<\/sub>/);
+    const anMz = '(M<sub>z,tot</sub> = ' + f3(AN.MzImp) + ' imposed + ' + f3(AN.MzTwist) + ' twist';
+    assert.ok(an && an.vals.includes('1.000x' + f3(AN.Mz) + '/' + f3(AN.MzR)) && an.vals.includes(anMz), m + ': (A.1) row with M_z,tot: ' + (an && an.vals));
+    near3(an.res, AN.u, m + ': (A.1) value');
+    assert.ok(row(html, /^k = k<sub>w<\/sub>/).vals.includes('k<sub>zw</sub> = 1 &minus; M<sub>z,tot</sub>/M<sub>z.Rk</sub> = 1 &minus; ' + f3(AN.MzTot) + '/' + f3(AN.MzR)), m + ': k_zw with M_z,tot');
+    // basis note (engine text) and the information-only superposition row labelled as the engine labels it, class ms-advrow, no OK / Warning
+    const bs = row(html, /^Basis with N<sub>Ed<\/sub> \/ M<sub>z\.Ed<\/sub>$/);
+    assert.ok(bs && bs.vals === T.combinedBasis && /No expression in EN 1993-1-1 or EN 1993-6 combines N_Ed with warping torsion at member level/.test(bs.vals), m + ': basis note');
+    const sp = row(html, new RegExp('^' + esc(SUP_LABEL) + '$'));
+    assert.ok(sp, m + ': superposition row'); assert.equal(T.superposition.label, SUP_LABEL);
+    near3(sp.res, T.superposition.u, m + ': superposition value'); assert.equal(sp.tag, 'information only');
+    assert.ok(sp.vals.includes(' = ' + f3(T.superposition.u62) + ' (Eq 6.62 with M<sub>z,tot</sub> = ' + f3(B.MzEd) + ') + ' + f3(T.superposition.uw) + ' (warping term of (A.1)'), m + ': superposition parts: ' + sp.vals);
+    assert.ok(new RegExp('<div class="ms-row ms-advrow"><div class="ms-l">' + esc(SUP_LABEL)).test(html), m + ': ms-advrow class');
+    assert.ok(!/OK|Warning/.test(sp.tag), m + ': no verdict tag on the advisory');
+    assert.ok(!r.utils.some(x => /superposition/i.test(x.name)), m + ': the superposition is not a utilisation');
+    assert.ok(html.includes('<b>ADVISORY:</b> superposition of Eq 6.62 and (A.1)') && !html.includes('<b>ADVISORY:</b> ADVISORY - '), m + ': footer advisory once, not prefixed twice');
+    // Buckling Resistance: U_M.z and C_mz print M_z,Ed as imposed + twist = total
+    const umz = row(html, /^U<sub>M\.z<\/sub> = /);
+    assert.ok(umz && umz.vals === '(' + f3(B.MzImp) + ' imposed + ' + f3(B.MzTwist) + ' twist &phi;.M<sub>y</sub> = ' + f3(B.MzEd) + ') / ' + f3(B.Mcz), m + ': U_M.z row: ' + (umz && umz.vals));
+    near3(umz.res, B.mzTerm, m + ': U_M.z');
+    assert.ok(Math.abs(B.MzEd - (B.MzImp + B.MzTwist)) < 1e-9 && B.MzImp === 30 && B.MzTwist > 0);
+    const cm = row(html, /^C<sub>mz<\/sub> = Max/);
+    // 20 Sep 2026 review: psi = 1 is stated for the imposed constant part only; the twist part is taken at the Table B.3 upper bound
+    assert.equal(cm.vals, 'M<sub>z.Ed</sub> = ' + f3(B.MzImp) + ' imposed + ' + f3(B.MzTwist) + ' twist &phi;.M<sub>y</sub> = ' + f3(B.MzEd) + '; &psi; = 1 for the imposed constant M<sub>z</sub>, the twist part taken at C<sub>mz</sub> = 1.0 (Table B.3 upper bound, conservative)'); assert.equal(cm.res, '1.000');
+    // 20 Sep 2026 review: the (6.1) check binds the verdict here (open Class 1 section with N_Ed) and its basis row says so
+    assert.equal(el.binding, true);
+    const eb = row(html, /^Elastic verification \(6\.1\): verdict-binding$/);
+    assert.ok(eb && eb.vals === el.bindingBasis && /N_Ed/.test(eb.vals) && eb.tag === '6.2.7(5)', m + ': binding basis row: ' + JSON.stringify(eb));
+    assert.ok(r.info.length === 0, m + ': nothing informational');
+    // unity bar: the "Yield 6.1" cell = the (6.1) utilisation, which governs here (Max)
+    assert.ok(u.names.includes('Yield 6.1'), m + ': Yield 6.1 cell');
+    near3(u.vals[u.names.indexOf('Yield 6.1')], r.utils.find(x => /^Elastic yield criterion \(6\.1\)/.test(x.name)).val, m + ': Yield 6.1 value');
+    assert.ok(u.names.indexOf('Yield 6.1') === u.names.indexOf('Torsion') + 1 && u.names.indexOf('V+T') === u.names.indexOf('Yield 6.1') + 1, m + ': cell order Torsion, Yield 6.1, V+T');
+    assert.ok(/governing Elastic yield criterion \(6\.1\) with torsion, cl 6\.2\.7\(5\) = /.test(html), m + ': governing check named in the verdict');
+  }
+});
+
+test('torsion only (e = 40, N = 0, M_z = 0): the (6.1) row prints for INFORMATION (Class 1, N = 0: the 6.2.7(6) plastic route governs, 20 Sep 2026 review) with M_z = phi.M_y, no "imposed" wording, no basis / superposition rows, every other torsion row unchanged; both methods', () => {
+  for (const m of ['standard', 'eigen']) {
+    const r = render(UB6(), m);
+    const {html, u} = checkCommon(r, 'ubTor0/' + m);
+    const el = r.torE.elastic, T = r.torE;
+    assert.ok(el && !T.combinedActive && T.superposition == null && T.MzImp === 0, m + ': engine fields');
+    assert.ok(r.pass && html.includes('<div>Beam &amp; Beam-Portion (Member)</div><div>Includes Design for Torsion with Span Warping, Ends Free to Warp</div>'), m + ': passing torsion-only brief');
+    const e1 = row(html, EL_ROW);
+    assert.ok(e1, m + ': (6.1) row present with N = 0 and M_z = 0'); near3(e1.res, el.u, m + ': (6.1) value'); assert.equal(e1.tag, '&le; 1 information 6.2.7(5)');
+    assert.equal(el.binding, false); assert.ok(!r.utils.some(x => /^Elastic yield criterion/.test(x.name)) && r.info.some(x => /^Elastic yield criterion/.test(x.name)), m + ': (6.1) in c.info, not c.utils');
+    const eb = row(html, /^Elastic verification \(6\.1\): information only$/);
+    assert.ok(eb && eb.vals === el.bindingBasis && /6\.2\.7\(6\)/.test(eb.vals) && eb.tag === '6.2.7(5)-(6)', m + ': information basis row: ' + JSON.stringify(eb));
+    assert.ok(e1.vals.includes('M<sub>z</sub> = &phi;M<sub>y</sub> = ' + f3(el.MzTwist) + ' kN.m') && e1.vals.includes('&sigma;<sub>x</sub> = N/A + M<sub>y</sub>/W<sub>el.y</sub> + M<sub>z</sub>/W<sub>el.z</sub> + EW<sub>n0</sub>&phi;&Prime; = 0.00 + ' + f2(el.sigmaMy) + ' + ' + f2(el.sigmaMz) + ' + ' + f2(el.sigmaW) + ' = ' + f2(el.sigmaX)), m + ': build-up with N/A = 0: ' + e1.vals);
+    assert.ok(row(html, /^&sigma;<sub>x<\/sub>, &tau;, \(6\.1\) at the 4 section points$/), m + ': points row');
+    assert.ok(!/imposed/.test(html), m + ': no "imposed" wording');
+    assert.equal(row(html, /^Basis with N<sub>Ed<\/sub>/), null, m + ': no basis row'); assert.equal(row(html, /superposition of Eq 6\.62/), null, m + ': no superposition row');
+    assert.ok(!/ms-advrow"><div class="ms-l">superposition/.test(html) && !/M<sub>z,tot<\/sub>/.test(html), m + ': no M_z,tot wording');
+    assert.equal(row(html, /^C<sub>mz<\/sub> \(EN 1993-6 A\.1\)$/), null, m + ': no C_mz reason row without an imposed M_z');
+    // the pre-existing torsion rows print as before (values = the engine's, unchanged since c2e9fba per tests/torsion-axial-mz.test.cjs)
+    const mz = row(html, /^M<sub>z\.Ed<\/sub> = &phi;\.M<sub>y\.Ed<\/sub>$/);
+    assert.ok(mz && mz.vals === 'max coincident', m + ': phi.M_y row unchanged'); near3(mz.res, T.MzMax, m + ': phi.M_y max');
+    const cr = row(html, /^\(M<sub>y<\/sub>\/M<sub>pl\.y<\/sub>\)&sup2; \+ M<sub>w<\/sub>\/M<sub>pl\.f<\/sub> \+ M<sub>z<\/sub>\/M<sub>pl\.z<\/sub>$/);
+    assert.ok(cr && cr.vals.includes(f3(T.cross.Mz) + ' kN.m; M<sub>pl.y</sub>'), m + ': 3.1.2 row unchanged: ' + (cr && cr.vals)); near3(cr.res, T.cross.u, m + ': 3.1.2 value');
+    const an = row(html, /^M<sub>y<\/sub>\/M<sub>b\.Rd<\/sub> \+ C<sub>mz<\/sub>M<sub>z<\/sub>\/M<sub>z\.Rk<\/sub>/);
+    assert.ok(an && !/imposed|z,tot/.test(an.vals), m + ': (A.1) row unchanged'); near3(an.res, r.annex.u, m + ': (A.1) value');
+    assert.ok(!/k<sub>zw<\/sub> = 1 &minus;/.test(row(html, /^k = k<sub>w<\/sub>/).vals), m + ': k_zw note only with an imposed M_z');
+    assert.ok(u.names.includes('Yield 6.1 (info)') && !u.names.includes('Yield 6.1') && !html.includes('Buckling Resistance'), m + ': Yield 6.1 (info) cell; no Buckling block without N / M_z');
+    near3(u.vals[u.names.indexOf('Yield 6.1 (info)')], el.u, m + ': Yield 6.1 (info) value');
+    assert.ok(!/governing Elastic yield criterion/.test(html), m + ': an informational value never governs');
+    if (m === 'standard') { assert.equal(e1.res, '0.710'); near3(u.vals[u.vals.length - 1], 0.897, 'Max = Annex A 0.897 (UB6-L2 owner case; 0.890 before the 20 Sep 2026 M_f,Rd = t_f b^2 f_y/4 correction)'); }
+  }
+});
+
+test('torsion + N_Ed without M_z, fully restrained, and a hollow section: basis row and superposition (k_alpha = 1 with no LTB check) print; the SHS prints the corner / web / flange points, M_z,tot and the basis, no superposition', () => {
+  // N only: U_M.z prints "0.000 imposed + twist", the superposition row exists (N_Ed > 0), no C_mz reason row (nothing imposed)
+  const n = render(UB6({axial: 300}), 'standard');
+  const {html: hn} = checkCommon(n, 'ubTorN');
+  assert.ok(row(hn, EL_ROW) && row(hn, /^Basis with N<sub>Ed<\/sub>/) && row(hn, /superposition of Eq 6\.62/), 'N only: (6.1), basis, superposition rows');
+  assert.equal(row(hn, /^C<sub>mz<\/sub> \(EN 1993-6 A\.1\)$/), null, 'N only: no C_mz reason row');
+  assert.ok(row(hn, /^U<sub>M\.z<\/sub> = /).vals.startsWith('(0.000 imposed + ' + f3(n.buck.MzTwist) + ' twist'), 'N only: U_M.z split');
+  assert.ok(row(hn, /^M<sub>z\.Ed<\/sub> = &phi;\.M<sub>y\.Ed<\/sub>$/), 'N only: plain phi.M_y row (nothing imposed)');
+  // fully restrained with N and M_z: no Annex A, superposition with k_alpha = 1 flagged, (6.1) row and basis present
+  const f = render(UB6({axial: 300, Mz: 30, restraint: 'full'}), 'standard');
+  const {html: hf, u: uf} = checkCommon(f, 'ubTorFull');
+  assert.ok(row(hf, EL_ROW) && row(hf, /^Basis with N<sub>Ed<\/sub>/), 'full: (6.1) and basis rows');
+  const spf = row(hf, /superposition of Eq 6\.62/);
+  assert.ok(spf && /k<sub>&alpha;<\/sub> = 1\.000 \(no LTB check: M<sub>cr<\/sub> unbounded\)/.test(spf.vals) && spf.tag === 'information only', 'full: superposition with k_alpha = 1: ' + (spf && spf.vals));
+  near3(spf.res, f.torE.superposition.u, 'full: superposition value'); assert.equal(f.annex, null);
+  assert.ok(uf.names.includes('Yield 6.1') && !uf.names.includes('LTB+T'), 'full: cells'); assert.equal(f.torE.elastic.binding, true);
+  assert.ok(/6\.61\/6\.62/.test(f.torE.combinedBasis) && /\(A\.1\) is not evaluated for a fully restrained member/.test(f.torE.combinedBasis) && row(hf, /^Basis with N<sub>Ed<\/sub>/).vals === f.torE.combinedBasis, 'full: basis row = the restrained-path text');
+  // SHS with N and M_z: three points, tau_t = T_Ed/W_t, M_z,tot row of the St Venant twist, basis row, no superposition (open sections only)
+  const s = render({family: 'shs', shsKey: '150x150x6.3', restraint: 'ltb', eccOn: true, L: 4, axial: 200, Mz: 5, ends: E('ss'), loads: [{type: 'udl', x1: 0, x2: 4, w: 10, case: 'Q', e: 40}]}, 'standard');
+  const {html: hs} = checkCommon(s, 'shsTorNMz');
+  const es = s.torE.elastic, e1 = row(hs, EL_ROW);
+  assert.ok(es && es.box && e1 && e1.label.endsWith(', ' + es.point), 'SHS: (6.1) row: ' + (e1 && e1.label)); near3(e1.res, es.u, 'SHS: (6.1) value');
+  // 20 Sep 2026 review: the corner carries the closed-section shear flow V Q_c/(I_y t) (Eq 6.20); the Q_c / Q_m values print with the points row
+  assert.ok(/&sigma;<sub>x<\/sub> = N\/A \+ M<sub>y<\/sub>\/W<sub>el\.y<\/sub> \+ M<sub>z,tot<\/sub>\/W<sub>el\.z<\/sub> = /.test(e1.vals) && /&tau; = T<sub>Ed<\/sub>\/W<sub>t<\/sub> \+ VQ<sub>c<\/sub>\/\(I<sub>y<\/sub>t\) = /.test(e1.vals), 'SHS: corner build-up: ' + e1.vals);
+  assert.equal(es.binding, false); assert.equal(e1.tag, es.u > 1.0001 ? '<span class="ms-warn">&gt; 1</span> information 6.2.7(5)' : '&le; 1 information 6.2.7(5)');
+  assert.ok(row(hs, /^Elastic verification \(6\.1\): information only$/).vals === es.bindingBasis && /hollow section/.test(es.bindingBasis), 'SHS: information basis row');
+  assert.ok(s.info.some(x => /^Elastic yield criterion/.test(x.name)) && !s.utils.some(x => /^Elastic yield criterion/.test(x.name)), 'SHS: (6.1) in c.info');
+  const us = unity(hs); assert.ok(us.names.includes('Yield 6.1 (info)') && !us.names.includes('Yield 6.1'), 'SHS: Yield 6.1 (info) cell'); near3(us.vals[us.names.indexOf('Yield 6.1 (info)')], es.u, 'SHS: info cell value');
+  const ps = row(hs, /^&sigma;<sub>x<\/sub>, &tau;, \(6\.1\) at the 3 section points$/);
+  assert.ok(ps && /corner: /.test(ps.vals) && /web mid-depth: /.test(ps.vals) && /flange mid-width: /.test(ps.vals) && /Q<sub>c<\/sub> = 32\.5, Q<sub>m<\/sub> = 48\.8 cm&sup3;/.test(ps.vals), 'SHS: three points with Q_c / Q_m: ' + (ps && ps.vals));
+  const mzs = row(hs, /^M<sub>z,tot<\/sub> = M<sub>z\.Ed<\/sub> \+ &phi;\.M<sub>y\.Ed<\/sub>$/);
+  assert.ok(mzs && mzs.vals.startsWith('5.000 + ' + f3(s.torE.MzTwistMax)) && mzs.tag === 'P385 3.1.2 / 5.2.1(3)', 'SHS: M_z,tot row (20 Sep 2026 review: phi.M_y is the P385 second-order term, not a 6.2.7(5) quantity): ' + (mzs && mzs.vals + ' | ' + mzs.tag)); near3(mzs.res, s.torE.MzTot, 'SHS: M_z,tot');
+  assert.ok(row(hs, /^Basis with N<sub>Ed<\/sub>/) && !row(hs, /superposition of Eq 6\.62/) && s.torE.superposition == null, 'SHS: basis, no superposition');
+  assert.ok(/6\.2\.8\(4\) &rho; in 6\.2\.9\.1\/6\.2\.10 checks are the verdict basis; the elastic \(6\.1\) check is printed for information/.test(row(hs, /^Modified Local Capacity/).vals), 'SHS: modified-local-capacity note names the plastic route and the informational (6.1): ' + row(hs, /^Modified Local Capacity/).vals);
+  assert.ok(/^EN 1993-1-1 6\.2\.7\(7\): warping neglected/.test(s.torE.combinedBasis) && /does not apply to a closed section/.test(s.torE.combinedBasis) && row(hs, /^Basis with N<sub>Ed<\/sub>/).vals === s.torE.combinedBasis, 'SHS: hollow-section basis text (no warping / (A.1) wording): ' + s.torE.combinedBasis);
+  assert.ok(row(hs, /^U<sub>M\.z<\/sub> = /).vals.startsWith('(5.000 imposed + '), 'SHS: U_M.z split');
+});
+
+test('msbElasticTerms / msbElasticSum: the printed formula terms are exactly the engine components of each point (I/H, channel, box)', () => {
+  const t = (p, el) => run('(()=>{ const t=msbElasticTerms(' + JSON.stringify(p) + ',' + JSON.stringify(el) + '); return JSON.stringify({s:t.sig.map(q=>q.k), a:t.tau.map(q=>q.k)}); })()');
+  const ih = {box: false, MzImp: 0, geom: {chan: false}}, ch = {box: false, MzImp: 1, geom: {chan: true}}, bx = {box: true, MzImp: 0, geom: {}};
+  assert.equal(t({point: 'P1 flange tip'}, ih), '{"s":["sigmaN","sigmaMy","sigmaMz","sigmaW"],"a":["tauT"]}');
+  assert.equal(t({point: 'P2 web-flange junction, flange'}, ih), '{"s":["sigmaN","sigmaMy","sigmaMz"],"a":["tauV","tauT","tauW"]}');   // W_n2 = 0 for I/H: no sigma_w term printed; V S_f/(2 I_y t_f) flange shear flow (20 Sep 2026 review)
+  assert.equal(t({point: 'P3 web-flange junction, web'}, ih), '{"s":["sigmaN","sigmaMy","sigmaMz"],"a":["tauV","tauT"]}');
+  assert.equal(t({point: 'P4 web mid-depth'}, ih), '{"s":["sigmaN","sigmaMz"],"a":["tauV","tauT"]}');
+  assert.equal(t({point: 'P2 web-flange junction, flange'}, ch), '{"s":["sigmaN","sigmaMy","sigmaMz","sigmaW"],"a":["tauV","tauT","tauW"]}');   // channel: W_n2, S_w2, S_w3 terms, V S_f/(I_y t_f)
+  assert.equal(t({point: 'P1b flange at W_n = 0'}, ch), '{"s":["sigmaN","sigmaMy","sigmaMz"],"a":["tauV","tauT","tauW"]}');   // channel P1b: S_w1, no sigma_w (20 Sep 2026 review)
+  assert.ok(/ES<sub>w2<\/sub>/.test(run('msbElasticTerms({point:"P2 web-flange junction, flange"},{box:false,MzImp:0,geom:{chan:true}}).tau[2].l')) && /ES<sub>w1<\/sub>/.test(run('msbElasticTerms({point:"P2 web-flange junction, flange"},{box:false,MzImp:0,geom:{chan:false}}).tau[2].l')), 'P2 tau_w label: S_w2 channel, S_w1 I/H');
+  assert.ok(/VS<sub>f<\/sub>\/\(2I<sub>y<\/sub>t<sub>f<\/sub>\)/.test(run('msbElasticTerms({point:"P2 web-flange junction, flange"},{box:false,MzImp:0,geom:{chan:false}}).tau[0].l')) && /VS<sub>f<\/sub>\/\(I<sub>y<\/sub>t<sub>f<\/sub>\)/.test(run('msbElasticTerms({point:"P2 web-flange junction, flange"},{box:false,MzImp:0,geom:{chan:true}}).tau[0].l')), 'P2 tau_V label: half flange I/H, whole flange channel');
+  assert.equal(t({point: 'P3 web-flange junction, web'}, ch), '{"s":["sigmaN","sigmaMy","sigmaMz","sigmaW"],"a":["tauV","tauT","tauW"]}');
+  assert.equal(t({point: 'P4 web mid-depth'}, ch), '{"s":["sigmaN","sigmaMz"],"a":["tauV","tauT","tauW"]}');
+  assert.equal(t({point: 'corner'}, bx), '{"s":["sigmaN","sigmaMy","sigmaMz"],"a":["tauT","tauV"]}');   // V Q_c/(I_y t) (20 Sep 2026 review)
+  assert.equal(t({point: 'web mid-depth'}, bx), '{"s":["sigmaN","sigmaMz"],"a":["tauT","tauV"]}');
+  assert.ok(/VQ<sub>c<\/sub>/.test(run('msbElasticTerms({point:"corner"},{box:true,MzImp:0,geom:{}}).tau[1].l')) && /VQ<sub>m<\/sub>/.test(run('msbElasticTerms({point:"web mid-depth"},{box:true,MzImp:0,geom:{}}).tau[1].l')), 'box shear-flow labels');
+  assert.equal(t({point: 'flange mid-width'}, bx), '{"s":["sigmaN","sigmaMy"],"a":["tauT"]}');
+  assert.ok(/M<sub>z,tot<\/sub>/.test(run('msbElasticTerms({point:"P1 flange tip"},{box:false,MzImp:1,geom:{chan:false}}).sig[2].l')) && /^M<sub>z<\/sub>\//.test(run('msbElasticTerms({point:"P1 flange tip"},{box:false,MzImp:0,geom:{chan:false}}).sig[2].l')), 'M_z,tot label only with an imposed M_z');
+  assert.equal(run('msbElasticSum({sigmaN:1.234,sigmaMy:2.5},[{l:"N/A",k:"sigmaN"},{l:"M/W",k:"sigmaMy"}],3.734)'), 'N/A + M/W = 1.23 + 2.50 = 3.73');
+  assert.equal(run('msbElasticSum({tauT:12.341},[{l:"Gt&phi;&prime;",k:"tauT"}],12.341)'), 'Gt&phi;&prime; = 12.34');
 });

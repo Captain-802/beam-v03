@@ -1,13 +1,13 @@
 {
  "summary": {
-  "generated": "2026-09-19T18:43:42.093Z",
+  "generated": "2026-09-20T20:33:01.476Z",
   "node": "v24.14.1",
   "cases": 279,
   "runs": 479,
   "verdicts": {
-   "PASS": 349,
+   "PASS": 350,
    "FAIL": 82,
-   "NOT VERIFIED": 34,
+   "NOT VERIFIED": 33,
    "THROWS": 14
   },
   "byFamily": {
@@ -34,9 +34,9 @@
     "cases": 28
    },
    "pfc": {
-    "PASS": 52,
+    "PASS": 53,
     "FAIL": 20,
-    "NOT VERIFIED": 2,
+    "NOT VERIFIED": 1,
     "ERROR": 0,
     "THROWS": 0,
     "WRONG THROW": 0,
@@ -89,9 +89,9 @@
     "runs": 200
    },
    "n/a (restrained)": {
-    "PASS": 41,
+    "PASS": 42,
     "FAIL": 21,
-    "NOT VERIFIED": 3,
+    "NOT VERIFIED": 2,
     "ERROR": 0,
     "THROWS": 0,
     "WRONG THROW": 0,
@@ -265,9 +265,9 @@
     "cases": 7
    },
    "TFB": {
-    "PASS": 3,
+    "PASS": 4,
     "FAIL": 2,
-    "NOT VERIFIED": 1,
+    "NOT VERIFIED": 0,
     "ERROR": 0,
     "THROWS": 0,
     "WRONG THROW": 0,
@@ -1309,7 +1309,7 @@
   ],
   "errors": [],
   "triggerMismatches": [],
-  "totalMs": 73122
+  "totalMs": 51511
  },
  "runs": [
   {
@@ -1331,7 +1331,7 @@
    "tags": [
     "demo"
    ],
-   "ms": 66.9928,
+   "ms": 55.1732,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -1474,7 +1474,7 @@
     "demo",
     "heavy"
    ],
-   "ms": 338.9216,
+   "ms": 247.9793,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -1660,7 +1660,7 @@
     "demo",
     "heavy"
    ],
-   "ms": 62.7656,
+   "ms": 38.8877,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -1837,7 +1837,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 257.8894,
+   "ms": 209.0878,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -2020,7 +2020,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 60.6902,
+   "ms": 43.0216,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -2200,7 +2200,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 171.2233,
+   "ms": 124.0021,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -2386,7 +2386,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 61.3335,
+   "ms": 38.4567,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -2566,7 +2566,7 @@
    "tags": [
     "zg-bottom"
    ],
-   "ms": 275.8543,
+   "ms": 213.7365,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -2752,7 +2752,7 @@
    "tags": [
     "zg-bottom"
    ],
-   "ms": 38.6851,
+   "ms": 30.5357,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -2931,7 +2931,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 512.4381,
+   "ms": 430.8803,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -3117,7 +3117,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 47.9064,
+   "ms": 41.7979,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -3297,7 +3297,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 248.9023,
+   "ms": 186.8692,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -3481,7 +3481,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 44.2478,
+   "ms": 29.0447,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -3660,7 +3660,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 611.279,
+   "ms": 487.4125,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -3828,7 +3828,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 52.402,
+   "ms": 29.6203,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -3989,7 +3989,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 295.725,
+   "ms": 177.8038,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -4154,7 +4154,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 43.758,
+   "ms": 33.3054,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -4313,7 +4313,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 269.3125,
+   "ms": 173.8083,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -4478,7 +4478,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 69.9515,
+   "ms": 29.264,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -4633,7 +4633,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 65.9802,
+   "ms": 29.1092,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -4755,7 +4755,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 279.199,
+   "ms": 179.9181,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -4920,7 +4920,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 44.2034,
+   "ms": 32.0491,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -5080,7 +5080,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 660.4488,
+   "ms": 494.2436,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -5265,7 +5265,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 53.8481,
+   "ms": 38.0176,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -5440,7 +5440,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 46.4581,
+   "ms": 28.4493,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -5582,7 +5582,7 @@
    "tags": [
     "heavy"
    ],
-   "ms": 231.736,
+   "ms": 175.6203,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -5767,7 +5767,7 @@
    "tags": [
     "heavy"
    ],
-   "ms": 45.9278,
+   "ms": 30.2161,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -5945,7 +5945,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 245.0081,
+   "ms": 187.3639,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -6111,7 +6111,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 45.8417,
+   "ms": 27.458,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -6273,7 +6273,7 @@
    "tags": [
     "uplift"
    ],
-   "ms": 268.6737,
+   "ms": 179.3681,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [
@@ -6449,7 +6449,7 @@
    "tags": [
     "uplift"
    ],
-   "ms": 36.1672,
+   "ms": 29.7245,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [
@@ -6618,7 +6618,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 272.7465,
+   "ms": 168.0129,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -6785,7 +6785,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 52.7265,
+   "ms": 30.2561,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -6947,7 +6947,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 285.8797,
+   "ms": 175.8445,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -7152,7 +7152,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 55.0486,
+   "ms": 27.1066,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -7346,7 +7346,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 42.6896,
+   "ms": 28.541,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -7494,7 +7494,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 38.8227,
+   "ms": 27.7703,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -7647,7 +7647,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 126.9469,
+   "ms": 97.4498,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -7852,7 +7852,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 39.4942,
+   "ms": 31.1434,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -8056,14 +8056,14 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 148.5532,
+   "ms": 120.3184,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
    "verdict": "PASS",
    "gov": {
     "name": "LTB+torsion (EN 1993-6 Annex A)",
-    "val": 0.846374880135734
+    "val": 0.8526901386170807
    },
    "utils": [
     {
@@ -8084,7 +8084,7 @@
     },
     {
      "name": "LTB+torsion (EN 1993-6 Annex A)",
-     "val": 0.846374880135734
+     "val": 0.8526901386170807
     },
     {
      "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
@@ -8096,7 +8096,7 @@
     },
     {
      "name": "Bending+torsion cross-section (P385 3.1.2)",
-     "val": 0.3813967359912591
+     "val": 0.38814189818079037
     },
     {
      "name": "Shear+torsion  V_Ed/V_pl,T,Rd",
@@ -8206,7 +8206,7 @@
      "id": "vi-governing",
      "ok": true,
      "kind": "check",
-     "detail": "gov LTB+torsion (EN 1993-6 Annex A) = 0.8464, max(utils) = 0.8464"
+     "detail": "gov LTB+torsion (EN 1993-6 Annex A) = 0.8527, max(utils) = 0.8527"
     }
    ],
    "checkFailures": [],
@@ -8266,14 +8266,14 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 76.0247,
+   "ms": 44.5565,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
    "verdict": "PASS",
    "gov": {
     "name": "LTB+torsion (EN 1993-6 Annex A)",
-    "val": 0.8403125351995329
+    "val": 0.8466450037807263
    },
    "utils": [
     {
@@ -8294,7 +8294,7 @@
     },
     {
      "name": "LTB+torsion (EN 1993-6 Annex A)",
-     "val": 0.8403125351995329
+     "val": 0.8466450037807263
     },
     {
      "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
@@ -8306,7 +8306,7 @@
     },
     {
      "name": "Bending+torsion cross-section (P385 3.1.2)",
-     "val": 0.3813967359912591
+     "val": 0.38814189818079037
     },
     {
      "name": "Shear+torsion  V_Ed/V_pl,T,Rd",
@@ -8411,7 +8411,7 @@
      "id": "vi-governing",
      "ok": true,
      "kind": "check",
-     "detail": "gov LTB+torsion (EN 1993-6 Annex A) = 0.8403, max(utils) = 0.8403"
+     "detail": "gov LTB+torsion (EN 1993-6 Annex A) = 0.8466, max(utils) = 0.8466"
     }
    ],
    "checkFailures": [],
@@ -8465,14 +8465,14 @@
    "tags": [
     "ecc-small"
    ],
-   "ms": 59.6126,
+   "ms": 47.3498,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
    "verdict": "FAIL",
    "gov": {
     "name": "Bending+torsion cross-section (P385 3.1.2)",
-    "val": 1.273162906647486
+    "val": 1.2786779229787064
    },
    "utils": [
     {
@@ -8497,7 +8497,7 @@
     },
     {
      "name": "Bending+torsion cross-section (P385 3.1.2)",
-     "val": 1.273162906647486
+     "val": 1.2786779229787064
     },
     {
      "name": "Shear+torsion  V_Ed/V_pl,T,Rd",
@@ -8515,7 +8515,8 @@
    "advisory": [
     "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4.",
     "Serviceability twist max = 2.1deg exceeds the ~2deg guideline (SCI P385): check that the rotation is acceptable for whatever the member supports.",
-    "G,inf companions: 2 ULS combination(s) re-solved with G at 1.0 (STR set B, EN 1990 6.4.3.1(4) / Table A1.2(B)) and at 0.9 (EQU set A, Table A1.2(A)) over the whole member (single-source permanent action) for the END REACTIONS only - uplift / hold-down forces and the web-bearing reactions; the moment and shear envelopes keep the entered G, so add a reduced-G combination by hand where a relieving permanent action could increase a moment."
+    "G,inf companions: 2 ULS combination(s) re-solved with G at 1.0 (STR set B, EN 1990 6.4.3.1(4) / Table A1.2(B)) and at 0.9 (EQU set A, Table A1.2(A)) over the whole member (single-source permanent action) for the END REACTIONS only - uplift / hold-down forces and the web-bearing reactions; the moment and shear envelopes keep the entered G, so add a reduced-G combination by hand where a relieving permanent action could increase a moment.",
+    "ADVISORY - elastic yield criterion (6.1) with torsion, cl 6.2.7(5) = 3.507 at x = 4.02 m (P1 flange tip): first yield is reached under the design actions (information only, not a utilisation: Class 1/2 open section without N_Ed: EN 1993-1-1 6.2.7(6) permits the plastic moment resistance under bending + torsion with B_Ed from the elastic analysis (the SCI P385 3.1.2 interaction with M_z,tot); the elastic verification of 6.2.7(5) is permissive (\"may be applied\") and is printed for information)."
    ],
    "warn": [],
    "mcrMethodReported": null,
@@ -8573,7 +8574,7 @@
      "id": "vi-governing",
      "ok": true,
      "kind": "check",
-     "detail": "gov Bending+torsion cross-section (P385 3.1.2) = 1.2732, max(utils) = 1.2732"
+     "detail": "gov Bending+torsion cross-section (P385 3.1.2) = 1.2787, max(utils) = 1.2787"
     }
    ],
    "checkFailures": [],
@@ -8620,7 +8621,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 245.0286,
+   "ms": 175.7601,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -8786,7 +8787,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 42.2909,
+   "ms": 25.0156,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -8944,7 +8945,7 @@
    "tags": [
     "2.10"
    ],
-   "ms": 47.4836,
+   "ms": 30.97,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -9090,7 +9091,7 @@
    "tags": [
     "uplift"
    ],
-   "ms": 515.4516,
+   "ms": 339.1508,
    "nCombos": 3,
    "governCombo": "ULS: 1.35G + 1.5Q",
    "uplift": [
@@ -9289,7 +9290,7 @@
    "tags": [
     "uplift"
    ],
-   "ms": 88.0543,
+   "ms": 83.4564,
    "nCombos": 3,
    "governCombo": "ULS: 1.35G + 1.5Q",
    "uplift": [
@@ -9482,7 +9483,7 @@
    "tags": [
     "uplift"
    ],
-   "ms": 327.142,
+   "ms": 283.8929,
    "nCombos": 2,
    "governCombo": "ULS: 1.35G + 1.5Q",
    "uplift": [
@@ -9681,7 +9682,7 @@
    "tags": [
     "uplift"
    ],
-   "ms": 65.5803,
+   "ms": 43.5545,
    "nCombos": 2,
    "governCombo": "ULS: 1.35G + 1.5Q",
    "uplift": [
@@ -9869,7 +9870,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 38.4082,
+   "ms": 26.0755,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -10013,7 +10014,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 1506.7839,
+   "ms": 757.6547,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -10201,7 +10202,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 107.0064,
+   "ms": 29.4941,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -10380,7 +10381,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 554.8508,
+   "ms": 173.9875,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -10567,7 +10568,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 80.7345,
+   "ms": 26.845,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -10744,7 +10745,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 277.1006,
+   "ms": 167.3434,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -10927,7 +10928,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 38.4063,
+   "ms": 28.1802,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -11108,7 +11109,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 285.7286,
+   "ms": 180.2762,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -11277,7 +11278,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 67.1974,
+   "ms": 25.5905,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -11442,7 +11443,7 @@
     "zg-top",
     "destab"
    ],
-   "ms": 146.0939,
+   "ms": 105.8591,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -11632,7 +11633,7 @@
     "zg-top",
     "destab"
    ],
-   "ms": 38.6246,
+   "ms": 25.9762,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -11811,7 +11812,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 267.693,
+   "ms": 217.1974,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -12019,7 +12020,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 55.0529,
+   "ms": 34.9284,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -12225,7 +12226,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 285.2814,
+   "ms": 209.9352,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -12436,7 +12437,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 36.4796,
+   "ms": 28.2416,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -12639,7 +12640,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 232.312,
+   "ms": 175.2111,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -12847,7 +12848,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 35.9045,
+   "ms": 25.757,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -13050,7 +13051,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 251.4668,
+   "ms": 175.9479,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -13228,7 +13229,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 41.1118,
+   "ms": 27.3285,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -13401,7 +13402,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 216.7055,
+   "ms": 166.9161,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -13579,7 +13580,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 37.3462,
+   "ms": 28.4388,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -13752,7 +13753,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 225.3273,
+   "ms": 171.1497,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -13932,7 +13933,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 34.0954,
+   "ms": 25.4006,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -14106,7 +14107,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 233.1191,
+   "ms": 170.0807,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -14285,7 +14286,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 41.7735,
+   "ms": 26.3475,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -14454,7 +14455,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 43.4702,
+   "ms": 26.6761,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -14619,7 +14620,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 270.0507,
+   "ms": 173.5369,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -14797,7 +14798,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 54.1458,
+   "ms": 26.1402,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -14970,7 +14971,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 265.0561,
+   "ms": 170.1719,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -15166,7 +15167,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 50.7828,
+   "ms": 27.8032,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -15357,7 +15358,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 206.7035,
+   "ms": 167.4929,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -15553,7 +15554,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 44.4923,
+   "ms": 25.4522,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -15744,7 +15745,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 221.7838,
+   "ms": 170.0979,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -15916,7 +15917,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 46.7259,
+   "ms": 32.0164,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -16079,7 +16080,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 43.8568,
+   "ms": 27.1933,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -16209,7 +16210,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 226.893,
+   "ms": 180.5205,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [
@@ -16260,7 +16261,7 @@
    "unsupported": [],
    "advisory": [
     "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4.",
-    "Hold-down check (SLS only) at End 2 (x = 5 m): the variable-action-only combination SLS: Variable actions only (NA 2.23) lifts this end by R = -3.38 kN; no ULS combination lifts it, including the G,inf companions with G at 1.0 (STR set B) and 0.9 (EQU set A, EN 1990 Table A1.2(A)) and the entered variable factors. A deflection combination without G is not an equilibrium state, so this does not block PASS.",
+    "Hold-down check (SLS only) at End 2 (x = 5 m): the SLS combination SLS: Variable actions only (NA 2.23) lifts this end by R = -3.38 kN; no ULS combination lifts it, including the G,inf companions with G at 1.0 (STR set B) and 0.9 (EQU set A, EN 1990 Table A1.2(A)) and the entered variable factors. A deflection (SLS) combination is not a ULS equilibrium state, so this does not block PASS.",
     "G,inf companions: 2 ULS combination(s) re-solved with G at 1.0 (STR set B, EN 1990 6.4.3.1(4) / Table A1.2(B)) and at 0.9 (EQU set A, Table A1.2(A)) over the whole member (single-source permanent action) for the END REACTIONS only - uplift / hold-down forces and the web-bearing reactions; the moment and shear envelopes keep the entered G, so add a reduced-G combination by hand where a relieving permanent action could increase a moment."
    ],
    "warn": [],
@@ -16389,7 +16390,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 45.4613,
+   "ms": 29.1868,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [
@@ -16440,7 +16441,7 @@
    "unsupported": [],
    "advisory": [
     "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4.",
-    "Hold-down check (SLS only) at End 2 (x = 5 m): the variable-action-only combination SLS: Variable actions only (NA 2.23) lifts this end by R = -3.38 kN; no ULS combination lifts it, including the G,inf companions with G at 1.0 (STR set B) and 0.9 (EQU set A, EN 1990 Table A1.2(A)) and the entered variable factors. A deflection combination without G is not an equilibrium state, so this does not block PASS.",
+    "Hold-down check (SLS only) at End 2 (x = 5 m): the SLS combination SLS: Variable actions only (NA 2.23) lifts this end by R = -3.38 kN; no ULS combination lifts it, including the G,inf companions with G at 1.0 (STR set B) and 0.9 (EQU set A, EN 1990 Table A1.2(A)) and the entered variable factors. A deflection (SLS) combination is not a ULS equilibrium state, so this does not block PASS.",
     "G,inf companions: 2 ULS combination(s) re-solved with G at 1.0 (STR set B, EN 1990 6.4.3.1(4) / Table A1.2(B)) and at 0.9 (EQU set A, Table A1.2(A)) over the whole member (single-source permanent action) for the END REACTIONS only - uplift / hold-down forces and the web-bearing reactions; the moment and shear envelopes keep the entered G, so add a reduced-G combination by hand where a relieving permanent action could increase a moment.",
     "Standard (closed-form) Mcr: laterally clamped end (Rz held at End 1) taken as fork end, k = kw = 1 (conservative: the SN003a k = 0.5 / kw = 0.5 rows are not applied; the FE eigen route uses v' = 0 / ' = 0 and gives the higher Mcr)."
    ],
@@ -16564,7 +16565,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 277.2562,
+   "ms": 188.4693,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -16774,7 +16775,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 44.9328,
+   "ms": 27.9849,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -16960,7 +16961,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 205.5734,
+   "ms": 173.8116,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -17170,7 +17171,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 38.5848,
+   "ms": 27.312,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -17365,14 +17366,14 @@
     "torsion-fe",
     "ecc-small"
    ],
-   "ms": 296.8214,
+   "ms": 201.4186,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
    "verdict": "PASS",
    "gov": {
     "name": "LTB+torsion (EN 1993-6 Annex A)",
-    "val": 0.47417290277635454
+    "val": 0.480292606557136
    },
    "utils": [
     {
@@ -17393,7 +17394,7 @@
     },
     {
      "name": "LTB+torsion (EN 1993-6 Annex A)",
-     "val": 0.47417290277635454
+     "val": 0.480292606557136
     },
     {
      "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
@@ -17405,7 +17406,7 @@
     },
     {
      "name": "Bending+torsion cross-section (P385 3.1.2)",
-     "val": 0.29932496084733673
+     "val": 0.30830193289224306
     },
     {
      "name": "Shear+torsion  V_Ed/V_pl,T,Rd",
@@ -17546,7 +17547,7 @@
      "id": "vi-governing",
      "ok": true,
      "kind": "check",
-     "detail": "gov LTB+torsion (EN 1993-6 Annex A) = 0.4742, max(utils) = 0.4742"
+     "detail": "gov LTB+torsion (EN 1993-6 Annex A) = 0.4803, max(utils) = 0.4803"
     }
    ],
    "checkFailures": [],
@@ -17609,14 +17610,14 @@
     "torsion-fe",
     "ecc-small"
    ],
-   "ms": 54.717,
+   "ms": 35.2961,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
    "verdict": "PASS",
    "gov": {
     "name": "LTB+torsion (EN 1993-6 Annex A)",
-    "val": 0.4749275939641934
+    "val": 0.48105358781880836
    },
    "utils": [
     {
@@ -17637,7 +17638,7 @@
     },
     {
      "name": "LTB+torsion (EN 1993-6 Annex A)",
-     "val": 0.4749275939641934
+     "val": 0.48105358781880836
     },
     {
      "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
@@ -17649,7 +17650,7 @@
     },
     {
      "name": "Bending+torsion cross-section (P385 3.1.2)",
-     "val": 0.29932496084733673
+     "val": 0.30830193289224306
     },
     {
      "name": "Shear+torsion  V_Ed/V_pl,T,Rd",
@@ -17767,7 +17768,7 @@
      "id": "vi-governing",
      "ok": true,
      "kind": "check",
-     "detail": "gov LTB+torsion (EN 1993-6 Annex A) = 0.4749, max(utils) = 0.4749"
+     "detail": "gov LTB+torsion (EN 1993-6 Annex A) = 0.4811, max(utils) = 0.4811"
     }
    ],
    "checkFailures": [],
@@ -17820,7 +17821,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 213.2553,
+   "ms": 169.731,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -18030,7 +18031,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 47.2699,
+   "ms": 25.8187,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -18216,7 +18217,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 240.8032,
+   "ms": 167.5889,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -18385,7 +18386,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 43.19,
+   "ms": 24.8345,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -18549,7 +18550,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 211.8353,
+   "ms": 161.9761,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -18716,7 +18717,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 33.7489,
+   "ms": 25.4859,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -18880,7 +18881,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 216.7052,
+   "ms": 163.2666,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -19049,7 +19050,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 34.1047,
+   "ms": 28.1786,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -19216,7 +19217,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 331.9401,
+   "ms": 244.9222,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -19429,7 +19430,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 36.9118,
+   "ms": 26.2256,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -19611,7 +19612,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 33.7234,
+   "ms": 25.8202,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -19763,7 +19764,7 @@
    "tags": [
     "heavy"
    ],
-   "ms": 56.4484,
+   "ms": 28.1971,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -19916,7 +19917,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 150.9555,
+   "ms": 100.6099,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -20118,7 +20119,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 38.9288,
+   "ms": 26.5974,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -20315,7 +20316,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 235.2275,
+   "ms": 178.1832,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -20517,7 +20518,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 38.1788,
+   "ms": 27.7779,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -20710,7 +20711,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 36.5274,
+   "ms": 27.6533,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -20869,7 +20870,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 221.69,
+   "ms": 173.0298,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -21041,7 +21042,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 45.0817,
+   "ms": 27.7524,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -21208,7 +21209,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 269.6947,
+   "ms": 172.6799,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -21380,7 +21381,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 36.3162,
+   "ms": 26.7075,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -21547,7 +21548,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 286.8223,
+   "ms": 169.4886,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -21737,7 +21738,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 49.1112,
+   "ms": 28.4458,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -21922,7 +21923,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 239.5141,
+   "ms": 172.8393,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -22112,7 +22113,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 33.5891,
+   "ms": 27.486,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -22293,7 +22294,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 38.6936,
+   "ms": 27.7351,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -22440,7 +22441,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 235.8846,
+   "ms": 178.9917,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -22606,7 +22607,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 37.614,
+   "ms": 30.3064,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -22762,7 +22763,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 34.313,
+   "ms": 29.5819,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -22902,7 +22903,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 220.2188,
+   "ms": 175.7438,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -23085,7 +23086,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 43.637,
+   "ms": 27.6626,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -23266,7 +23267,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 351.6601,
+   "ms": 247.6365,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -23453,7 +23454,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 38.2633,
+   "ms": 26.2944,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -23632,7 +23633,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 264.8507,
+   "ms": 173.6167,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -23842,7 +23843,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 38.323,
+   "ms": 28.7862,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -24029,7 +24030,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 208.8873,
+   "ms": 166.759,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -24234,7 +24235,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 39.815,
+   "ms": 29.4081,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -24433,7 +24434,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 235.4157,
+   "ms": 192.9596,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -24638,7 +24639,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 66.4716,
+   "ms": 28.7812,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -24835,7 +24836,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 721.7281,
+   "ms": 454.1739,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -25020,7 +25021,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 43.4248,
+   "ms": 28.1816,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -25199,7 +25200,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 251.3158,
+   "ms": 187.5214,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -25364,7 +25365,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 36.2314,
+   "ms": 32.1202,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -25520,7 +25521,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 35.9184,
+   "ms": 26.5215,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -25645,7 +25646,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 241.1661,
+   "ms": 168.4375,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -25853,7 +25854,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 41.9561,
+   "ms": 30.7059,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -26057,7 +26058,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 253.4994,
+   "ms": 179.4826,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -26287,7 +26288,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 39.5535,
+   "ms": 25.9916,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -26509,7 +26510,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 268.1334,
+   "ms": 180.6461,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [
@@ -26683,7 +26684,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 36.5837,
+   "ms": 26.6387,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [
@@ -26851,7 +26852,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 219.3982,
+   "ms": 176.8496,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -27053,7 +27054,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 41.036,
+   "ms": 29.9371,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -27250,7 +27251,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 222.8006,
+   "ms": 179.2031,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -27440,7 +27441,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 36.4945,
+   "ms": 28.806,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -27625,7 +27626,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 228.6402,
+   "ms": 167.2686,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -27833,7 +27834,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 40.2592,
+   "ms": 29.069,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -28033,7 +28034,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 60.4282,
+   "ms": 27.4611,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -28186,7 +28187,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 212.9576,
+   "ms": 174.6277,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -28358,7 +28359,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 36.7343,
+   "ms": 27.0259,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -28520,7 +28521,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 36.4563,
+   "ms": 27.9829,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -28660,7 +28661,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 215.8273,
+   "ms": 180.107,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -28831,7 +28832,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 39.3524,
+   "ms": 28.0426,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -29004,7 +29005,7 @@
    "tags": [
     "ecc-zero"
    ],
-   "ms": 239.8722,
+   "ms": 194.2632,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -29201,7 +29202,7 @@
    "tags": [
     "ecc-zero"
    ],
-   "ms": 53.7656,
+   "ms": 41.737,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -29392,7 +29393,7 @@
    "tags": [
     "ecc-small"
    ],
-   "ms": 56.1724,
+   "ms": 61.1055,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -29589,7 +29590,7 @@
    "tags": [
     "ecc-small"
    ],
-   "ms": 75.4027,
+   "ms": 47.3464,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -29780,7 +29781,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 62.4304,
+   "ms": 48.7526,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -29977,7 +29978,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 60.0857,
+   "ms": 47.5133,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -30164,7 +30165,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 67.3051,
+   "ms": 46.648,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -30214,7 +30215,8 @@
    "advisory": [
     "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4.",
     "Serviceability twist max = 4.8deg exceeds the ~2deg guideline (SCI P385): check that the rotation is acceptable for whatever the member supports.",
-    "G,inf companions: 2 ULS combination(s) re-solved with G at 1.0 (STR set B, EN 1990 6.4.3.1(4) / Table A1.2(B)) and at 0.9 (EQU set A, Table A1.2(A)) over the whole member (single-source permanent action) for the END REACTIONS only - uplift / hold-down forces and the web-bearing reactions; the moment and shear envelopes keep the entered G, so add a reduced-G combination by hand where a relieving permanent action could increase a moment."
+    "G,inf companions: 2 ULS combination(s) re-solved with G at 1.0 (STR set B, EN 1990 6.4.3.1(4) / Table A1.2(B)) and at 0.9 (EQU set A, Table A1.2(A)) over the whole member (single-source permanent action) for the END REACTIONS only - uplift / hold-down forces and the web-bearing reactions; the moment and shear envelopes keep the entered G, so add a reduced-G combination by hand where a relieving permanent action could increase a moment.",
+    "ADVISORY - elastic yield criterion (6.1) with torsion, cl 6.2.7(5) = 2.465 at x = 3.00 m (P1 flange tip): first yield is reached under the design actions (information only, not a utilisation: Class 1/2 open section without N_Ed: EN 1993-1-1 6.2.7(6) permits the plastic moment resistance under bending + torsion with B_Ed from the elastic analysis (the SCI P385 3.1.2 interaction with M_z,tot); the elastic verification of 6.2.7(5) is permissive (\"may be applied\") and is printed for information)."
    ],
    "warn": [],
    "mcrMethodReported": null,
@@ -30326,7 +30328,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 363.2903,
+   "ms": 277.0806,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -30523,7 +30525,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 43.1601,
+   "ms": 45.4649,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -30714,7 +30716,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 287.6087,
+   "ms": 190.9168,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -30893,7 +30895,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 51.6028,
+   "ms": 42.1525,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -31060,7 +31062,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 229.7323,
+   "ms": 165.4398,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -31242,7 +31244,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 34.402,
+   "ms": 26.1067,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -31423,7 +31425,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 35.7139,
+   "ms": 25.7296,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -31602,7 +31604,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 268.2522,
+   "ms": 178.8535,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -31801,7 +31803,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 63.8631,
+   "ms": 38.0465,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -31988,7 +31990,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 212.0445,
+   "ms": 175.4811,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -32182,7 +32184,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 31.9093,
+   "ms": 28.7231,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -32376,7 +32378,7 @@
    "tags": [
     "ecc-small"
    ],
-   "ms": 251.0093,
+   "ms": 197.989,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -32556,7 +32558,7 @@
    "tags": [
     "ecc-small"
    ],
-   "ms": 52.8977,
+   "ms": 47.1796,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -32717,7 +32719,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 47.7098,
+   "ms": 27.0679,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -32866,7 +32868,7 @@
    "tags": [
     "ecc-small"
    ],
-   "ms": 215.7972,
+   "ms": 194.482,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -33077,7 +33079,7 @@
    "tags": [
     "ecc-small"
    ],
-   "ms": 51.3712,
+   "ms": 45.0392,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -33131,14 +33133,13 @@
    "McRd": 76.45,
    "VplRd": 258.201865699148,
    "deflRatio": 0.25320185648980936,
-   "unsupported": [
-    "M_y,Ed reaches the elastic critical moment M_cr: the Annex A amplifier k_alpha is unbounded; the member is inadequate as arranged."
-   ],
+   "unsupported": [],
    "advisory": [
     "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4.",
     "Serviceability twist max = 2.9deg exceeds the ~2deg guideline (SCI P385): check that the rotation is acceptable for whatever the member supports.",
     "G,inf companions: 2 ULS combination(s) re-solved with G at 1.0 (STR set B, EN 1990 6.4.3.1(4) / Table A1.2(B)) and at 0.9 (EQU set A, Table A1.2(A)) over the whole member (single-source permanent action) for the END REACTIONS only - uplift / hold-down forces and the web-bearing reactions; the moment and shear envelopes keep the entered G, so add a reduced-G combination by hand where a relieving permanent action could increase a moment.",
-    "Standard (closed-form) Mcr: laterally clamped end (Rz held at End 1) taken as fork end, k = kw = 1 (conservative: the SN003a k = 0.5 / kw = 0.5 rows are not applied; the FE eigen route uses v' = 0 / ' = 0 and gives the higher Mcr)."
+    "Standard (closed-form) Mcr: laterally clamped end (Rz held at End 1) taken as fork end, k = kw = 1 (conservative: the SN003a k = 0.5 / kw = 0.5 rows are not applied; the FE eigen route uses v' = 0 / ' = 0 and gives the higher Mcr).",
+    "FAIL: M_y,Ed reaches the elastic critical moment M_cr (M_y,Ed >= M_cr): lateral-torsional buckling governs before the torsion interaction can be evaluated - the EN 1993-6 Annex A amplifier k_alpha = 1/(1 - M_y,Ed/M_cr) is unbounded and the utilisation is carried as 99; the member is inadequate as arranged (larger section, shorter unrestrained length or compression-flange restraint)."
    ],
    "warn": [],
    "mcrMethodReported": "standard",
@@ -33284,7 +33285,7 @@
    "tags": [
     "ecc-small"
    ],
-   "ms": 305.9584,
+   "ms": 201.546,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -33464,7 +33465,7 @@
    "tags": [
     "ecc-small"
    ],
-   "ms": 75.0331,
+   "ms": 37.991,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -33631,7 +33632,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 599.9244,
+   "ms": 478.3204,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -33804,7 +33805,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 59.512,
+   "ms": 28.4934,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -33978,7 +33979,7 @@
    "tags": [
     "tfb"
    ],
-   "ms": 167.5705,
+   "ms": 109.3678,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -34186,7 +34187,7 @@
    "tags": [
     "tfb"
    ],
-   "ms": 33.5068,
+   "ms": 33.3472,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -34382,7 +34383,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 237.1732,
+   "ms": 185.9729,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -34578,7 +34579,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 41.9168,
+   "ms": 27.8155,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -34777,7 +34778,7 @@
    "tags": [
     "ecc-small"
    ],
-   "ms": 306.9426,
+   "ms": 220.9181,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -35000,7 +35001,7 @@
    "tags": [
     "ecc-small"
    ],
-   "ms": 57.5858,
+   "ms": 47.6242,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -35054,14 +35055,13 @@
    "McRd": 116.875,
    "VplRd": 349.2969128597236,
    "deflRatio": 0.10618015691255935,
-   "unsupported": [
-    "M_y,Ed reaches the elastic critical moment M_cr: the Annex A amplifier k_alpha is unbounded; the member is inadequate as arranged."
-   ],
+   "unsupported": [],
    "advisory": [
     "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4.",
     "Serviceability twist max = 2.4deg exceeds the ~2deg guideline (SCI P385): check that the rotation is acceptable for whatever the member supports.",
     "G,inf companions: 2 ULS combination(s) re-solved with G at 1.0 (STR set B, EN 1990 6.4.3.1(4) / Table A1.2(B)) and at 0.9 (EQU set A, Table A1.2(A)) over the whole member (single-source permanent action) for the END REACTIONS only - uplift / hold-down forces and the web-bearing reactions; the moment and shear envelopes keep the entered G, so add a reduced-G combination by hand where a relieving permanent action could increase a moment.",
-    "Standard (closed-form) Mcr: laterally clamped ends (Rz held at End 1 and End 2) taken as fork ends, k = kw = 1 (conservative: the SN003a k = 0.5 / kw = 0.5 rows are not applied; the FE eigen route uses v' = 0 / ' = 0 and gives the higher Mcr)."
+    "Standard (closed-form) Mcr: laterally clamped ends (Rz held at End 1 and End 2) taken as fork ends, k = kw = 1 (conservative: the SN003a k = 0.5 / kw = 0.5 rows are not applied; the FE eigen route uses v' = 0 / ' = 0 and gives the higher Mcr).",
+    "FAIL: M_y,Ed reaches the elastic critical moment M_cr (M_y,Ed >= M_cr): lateral-torsional buckling governs before the torsion interaction can be evaluated - the EN 1993-6 Annex A amplifier k_alpha = 1/(1 - M_y,Ed/M_cr) is unbounded and the utilisation is carried as 99; the member is inadequate as arranged (larger section, shorter unrestrained length or compression-flange restraint)."
    ],
    "warn": [],
    "mcrMethodReported": "standard",
@@ -35212,7 +35212,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 254.5095,
+   "ms": 188.8336,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -35402,7 +35402,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 43.0697,
+   "ms": 29.3318,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -35587,7 +35587,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 230.4668,
+   "ms": 184.4373,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -35765,7 +35765,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 32.4418,
+   "ms": 27.7596,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -35948,7 +35948,7 @@
     "torsion-fe",
     "ecc-large"
    ],
-   "ms": 257.4771,
+   "ms": 189.3152,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -36158,7 +36158,7 @@
     "torsion-fe",
     "ecc-large"
    ],
-   "ms": 42.6613,
+   "ms": 39.796,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -36358,7 +36358,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 249.5177,
+   "ms": 169.4184,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -36542,7 +36542,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 41.7552,
+   "ms": 26.3683,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -36717,7 +36717,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 54.5121,
+   "ms": 27.9194,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -36847,7 +36847,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 37.6136,
+   "ms": 30.657,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -36987,7 +36987,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 212.3365,
+   "ms": 182.5374,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -37170,7 +37170,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 32.282,
+   "ms": 28.2477,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -37348,7 +37348,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 240.3828,
+   "ms": 179.5076,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -37532,7 +37532,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 34.0176,
+   "ms": 28.1723,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -37712,7 +37712,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 213.8676,
+   "ms": 180.3863,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -37917,7 +37917,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 31.6236,
+   "ms": 26.5095,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -38115,7 +38115,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 293.1042,
+   "ms": 175.9423,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -38310,7 +38310,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 36.5627,
+   "ms": 28.958,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -38508,7 +38508,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 225.7932,
+   "ms": 220.3047,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -38714,7 +38714,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 44.084,
+   "ms": 48.9428,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -38903,7 +38903,7 @@
     "3.27"
    ],
    "tags": [],
-   "ms": 37.7044,
+   "ms": 26.9161,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -39043,7 +39043,7 @@
     "3.27"
    ],
    "tags": [],
-   "ms": 32.0129,
+   "ms": 27.4608,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -39178,7 +39178,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 232.386,
+   "ms": 176.2814,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -39373,7 +39373,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 33.2056,
+   "ms": 29.6817,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -39563,7 +39563,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 44.69,
+   "ms": 47.2691,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -39717,7 +39717,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 252.3818,
+   "ms": 199.6601,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -39925,7 +39925,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 44.9037,
+   "ms": 26.6221,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -40127,7 +40127,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 611.1235,
+   "ms": 179.234,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -40323,7 +40323,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 42.1409,
+   "ms": 29.7984,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -40513,7 +40513,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 330.7958,
+   "ms": 240.7194,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -40715,7 +40715,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 36.8745,
+   "ms": 35.4917,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -40911,7 +40911,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 493.3905,
+   "ms": 213.419,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -41101,7 +41101,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 39.9012,
+   "ms": 24.5877,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -41282,7 +41282,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 51.9295,
+   "ms": 28.6914,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -41430,7 +41430,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 56.5457,
+   "ms": 27.9854,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -41570,7 +41570,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 260.2769,
+   "ms": 178.7103,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -41753,7 +41753,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 39.1563,
+   "ms": 29.0595,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -41930,7 +41930,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 544.9034,
+   "ms": 185.8176,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -42113,7 +42113,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 42.8516,
+   "ms": 29.4398,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -42290,7 +42290,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 289.8534,
+   "ms": 183.0142,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -42473,7 +42473,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 45.0837,
+   "ms": 28.1463,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -42651,7 +42651,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 324.5697,
+   "ms": 181.6455,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -42835,7 +42835,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 49.4237,
+   "ms": 26.7012,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -43015,7 +43015,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 234.0125,
+   "ms": 183.6676,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -43220,7 +43220,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 39.496,
+   "ms": 26.6632,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -43418,7 +43418,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 213.7924,
+   "ms": 173.1525,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -43601,7 +43601,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 48.0369,
+   "ms": 28.4339,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -43796,7 +43796,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 320.1706,
+   "ms": 180.2386,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -43984,7 +43984,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 82.9868,
+   "ms": 27.6249,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -44166,7 +44166,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 57.2825,
+   "ms": 44.8644,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -44327,7 +44327,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 229.7433,
+   "ms": 195.1403,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -44531,7 +44531,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 40.7487,
+   "ms": 46.4951,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -44722,7 +44722,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 265.8417,
+   "ms": 198.8788,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -44930,7 +44930,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 37.0829,
+   "ms": 26.5422,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -45133,7 +45133,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 602.5392,
+   "ms": 472.8801,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -45318,7 +45318,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 38.8665,
+   "ms": 29.1578,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -45498,7 +45498,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 237.3727,
+   "ms": 181.7938,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -45694,7 +45694,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 33.0281,
+   "ms": 26.7802,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -45886,7 +45886,7 @@
    "tags": [
     "uplift"
    ],
-   "ms": 460.5044,
+   "ms": 377.9283,
    "nCombos": 3,
    "governCombo": "ULS: 1.35G + 1.5Q",
    "uplift": [
@@ -46085,7 +46085,7 @@
    "tags": [
     "uplift"
    ],
-   "ms": 74.6728,
+   "ms": 65.9689,
    "nCombos": 3,
    "governCombo": "ULS: 1.35G + 1.5Q",
    "uplift": [
@@ -46277,7 +46277,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 266.9234,
+   "ms": 218.0152,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -46479,7 +46479,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 37.9211,
+   "ms": 31.4175,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -46676,7 +46676,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 312.6343,
+   "ms": 220.0899,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -46866,7 +46866,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 33.2342,
+   "ms": 27.992,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -47048,7 +47048,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 32.6158,
+   "ms": 26.7335,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -47201,7 +47201,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 253.8356,
+   "ms": 197.0368,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -47379,7 +47379,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 33.3715,
+   "ms": 28.3208,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -47552,7 +47552,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 246.1024,
+   "ms": 191.6861,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -47748,7 +47748,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 33.7155,
+   "ms": 30.7448,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -47947,14 +47947,14 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 236.1916,
+   "ms": 189.825,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
    "verdict": "PASS",
    "gov": {
     "name": "LTB+torsion (EN 1993-6 Annex A)",
-    "val": 0.4619688674764824
+    "val": 0.46845334346408296
    },
    "utils": [
     {
@@ -47975,7 +47975,7 @@
     },
     {
      "name": "LTB+torsion (EN 1993-6 Annex A)",
-     "val": 0.4619688674764824
+     "val": 0.46845334346408296
     },
     {
      "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
@@ -47987,7 +47987,7 @@
     },
     {
      "name": "Bending+torsion cross-section (P385 3.1.2)",
-     "val": 0.4093658065279562
+     "val": 0.41987571040466776
     },
     {
      "name": "Shear+torsion  V_Ed/V_pl,T,Rd",
@@ -48121,7 +48121,7 @@
      "id": "vi-governing",
      "ok": true,
      "kind": "check",
-     "detail": "gov LTB+torsion (EN 1993-6 Annex A) = 0.4620, max(utils) = 0.4620"
+     "detail": "gov LTB+torsion (EN 1993-6 Annex A) = 0.4685, max(utils) = 0.4685"
     }
    ],
    "checkFailures": [],
@@ -48182,14 +48182,14 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 54.2322,
+   "ms": 43.1082,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
    "verdict": "PASS",
    "gov": {
     "name": "LTB+torsion (EN 1993-6 Annex A)",
-    "val": 0.47857001948681277
+    "val": 0.4852836986564767
    },
    "utils": [
     {
@@ -48210,7 +48210,7 @@
     },
     {
      "name": "LTB+torsion (EN 1993-6 Annex A)",
-     "val": 0.47857001948681277
+     "val": 0.4852836986564767
     },
     {
      "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
@@ -48222,7 +48222,7 @@
     },
     {
      "name": "Bending+torsion cross-section (P385 3.1.2)",
-     "val": 0.4093658065279562
+     "val": 0.41987571040466776
     },
     {
      "name": "Shear+torsion  V_Ed/V_pl,T,Rd",
@@ -48352,7 +48352,7 @@
      "id": "vi-governing",
      "ok": true,
      "kind": "check",
-     "detail": "gov LTB+torsion (EN 1993-6 Annex A) = 0.4786, max(utils) = 0.4786"
+     "detail": "gov LTB+torsion (EN 1993-6 Annex A) = 0.4853, max(utils) = 0.4853"
     }
    ],
    "checkFailures": [],
@@ -48412,7 +48412,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 187.5207,
+   "ms": 115.1684,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -48635,7 +48635,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 57.5587,
+   "ms": 45.5642,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -48853,14 +48853,14 @@
    "tags": [
     "ecc-small"
    ],
-   "ms": 245.8527,
+   "ms": 185.9103,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
    "verdict": "FAIL",
    "gov": {
     "name": "LTB+torsion (EN 1993-6 Annex A)",
-    "val": 1.1970008443955393
+    "val": 1.2066042212691594
    },
    "utils": [
     {
@@ -48881,7 +48881,7 @@
     },
     {
      "name": "LTB+torsion (EN 1993-6 Annex A)",
-     "val": 1.1970008443955393
+     "val": 1.2066042212691594
     },
     {
      "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
@@ -48893,7 +48893,7 @@
     },
     {
      "name": "Bending+torsion cross-section (P385 3.1.2)",
-     "val": 1.1727202828472563
+     "val": 1.197143582561805
     },
     {
      "name": "Shear+torsion  V_Ed/V_pl,T,Rd",
@@ -48911,7 +48911,8 @@
    "advisory": [
     "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4.",
     "Serviceability twist max = 4.2deg exceeds the ~2deg guideline (SCI P385): check that the rotation is acceptable for whatever the member supports.",
-    "G,inf companions: 2 ULS combination(s) re-solved with G at 1.0 (STR set B, EN 1990 6.4.3.1(4) / Table A1.2(B)) and at 0.9 (EQU set A, Table A1.2(A)) over the whole member (single-source permanent action) for the END REACTIONS only - uplift / hold-down forces and the web-bearing reactions; the moment and shear envelopes keep the entered G, so add a reduced-G combination by hand where a relieving permanent action could increase a moment."
+    "G,inf companions: 2 ULS combination(s) re-solved with G at 1.0 (STR set B, EN 1990 6.4.3.1(4) / Table A1.2(B)) and at 0.9 (EQU set A, Table A1.2(A)) over the whole member (single-source permanent action) for the END REACTIONS only - uplift / hold-down forces and the web-bearing reactions; the moment and shear envelopes keep the entered G, so add a reduced-G combination by hand where a relieving permanent action could increase a moment.",
+    "ADVISORY - elastic yield criterion (6.1) with torsion, cl 6.2.7(5) = 4.083 at x = 2.50 m (P1 flange tip): first yield is reached under the design actions (information only, not a utilisation: Class 1/2 open section without N_Ed: EN 1993-1-1 6.2.7(6) permits the plastic moment resistance under bending + torsion with B_Ed from the elastic analysis (the SCI P385 3.1.2 interaction with M_z,tot); the elastic verification of 6.2.7(5) is permissive (\"may be applied\") and is printed for information)."
    ],
    "warn": [],
    "mcrMethodReported": "eigen",
@@ -49015,7 +49016,7 @@
      "id": "vi-governing",
      "ok": true,
      "kind": "check",
-     "detail": "gov LTB+torsion (EN 1993-6 Annex A) = 1.1970, max(utils) = 1.1970"
+     "detail": "gov LTB+torsion (EN 1993-6 Annex A) = 1.2066, max(utils) = 1.2066"
     }
    ],
    "checkFailures": [],
@@ -49076,14 +49077,14 @@
    "tags": [
     "ecc-small"
    ],
-   "ms": 42.8423,
+   "ms": 38.5741,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
    "verdict": "FAIL",
    "gov": {
     "name": "LTB+torsion (EN 1993-6 Annex A)",
-    "val": 1.2785917543549385
+    "val": 1.2892471556577192
    },
    "utils": [
     {
@@ -49104,7 +49105,7 @@
     },
     {
      "name": "LTB+torsion (EN 1993-6 Annex A)",
-     "val": 1.2785917543549385
+     "val": 1.2892471556577192
     },
     {
      "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
@@ -49116,7 +49117,7 @@
     },
     {
      "name": "Bending+torsion cross-section (P385 3.1.2)",
-     "val": 1.1727202828472563
+     "val": 1.197143582561805
     },
     {
      "name": "Shear+torsion  V_Ed/V_pl,T,Rd",
@@ -49135,6 +49136,7 @@
     "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4.",
     "Serviceability twist max = 4.2deg exceeds the ~2deg guideline (SCI P385): check that the rotation is acceptable for whatever the member supports.",
     "G,inf companions: 2 ULS combination(s) re-solved with G at 1.0 (STR set B, EN 1990 6.4.3.1(4) / Table A1.2(B)) and at 0.9 (EQU set A, Table A1.2(A)) over the whole member (single-source permanent action) for the END REACTIONS only - uplift / hold-down forces and the web-bearing reactions; the moment and shear envelopes keep the entered G, so add a reduced-G combination by hand where a relieving permanent action could increase a moment.",
+    "ADVISORY - elastic yield criterion (6.1) with torsion, cl 6.2.7(5) = 4.083 at x = 2.50 m (P1 flange tip): first yield is reached under the design actions (information only, not a utilisation: Class 1/2 open section without N_Ed: EN 1993-1-1 6.2.7(6) permits the plastic moment resistance under bending + torsion with B_Ed from the elastic analysis (the SCI P385 3.1.2 interaction with M_z,tot); the elastic verification of 6.2.7(5) is permissive (\"may be applied\") and is printed for information).",
     "Standard (closed-form) Mcr: laterally clamped end (Rz held at End 1) taken as fork end, k = kw = 1 (conservative: the SN003a k = 0.5 / kw = 0.5 rows are not applied; the FE eigen route uses v' = 0 / ' = 0 and gives the higher Mcr)."
    ],
    "warn": [],
@@ -49234,7 +49236,7 @@
      "id": "vi-governing",
      "ok": true,
      "kind": "check",
-     "detail": "gov LTB+torsion (EN 1993-6 Annex A) = 1.2786, max(utils) = 1.2786"
+     "detail": "gov LTB+torsion (EN 1993-6 Annex A) = 1.2892, max(utils) = 1.2892"
     }
    ],
    "checkFailures": [],
@@ -49294,7 +49296,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 144.1004,
+   "ms": 125.8602,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -49510,7 +49512,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 49.4116,
+   "ms": 43.1585,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -49564,13 +49566,12 @@
    "McRd": 97.625,
    "VplRd": 294.20326342230356,
    "deflRatio": 0.32467532612195027,
-   "unsupported": [
-    "M_y,Ed reaches the elastic critical moment M_cr: the Annex A amplifier k_alpha is unbounded; the member is inadequate as arranged."
-   ],
+   "unsupported": [],
    "advisory": [
     "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4.",
     "G,inf companions: 2 ULS combination(s) re-solved with G at 1.0 (STR set B, EN 1990 6.4.3.1(4) / Table A1.2(B)) and at 0.9 (EQU set A, Table A1.2(A)) over the whole member (single-source permanent action) for the END REACTIONS only - uplift / hold-down forces and the web-bearing reactions; the moment and shear envelopes keep the entered G, so add a reduced-G combination by hand where a relieving permanent action could increase a moment.",
-    "Standard (closed-form) Mcr: laterally clamped ends (Rz held at End 1 and End 2) taken as fork ends, k = kw = 1 (conservative: the SN003a k = 0.5 / kw = 0.5 rows are not applied; the FE eigen route uses v' = 0 / ' = 0 and gives the higher Mcr)."
+    "Standard (closed-form) Mcr: laterally clamped ends (Rz held at End 1 and End 2) taken as fork ends, k = kw = 1 (conservative: the SN003a k = 0.5 / kw = 0.5 rows are not applied; the FE eigen route uses v' = 0 / ' = 0 and gives the higher Mcr).",
+    "FAIL: M_y,Ed reaches the elastic critical moment M_cr (M_y,Ed >= M_cr): lateral-torsional buckling governs before the torsion interaction can be evaluated - the EN 1993-6 Annex A amplifier k_alpha = 1/(1 - M_y,Ed/M_cr) is unbounded and the utilisation is carried as 99; the member is inadequate as arranged (larger section, shorter unrestrained length or compression-flange restraint)."
    ],
    "warn": [],
    "mcrMethodReported": "standard",
@@ -49720,14 +49721,14 @@
     "torsion-fe",
     "ecc-small"
    ],
-   "ms": 56.8445,
+   "ms": 48.2309,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
    "verdict": "PASS",
    "gov": {
     "name": "Bending+torsion cross-section (P385 3.1.2)",
-    "val": 0.8420602424038717
+    "val": 0.8557985219524515
    },
    "utils": [
     {
@@ -49752,7 +49753,7 @@
     },
     {
      "name": "Bending+torsion cross-section (P385 3.1.2)",
-     "val": 0.8420602424038717
+     "val": 0.8557985219524515
     },
     {
      "name": "Shear+torsion  V_Ed/V_pl,T,Rd",
@@ -49770,7 +49771,8 @@
    "advisory": [
     "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4.",
     "Serviceability twist max = 9.7deg exceeds the ~2deg guideline (SCI P385): check that the rotation is acceptable for whatever the member supports.",
-    "G,inf companions: 2 ULS combination(s) re-solved with G at 1.0 (STR set B, EN 1990 6.4.3.1(4) / Table A1.2(B)) and at 0.9 (EQU set A, Table A1.2(A)) over the whole member (single-source permanent action) for the END REACTIONS only - uplift / hold-down forces and the web-bearing reactions; the moment and shear envelopes keep the entered G, so add a reduced-G combination by hand where a relieving permanent action could increase a moment."
+    "G,inf companions: 2 ULS combination(s) re-solved with G at 1.0 (STR set B, EN 1990 6.4.3.1(4) / Table A1.2(B)) and at 0.9 (EQU set A, Table A1.2(A)) over the whole member (single-source permanent action) for the END REACTIONS only - uplift / hold-down forces and the web-bearing reactions; the moment and shear envelopes keep the entered G, so add a reduced-G combination by hand where a relieving permanent action could increase a moment.",
+    "ADVISORY - elastic yield criterion (6.1) with torsion, cl 6.2.7(5) = 2.164 at x = 0.00 m (P1 flange tip): first yield is reached under the design actions (information only, not a utilisation: Class 1/2 open section without N_Ed: EN 1993-1-1 6.2.7(6) permits the plastic moment resistance under bending + torsion with B_Ed from the elastic analysis (the SCI P385 3.1.2 interaction with M_z,tot); the elastic verification of 6.2.7(5) is permissive (\"may be applied\") and is printed for information)."
    ],
    "warn": [],
    "mcrMethodReported": null,
@@ -49846,7 +49848,7 @@
      "id": "vi-governing",
      "ok": true,
      "kind": "check",
-     "detail": "gov Bending+torsion cross-section (P385 3.1.2) = 0.8421, max(utils) = 0.8421"
+     "detail": "gov Bending+torsion cross-section (P385 3.1.2) = 0.8558, max(utils) = 0.8558"
     }
    ],
    "checkFailures": [],
@@ -49901,7 +49903,7 @@
    "tags": [
     "ecc-small"
    ],
-   "ms": 273.8881,
+   "ms": 202.8524,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -50105,7 +50107,7 @@
    "tags": [
     "ecc-small"
    ],
-   "ms": 59.5332,
+   "ms": 46.6787,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -50159,13 +50161,12 @@
    "McRd": 116.875,
    "VplRd": 349.2969128597236,
    "deflRatio": 0.9438235565823057,
-   "unsupported": [
-    "M_y,Ed reaches the elastic critical moment M_cr: the Annex A amplifier k_alpha is unbounded; the member is inadequate as arranged."
-   ],
+   "unsupported": [],
    "advisory": [
     "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4.",
     "G,inf companions: 2 ULS combination(s) re-solved with G at 1.0 (STR set B, EN 1990 6.4.3.1(4) / Table A1.2(B)) and at 0.9 (EQU set A, Table A1.2(A)) over the whole member (single-source permanent action) for the END REACTIONS only - uplift / hold-down forces and the web-bearing reactions; the moment and shear envelopes keep the entered G, so add a reduced-G combination by hand where a relieving permanent action could increase a moment.",
-    "Standard (closed-form) Mcr: laterally clamped end (Rz held at End 2) taken as fork end, k = kw = 1 (conservative: the SN003a k = 0.5 / kw = 0.5 rows are not applied; the FE eigen route uses v' = 0 / ' = 0 and gives the higher Mcr)."
+    "Standard (closed-form) Mcr: laterally clamped end (Rz held at End 2) taken as fork end, k = kw = 1 (conservative: the SN003a k = 0.5 / kw = 0.5 rows are not applied; the FE eigen route uses v' = 0 / ' = 0 and gives the higher Mcr).",
+    "FAIL: M_y,Ed reaches the elastic critical moment M_cr (M_y,Ed >= M_cr): lateral-torsional buckling governs before the torsion interaction can be evaluated - the EN 1993-6 Annex A amplifier k_alpha = 1/(1 - M_y,Ed/M_cr) is unbounded and the utilisation is carried as 99; the member is inadequate as arranged (larger section, shorter unrestrained length or compression-flange restraint)."
    ],
    "warn": [],
    "mcrMethodReported": "standard",
@@ -50307,14 +50308,14 @@
     "ecc-large",
     "warpFix"
    ],
-   "ms": 323.0861,
+   "ms": 192.3479,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
    "verdict": "PASS",
    "gov": {
     "name": "LTB+torsion (EN 1993-6 Annex A)",
-    "val": 0.9197090088963602
+    "val": 0.9273269247115984
    },
    "utils": [
     {
@@ -50335,7 +50336,7 @@
     },
     {
      "name": "LTB+torsion (EN 1993-6 Annex A)",
-     "val": 0.9197090088963602
+     "val": 0.9273269247115984
     },
     {
      "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
@@ -50347,7 +50348,7 @@
     },
     {
      "name": "Bending+torsion cross-section (P385 3.1.2)",
-     "val": 0.5095300152244804
+     "val": 0.5293769970798042
     },
     {
      "name": "Shear+torsion  V_Ed/V_pl,T,Rd",
@@ -50457,7 +50458,7 @@
      "id": "vi-governing",
      "ok": true,
      "kind": "check",
-     "detail": "gov LTB+torsion (EN 1993-6 Annex A) = 0.9197, max(utils) = 0.9197"
+     "detail": "gov LTB+torsion (EN 1993-6 Annex A) = 0.9273, max(utils) = 0.9273"
     }
    ],
    "checkFailures": [],
@@ -50519,14 +50520,14 @@
     "ecc-large",
     "warpFix"
    ],
-   "ms": 52.2455,
+   "ms": 38.3565,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
    "verdict": "FAIL",
    "gov": {
     "name": "LTB+torsion (EN 1993-6 Annex A)",
-    "val": 1.0783165212474959
+    "val": 1.088138280262483
    },
    "utils": [
     {
@@ -50547,7 +50548,7 @@
     },
     {
      "name": "LTB+torsion (EN 1993-6 Annex A)",
-     "val": 1.0783165212474959
+     "val": 1.088138280262483
     },
     {
      "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
@@ -50559,7 +50560,7 @@
     },
     {
      "name": "Bending+torsion cross-section (P385 3.1.2)",
-     "val": 0.5095300152244804
+     "val": 0.5293769970798042
     },
     {
      "name": "Shear+torsion  V_Ed/V_pl,T,Rd",
@@ -50665,7 +50666,7 @@
      "id": "vi-governing",
      "ok": true,
      "kind": "check",
-     "detail": "gov LTB+torsion (EN 1993-6 Annex A) = 1.0783, max(utils) = 1.0783"
+     "detail": "gov LTB+torsion (EN 1993-6 Annex A) = 1.0881, max(utils) = 1.0881"
     }
    ],
    "checkFailures": [],
@@ -50725,7 +50726,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 302.0178,
+   "ms": 188.3395,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -50906,7 +50907,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 52.7522,
+   "ms": 40.3033,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -51081,7 +51082,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 241.8593,
+   "ms": 185.6875,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -51280,7 +51281,7 @@
    "tags": [
     "ecc-large"
    ],
-   "ms": 48.5132,
+   "ms": 39.7259,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -51334,13 +51335,12 @@
    "McRd": 169.865,
    "VplRd": 443.08169058688645,
    "deflRatio": 0.32806804390039773,
-   "unsupported": [
-    "M_y,Ed reaches the elastic critical moment M_cr: the Annex A amplifier k_alpha is unbounded; the member is inadequate as arranged."
-   ],
+   "unsupported": [],
    "advisory": [
     "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4.",
     "Serviceability twist max = 2.2deg exceeds the ~2deg guideline (SCI P385): check that the rotation is acceptable for whatever the member supports.",
-    "G,inf companions: 2 ULS combination(s) re-solved with G at 1.0 (STR set B, EN 1990 6.4.3.1(4) / Table A1.2(B)) and at 0.9 (EQU set A, Table A1.2(A)) over the whole member (single-source permanent action) for the END REACTIONS only - uplift / hold-down forces and the web-bearing reactions; the moment and shear envelopes keep the entered G, so add a reduced-G combination by hand where a relieving permanent action could increase a moment."
+    "G,inf companions: 2 ULS combination(s) re-solved with G at 1.0 (STR set B, EN 1990 6.4.3.1(4) / Table A1.2(B)) and at 0.9 (EQU set A, Table A1.2(A)) over the whole member (single-source permanent action) for the END REACTIONS only - uplift / hold-down forces and the web-bearing reactions; the moment and shear envelopes keep the entered G, so add a reduced-G combination by hand where a relieving permanent action could increase a moment.",
+    "FAIL: M_y,Ed reaches the elastic critical moment M_cr (M_y,Ed >= M_cr): lateral-torsional buckling governs before the torsion interaction can be evaluated - the EN 1993-6 Annex A amplifier k_alpha = 1/(1 - M_y,Ed/M_cr) is unbounded and the utilisation is carried as 99; the member is inadequate as arranged (larger section, shorter unrestrained length or compression-flange restraint)."
    ],
    "warn": [],
    "mcrMethodReported": "standard",
@@ -51475,14 +51475,14 @@
     "torsion-fe",
     "ecc-large"
    ],
-   "ms": 232.5103,
+   "ms": 191.508,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
    "verdict": "PASS",
    "gov": {
     "name": "LTB+torsion (EN 1993-6 Annex A)",
-    "val": 0.7290423682687797
+    "val": 0.7349202830508182
    },
    "utils": [
     {
@@ -51503,7 +51503,7 @@
     },
     {
      "name": "LTB+torsion (EN 1993-6 Annex A)",
-     "val": 0.7290423682687797
+     "val": 0.7349202830508182
     },
     {
      "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
@@ -51515,7 +51515,7 @@
     },
     {
      "name": "Bending+torsion cross-section (P385 3.1.2)",
-     "val": 0.3342055254169236
+     "val": 0.3408962369559586
     },
     {
      "name": "Shear+torsion  V_Ed/V_pl,T,Rd",
@@ -51607,7 +51607,7 @@
      "id": "vi-governing",
      "ok": true,
      "kind": "check",
-     "detail": "gov LTB+torsion (EN 1993-6 Annex A) = 0.7290, max(utils) = 0.7290"
+     "detail": "gov LTB+torsion (EN 1993-6 Annex A) = 0.7349, max(utils) = 0.7349"
     }
    ],
    "checkFailures": [],
@@ -51668,14 +51668,14 @@
     "torsion-fe",
     "ecc-large"
    ],
-   "ms": 44.641,
+   "ms": 36.0815,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
    "verdict": "PASS",
    "gov": {
     "name": "LTB+torsion (EN 1993-6 Annex A)",
-    "val": 0.72465739662774
+    "val": 0.7304976180464358
    },
    "utils": [
     {
@@ -51696,7 +51696,7 @@
     },
     {
      "name": "LTB+torsion (EN 1993-6 Annex A)",
-     "val": 0.72465739662774
+     "val": 0.7304976180464358
     },
     {
      "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
@@ -51708,7 +51708,7 @@
     },
     {
      "name": "Bending+torsion cross-section (P385 3.1.2)",
-     "val": 0.3342055254169236
+     "val": 0.3408962369559586
     },
     {
      "name": "Shear+torsion  V_Ed/V_pl,T,Rd",
@@ -51795,7 +51795,7 @@
      "id": "vi-governing",
      "ok": true,
      "kind": "check",
-     "detail": "gov LTB+torsion (EN 1993-6 Annex A) = 0.7247, max(utils) = 0.7247"
+     "detail": "gov LTB+torsion (EN 1993-6 Annex A) = 0.7305, max(utils) = 0.7305"
     }
    ],
    "checkFailures": [],
@@ -51856,14 +51856,14 @@
     "ecc-large",
     "warpFix"
    ],
-   "ms": 1000.7947,
+   "ms": 183.696,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
    "verdict": "PASS",
    "gov": {
     "name": "LTB+torsion (EN 1993-6 Annex A)",
-    "val": 0.8539070843673138
+    "val": 0.85987258099788
    },
    "utils": [
     {
@@ -51884,7 +51884,7 @@
     },
     {
      "name": "LTB+torsion (EN 1993-6 Annex A)",
-     "val": 0.8539070843673138
+     "val": 0.85987258099788
     },
     {
      "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
@@ -51896,7 +51896,7 @@
     },
     {
      "name": "Bending+torsion cross-section (P385 3.1.2)",
-     "val": 0.42266229506448866
+     "val": 0.4388813877385716
     },
     {
      "name": "Shear+torsion  V_Ed/V_pl,T,Rd",
@@ -52011,7 +52011,7 @@
      "id": "vi-governing",
      "ok": true,
      "kind": "check",
-     "detail": "gov LTB+torsion (EN 1993-6 Annex A) = 0.8539, max(utils) = 0.8539"
+     "detail": "gov LTB+torsion (EN 1993-6 Annex A) = 0.8599, max(utils) = 0.8599"
     }
    ],
    "checkFailures": [],
@@ -52073,14 +52073,14 @@
     "ecc-large",
     "warpFix"
    ],
-   "ms": 61.4793,
+   "ms": 38.565,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
    "verdict": "FAIL",
    "gov": {
     "name": "LTB+torsion (EN 1993-6 Annex A)",
-    "val": 1.1202290929902512
+    "val": 1.1296343561176359
    },
    "utils": [
     {
@@ -52101,7 +52101,7 @@
     },
     {
      "name": "LTB+torsion (EN 1993-6 Annex A)",
-     "val": 1.1202290929902512
+     "val": 1.1296343561176359
     },
     {
      "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
@@ -52113,7 +52113,7 @@
     },
     {
      "name": "Bending+torsion cross-section (P385 3.1.2)",
-     "val": 0.42266229506448866
+     "val": 0.4388813877385716
     },
     {
      "name": "Shear+torsion  V_Ed/V_pl,T,Rd",
@@ -52224,7 +52224,7 @@
      "id": "vi-governing",
      "ok": true,
      "kind": "check",
-     "detail": "gov LTB+torsion (EN 1993-6 Annex A) = 1.1202, max(utils) = 1.1202"
+     "detail": "gov LTB+torsion (EN 1993-6 Annex A) = 1.1296, max(utils) = 1.1296"
     }
    ],
    "checkFailures": [],
@@ -52279,7 +52279,7 @@
    "tags": [
     "zg-bottom"
    ],
-   "ms": 374.6032,
+   "ms": 272.7026,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -52490,7 +52490,7 @@
    "tags": [
     "zg-bottom"
    ],
-   "ms": 39.5334,
+   "ms": 27.6125,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -52696,7 +52696,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 1040.7815,
+   "ms": 263.1411,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -52895,7 +52895,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 180.3297,
+   "ms": 30.7843,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -53091,7 +53091,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 401.3424,
+   "ms": 276.9141,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -53302,7 +53302,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 40.9555,
+   "ms": 25.9485,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -53508,7 +53508,7 @@
    "tags": [
     "zg-bottom"
    ],
-   "ms": 373.8556,
+   "ms": 280.2323,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -53719,7 +53719,7 @@
    "tags": [
     "zg-bottom"
    ],
-   "ms": 38.385,
+   "ms": 30.2055,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -53926,7 +53926,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 374.8269,
+   "ms": 277.8581,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -54139,7 +54139,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 35.8789,
+   "ms": 29.0073,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -54328,7 +54328,7 @@
    "tags": [
     "zg-bottom"
    ],
-   "ms": 247.638,
+   "ms": 184.5931,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -54541,7 +54541,7 @@
    "tags": [
     "zg-bottom"
    ],
-   "ms": 36.749,
+   "ms": 28.2711,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -54729,7 +54729,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 282.9074,
+   "ms": 197.4843,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -54934,7 +54934,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 40.0034,
+   "ms": 29.0617,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -55136,7 +55136,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 376.3997,
+   "ms": 248.166,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -55323,7 +55323,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 29.3619,
+   "ms": 25.7537,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -55508,7 +55508,7 @@
    "tags": [
     "zg-bottom"
    ],
-   "ms": 421.031,
+   "ms": 265.8866,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -55705,7 +55705,7 @@
    "tags": [
     "zg-bottom"
    ],
-   "ms": 52.2798,
+   "ms": 39.4052,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -55892,7 +55892,7 @@
    "tags": [
     "zg-mixed"
    ],
-   "ms": 438.0017,
+   "ms": 259.6319,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -56079,7 +56079,7 @@
    "tags": [
     "zg-mixed"
    ],
-   "ms": 40.7613,
+   "ms": 27.933,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -56262,7 +56262,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 245.7337,
+   "ms": 185.6138,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -56492,7 +56492,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 34.3607,
+   "ms": 26.6457,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -56717,7 +56717,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 229.962,
+   "ms": 180.8383,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -56935,7 +56935,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 34.8845,
+   "ms": 28.1949,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -57149,7 +57149,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 123.4371,
+   "ms": 100.1805,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -57387,7 +57387,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 29.0849,
+   "ms": 26.2367,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -57600,7 +57600,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 246.6588,
+   "ms": 189.0066,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -57824,7 +57824,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 35.2956,
+   "ms": 27.9435,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -58043,7 +58043,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 254.9012,
+   "ms": 180.4932,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -58261,7 +58261,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 34.3404,
+   "ms": 31.0955,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -58476,7 +58476,7 @@
    "tags": [
     "ux-both"
    ],
-   "ms": 247.1992,
+   "ms": 205.3583,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -58709,7 +58709,7 @@
    "tags": [
     "ux-both"
    ],
-   "ms": 36.8626,
+   "ms": 26.9643,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -58935,7 +58935,7 @@
    "tags": [
     "ux-both"
    ],
-   "ms": 218.029,
+   "ms": 188.1553,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -59143,7 +59143,7 @@
    "tags": [
     "ux-both"
    ],
-   "ms": 32.9983,
+   "ms": 31.6893,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -59343,7 +59343,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 270.985,
+   "ms": 193.2646,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -59551,7 +59551,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 46.5038,
+   "ms": 27.6855,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -59750,7 +59750,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 37.115,
+   "ms": 26.9875,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -59932,7 +59932,7 @@
    "tags": [
     "tfb"
    ],
-   "ms": 141.6134,
+   "ms": 109.3813,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -60165,7 +60165,7 @@
    "tags": [
     "tfb"
    ],
-   "ms": 52.0053,
+   "ms": 30.0258,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -60388,7 +60388,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 296.2269,
+   "ms": 182.7209,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -60599,7 +60599,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 33.4432,
+   "ms": 27.5032,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -60802,7 +60802,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 31.1855,
+   "ms": 25.7862,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -60996,7 +60996,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 217.8686,
+   "ms": 184.6911,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -61228,7 +61228,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 28.3255,
+   "ms": 28.0592,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -61430,7 +61430,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 32.8292,
+   "ms": 28.4538,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -61608,7 +61608,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 224.529,
+   "ms": 179.4262,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -61826,7 +61826,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 33.6557,
+   "ms": 28.7992,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -62035,7 +62035,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 34.7042,
+   "ms": 29.8433,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -62201,7 +62201,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 321.922,
+   "ms": 221.7389,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -62396,7 +62396,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 38.6931,
+   "ms": 28.8598,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -62588,7 +62588,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 243.5877,
+   "ms": 184.9134,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -62822,7 +62822,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 36.6601,
+   "ms": 26.8804,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -63045,7 +63045,7 @@
     "3.27"
    ],
    "tags": [],
-   "ms": 29.3904,
+   "ms": 25.5492,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -63207,7 +63207,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 223.2142,
+   "ms": 176.8232,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -63416,7 +63416,7 @@
     "3.20"
    ],
    "tags": [],
-   "ms": 33.9944,
+   "ms": 29.5736,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -63616,7 +63616,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 633.1404,
+   "ms": 471.4749,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -63826,7 +63826,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 44.6115,
+   "ms": 28.2545,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -64035,7 +64035,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 836.6848,
+   "ms": 644.6562,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -64212,7 +64212,7 @@
    "tags": [
     "zg-top"
    ],
-   "ms": 41.5986,
+   "ms": 28.6785,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -64385,7 +64385,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 270.9646,
+   "ms": 179.3795,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -64597,7 +64597,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 41.7484,
+   "ms": 27.3147,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -64784,7 +64784,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 784.4149,
+   "ms": 612.1706,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -64988,7 +64988,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 38.9805,
+   "ms": 31.169,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -65188,7 +65188,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 691.3269,
+   "ms": 496.5479,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -65380,7 +65380,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 51.5602,
+   "ms": 30.2846,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -65567,7 +65567,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 508.425,
+   "ms": 425.8886,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -65752,7 +65752,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 37.6358,
+   "ms": 30.5269,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -65933,7 +65933,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 630.4167,
+   "ms": 476.0701,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -66131,7 +66131,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 31.5405,
+   "ms": 27.657,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -66325,7 +66325,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 1010.6654,
+   "ms": 794.7586,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -66493,7 +66493,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 45.0586,
+   "ms": 33.1985,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -66657,7 +66657,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 235.8948,
+   "ms": 193.5093,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -66831,7 +66831,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 47.8422,
+   "ms": 31.7864,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -67000,7 +67000,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 245.6419,
+   "ms": 185.5259,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -67176,7 +67176,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 45.7503,
+   "ms": 32.9095,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -67345,7 +67345,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 297.7059,
+   "ms": 205.0603,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -67527,7 +67527,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 40.7696,
+   "ms": 32.2474,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -67702,7 +67702,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 285.5362,
+   "ms": 207.6048,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -67882,7 +67882,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 35.4682,
+   "ms": 29.2789,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -68053,7 +68053,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 32.5905,
+   "ms": 27.6681,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -68190,7 +68190,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 247.637,
+   "ms": 196.3538,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -68366,7 +68366,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 33.3164,
+   "ms": 30.121,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -68535,7 +68535,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 148.4749,
+   "ms": 108.506,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -68709,7 +68709,7 @@
     "3.19"
    ],
    "tags": [],
-   "ms": 43.6723,
+   "ms": 28.3503,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -68877,7 +68877,7 @@
    "tags": [
     "clamped"
    ],
-   "ms": 132.6227,
+   "ms": 110.2159,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -69068,7 +69068,7 @@
    "tags": [
     "clamped"
    ],
-   "ms": 59.8955,
+   "ms": 33.0197,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -69248,7 +69248,7 @@
    "tags": [
     "warpFix"
    ],
-   "ms": 260.7888,
+   "ms": 185.6509,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -69439,7 +69439,7 @@
    "tags": [
     "warpFix"
    ],
-   "ms": 40.464,
+   "ms": 27.4846,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -69620,7 +69620,7 @@
    "tags": [
     "clamped"
    ],
-   "ms": 237.9935,
+   "ms": 176.8538,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -69812,7 +69812,7 @@
    "tags": [
     "clamped"
    ],
-   "ms": 31.0912,
+   "ms": 27.2075,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -69993,7 +69993,7 @@
    "tags": [
     "warpFix"
    ],
-   "ms": 218.6067,
+   "ms": 178.2379,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -70185,7 +70185,7 @@
    "tags": [
     "warpFix"
    ],
-   "ms": 34.2495,
+   "ms": 28.5113,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -70365,7 +70365,7 @@
    "tags": [
     "twist-free-end"
    ],
-   "ms": 225.4042,
+   "ms": 180.9455,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -70538,7 +70538,7 @@
    "tags": [
     "twist-free-end"
    ],
-   "ms": 30.899,
+   "ms": 26.3363,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -70719,7 +70719,7 @@
    "tags": [
     "lateral-cantilever"
    ],
-   "ms": 219.2547,
+   "ms": 173.0025,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -70893,7 +70893,7 @@
    "tags": [
     "lateral-cantilever"
    ],
-   "ms": 49.5614,
+   "ms": 29.644,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -71076,7 +71076,7 @@
     "lateral-cantilever",
     "warpFix"
    ],
-   "ms": 235.4084,
+   "ms": 182.6086,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -71257,7 +71257,7 @@
     "lateral-cantilever",
     "warpFix"
    ],
-   "ms": 42.9919,
+   "ms": 28.2057,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -71439,7 +71439,7 @@
    "tags": [
     "clamped-one"
    ],
-   "ms": 236.1692,
+   "ms": 173.9982,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -71624,7 +71624,7 @@
    "tags": [
     "clamped-one"
    ],
-   "ms": 35.5304,
+   "ms": 27.319,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -71805,7 +71805,7 @@
    "tags": [
     "fixed-fork"
    ],
-   "ms": 216.609,
+   "ms": 179.3986,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -72015,7 +72015,7 @@
    "tags": [
     "fixed-fork"
    ],
-   "ms": 38.0626,
+   "ms": 26.4672,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -72219,7 +72219,7 @@
     "clamped",
     "warpFix"
    ],
-   "ms": 235.2991,
+   "ms": 187.8057,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -72411,7 +72411,7 @@
     "clamped",
     "warpFix"
    ],
-   "ms": 38.7774,
+   "ms": 27.3881,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -72592,7 +72592,7 @@
    "tags": [
     "twist-free-end"
    ],
-   "ms": 311.1056,
+   "ms": 191.6213,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -72784,7 +72784,7 @@
    "tags": [
     "twist-free-end"
    ],
-   "ms": 39.017,
+   "ms": 28.1033,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -72984,7 +72984,7 @@
    "tags": [
     "lateral-cantilever"
    ],
-   "ms": 220.9185,
+   "ms": 171.834,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -73171,7 +73171,7 @@
    "tags": [
     "lateral-cantilever"
    ],
-   "ms": 30.7997,
+   "ms": 30.5507,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -73365,7 +73365,7 @@
    "tags": [
     "warpFix"
    ],
-   "ms": 212.2612,
+   "ms": 178.4527,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -73538,7 +73538,7 @@
    "tags": [
     "warpFix"
    ],
-   "ms": 35.73,
+   "ms": 26.9064,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -73706,7 +73706,7 @@
    "tags": [
     "clamped"
    ],
-   "ms": 259.822,
+   "ms": 206.3709,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -73891,7 +73891,7 @@
    "tags": [
     "clamped"
    ],
-   "ms": 50.0535,
+   "ms": 26.3477,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -74071,7 +74071,7 @@
    "tags": [
     "warpFix"
    ],
-   "ms": 245.9974,
+   "ms": 191.4644,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -74239,7 +74239,7 @@
    "tags": [
     "warpFix"
    ],
-   "ms": 38.1606,
+   "ms": 29.0377,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -74401,7 +74401,7 @@
    "tags": [
     "ux-both"
    ],
-   "ms": 234.063,
+   "ms": 176.0117,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -74586,7 +74586,7 @@
    "tags": [
     "ux-both"
    ],
-   "ms": 40.1949,
+   "ms": 29.027,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -74765,7 +74765,7 @@
     "2.16",
     "2.18"
    ],
-   "ms": 40.0394,
+   "ms": 28.2317,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -74911,7 +74911,7 @@
     "2.16",
     "2.18"
    ],
-   "ms": 31.449,
+   "ms": 27.5599,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -75048,7 +75048,7 @@
     "2.16",
     "2.18"
    ],
-   "ms": 30.8416,
+   "ms": 28.6458,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -75189,7 +75189,7 @@
     "2.16",
     "2.18"
    ],
-   "ms": 38.3836,
+   "ms": 29.693,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -75332,7 +75332,7 @@
     "2.16",
     "2.18"
    ],
-   "ms": 32.216,
+   "ms": 30.8821,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -75480,7 +75480,7 @@
     "2.16",
     "2.18"
    ],
-   "ms": 43.9089,
+   "ms": 51.75,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -75529,7 +75529,8 @@
    "unsupported": [],
    "advisory": [
     "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4.",
-    "G,inf companions: 2 ULS combination(s) re-solved with G at 1.0 (STR set B, EN 1990 6.4.3.1(4) / Table A1.2(B)) and at 0.9 (EQU set A, Table A1.2(A)) over the whole member (single-source permanent action) for the END REACTIONS only - uplift / hold-down forces and the web-bearing reactions; the moment and shear envelopes keep the entered G, so add a reduced-G combination by hand where a relieving permanent action could increase a moment."
+    "G,inf companions: 2 ULS combination(s) re-solved with G at 1.0 (STR set B, EN 1990 6.4.3.1(4) / Table A1.2(B)) and at 0.9 (EQU set A, Table A1.2(A)) over the whole member (single-source permanent action) for the END REACTIONS only - uplift / hold-down forces and the web-bearing reactions; the moment and shear envelopes keep the entered G, so add a reduced-G combination by hand where a relieving permanent action could increase a moment.",
+    "ADVISORY - elastic yield criterion (6.1) with torsion, cl 6.2.7(5) = 1.006 at x = 1.50 m (corner): first yield is reached under the design actions (information only, not a utilisation: Class 1/2 hollow section: the cross-section is verified by the plastic route the code gives - T_Ed/T_Rd (6.2.7(1)/(7), warping neglected), V_Ed/V_pl,T,Rd (6.2.7(9), Eq 6.28), rho from V_pl,T,Rd (6.2.8(4)) and the 6.2.9.1/6.2.10 N-M_y-M_z interaction; the elastic verification of 6.2.7(5) is permissive (\"may be applied\") and is printed for information)."
    ],
    "warn": [],
    "mcrMethodReported": null,
@@ -75635,7 +75636,7 @@
     "2.16",
     "2.18"
    ],
-   "ms": 30.4174,
+   "ms": 26.4077,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -75760,7 +75761,7 @@
     "2.16",
     "2.18"
    ],
-   "ms": 36.0081,
+   "ms": 28.4045,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -75903,7 +75904,7 @@
     "2.16",
     "2.18"
    ],
-   "ms": 49.8695,
+   "ms": 32.2885,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -76072,7 +76073,7 @@
     "2.16",
     "2.18"
    ],
-   "ms": 48.0442,
+   "ms": 27.5881,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -76234,7 +76235,7 @@
     "uplift",
     "1.2"
    ],
-   "ms": 215.7953,
+   "ms": 178.9444,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [
@@ -76411,7 +76412,7 @@
     "uplift",
     "1.2"
    ],
-   "ms": 33.6323,
+   "ms": 27.0445,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [
@@ -76583,7 +76584,7 @@
     "hold-down",
     "1.2"
    ],
-   "ms": 39.8991,
+   "ms": 26.9154,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [
@@ -76760,7 +76761,7 @@
     "hold-down",
     "1.2"
    ],
-   "ms": 38.4938,
+   "ms": 28.0998,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [
@@ -76930,7 +76931,7 @@
     "uplift-sls",
     "1.2"
    ],
-   "ms": 252.1072,
+   "ms": 169.5031,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [
@@ -76981,7 +76982,7 @@
    "unsupported": [],
    "advisory": [
     "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4.",
-    "Hold-down check (SLS only) at End 1 (x = 0 m): the variable-action-only combination SLS: Variable actions only (NA 2.23) lifts this end by R = -7.50 kN; no ULS combination lifts it, including the G,inf companions with G at 1.0 (STR set B) and 0.9 (EQU set A, EN 1990 Table A1.2(A)) and the entered variable factors. A deflection combination without G is not an equilibrium state, so this does not block PASS.",
+    "Hold-down check (SLS only) at End 1 (x = 0 m): the SLS combination SLS: Variable actions only (NA 2.23) lifts this end by R = -7.50 kN; no ULS combination lifts it, including the G,inf companions with G at 1.0 (STR set B) and 0.9 (EQU set A, EN 1990 Table A1.2(A)) and the entered variable factors. A deflection (SLS) combination is not a ULS equilibrium state, so this does not block PASS.",
     "G,inf companions: 2 ULS combination(s) re-solved with G at 1.0 (STR set B, EN 1990 6.4.3.1(4) / Table A1.2(B)) and at 0.9 (EQU set A, Table A1.2(A)) over the whole member (single-source permanent action) for the END REACTIONS only - uplift / hold-down forces and the web-bearing reactions; the moment and shear envelopes keep the entered G, so add a reduced-G combination by hand where a relieving permanent action could increase a moment."
    ],
    "warn": [
@@ -77108,7 +77109,7 @@
     "uplift-sls",
     "1.2"
    ],
-   "ms": 38.5558,
+   "ms": 28.4374,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [
@@ -77159,7 +77160,7 @@
    "unsupported": [],
    "advisory": [
     "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4.",
-    "Hold-down check (SLS only) at End 1 (x = 0 m): the variable-action-only combination SLS: Variable actions only (NA 2.23) lifts this end by R = -7.50 kN; no ULS combination lifts it, including the G,inf companions with G at 1.0 (STR set B) and 0.9 (EQU set A, EN 1990 Table A1.2(A)) and the entered variable factors. A deflection combination without G is not an equilibrium state, so this does not block PASS.",
+    "Hold-down check (SLS only) at End 1 (x = 0 m): the SLS combination SLS: Variable actions only (NA 2.23) lifts this end by R = -7.50 kN; no ULS combination lifts it, including the G,inf companions with G at 1.0 (STR set B) and 0.9 (EQU set A, EN 1990 Table A1.2(A)) and the entered variable factors. A deflection (SLS) combination is not a ULS equilibrium state, so this does not block PASS.",
     "G,inf companions: 2 ULS combination(s) re-solved with G at 1.0 (STR set B, EN 1990 6.4.3.1(4) / Table A1.2(B)) and at 0.9 (EQU set A, Table A1.2(A)) over the whole member (single-source permanent action) for the END REACTIONS only - uplift / hold-down forces and the web-bearing reactions; the moment and shear envelopes keep the entered G, so add a reduced-G combination by hand where a relieving permanent action could increase a moment."
    ],
    "warn": [],
@@ -77279,7 +77280,7 @@
     "hold-down",
     "1.2"
    ],
-   "ms": 494.3792,
+   "ms": 361.379,
    "nCombos": 3,
    "governCombo": "ULS: 1.0G + 1.5W (uplift)",
    "uplift": [
@@ -77480,7 +77481,7 @@
     "hold-down",
     "1.2"
    ],
-   "ms": 94.0064,
+   "ms": 66.2274,
    "nCombos": 3,
    "governCombo": "ULS: 1.0G + 1.5W (uplift)",
    "uplift": [
@@ -77670,7 +77671,7 @@
     "uplift",
     "1.2"
    ],
-   "ms": 40.5264,
+   "ms": 26.0808,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [
@@ -77806,7 +77807,7 @@
     "hold-down",
     "1.2"
    ],
-   "ms": 391.1698,
+   "ms": 292.7427,
    "nCombos": 3,
    "governCombo": "ULS: 1.35G + 1.5Q",
    "uplift": [
@@ -78032,7 +78033,7 @@
     "hold-down",
     "1.2"
    ],
-   "ms": 101.0611,
+   "ms": 65.7299,
    "nCombos": 3,
    "governCombo": "ULS: 1.35G + 1.5Q",
    "uplift": [
@@ -78252,7 +78253,7 @@
     "uplift",
     "1.2"
    ],
-   "ms": 253.8868,
+   "ms": 178.3308,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [
@@ -78436,7 +78437,7 @@
     "uplift",
     "1.2"
    ],
-   "ms": 31.0642,
+   "ms": 26.8927,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [
@@ -78617,7 +78618,7 @@
    "tags": [
     "tfb"
    ],
-   "ms": 241.0044,
+   "ms": 177.7916,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -78825,7 +78826,7 @@
    "tags": [
     "tfb"
    ],
-   "ms": 38.5445,
+   "ms": 27.3116,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -79024,7 +79025,7 @@
     "tfb",
     "LT"
    ],
-   "ms": 33.3461,
+   "ms": 28.7855,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -79204,7 +79205,7 @@
     "LT",
     "heavy"
    ],
-   "ms": 852.1439,
+   "ms": 600.2673,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -79418,7 +79419,7 @@
     "LT",
     "heavy"
    ],
-   "ms": 42.6103,
+   "ms": 47.3555,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -79596,7 +79597,7 @@
   },
   {
    "id": "TFB-04",
-   "title": "PFC 300x100x46, 4 m SS, eccentric UDL e = 50 mm + N = 100 kN, restrained - design intent: NOT VERIFIED (combined torsion with N_Ed is blocked; 6.3.1.4 itself evaluates at 0.10)",
+   "title": "PFC 300x100x46, 4 m SS, eccentric UDL e = 50 mm + N = 100 kN, restrained - design intent: PASS since 20 Sep 2026 torsion + N/Mz (formerly NOT VERIFIED by the combined torsion + N_Ed block): (6.1) elastic 0.14 (verdict-binding: open section with N_Ed), Eq 6.62 0.35 with M_z,Ed = phi.M_y, 6.3.1.4 at 0.10",
    "section": "PFC 300x100x46",
    "family": "pfc",
    "restraint": "full",
@@ -79625,14 +79626,14 @@
     "ecc-large",
     "torsion+N"
    ],
-   "ms": 74.6999,
+   "ms": 46.2431,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
-   "verdict": "NOT VERIFIED",
+   "verdict": "PASS",
    "gov": {
     "name": "Member buckling z-z (Eq 6.62)",
-    "val": 0.3066960543443861
+    "val": 0.344520017870537
    },
    "utils": [
     {
@@ -79661,11 +79662,11 @@
     },
     {
      "name": "Member buckling y-y (Eq 6.61)",
-     "val": 0.24330423864791462
+     "val": 0.2811282021740654
     },
     {
      "name": "Member buckling z-z (Eq 6.62)",
-     "val": 0.3066960543443861
+     "val": 0.344520017870537
     },
     {
      "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
@@ -79682,6 +79683,10 @@
     {
      "name": "Shear+torsion  V_Ed/V_pl,T,Rd",
      "val": 0.058319923742289816
+    },
+    {
+     "name": "Elastic yield criterion (6.1) with torsion, cl 6.2.7(5)",
+     "val": 0.1437004891466524
     }
    ],
    "cls": "Class 1",
@@ -79691,12 +79696,11 @@
    "McRd": 169.865,
    "VplRd": 443.08169058688645,
    "deflRatio": 0.08679048699734705,
-   "unsupported": [
-    "Combined torsion with direct axial force or imposed minor-axis bending is not implemented as one interaction. Separate checks do not establish adequacy; PASS is blocked."
-   ],
+   "unsupported": [],
    "advisory": [
     "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4.",
-    "G,inf companions: 2 ULS combination(s) re-solved with G at 1.0 (STR set B, EN 1990 6.4.3.1(4) / Table A1.2(B)) and at 0.9 (EQU set A, Table A1.2(A)) over the whole member (single-source permanent action) for the END REACTIONS only - uplift / hold-down forces and the web-bearing reactions; the moment and shear envelopes keep the entered G, so add a reduced-G combination by hand where a relieving permanent action could increase a moment."
+    "G,inf companions: 2 ULS combination(s) re-solved with G at 1.0 (STR set B, EN 1990 6.4.3.1(4) / Table A1.2(B)) and at 0.9 (EQU set A, Table A1.2(A)) over the whole member (single-source permanent action) for the END REACTIONS only - uplift / hold-down forces and the web-bearing reactions; the moment and shear envelopes keep the entered G, so add a reduced-G combination by hand where a relieving permanent action could increase a moment.",
+    "ADVISORY - superposition of Eq 6.62 and (A.1) - not a Eurocode expression, information only: NEd/(chizNRk/M1) + kzyMy,Ed/(chiLTMy,Rk/M1) + kzzMz,tot/(Mz,Rk/M1) + kwkzwkalphaMw,Ed/Mf,Rd = 0.345 (Eq 6.62 with Mz,tot = 0.73 kN.m) + 0.063 (warping term of (A.1) at x = 2.01 m, kw = 0.681, kzw = 0.981, kalpha = 1.000 (no LTB check: Mcr unbounded)) = 0.408. Not a utilisation; the verdict rests on (6.1), 6.61/6.62, (A.1), V/Vpl,T,Rd and P385 3.1.2."
    ],
    "warn": [],
    "mcrMethodReported": null,
@@ -79760,7 +79764,7 @@
      "id": "vi-governing",
      "ok": true,
      "kind": "check",
-     "detail": "gov Member buckling z-z (Eq 6.62) = 0.3067, max(utils) = 0.3067"
+     "detail": "gov Member buckling z-z (Eq 6.62) = 0.3445, max(utils) = 0.3445"
     }
    ],
    "checkFailures": [],
@@ -79815,7 +79819,7 @@
     "class3",
     "2.13"
    ],
-   "ms": 40.688,
+   "ms": 29.8536,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -79983,7 +79987,7 @@
     "mv-channel",
     "2.10"
    ],
-   "ms": 44.175,
+   "ms": 26.5839,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -80117,7 +80121,7 @@
     "heavy",
     "2.10"
    ],
-   "ms": 37.2061,
+   "ms": 29.8588,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -80246,7 +80250,7 @@
     "heavy",
     "2.10"
    ],
-   "ms": 41.2466,
+   "ms": 26.8409,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -80385,7 +80389,7 @@
     "heavy",
     "2.13"
    ],
-   "ms": 41.4496,
+   "ms": 26.9865,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -80546,7 +80550,7 @@
     "biaxial",
     "2.13"
    ],
-   "ms": 46.1352,
+   "ms": 28.1973,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -80700,7 +80704,7 @@
     "heavy",
     "2.13"
    ],
-   "ms": 44.0821,
+   "ms": 29.8299,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -80868,7 +80872,7 @@
     "mvn",
     "2.13"
    ],
-   "ms": 42.4357,
+   "ms": 26.5196,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -81042,7 +81046,7 @@
    "tags": [
     "2.10"
    ],
-   "ms": 143.162,
+   "ms": 105.29,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -81210,7 +81214,7 @@
    "tags": [
     "2.10"
    ],
-   "ms": 35.8883,
+   "ms": 30.1654,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -81350,7 +81354,7 @@
   },
   {
    "id": "TOR-01",
-   "title": "PFC 200x90x30, 2.5 m cantilever, 13 kN tip load at e = 45 mm (flange half-width) + self-weight at e_sc, unrestrained - design intent: PASS since the cantilever preset restrains the root warping (Annex A 1.09 with the root warping free)",
+   "title": "PFC 200x90x30, 2.5 m cantilever, 13 kN tip load at e = 45 mm (flange half-width) + self-weight at e_sc, unrestrained - design intent: PASS (P385 3.1.2 0.72, Annex A 0.98; the cantilever preset restrains the root warping, Annex A 1.09 with it free); the elastic yield criterion (6.1) = 1.29 at the root flange tip (sigma_My + sigma_w = 313 N/mm2) is printed as information with an advisory - Class 1, N_Ed = 0: EN 1993-1-1 6.2.7(6) permits the plastic route (20 Sep 2026 review)",
    "section": "PFC 200x90x30",
    "family": "pfc",
    "restraint": "ltb",
@@ -81380,7 +81384,7 @@
     "torsion-fe",
     "ecc-large"
    ],
-   "ms": 257.0137,
+   "ms": 211.6506,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -81439,7 +81443,8 @@
     "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4.",
     "Serviceability twist max = 4.3deg exceeds the ~2deg guideline (SCI P385): check that the rotation is acceptable for whatever the member supports.",
     "Lateral cantilever: End 1 is the only end holding Uy; it restrains Rz and Rx and its warping is restrained (' = 0); the other end is laterally free.",
-    "G,inf companions: 2 ULS combination(s) re-solved with G at 1.0 (STR set B, EN 1990 6.4.3.1(4) / Table A1.2(B)) and at 0.9 (EQU set A, Table A1.2(A)) over the whole member (single-source permanent action) for the END REACTIONS only - uplift / hold-down forces and the web-bearing reactions; the moment and shear envelopes keep the entered G, so add a reduced-G combination by hand where a relieving permanent action could increase a moment."
+    "G,inf companions: 2 ULS combination(s) re-solved with G at 1.0 (STR set B, EN 1990 6.4.3.1(4) / Table A1.2(B)) and at 0.9 (EQU set A, Table A1.2(A)) over the whole member (single-source permanent action) for the END REACTIONS only - uplift / hold-down forces and the web-bearing reactions; the moment and shear envelopes keep the entered G, so add a reduced-G combination by hand where a relieving permanent action could increase a moment.",
+    "ADVISORY - elastic yield criterion (6.1) with torsion, cl 6.2.7(5) = 1.293 at x = 0.00 m (P1 flange tip): first yield is reached under the design actions (information only, not a utilisation: Class 1/2 open section without N_Ed: EN 1993-1-1 6.2.7(6) permits the plastic moment resistance under bending + torsion with B_Ed from the elastic analysis (the SCI P385 3.1.2 interaction with M_z,tot); the elastic verification of 6.2.7(5) is permissive (\"may be applied\") and is printed for information)."
    ],
    "warn": [
     "C1 = 3.167 exceeds 2.76: kc = 1/sqrtC1 = 0.562 is floored at 1/sqrt2.76 = 0.602, the Table 6.6 lower bound (psi = -1 end-moment case), so the f-factor is not extrapolated beyond its calibrated range."
@@ -81560,7 +81565,7 @@
   },
   {
    "id": "TOR-01",
-   "title": "PFC 200x90x30, 2.5 m cantilever, 13 kN tip load at e = 45 mm (flange half-width) + self-weight at e_sc, unrestrained - design intent: PASS since the cantilever preset restrains the root warping (Annex A 1.09 with the root warping free)",
+   "title": "PFC 200x90x30, 2.5 m cantilever, 13 kN tip load at e = 45 mm (flange half-width) + self-weight at e_sc, unrestrained - design intent: PASS (P385 3.1.2 0.72, Annex A 0.98; the cantilever preset restrains the root warping, Annex A 1.09 with it free); the elastic yield criterion (6.1) = 1.29 at the root flange tip (sigma_My + sigma_w = 313 N/mm2) is printed as information with an advisory - Class 1, N_Ed = 0: EN 1993-1-1 6.2.7(6) permits the plastic route (20 Sep 2026 review)",
    "section": "PFC 200x90x30",
    "family": "pfc",
    "restraint": "ltb",
@@ -81590,7 +81595,7 @@
     "torsion-fe",
     "ecc-large"
    ],
-   "ms": 52.5904,
+   "ms": 39.6665,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -81651,7 +81656,8 @@
     "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4.",
     "Serviceability twist max = 4.3deg exceeds the ~2deg guideline (SCI P385): check that the rotation is acceptable for whatever the member supports.",
     "Lateral cantilever: End 1 is the only end holding Uy; it restrains Rz and Rx and its warping is restrained (' = 0); the other end is laterally free.",
-    "G,inf companions: 2 ULS combination(s) re-solved with G at 1.0 (STR set B, EN 1990 6.4.3.1(4) / Table A1.2(B)) and at 0.9 (EQU set A, Table A1.2(A)) over the whole member (single-source permanent action) for the END REACTIONS only - uplift / hold-down forces and the web-bearing reactions; the moment and shear envelopes keep the entered G, so add a reduced-G combination by hand where a relieving permanent action could increase a moment."
+    "G,inf companions: 2 ULS combination(s) re-solved with G at 1.0 (STR set B, EN 1990 6.4.3.1(4) / Table A1.2(B)) and at 0.9 (EQU set A, Table A1.2(A)) over the whole member (single-source permanent action) for the END REACTIONS only - uplift / hold-down forces and the web-bearing reactions; the moment and shear envelopes keep the entered G, so add a reduced-G combination by hand where a relieving permanent action could increase a moment.",
+    "ADVISORY - elastic yield criterion (6.1) with torsion, cl 6.2.7(5) = 1.293 at x = 0.00 m (P1 flange tip): first yield is reached under the design actions (information only, not a utilisation: Class 1/2 open section without N_Ed: EN 1993-1-1 6.2.7(6) permits the plastic moment resistance under bending + torsion with B_Ed from the elastic analysis (the SCI P385 3.1.2 interaction with M_z,tot); the elastic verification of 6.2.7(5) is permissive (\"may be applied\") and is printed for information)."
    ],
    "warn": [],
    "mcrMethodReported": "standard",
@@ -81798,14 +81804,14 @@
     "torsion-fe",
     "ecc-large"
    ],
-   "ms": 295.6808,
+   "ms": 210.9738,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
    "verdict": "PASS",
    "gov": {
     "name": "LTB+torsion (EN 1993-6 Annex A)",
-    "val": 0.962826211711554
+    "val": 0.969119013742212
    },
    "utils": [
     {
@@ -81826,7 +81832,7 @@
     },
     {
      "name": "LTB+torsion (EN 1993-6 Annex A)",
-     "val": 0.962826211711554
+     "val": 0.969119013742212
     },
     {
      "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
@@ -81838,7 +81844,7 @@
     },
     {
      "name": "Bending+torsion cross-section (P385 3.1.2)",
-     "val": 0.2795556202752022
+     "val": 0.2837129461420326
     },
     {
      "name": "Shear+torsion  V_Ed/V_pl,T,Rd",
@@ -81930,7 +81936,7 @@
      "id": "vi-governing",
      "ok": true,
      "kind": "check",
-     "detail": "gov LTB+torsion (EN 1993-6 Annex A) = 0.9628, max(utils) = 0.9628"
+     "detail": "gov LTB+torsion (EN 1993-6 Annex A) = 0.9691, max(utils) = 0.9691"
     }
    ],
    "checkFailures": [],
@@ -81991,14 +81997,14 @@
     "torsion-fe",
     "ecc-large"
    ],
-   "ms": 46.3124,
+   "ms": 42.9988,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
    "verdict": "PASS",
    "gov": {
     "name": "LTB+torsion (EN 1993-6 Annex A)",
-    "val": 0.9569196568200957
+    "val": 0.963137034066583
    },
    "utils": [
     {
@@ -82019,7 +82025,7 @@
     },
     {
      "name": "LTB+torsion (EN 1993-6 Annex A)",
-     "val": 0.9569196568200957
+     "val": 0.963137034066583
     },
     {
      "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
@@ -82031,7 +82037,7 @@
     },
     {
      "name": "Bending+torsion cross-section (P385 3.1.2)",
-     "val": 0.2795556202752022
+     "val": 0.2837129461420326
     },
     {
      "name": "Shear+torsion  V_Ed/V_pl,T,Rd",
@@ -82118,7 +82124,7 @@
      "id": "vi-governing",
      "ok": true,
      "kind": "check",
-     "detail": "gov LTB+torsion (EN 1993-6 Annex A) = 0.9569, max(utils) = 0.9569"
+     "detail": "gov LTB+torsion (EN 1993-6 Annex A) = 0.9631, max(utils) = 0.9631"
     }
    ],
    "checkFailures": [],
@@ -82180,14 +82186,14 @@
     "ecc-large",
     "warpFix"
    ],
-   "ms": 232.4651,
+   "ms": 200.7128,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
    "verdict": "PASS",
    "gov": {
     "name": "LTB+torsion (EN 1993-6 Annex A)",
-    "val": 0.5623967601014636
+    "val": 0.5644610532738632
    },
    "utils": [
     {
@@ -82208,7 +82214,7 @@
     },
     {
      "name": "LTB+torsion (EN 1993-6 Annex A)",
-     "val": 0.5623967601014636
+     "val": 0.5644610532738632
     },
     {
      "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
@@ -82220,7 +82226,7 @@
     },
     {
      "name": "Bending+torsion cross-section (P385 3.1.2)",
-     "val": 0.36265894432186285
+     "val": 0.3656943101198706
     },
     {
      "name": "Shear+torsion  V_Ed/V_pl,T,Rd",
@@ -82330,7 +82336,7 @@
      "id": "vi-governing",
      "ok": true,
      "kind": "check",
-     "detail": "gov LTB+torsion (EN 1993-6 Annex A) = 0.5624, max(utils) = 0.5624"
+     "detail": "gov LTB+torsion (EN 1993-6 Annex A) = 0.5645, max(utils) = 0.5645"
     }
    ],
    "checkFailures": [],
@@ -82393,14 +82399,14 @@
     "ecc-large",
     "warpFix"
    ],
-   "ms": 55.1455,
+   "ms": 36.4284,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
    "verdict": "PASS",
    "gov": {
     "name": "LTB+torsion (EN 1993-6 Annex A)",
-    "val": 0.5915072437822164
+    "val": 0.5936985054136767
    },
    "utils": [
     {
@@ -82421,7 +82427,7 @@
     },
     {
      "name": "LTB+torsion (EN 1993-6 Annex A)",
-     "val": 0.5915072437822164
+     "val": 0.5936985054136767
     },
     {
      "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
@@ -82433,7 +82439,7 @@
     },
     {
      "name": "Bending+torsion cross-section (P385 3.1.2)",
-     "val": 0.36265894432186285
+     "val": 0.3656943101198706
     },
     {
      "name": "Shear+torsion  V_Ed/V_pl,T,Rd",
@@ -82539,7 +82545,7 @@
      "id": "vi-governing",
      "ok": true,
      "kind": "check",
-     "detail": "gov LTB+torsion (EN 1993-6 Annex A) = 0.5915, max(utils) = 0.5915"
+     "detail": "gov LTB+torsion (EN 1993-6 Annex A) = 0.5937, max(utils) = 0.5937"
     }
    ],
    "checkFailures": [],
@@ -82571,7 +82577,7 @@
   },
   {
    "id": "TOR-05",
-   "title": "UB 305x165x40, 3 m cantilever, full UDL at e = 80 mm, unrestrained - design intent: PASS (Annex A 0.68); cantilever with a distributed torque: FE with the root warping fixed, SN006a on the standard route",
+   "title": "UB 305x165x40, 3 m cantilever, full UDL at e = 80 mm, unrestrained - design intent: PASS (Annex A 0.62, P385 3.1.2 0.57); the elastic yield criterion (6.1) = 1.14 at the root flange tip (sigma_w = 196 N/mm2 from the fixed-warping bimoment) is printed as information with an advisory - Class 1, N_Ed = 0: 6.2.7(6) plastic route (20 Sep 2026 review); cantilever with a distributed torque: FE with the root warping fixed, SN006a on the standard route",
    "section": "UB 305x165x40",
    "family": "ub",
    "restraint": "ltb",
@@ -82601,14 +82607,14 @@
     "torsion-fe",
     "ecc-small"
    ],
-   "ms": 237.0669,
+   "ms": 194.3162,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
    "verdict": "PASS",
    "gov": {
     "name": "LTB+torsion (EN 1993-6 Annex A)",
-    "val": 0.6176482616643499
+    "val": 0.6233642144389422
    },
    "utils": [
     {
@@ -82629,7 +82635,7 @@
     },
     {
      "name": "LTB+torsion (EN 1993-6 Annex A)",
-     "val": 0.6176482616643499
+     "val": 0.6233642144389422
     },
     {
      "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
@@ -82641,7 +82647,7 @@
     },
     {
      "name": "Bending+torsion cross-section (P385 3.1.2)",
-     "val": 0.565846059070413
+     "val": 0.5764062979085236
     },
     {
      "name": "Shear+torsion  V_Ed/V_pl,T,Rd",
@@ -82660,7 +82666,8 @@
     "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4.",
     "Serviceability twist max = 3.1deg exceeds the ~2deg guideline (SCI P385): check that the rotation is acceptable for whatever the member supports.",
     "Lateral cantilever: End 1 is the only end holding Uy; it restrains Rz and Rx and its warping is restrained (' = 0); the other end is laterally free.",
-    "G,inf companions: 2 ULS combination(s) re-solved with G at 1.0 (STR set B, EN 1990 6.4.3.1(4) / Table A1.2(B)) and at 0.9 (EQU set A, Table A1.2(A)) over the whole member (single-source permanent action) for the END REACTIONS only - uplift / hold-down forces and the web-bearing reactions; the moment and shear envelopes keep the entered G, so add a reduced-G combination by hand where a relieving permanent action could increase a moment."
+    "G,inf companions: 2 ULS combination(s) re-solved with G at 1.0 (STR set B, EN 1990 6.4.3.1(4) / Table A1.2(B)) and at 0.9 (EQU set A, Table A1.2(A)) over the whole member (single-source permanent action) for the END REACTIONS only - uplift / hold-down forces and the web-bearing reactions; the moment and shear envelopes keep the entered G, so add a reduced-G combination by hand where a relieving permanent action could increase a moment.",
+    "ADVISORY - elastic yield criterion (6.1) with torsion, cl 6.2.7(5) = 1.139 at x = 0.00 m (P1 flange tip): first yield is reached under the design actions (information only, not a utilisation: Class 1/2 open section without N_Ed: EN 1993-1-1 6.2.7(6) permits the plastic moment resistance under bending + torsion with B_Ed from the elastic analysis (the SCI P385 3.1.2 interaction with M_z,tot); the elastic verification of 6.2.7(5) is permissive (\"may be applied\") and is printed for information)."
    ],
    "warn": [
     "C1 = 7.535 exceeds 2.76: kc = 1/sqrtC1 = 0.364 is floored at 1/sqrt2.76 = 0.602, the Table 6.6 lower bound (psi = -1 end-moment case), so the f-factor is not extrapolated beyond its calibrated range."
@@ -82782,7 +82789,7 @@
      "id": "vi-governing",
      "ok": true,
      "kind": "check",
-     "detail": "gov LTB+torsion (EN 1993-6 Annex A) = 0.6176, max(utils) = 0.6176"
+     "detail": "gov LTB+torsion (EN 1993-6 Annex A) = 0.6234, max(utils) = 0.6234"
     }
    ],
    "checkFailures": [],
@@ -82815,7 +82822,7 @@
   },
   {
    "id": "TOR-05",
-   "title": "UB 305x165x40, 3 m cantilever, full UDL at e = 80 mm, unrestrained - design intent: PASS (Annex A 0.68); cantilever with a distributed torque: FE with the root warping fixed, SN006a on the standard route",
+   "title": "UB 305x165x40, 3 m cantilever, full UDL at e = 80 mm, unrestrained - design intent: PASS (Annex A 0.62, P385 3.1.2 0.57); the elastic yield criterion (6.1) = 1.14 at the root flange tip (sigma_w = 196 N/mm2 from the fixed-warping bimoment) is printed as information with an advisory - Class 1, N_Ed = 0: 6.2.7(6) plastic route (20 Sep 2026 review); cantilever with a distributed torque: FE with the root warping fixed, SN006a on the standard route",
    "section": "UB 305x165x40",
    "family": "ub",
    "restraint": "ltb",
@@ -82845,14 +82852,14 @@
     "torsion-fe",
     "ecc-small"
    ],
-   "ms": 49.7939,
+   "ms": 38.9956,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
    "verdict": "PASS",
    "gov": {
     "name": "LTB+torsion (EN 1993-6 Annex A)",
-    "val": 0.6179074467644942
+    "val": 0.6236253816742483
    },
    "utils": [
     {
@@ -82873,7 +82880,7 @@
     },
     {
      "name": "LTB+torsion (EN 1993-6 Annex A)",
-     "val": 0.6179074467644942
+     "val": 0.6236253816742483
     },
     {
      "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
@@ -82885,7 +82892,7 @@
     },
     {
      "name": "Bending+torsion cross-section (P385 3.1.2)",
-     "val": 0.565846059070413
+     "val": 0.5764062979085236
     },
     {
      "name": "Shear+torsion  V_Ed/V_pl,T,Rd",
@@ -82904,7 +82911,8 @@
     "Web transverse forces (EN 1993-1-5 clause 6) are checked at every point load and support as patch loads on the loaded flange: distributed loads, loads hung from the bottom flange (hangers), the total-load check of closely spaced loads (6.3(3)) and flange-induced buckling (section 8) are not evaluated; a declared bearing stiffener must be designed to 9.4.",
     "Serviceability twist max = 3.1deg exceeds the ~2deg guideline (SCI P385): check that the rotation is acceptable for whatever the member supports.",
     "Lateral cantilever: End 1 is the only end holding Uy; it restrains Rz and Rx and its warping is restrained (' = 0); the other end is laterally free.",
-    "G,inf companions: 2 ULS combination(s) re-solved with G at 1.0 (STR set B, EN 1990 6.4.3.1(4) / Table A1.2(B)) and at 0.9 (EQU set A, Table A1.2(A)) over the whole member (single-source permanent action) for the END REACTIONS only - uplift / hold-down forces and the web-bearing reactions; the moment and shear envelopes keep the entered G, so add a reduced-G combination by hand where a relieving permanent action could increase a moment."
+    "G,inf companions: 2 ULS combination(s) re-solved with G at 1.0 (STR set B, EN 1990 6.4.3.1(4) / Table A1.2(B)) and at 0.9 (EQU set A, Table A1.2(A)) over the whole member (single-source permanent action) for the END REACTIONS only - uplift / hold-down forces and the web-bearing reactions; the moment and shear envelopes keep the entered G, so add a reduced-G combination by hand where a relieving permanent action could increase a moment.",
+    "ADVISORY - elastic yield criterion (6.1) with torsion, cl 6.2.7(5) = 1.139 at x = 0.00 m (P1 flange tip): first yield is reached under the design actions (information only, not a utilisation: Class 1/2 open section without N_Ed: EN 1993-1-1 6.2.7(6) permits the plastic moment resistance under bending + torsion with B_Ed from the elastic analysis (the SCI P385 3.1.2 interaction with M_z,tot); the elastic verification of 6.2.7(5) is permissive (\"may be applied\") and is printed for information)."
    ],
    "warn": [],
    "mcrMethodReported": "standard",
@@ -83003,7 +83011,7 @@
      "id": "vi-governing",
      "ok": true,
      "kind": "check",
-     "detail": "gov LTB+torsion (EN 1993-6 Annex A) = 0.6179, max(utils) = 0.6179"
+     "detail": "gov LTB+torsion (EN 1993-6 Annex A) = 0.6236, max(utils) = 0.6236"
     }
    ],
    "checkFailures": [],
@@ -83065,14 +83073,14 @@
     "torsion-fe",
     "ecc-small"
    ],
-   "ms": 275.0353,
+   "ms": 195.9113,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
    "verdict": "PASS",
    "gov": {
     "name": "LTB+torsion (EN 1993-6 Annex A)",
-    "val": 0.3719241819090941
+    "val": 0.37192418190909476
    },
    "utils": [
     {
@@ -83093,7 +83101,7 @@
     },
     {
      "name": "LTB+torsion (EN 1993-6 Annex A)",
-     "val": 0.3719241819090941
+     "val": 0.37192418190909476
     },
     {
      "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
@@ -83105,7 +83113,7 @@
     },
     {
      "name": "Bending+torsion cross-section (P385 3.1.2)",
-     "val": 0.08507205137355184
+     "val": 0.08507205149310981
     },
     {
      "name": "Shear+torsion  V_Ed/V_pl,T,Rd",
@@ -83309,14 +83317,14 @@
     "torsion-fe",
     "ecc-small"
    ],
-   "ms": 38.723,
+   "ms": 39.4437,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
    "verdict": "PASS",
    "gov": {
     "name": "LTB+torsion (EN 1993-6 Annex A)",
-    "val": 0.3734962437195865
+    "val": 0.3734962437195872
    },
    "utils": [
     {
@@ -83337,7 +83345,7 @@
     },
     {
      "name": "LTB+torsion (EN 1993-6 Annex A)",
-     "val": 0.3734962437195865
+     "val": 0.3734962437195872
     },
     {
      "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
@@ -83349,7 +83357,7 @@
     },
     {
      "name": "Bending+torsion cross-section (P385 3.1.2)",
-     "val": 0.08507205137355184
+     "val": 0.08507205149310981
     },
     {
      "name": "Shear+torsion  V_Ed/V_pl,T,Rd",
@@ -83529,14 +83537,14 @@
     "ecc-small",
     "warpFix"
    ],
-   "ms": 292.4481,
+   "ms": 215.3866,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
    "verdict": "PASS",
    "gov": {
     "name": "LTB+torsion (EN 1993-6 Annex A)",
-    "val": 0.5278815900778929
+    "val": 0.5366391485629002
    },
    "utils": [
     {
@@ -83557,7 +83565,7 @@
     },
     {
      "name": "LTB+torsion (EN 1993-6 Annex A)",
-     "val": 0.5278815900778929
+     "val": 0.5366391485629002
     },
     {
      "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
@@ -83569,7 +83577,7 @@
     },
     {
      "name": "Bending+torsion cross-section (P385 3.1.2)",
-     "val": 0.5086065509807822
+     "val": 0.5246510900738517
     },
     {
      "name": "Shear+torsion  V_Ed/V_pl,T,Rd",
@@ -83708,7 +83716,7 @@
      "id": "vi-governing",
      "ok": true,
      "kind": "check",
-     "detail": "gov LTB+torsion (EN 1993-6 Annex A) = 0.5279, max(utils) = 0.5279"
+     "detail": "gov LTB+torsion (EN 1993-6 Annex A) = 0.5366, max(utils) = 0.5366"
     }
    ],
    "checkFailures": [],
@@ -83771,14 +83779,14 @@
     "ecc-small",
     "warpFix"
    ],
-   "ms": 41.2954,
+   "ms": 37.9016,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
    "verdict": "PASS",
    "gov": {
     "name": "LTB+torsion (EN 1993-6 Annex A)",
-    "val": 0.6076870162592634
+    "val": 0.6172575526866284
    },
    "utils": [
     {
@@ -83799,7 +83807,7 @@
     },
     {
      "name": "LTB+torsion (EN 1993-6 Annex A)",
-     "val": 0.6076870162592634
+     "val": 0.6172575526866284
     },
     {
      "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
@@ -83811,7 +83819,7 @@
     },
     {
      "name": "Bending+torsion cross-section (P385 3.1.2)",
-     "val": 0.5086065509807822
+     "val": 0.5246510900738517
     },
     {
      "name": "Shear+torsion  V_Ed/V_pl,T,Rd",
@@ -83946,7 +83954,7 @@
      "id": "vi-governing",
      "ok": true,
      "kind": "check",
-     "detail": "gov LTB+torsion (EN 1993-6 Annex A) = 0.6077, max(utils) = 0.6077"
+     "detail": "gov LTB+torsion (EN 1993-6 Annex A) = 0.6173, max(utils) = 0.6173"
     }
    ],
    "checkFailures": [],
@@ -83999,7 +84007,7 @@
     "aeff",
     "1.9"
    ],
-   "ms": 31.7257,
+   "ms": 28.7628,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -84171,7 +84179,7 @@
     "heavy",
     "1.9"
    ],
-   "ms": 222.7467,
+   "ms": 174.0561,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -84386,7 +84394,7 @@
     "heavy",
     "1.9"
    ],
-   "ms": 33.1265,
+   "ms": 28.0206,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -84594,7 +84602,7 @@
     "aeff",
     "1.9"
    ],
-   "ms": 216.1779,
+   "ms": 171.5115,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -84808,7 +84816,7 @@
     "aeff",
     "1.9"
    ],
-   "ms": 34.0613,
+   "ms": 29.6369,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -85013,7 +85021,7 @@
     "-3.9",
     "-3.12"
    ],
-   "ms": 28.9181,
+   "ms": 27.2188,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -85168,7 +85176,7 @@
     "aeff",
     "1.9"
    ],
-   "ms": 542.0178,
+   "ms": 405.4265,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -85386,7 +85394,7 @@
     "aeff",
     "1.9"
    ],
-   "ms": 45.7138,
+   "ms": 29.2602,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -85593,7 +85601,7 @@
     "aeff",
     "1.9"
    ],
-   "ms": 39.8675,
+   "ms": 25.799,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -85783,7 +85791,7 @@
     "biaxial",
     "2.12"
    ],
-   "ms": 46.4087,
+   "ms": 28.8881,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -85935,7 +85943,7 @@
     "heavy",
     "2.12"
    ],
-   "ms": 32.2375,
+   "ms": 27.1542,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -86091,7 +86099,7 @@
     "biaxial",
     "2.12"
    ],
-   "ms": 205.2347,
+   "ms": 172.5707,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -86299,7 +86307,7 @@
     "biaxial",
     "2.12"
    ],
-   "ms": 35.2689,
+   "ms": 27.9958,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -86504,7 +86512,7 @@
     "aeff",
     "2.12"
    ],
-   "ms": 218.6468,
+   "ms": 170.7379,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -86723,7 +86731,7 @@
     "aeff",
     "2.12"
    ],
-   "ms": 44.1749,
+   "ms": 27.9774,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -86935,7 +86943,7 @@
     "heavy",
     "2.12"
    ],
-   "ms": 206.4724,
+   "ms": 178.326,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -87145,7 +87153,7 @@
     "heavy",
     "2.12"
    ],
-   "ms": 35.3793,
+   "ms": 28.1881,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -87342,7 +87350,7 @@
    "tags": [
     "aeff"
    ],
-   "ms": 34.4387,
+   "ms": 31.6624,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -87512,7 +87520,7 @@
    "tags": [
     "aeff"
    ],
-   "ms": 258.7305,
+   "ms": 194.886,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -87725,7 +87733,7 @@
    "tags": [
     "aeff"
    ],
-   "ms": 42.6707,
+   "ms": 28.9602,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -87929,7 +87937,7 @@
    "tags": [
     "mvn"
    ],
-   "ms": 39.0288,
+   "ms": 25.8784,
    "nCombos": 1,
    "governCombo": "ULS: 1.35G + 1.5Q (Eq 6.10)",
    "uplift": [],
@@ -88090,7 +88098,7 @@
     "expect-error"
    ],
    "error": "End 2 has no vertical restraint and End 1 does not restrain rotation: mechanism (rigid-body rotation about End 1). Restrain Ry at End 1 (cantilever / propped layout) or Uz at End 2.",
-   "ms": 0.1328,
+   "ms": 0.1571,
    "expectError": "End 2 has no vertical restraint and End 1 does not restrain rotation: mechanism",
    "throwOk": true,
    "verdict": "THROWS",
@@ -88116,7 +88124,7 @@
     "expect-error"
    ],
    "error": "Neither end restrains vertical translation Uz: mechanism (rigid-body vertical translation). Restrain Uz at one end at least.",
-   "ms": 0.0815,
+   "ms": 0.0787,
    "expectError": "Neither end restrains vertical translation",
    "throwOk": true,
    "verdict": "THROWS",
@@ -88142,7 +88150,7 @@
     "expect-error"
    ],
    "error": "Under-restrained layout (mechanism): the 1 internal hinge(s) release the in-plane moment and the end restraints Uz / Ry do not hold every segment they separate (each hinge needs one more restraint unit: 3 are needed, Uz and Ry counting one each; e.g. one hinge in a fixed - pinned, fixed - guided or fixed - fixed member, two hinges in a fixed - fixed member). Restrain Ry at an end or remove a hinge.",
-   "ms": 0.0919,
+   "ms": 0.0887,
    "expectError": "internal hinge",
    "throwOk": true,
    "verdict": "THROWS",
@@ -88168,7 +88176,7 @@
     "expect-error"
    ],
    "error": "A cantilever must have its root at End 1 (x = 0) and its free tip at End 2 (x = L): mirror the member.",
-   "ms": 0.0789,
+   "ms": 0.0708,
    "expectError": "root at End 1",
    "throwOk": true,
    "verdict": "THROWS",
@@ -88194,7 +88202,7 @@
     "expect-error"
    ],
    "error": "Torsion: the loads apply a torque but neither end restrains twist Rx: torsional mechanism. Restrain Rx at one end at least.",
-   "ms": 0.0803,
+   "ms": 0.072,
    "expectError": "torque but neither end restrains twist",
    "throwOk": true,
    "verdict": "THROWS",
@@ -88220,7 +88228,7 @@
     "expect-error"
    ],
    "error": "Axial force NEd = 100 kN is entered but neither end restrains axial translation Ux: no axial load path (mechanism). Restrain Ux at one end.",
-   "ms": 0.0837,
+   "ms": 0.0772,
    "expectError": "neither end restrains axial translation",
    "throwOk": true,
    "verdict": "THROWS",
@@ -88246,7 +88254,7 @@
     "expect-error"
    ],
    "error": "Lateral-torsional buckling: neither end restrains lateral translation Uy; the lateral stiffness matrix of the LTB model is singular. Restrain Uy (and Rx) at one end at least, or set the member fully restrained.",
-   "ms": 0.0873,
+   "ms": 0.0696,
    "expectError": "neither end restrains lateral translation",
    "throwOk": true,
    "verdict": "THROWS",
@@ -88272,7 +88280,7 @@
     "expect-error"
    ],
    "error": "Lateral-torsional buckling: no end restrains both Uy and Rx (a fork / torsional restraint); the twist mode is unrestrained. Restrain Rx at an end that holds Uy. Lateral-torsional buckling: neither end restrains twist Rx: torsional mechanism.",
-   "ms": 0.1297,
+   "ms": 0.0712,
    "expectError": "no end restrains both",
    "throwOk": true,
    "verdict": "THROWS",
@@ -88298,7 +88306,7 @@
     "expect-error"
    ],
    "error": "Lateral-torsional buckling: only End 1 restrains lateral translation Uy, so the member is a lateral cantilever; that end must also restrain Rz (lateral bending) and Rx (twist), or the lateral stiffness matrix of the LTB model is singular.",
-   "ms": 0.1285,
+   "ms": 0.0692,
    "expectError": "lateral cantilever; that end must also restrain",
    "throwOk": true,
    "verdict": "THROWS",
@@ -88324,7 +88332,7 @@
     "expect-error"
    ],
    "error": "Strut buckling z-z: the Uy / Rz fixities form a sway mechanism (z-z: held in position at one end only and in direction at neither end: sway mechanism); restrain Uy at the other end or Rz at the held end, or enter an LE/L factor.",
-   "ms": 0.1601,
+   "ms": 0.0903,
    "expectError": "Strut buckling z-z",
    "throwOk": true,
    "verdict": "THROWS",
@@ -88350,7 +88358,7 @@
     "expect-error"
    ],
    "error": "Neither end restrains vertical translation Uz: mechanism (rigid-body vertical translation). Restrain Uz at one end at least.",
-   "ms": 0.114,
+   "ms": 0.0635,
    "expectError": "Neither end restrains vertical translation",
    "throwOk": true,
    "verdict": "THROWS",
@@ -88376,7 +88384,7 @@
     "expect-error"
    ],
    "error": "Under-restrained layout (mechanism): the 2 internal hinge(s) release the in-plane moment and the end restraints Uz / Ry do not hold every segment they separate (each hinge needs one more restraint unit: 4 are needed, Uz and Ry counting one each; e.g. one hinge in a fixed - pinned, fixed - guided or fixed - fixed member, two hinges in a fixed - fixed member). Restrain Ry at an end or remove a hinge.",
-   "ms": 0.212,
+   "ms": 0.1295,
    "expectError": "internal hinge",
    "throwOk": true,
    "verdict": "THROWS",
@@ -88402,7 +88410,7 @@
     "expect-error"
    ],
    "error": "Internal hinge 1 must be inside the span, not at an end (release the end rotation R_y instead).",
-   "ms": 0.1043,
+   "ms": 0.0585,
    "expectError": "must be inside the span",
    "throwOk": true,
    "verdict": "THROWS",
@@ -88428,7 +88436,7 @@
     "expect-error"
    ],
    "error": "Lateral-torsional buckling: no end restrains both Uy and Rx (a fork / torsional restraint); the twist mode is unrestrained. Restrain Rx at an end that holds Uy. Lateral-torsional buckling: neither end restrains twist Rx: torsional mechanism.",
-   "ms": 0.1223,
+   "ms": 0.0689,
    "expectError": "no end restrains both",
    "throwOk": true,
    "verdict": "THROWS",

@@ -31,8 +31,11 @@
        C1_END_MOMENT, SN006 / sn006C, sernaC1, c1FromPsi, computeC1, mcrEC3
                             (js/01-computation-engine.js)
        sn003aC1, c1Inputs, c1Segment, mcrClosedForm, mcrSN006aFor,
-       mcrStandardFor, cmTableB3, annexB2, checksEC3UnrestrainedSCI
-                            (js/checks/eurocode-checks.js)
+       mcrStandardFor, cmTableB3, annexB2, checksEC3UnrestrainedSCI,
+       annexAEval, torsionSuperposition, torsionCombinedBasis,
+       ELASTIC_TORSION_UTIL_NAME
+                            (js/checks/eurocode-checks.js; the last four
+                            since 20 Sep 2026 torsion + N/Mz)
 
    WHAT CHANGES IN THE NUMBERS (eigen method vs the standard method)
    -----------------------------------------------------------------
@@ -832,25 +835,20 @@
          1.0 is conservative: the term enters additively as +Cmz*Mz/MzR.
          Proper derivation = Table B.3 applied to the Mz(x)=phi(x)*My(x)
          diagram in b.tor.grids. NOTE this is not cmTableB3(), which reads the
-         major-axis diagram a.governM.fb and returns Cmy. Not implemented. */
+         major-axis diagram a.governM.fb and returns Cmy. Not implemented.
+         20 Sep 2026 review: the override S.Cmzo applies to the twist-induced
+         diagram only - with an imposed M_z (a constant diagram, psi = 1) Table
+         B.3 gives C_mz = 1.0 and annexAEval() uses 1.0 whatever the override
+         (annex.CmzBasis says so; no UI input exists for S.Cmzo - a state
+         field only, js/03-state-ui.js). */
       var Cmz = (S.Cmzo != null && isFinite(S.Cmzo)) ? +S.Cmzo : 1.0;
-      var MyMax = 0; b.tor.grids.forEach(function (g2) { g2.rows.forEach(function (r2) { MyMax = Math.max(MyMax, r2.My); }); });
-      var MzR = b.tor.cls12 ? b.tor.Mplz : b.tor.Melz;
-      var MfR = b.tor.cls12 ? b.tor.Mplf : b.tor.Melf;
-      if (MyMax >= McrA * 0.999) {
-        unsupported.push('M_y,Ed reaches the elastic critical moment M_cr: the Annex A amplifier k_alpha is unbounded; the member is inadequate as arranged.');
-        annex = { u: 99, kAlpha: Infinity, Cmz: Cmz, MbA: MbA, McrA: McrA, MzR: MzR, MfR: MfR };
-      } else {
-        var kAlpha = 1 / (1 - MyMax / McrA), worst = { u: -1 };
-        b.tor.grids.forEach(function (g2) {
-          g2.rows.forEach(function (r2) {
-            var kw = Math.max(0.7 - 0.2 * r2.Mw / MfR, 0), kzw = Math.max(1 - r2.Mz / MzR, 0);
-            var u = r2.My / MbA + Cmz * r2.Mz / MzR + kw * kzw * kAlpha * r2.Mw / MfR;
-            if (u > worst.u) worst = { u: u, x: r2.x, My: r2.My, Mz: r2.Mz, Mw: r2.Mw, kw: kw, kzw: kzw, combo: g2.combo.label };
-          });
-        });
-        annex = Object.assign({}, worst, { kAlpha: kAlpha, Cmz: Cmz, MbA: MbA, McrA: McrA, MzR: MzR, MfR: MfR });
-      }
+      /* 20 Sep 2026 torsion + N/Mz: Eq (A.1) per station through the shared
+         annexAEval() of js/checks/eurocode-checks.js - M_z,Ed = M_z,tot =
+         imposed M_z + phi.M_y in both the C_mz M_z/M_z,Rd term and k_zw;
+         C_mz = 1.0 whenever an M_z is imposed (the override applies to the
+         twist-induced diagram only); identical to the former inline loop
+         when no M_z is imposed. */
+      annex = annexAEval(b.tor, MbA, McrA, Cmz);
     }
 
     var useB1u = sec.isBox || (ltb.MbRd >= b.McRd * 0.9999);
@@ -900,10 +898,23 @@
       utils.push({ name: 'Bending+torsion cross-section (P385 3.1.2)', val: b.tor.cross.u });
       utils.push({ name: 'Shear+torsion  V_Ed/V_pl,T,Rd', val: b.tor.vtUtil });
     }
+    /* 20 Sep 2026 torsion + N/Mz: elastic yield criterion (6.1), cl 6.2.7(5)
+       (ELASTIC_TORSION_UTIL_NAME, eurocode-checks.js); 20 Sep 2026 review: in utils
+       only when verdict-binding (elasticBindingPolicy of checksEC3Restrained: Class 3,
+       or an open Class 1/2 section with N_Ed), otherwise in b.info (carried over from
+       the restrained result with its advisory when it exceeds 1) */
+    if (b.tor && b.tor.elastic && b.tor.elastic.binding) utils.push({ name: ELASTIC_TORSION_UTIL_NAME, val: b.tor.elastic.u });
+    /* 20 Sep 2026 torsion + N/Mz: advisory superposition of Eq 6.62 and (A.1) with
+       this path's k_alpha (information only, never a utilisation) */
+    var advisory = (b.advisory || []).slice();
+    if (annex && annex.unbounded) advisory.push(KALPHA_UNBOUNDED_FAIL);   // 20 Sep 2026: M_y,Ed >= M_cr is a FAIL row (utilisation 99), not NOT VERIFIED
+    if (b.tor && b.tor.p385) { b.tor.superposition = torsionSuperposition(b.tor, annex, buck); if (b.tor.superposition) advisory.push(b.tor.superposition.text); }
+    /* 20 Sep 2026 review: the basis text of this path (torsionCombinedBasis, eurocode-checks.js) */
+    if (b.tor && (b.tor.p385 || b.tor.box)) b.tor.combinedBasis = torsionCombinedBasis({ box: !!b.tor.box, tension: !!(b.ax && b.ax.tension), hasN: Math.abs(S.axial || 0) > 1e-9, hasMz: Math.abs(S.Mz || 0) > 1e-9, restrained: false, buckEvaluated: !!(!(b.ax && b.ax.tension) && buck && (buck.Fc > 1e-9 || buck.biax)), annexEvaluated: !!annex, binding: !!(b.tor.elastic && b.tor.elastic.binding) });
     var gov = utils[0]; utils.forEach(function (u) { if (u.val > gov.val) gov = u; });
     var pass = unsupported.length === 0 && utils.every(function (u) { return u.val <= 1.0001; });
 
-    return Object.assign({}, b, { sci: false, sciU: true, mcrMethod: 'eigen', unsupported: unsupported, ltb: ltb,
+    return Object.assign({}, b, { sci: false, sciU: true, mcrMethod: 'eigen', unsupported: unsupported, advisory: advisory, ltb: ltb,
       ltbUtil: ltbUtil, ltbBasis: ltbBasis, C1: C1, c1label: c1label, LE: a.L,
       utils: utils, gov: gov, pass: pass, annex: annex, buck: buck, restraintForces: restraintF });
   };

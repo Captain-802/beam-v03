@@ -138,9 +138,16 @@ test('EC hollow high shear away from peak moment is checked with the two-web M_v
   // rho = (2 x 0.8 - 1)^2 = 0.36; M_v,Rd = (W_pl,y - rho t (h - 2t)^2/2) f_y [hand-derived, RHS 200 x 100 x 8]
   near(c2.coex.rho,0.36,1e-9); near(c2.coex.MvRd,(sec.Sx*1e3-0.36*sec.tf*Math.pow(sec.D-2*sec.tf,2)/2)*r.fy/1e6,1e-9);
 });
-test('EC imposed minor bending is combined with torsion or explicitly blocked', () => {
+test('EC imposed minor bending is combined with torsion (20 Sep 2026 torsion + N/Mz: the former block is gone; M_z,tot = M_z + phi.M_y enters P385 3.1.2, the (6.1) elastic check and Eq 6.62)', () => {
   reset({eccOn:true,Mz:0.1,loads:[{type:'udl',x1:0,x2:1,w:0.1,case:'Q',e:10}]});
-  const r=run('checks(analyse())'); assert.equal(r.pass,false); assert.ok(r.unsupported.some(s=>/torsion/i.test(s)));
+  const r=run('checks(analyse())');
+  assert.ok(!r.unsupported.some(s=>/not implemented as one interaction/.test(s)), 'the old block message must be gone');
+  assert.equal(typeof r.pass,'boolean'); assert.equal(r.pass, r.unsupported.length===0 && r.utils.every(u=>Number.isFinite(u.val)&&u.val<=1.0001));
+  // 20 Sep 2026 review: the DEMO UB is Class 1 with N_Ed = 0, so the (6.1) value is information (c.info), not a utilisation (6.2.7(6) plastic route)
+  assert.ok(!r.utils.some(u=>u.name==='Elastic yield criterion (6.1) with torsion, cl 6.2.7(5)') && r.info.some(u=>u.name==='Elastic yield criterion (6.1) with torsion, cl 6.2.7(5)'), 'the (6.1) elastic check is computed as information');
+  assert.equal(r.tor.elastic.binding,false);
+  assert.ok(r.tor && r.tor.combinedBasis && /No expression in EN 1993-1-1 or EN 1993-6/.test(r.tor.combinedBasis), 'basis text present');
+  near(r.tor.MzImp,0.1,1e-12); near(r.tor.cross.MzTot, 0.1 + r.tor.cross.Mz, 1e-12);
 });
 test('code switch changes untouched defaults but preserves custom combinations', () => {
   reset(); run(`setDesignCode('BS5950')`); near(run('S.combos[0].factors.G'),1.4); near(run('S.combos[0].factors.Q'),1.6); near(run('S.E'),205000);
