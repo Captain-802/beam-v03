@@ -1,0 +1,244 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>UB-R10 refused</title><style>:root{
+    --ink:#111; --line:#222; --muted:#555; --paper:#fffdf8; --panel:#f4f5f7;
+    --accent:#1d4ed8; --ok:#166534; --fail:#b91c1c; --rule:#d3d8e2;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:#e7e9ee; color:var(--ink); font-family:Arial,Helvetica,sans-serif;}
+  /* Split-pane scrolling: the page body never scrolls; the input column and
+     the report column are each their own scroll container, and
+     overscroll-behavior stops one pane's scroll from chaining into the other
+     (or the page) when it hits its end. */
+  .app{display:grid; grid-template-columns:minmax(330px,360px) minmax(0,1fr); gap:12px; height:100vh; overflow:hidden; padding:10px; align-items:start;}
+  .controls{background:var(--panel); border:1px solid #c9ced8; border-radius:8px; padding:14px;
+    height:calc(100vh - 20px); overflow-y:auto; overscroll-behavior:contain;}
+  .controls h1{margin:0 0 6px; font-size:17px; line-height:1.18;}
+  .controls .sub{display:none;}
+  details{border-top:1px solid var(--rule); padding:7px 0;}
+  details:first-of-type{border-top:0;}
+  summary{cursor:pointer; font-weight:700; font-size:13.5px; user-select:none;}
+  label{display:grid; grid-template-columns:1fr 116px; gap:8px; align-items:center; margin:7px 0; font-size:12px; color:#1f2937;}
+  label.full{grid-template-columns:1fr;}
+  label.checkline{display:flex; align-items:center; gap:7px; margin:5px 0; font-size:12px;}
+  label.checkline input{width:auto; flex:0 0 auto; margin:0;}
+  input,select{width:100%; border:1px solid #b7becb; border-radius:5px; padding:6px 7px; background:#fff; color:#111827; font-size:12px;}
+  input[readonly]{background:#eef1f6; color:#555;}
+  .hint{font-size:11px; color:#6b7280; margin:2px 0 6px; line-height:1.4;}
+  .controls .hint{display:none;}
+  .controls .hint.live-hint{display:block; color:#374151; background:#fff; border:1px solid #d8dee8; border-radius:5px; padding:6px 7px;}
+  .compact-details label{grid-template-columns:minmax(120px,1fr) 116px; gap:7px; margin:5px 0; line-height:1.2;}
+  .compact-details label:not(.checkline)>span:first-child{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .compact-details input,.compact-details select{padding:5px 7px;}
+  .compact-details .addbar{margin:2px 0 6px;}
+  .compact-details .addbar button{padding:4px 8px;}
+  .compact-details .live-hint{font-size:10.5px; line-height:1.25; padding:5px 6px; margin:3px 0 5px;}
+  #ltbRestraintList:empty{display:none;}
+  .ltb-fixed{color:#1f2937;}
+  .ltb-checks{display:grid; grid-template-columns:1fr 1fr; gap:4px 8px; margin-top:5px;}
+  .ltb-checks .checkline{font-size:10.5px; margin:0;}
+  /* End conditions panel: End 1 | End 2 columns, each with its glyph, the seven
+     DOF boxes and the seating / hold-down entries of a vertically held end */
+  .ends-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:4px 0 6px;}
+  .end-col{border:1px solid #cfd6e2; border-radius:6px; padding:7px 8px; background:#fbfcfe; min-width:0;}
+  .end-head{font-size:12px; font-weight:700; color:#1f2937; margin-bottom:3px;}
+  .end-glyph{display:block; width:100%; height:auto; max-height:72px; margin:0 0 4px;}
+  .end-dofs .checkline{font-size:11px; margin:2px 0;}
+  .end-extra{border-top:1px dashed #d3d8e2; margin-top:6px; padding-top:5px;}
+  .end-extra .checkline{font-size:10.5px; margin:3px 0;}
+  .end-extra .fld{margin:3px 0;}
+  .end-none{font-size:10.5px; color:#6b7280;}
+  .buttons{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:6px 0 2px;}
+  button{border:1px solid #1e40af; border-radius:6px; background:var(--accent); color:#fff; padding:8px 10px; font-weight:700; cursor:pointer; font-size:12px;}
+  button.secondary{background:#fff; color:#1e40af;}
+  button.mini{padding:4px 8px; font-size:11px; border-radius:5px;}
+  .preset-row{display:flex; flex-wrap:wrap; gap:6px; margin:4px 0 8px;}
+  .preset-row button{background:#fff; color:#1e40af; border-color:#9fb0d6; font-size:11px; padding:5px 8px;}
+  .list{display:flex; flex-direction:column; gap:8px; margin:6px 0;}
+  .row{border:1px solid #cfd6e2; border-radius:6px; padding:8px; background:#fbfcfe;}
+  .row .rowhead{display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px;}
+  .row .rowhead select{flex:1; font-weight:700;}
+  .row .del{background:#fff; color:#b91c1c; border-color:#e3b3b3; padding:3px 8px; font-size:11px;}
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:6px;}
+  .grid3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px;}
+  .fld{display:flex; flex-direction:column; gap:2px;}
+  .fld span{font-size:10.5px; color:#6b7280;}
+  .fld input,.fld select{padding:5px 6px;}
+  .addbar{display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;}
+  .addbar button{background:#eef2fb; color:#1e40af; border-color:#b9c6e6; font-size:11px; padding:5px 9px;}
+
+  .sheet-wrap{display:flex; justify-content:stretch; align-items:flex-start; overflow:auto; padding-bottom:12px;
+    height:calc(100vh - 20px); overscroll-behavior:contain;}
+  .report{width:100%; max-width:1120px; min-width:650px; min-height:calc(100vh - 20px); background:var(--paper); border:1px solid #b9b1a4;
+    box-shadow:0 8px 22px rgba(0,0,0,.12); padding:14px 18px 18px; font-family:"Times New Roman",Times,serif; color:#111;}
+
+  .banner{display:flex; align-items:center; justify-content:space-between; gap:16px; border:2px solid var(--line);
+    padding:8px 14px; margin-bottom:14px; font-family:Arial,Helvetica,sans-serif;}
+  .banner .verdict{font-size:19px; font-weight:800; letter-spacing:.5px;}
+  .banner.pass{background:#eafaf0; border-color:#166534;}
+  .banner.pass .verdict{color:#166534;}
+  .banner.failb{background:#fdecec; border-color:#b91c1c;}
+  .banner.failb .verdict{color:#b91c1c;}
+  .banner .util{font-size:13px; color:#374151; text-align:right; line-height:1.35;}
+  .banner .util b{font-size:15px;}
+
+  .report h2{margin:0; font-size:22px; line-height:1.05; font-weight:800;}
+  .meta{margin:2px 0 4px 6px; font-size:13px; font-weight:400; color:#222;}
+  .loadlist{margin:4px 0 0 8px; font-size:12px; line-height:1.4; font-family:"Courier New",monospace; font-weight:400;}
+  .report-head{display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:14px; align-items:start; margin:4px 0 8px;}
+  .report-head h2{margin-top:0;}
+  .section-view-card{border:1px solid #b9c0cc; background:#fffdf8; padding:6px 8px 7px; align-self:start; max-width:226px;}
+  .section-view-card-clickable{cursor:zoom-in;}
+  .section-view-card-clickable:focus{outline:2px solid #2563eb; outline-offset:2px;}
+  .section-view-card-clickable:hover{border-color:#64748b; box-shadow:0 0 0 2px rgba(37,99,235,.08);}
+  .section-view-card .dt{font-family:Arial; font-size:12px; font-weight:800; color:#374151; letter-spacing:.35px; text-transform:uppercase; margin-bottom:2px;}
+  .section-view-svg{width:100%; height:auto; display:block;}
+  .section-view-meta{font-family:Arial; font-size:10.5px; color:#374151; line-height:1.25; margin-top:3px; font-weight:400;}
+  .section-view-modal{position:fixed; inset:0; z-index:10000; display:none; align-items:center; justify-content:center; padding:18px; background:rgba(17,24,39,.62);}
+  .section-view-modal.open{display:flex;}
+  .section-view-modal-panel{position:relative; width:min(92vw,980px); max-height:92vh; overflow:auto; background:#fffdf8; border:1px solid #111827; box-shadow:0 18px 48px rgba(0,0,0,.32); padding:14px;}
+  .section-view-modal-close{position:sticky; top:0; float:right; z-index:1; width:30px; height:30px; padding:0; border-radius:4px; background:#111827; color:#fff; border-color:#111827; font-size:20px; line-height:1;}
+  .section-view-modal-body{clear:both;}
+  .section-view-card-zoomed{width:100%; max-width:none; border-color:#111827; padding:10px 12px 12px;}
+  .section-view-card-zoomed .section-view-svg{width:100%; height:auto; max-height:82vh; margin:0 auto; display:block;}
+  .section-view-card-zoomed .dt{font-size:16px; margin-bottom:5px;}
+  .section-view-card-zoomed .section-view-meta{font-size:14px; margin-top:7px;}
+
+  .diagcard{border:1px solid #c9c0b0; margin:10px 0; padding:6px 10px 8px;}
+  .diagcard .dt{font-family:Arial; font-size:12px; font-weight:800; color:#374151; letter-spacing:.4px; text-transform:uppercase; margin-bottom:2px;}
+  .diagrow{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  svg.diag{width:100%; height:auto; display:block;}
+
+  .force-table{width:100%; border-collapse:collapse; table-layout:fixed; margin:7px 0; font-size:13px; font-weight:400;}
+  .force-table th{font-weight:700;}
+  .force-table th,.force-table td{border:2px solid var(--line); padding:4px 8px; vertical-align:middle;}
+  .force-table .table-title{text-align:center; font-size:16px; padding:3px 0;}
+  .force-table .stub,.force-table .node{width:78px; text-align:center; line-height:1.05;}
+  .force-table .num{text-align:right; font-weight:400; font-size:13px;}
+
+  .section-title{margin:8px 0 2px; font-size:20px; line-height:1.0; font-weight:800;}
+  .props{display:grid; grid-template-columns:minmax(210px,300px) minmax(160px,1fr) minmax(120px,170px) minmax(70px,100px); column-gap:8px; row-gap:1px; margin-left:8px; font-size:15px; line-height:1.18; font-weight:400;}
+  .props .right{justify-self:end;}
+  .calc-block{display:grid; grid-template-columns:minmax(200px,290px) minmax(160px,1fr) minmax(105px,155px) minmax(80px,120px); column-gap:8px; row-gap:1px; margin-left:8px; font-size:15px; line-height:1.18; font-weight:400;}
+  /* Overflow-proofing: every cell may WRAP inside its own grid track but can
+     never spill into the neighbouring column (min-width:0 lets the grid
+     actually shrink the cell; overflow-wrap breaks long runs). */
+  .calc-block>div, .props>div{min-width:0; overflow-wrap:break-word;}
+  .calc-block .value{text-align:right; white-space:normal;}
+  .calc-block .status{white-space:normal; font-weight:700;}
+  .calc-block .formula{font-size:13px; color:#1a1a1a;}
+  .status.ok{color:var(--ok);} .status.fail{color:var(--fail);}
+  .smallgap{margin-top:8px;}
+  .note{font-family:Arial; font-size:10.5px; color:#7c6f57; margin:5px 0 0 8px; line-height:1.35;}
+  .err{font-family:Arial; color:#b91c1c; font-weight:700; padding:10px; border:2px solid #b91c1c; background:#fdecec;}
+
+  /* ---- MasterSeries-format design brief (EC3 path, js/06-brief-masterseries.js) ---- */
+  .ms-brief{background:#fff; border:1px solid #9a9a9a; padding:10px 14px 12px; margin:6px 0 12px;
+    font-family:Arial,Helvetica,sans-serif; font-size:13px; color:#000; line-height:1.3;}
+  .ms-brief.ms-fail{background:#dbe6f5;}
+  .ms-brief sub,.ms-brief sup{font-size:9px; line-height:0;}
+  .ms-title{text-align:center; font-weight:700; color:#1a237e; font-size:15px; line-height:1.35; margin-bottom:8px;}
+  .ms-title .ms-ends{font-weight:400; font-size:12.5px; color:#1f2937; margin-top:2px;}   /* End conditions line under the title (19 Sep 2026 scope) */
+  .ms-h{font-weight:700; color:#1a237e; font-size:16px; margin:9px 0 2px; line-height:1.2;}
+  .ms-sub{font-weight:700; color:#1a237e; font-size:13.5px; margin:4px 0 1px 8px;}
+  .ms-row{display:grid; grid-template-columns:minmax(190px,32%) 1fr minmax(120px,16%) minmax(90px,12%); column-gap:10px; padding:1px 0 1px 8px;}
+  .ms-row>div{min-width:0; overflow-wrap:break-word;}
+  .ms-row .ms-l{color:#111;}
+  .ms-row .ms-v{color:#111;}
+  .ms-row .ms-r{text-align:right; white-space:nowrap;}
+  .ms-row .ms-t{text-align:right;}
+  .ms-row.ms-basis{font-size:11px; color:#444;}
+  .ms-row.ms-nv{background:#fbe9e9; border-left:3px solid #c00000; margin:2px 0;}
+  .ms-row.ms-nv .ms-l{color:#c00000; font-weight:700;}
+  .ms-row.ms-nv .ms-nv-msg{color:#7a0000;}
+  .ms-inline-tag{float:right; padding-left:10px; color:#111;}
+  .ms-warn{color:#c00000; font-weight:700;}
+  .ms-loading{display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:10px; align-items:start;}
+  .ms-loadlist{font-family:"Courier New",monospace; font-size:12px; line-height:1.45; margin:2px 0 4px 8px; white-space:normal;}
+  .ms-loadlist br+*{display:inline;}
+  .ms-sketch svg.diag{width:100%; height:auto; display:block;}
+  .ms-forces,.ms-combos{width:100%; border-collapse:collapse; margin:8px 0 4px; font-size:12px; table-layout:fixed;}
+  .ms-forces th,.ms-forces td,.ms-combos th,.ms-combos td{border:1px solid #333; padding:2px 5px; vertical-align:middle;}
+  .ms-forces th{font-weight:400; text-align:center; line-height:1.1;}
+  .ms-forces .ms-ft{font-size:13px; padding:3px 0;}
+  .ms-forces td.num,.ms-combos td.num{text-align:right; white-space:nowrap;}
+  .ms-combos th{font-weight:700; text-align:left;}
+  .ms-note{font-size:11px; color:#333; margin:2px 0 4px 8px;}
+  .ms-unity{border:1px solid #333; margin:12px 0 6px; padding:4px 8px;}
+  .ms-unity-head,.ms-unity-vals{display:grid; grid-auto-flow:column; grid-auto-columns:minmax(0,1fr); gap:6px; text-align:center;}
+  .ms-unity-head{font-size:11px; line-height:1.15;}
+  .ms-unity-vals{font-size:13px; margin-top:4px;}
+  .ms-unity .ms-max{font-weight:700;}
+  .ms-verdict{font-weight:800; font-size:15px; margin-top:6px; font-family:Arial,Helvetica,sans-serif;}
+  .ms-verdict.ms-pass{color:#166534;} .ms-verdict.ms-failv{color:#c00000;}
+  .ms-footer{font-size:11.5px; margin-top:4px; line-height:1.4;}
+  .ms-footer div{margin:2px 0;}
+  .ms-footer.ms-adv{color:#333;}
+  .ms-detail{margin-top:10px; border-top:1px solid var(--rule);}
+  .ms-detail>summary{cursor:pointer; font-family:Arial,Helvetica,sans-serif; font-weight:800; font-size:18px; padding:6px 0; color:#111;}
+  .brief-title{font-family:Arial,Helvetica,sans-serif; font-weight:800; font-size:18px; margin:6px 0 4px;}
+
+  @media (max-width:900px){
+    .app{grid-template-columns:1fr; height:auto; overflow:visible;}
+    .controls{position:static; height:auto; overflow:visible;}
+    .sheet-wrap{height:auto; overflow:visible;}
+    .report{min-width:0;}
+    .report-head{grid-template-columns:1fr;}
+    .ms-loading{grid-template-columns:1fr;}
+  }
+  @media print{
+    @page{size:A4 landscape; margin:8mm;}
+    html,body{width:auto; height:auto;}
+    body{background:#fff; -webkit-print-color-adjust:exact; print-color-adjust:exact;} .controls{display:none;} .app{display:block; padding:0; height:auto; overflow:visible;}
+    .sheet-wrap{display:block; overflow:visible; padding:0; height:auto;}
+    /* --- pagination hygiene ---
+       Keep each diagram card, table and summary banner in one piece; never
+       leave a section heading orphaned at a page bottom; keep individual
+       grid cells and notes unsplit. Cap full-width diagrams so a LOADING/
+       torsion sketch does not balloon to 2x scale and punch a page-sized
+       hole in the flow. */
+    .diagcard,.banner,.props,.force-table,.section-view-card{break-inside:avoid; page-break-inside:avoid;}
+    /* The detailed design calculations always open on a fresh sheet:
+       everything before .calcs-start (banner, loading, analysis diagrams)
+       forms the analysis section; classification onwards starts page 2+. */
+    .calcs-start{break-before:page; page-break-before:always;}
+    .section-title{break-after:avoid; page-break-after:avoid;}
+    .calc-block>div,.note{break-inside:avoid; page-break-inside:avoid;}
+    .diagcard>.diag{max-width:540px; display:block; margin:0 auto;}
+    .diagrow .diag{max-width:100%;}
+    .diagcard{margin:6px 0; padding:3px 8px 4px;}
+    .note{margin-top:3px;}
+    .report{width:auto; max-width:none; min-width:0; min-height:auto; border:0; box-shadow:none; padding:0;}
+    .section-view-modal{display:none !important;}
+    .ms-brief{border:0; padding:0; background:#fff;}
+    .ms-brief.ms-fail{background:#dbe6f5;}
+    .ms-row,.ms-unity,.ms-forces,.ms-combos,.ms-title,.ms-loading{break-inside:avoid; page-break-inside:avoid;}
+    .ms-h,.ms-sub{break-after:avoid; page-break-after:avoid;}
+    .ms-detail>summary{list-style:none;}
+  }
+
+  /* ---- owner-cases brief page (tests/batch/run-owner-cases.cjs) ---- */
+  html,body{width:auto; height:auto; overflow:visible;}
+  body{background:#fff; margin:0; padding:12px 14px; font-size:12px; -webkit-print-color-adjust:exact; print-color-adjust:exact;}
+  .oc-head{font-family:Arial,Helvetica,sans-serif; font-size:11px; color:#333; border-bottom:1px solid #999; padding-bottom:4px; margin-bottom:6px; line-height:1.35;}
+  .oc-head b{color:#1a237e;}
+  .oc-head .oc-v{font-weight:700;}
+  .oc-head .oc-v.PASS{color:#166534;} .oc-head .oc-v.FAIL,.oc-head .oc-v.REFUSED,.oc-head .oc-v.ERROR{color:#c00000;} .oc-head .oc-v.NV{color:#b45309;}
+  .ms-brief{width:100%; max-width:none; margin:0; padding:6px 8px 8px; font-size:12px;}
+  .ms-brief.ms-fail{background:#dbe6f5;}
+  .ms-row{grid-template-columns:minmax(170px,30%) 1fr minmax(110px,15%) minmax(80px,11%);}
+  .ms-sketch{max-height:280px; overflow:hidden;}
+  .ms-sketch svg.diag{max-height:136px; width:auto; max-width:100%; margin:0 auto;}
+  .ms-loading{grid-template-columns:minmax(0,1fr) 300px; max-height:280px; overflow:hidden;}
+  .ms-forces,.ms-combos,table{break-inside:avoid; page-break-inside:avoid;}
+  .ms-unity-head{font-size:9px;}
+  .oc-refusal{font-family:Arial,Helvetica,sans-serif; font-size:12px; border:2px solid #c00000; background:#fdecec; padding:10px 12px; line-height:1.45;}
+  .oc-refusal h2{margin:0 0 6px; font-size:14px; color:#c00000;}
+  @media print{
+    @page{size:A4 portrait; margin:10mm;}
+    body{padding:0; font-size:12px;}
+    .ms-brief{border:0; padding:0; font-size:12px;}
+    .ms-brief.ms-fail{background:#dbe6f5;}
+    .ms-row,.ms-unity,.ms-forces,.ms-combos,.ms-title,.ms-loading,table{break-inside:avoid; page-break-inside:avoid;}
+    .ms-h,.ms-sub{break-after:avoid; page-break-after:avoid;}
+    .ms-sketch{max-height:280px; overflow:hidden;}
+  }
+</style></head><body><div class="oc-head"><b>UB-R10</b> &middot; UB 457 x 191 x 82 &middot; M<sub>cr</sub> method: refused &middot; verdict <span class="oc-v REFUSED">REFUSED</span><br>Owner case: BOTTOM FLANGE RESTREAINED<br>UB 457 x 191 x 82, 6 m SS, L2 loading (all loads at e = +40 mm, z_g = 0); R10 "BOTTOM FLANGE RESTREAINED" = tension-flange restraint only: NOT MODELLED by the tool (documented refusal)</div><div class="oc-refusal"><h2>REFUSED &mdash; not run</h2><div>Tension-flange (bottom flange of a sagging beam) restraint is not modelled: the tool's restraints (end flags U_y / R_x / R_z / warping and the intermediate lateral restraints v, v', phi, phi') act at the shear centre and have no height in the cross-section, so a restraint that holds the tension flange laterally while the compression flange is free cannot be described; it needs a restraint-height term in the LTB eigen model (lateral constraint at z = -h/2, which couples v and phi) or the tension-flange-restraint method of BS 5950-1 Annex G / SCI P093. Treating it as unrestrained (R2) is the conservative bound; treating it as fully restrained (R9) is unsafe.</div><div style="margin-top:8px;color:#333">Owner case: BOTTOM FLANGE RESTREAINED</div></div></body></html>

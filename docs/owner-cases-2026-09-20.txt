@@ -1,0 +1,49 @@
+vertical loads resulting in no torsion,   
+
+UC SECTION, UB SECTION , RHS SHS SECTIONS, 
+
+
+AND PFC SECTION FOR THE FOLLOWING CASES 
+
+
+udl  point  vertical āoads acting at horizontal eccentricity from shear center, 
+
+ udl  point  vertical loads acting at vertical + - eccentricity from shear center, 
+
+udl  point  vertical loads acting at vertical  horizontal eccentricity from shear center, 
+
+
+udl  point  vertical loads acting at vertical  horizontal eccentricity from shear center, and axial load on beam
+
+
+udl  point  vertical loads acting at vertical  horizontal eccentricity from shear center, and axial load on beam
+  load applied at angle on beam . 
+
+
+
+udl  point  vertical loads acting at vertical  horizontal eccentricity from shear center, and axial load on beam
+  load applied at angle on beam  AND EXTERNAL BENDING MOMENT AT ANY POINT ON BEAM, ON SHEAR CENTER AND ABOVE OR BELOW SHEAR CENTER. 
+
+TOP FLANGE RESTRAINED..
+
+BOTTOM FLANGE RESTREAINED.
+
+FULLY RESTRAINED, 
+
+RESTRAINED AT SOME POINTS. 
+
+PARTIALLY RESTRAINED. 
+
+WARPING RESTRAINED. 
+
+WARPING FREE.
+
+STABILIZING LOADS.
+
+DESTABLIZING LOADS. 
+
+EFFECTIVE LENGTHS OVERRIDE. 
+
+
+ANY TYPE OF LOADSACTING ALONG BEAM AXIS,,   X AXIS  OR Y AXIZ  OR Z AXIS.   
+
