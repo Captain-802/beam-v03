@@ -1,0 +1,328 @@
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beam in Wall — Eurocode 3 / BS 5950</title>
+<link rel="stylesheet" href="css/beam-design.css">
+<link rel="stylesheet" href="css/beam-in-wall.css">
+</head>
+<body>
+<main class="app">
+  <aside class="controls">
+    <h1>Beam in Wall — Eurocode 3 / BS 5950</h1>
+    <p class="sub">Beam-in-wall front end of the Steel Beam Designer (20 Sep 2026): the cavity-wall model below (leaves, cavity, recess, placement, load ledgers per leaf) generates the load list of the unchanged beam-v03 engine, which then solves one single-span beam with any end condition (six degrees of freedom plus warping at each end: simply supported, fixed, propped, cantilever, guided / sliding end, laterally clamped, or any custom combination) and internal hinges under arbitrary loads by the direct stiffness method, then performs the EN 1993-1-1 (UK NA) or BS 5950-1:2000 member checks for PFC channels, SHS (hot-finished or cold-formed), RHS (hot-finished), UB universal beams, or UC universal columns. Blue Book section data is built in; every value is editable.</p>
+
+    <div class="buttons">
+      <button type="button" id="printBtn">Print / PDF</button>
+      <button type="button" class="secondary" id="resetBtn">Reset to demo</button>
+      <button type="button" class="secondary" id="view3dBtn" style="grid-column:1 / -1">3D view (new tab)</button>
+    </div>
+
+    <details open>
+      <summary>Design code</summary>
+      <label>Code
+        <select id="code"><option value="BS5950">BS 5950-1:2000</option><option value="EC3">Eurocode 3 (EN 1993-1-1, UK NA)</option></select>
+      </label>
+      <div class="hint" id="codeHint">Switching code changes the cross-section/member-resistance formulas (classification, shear, moment, LTB, buckling). The beam analysis, loads, and combinations are shared.</div>
+    </details>
+
+    <details open>
+      <summary>Section &amp; grade</summary>
+      <label>Section family
+        <select id="family"><option value="pfc">PFC (channel)</option><option value="shs">SHS (square hollow)</option><option value="rhs">RHS (rectangular hollow)</option><option value="ub">UB (universal beam)</option><option value="uc">UC (universal column)</option></select>
+      </label>
+      <div id="shsTypeRow" style="display:none">
+        <label>SHS type
+          <select id="shsType"><option value="HF">Hot-finished (EN 10210)</option><option value="CF">Cold-formed (EN 10219)</option></select>
+        </label>
+      </div>
+      <div id="rhsTypeRow" style="display:none">
+        <label>RHS type
+          <select id="rhsType"><option value="HF">Hot-finished (EN 10210)</option><option value="CF">Cold-formed (EN 10219, S355 series)</option></select>
+        </label>
+      </div>
+      <div id="pfcRow">
+        <label>PFC section <select id="pfcSelect"></select></label>
+        <label class="checkline wall-hidden"><input type="checkbox" id="pfcMirror"> <span>Mirror section (web back on right)</span></label>
+        <div class="hint">Orientation on this page follows <b>Channel web faces</b> under Beam position in wall (the beam&rsquo;s +x always points inward); section properties and resistances are identical either way. The shear centre, the self-weight eccentricity and the plate sides follow that orientation; per-load e is measured from the shear centre.</div>
+      </div>
+      <div id="shsRow" style="display:none">
+        <label>SHS section <select id="shsSelect"></select></label>
+      </div>
+      <div id="rhsRow" style="display:none">
+        <label>RHS section <select id="rhsSelect"></select></label>
+      </div>
+      <div id="ubRow" style="display:none">
+        <label>UB section <select id="ubSelect"></select></label>
+      </div>
+      <div id="ucRow" style="display:none">
+        <label>UC section <select id="ucSelect"></select></label>
+      </div>
+      <label>Steel grade
+        <select id="grade"><option>S275</option><option>S355</option><option>S460</option></select>
+      </label>
+      <label>Design strength p<sub>y</sub>, N/mm  <input id="py" type="number" step="1"></label>
+      <div class="hint">Design strength auto-set from grade &amp; flange/wall thickness &mdash; BS EN 10025-2 (P362 Table 5.1: S275 &rarr; 275/265, S355 &rarr; 355/345 for t&le;16 / 16&lt;t&le;40) for EC3; Table 9 for BS 5950. Override if required.</div>
+      <label>Net area A<sub>net</sub>, cm  <input id="anet" type="number" step="0.01"></label>
+      <div class="hint">Leave blank to use gross area (no bolt holes).</div>
+    </details>
+
+    <details open id="platePanel">
+      <summary>Welded bottom plate</summary>
+      <label class="checkline"><input type="checkbox" id="plateOn"> <span>Continuous plate welded to the beam</span></label>
+      <div id="plateFields" style="display:none">
+        <label>Plate position
+          <select id="plateSide"><option value="bottom">Under bottom flange</option><option value="top">On top of top flange</option></select>
+        </label>
+        <div class="grid3">
+          <div class="fld"><span>Thickness, mm</span><input id="plateT" type="number" step="1"></div>
+          <div class="fld"><span>Outstand left, mm</span><input id="plateOutL" type="number" step="5"></div>
+          <div class="fld"><span>Outstand right, mm</span><input id="plateOutR" type="number" step="5"></div>
+        </div>
+        <div class="hint">Continuous plate along the full length, welded to the flange edges (or section edges for SHS/RHS). Outstands are measured beyond each flange tip; 0 = stops at the flange edge. A leaf sitting on the outstand is entered in its leaf ledger below (the load line stays at the leaf centre, the derived box reports the bearing on the outstand). The plate is <b>not designed</b> here (outstand bending / weld: separate check); it only adds self-weight, included automatically as Dead (G).</div>
+        <div class="hint live-hint" id="plateHint" style="display:none"></div>
+      </div>
+    </details>
+
+    <details open>
+      <summary>Geometry &amp; end conditions</summary>
+      <label>Member length L, m <input id="length" type="number" step="0.01"></label>
+      <label>End conditions
+        <select id="endPreset">
+          <option value="ss">Simply supported</option>
+          <option value="fixed-fixed">Fixed-fixed</option>
+          <option value="fixed-pinned">Fixed-pinned (propped cantilever)</option>
+          <option value="cantilever">Cantilever (root at End 1, tip at End 2)</option>
+          <option value="guided-fixed">Guided-fixed</option>
+          <option value="pinned-guided">Pinned-guided</option>
+          <option value="custom">Custom</option>
+        </select>
+      </label>
+      <div class="preset-row">
+        <button type="button" data-preset="cantilever">Cantilever</button>
+        <button type="button" data-preset="ss">Simply supported</button>
+        <button type="button" data-preset="fixed-pinned">Propped cantilever</button>
+        <button type="button" data-preset="fixed-fixed">Fixed fixed</button>
+      </div>
+      <div class="ends-grid" id="endsPanel"></div>
+      <div class="hint">One span from End 1 (x = 0) to End 2 (x = L). Each end has six degrees of freedom plus warping, each <b>restrained (ticked)</b> or free: U<sub>x</sub> axial, U<sub>y</sub> lateral, U<sub>z</sub> vertical, R<sub>x</sub> twist, R<sub>y</sub> rotation about the major axis (in-plane fixity), R<sub>z</sub> rotation about the minor axis (lateral bending), warping &phi;&prime; = 0. U<sub>z</sub> + R<sub>y</sub> = fixed, U<sub>z</sub> alone = pinned, R<sub>y</sub> alone = guided (sliding end: rotation held, vertical free, no vertical reaction), neither = free end. U<sub>y</sub>, R<sub>z</sub>, R<sub>x</sub> and warping are the LTB eigen and torsion boundary conditions (U<sub>y</sub> + R<sub>x</sub> = fork end, + R<sub>z</sub> = laterally clamped); U<sub>x</sub> is the axial load path (N<sub>Ed</sub> needs it at one end at least). A cantilever is End 1 fully restrained and End 2 free &mdash; the root must be End 1 (x = 0): a cantilever rooted at End 2 (End 2 U<sub>z</sub> + R<sub>y</sub>, End 1 free) is refused with &ldquo;mirror the member&rdquo;, so enter the loads from the root; the guided-fixed preset holds End 1 fixed and End 2 sliding. The strut effective lengths default from these fixities (P360 Table 6.2 / BS 5950 Table 22 style, printed [verify]). Changing a box switches the drop-list to Custom; a mechanism is refused with a message naming the missing restraint. An end that lifts in any combination (negative reaction) blocks PASS with a &ldquo;Hold-down required&rdquo; message unless <b>hold-down provided</b> is ticked for it, in which case the design hold-down force is printed as an advisory; uplift is also tested with the &gamma;<sub>G,inf</sub> companions (G at 1.0, STR set B, and 0.9, EQU set A) of every ULS combination. <b>Web transverse forces (EC3, EN 1993-1-5 clause 6):</b> each end reaction is checked as a patch load on the bottom flange with the entered <b>stiff bearing length s<sub>s</sub></b> along the member (blank = the lower bound 0: a station that passes at s<sub>s</sub> = 0 is verified for any seating, one that fails at 0 is <b>NOT VERIFIED</b> until the seating length is entered; capped at h<sub>w</sub>); an end reaction is load type (c). Tick <b>bearing stiffener provided</b> to declare a stiffener at that end instead &mdash; the stiffener itself must then be designed to EN 1993-1-5 9.4.</div>
+
+      <div style="margin-top:10px;font-size:11px;font-weight:700;color:#374151">Internal hinges (moment releases)</div>
+      <div class="list" id="hingeList"></div>
+      <div class="addbar"><button type="button" id="addHinge">+ Add internal hinge</button></div>
+      <div class="hint">An internal hinge releases the in-plane bending moment (M&nbsp;=&nbsp;0) at that point inside the span &mdash; the moment diagram, deflection and elastic critical moment M<sub>cr</sub> all redistribute. The ends must keep the member stable with the hinge (e.g. a fixed-pinned span with one hinge); a mechanism is refused. Lateral and torsional continuity are kept across the hinge; if the physical connection also releases warping or is braced, add that separately in the LTB restraint options.</div>
+    </details>
+
+    <details open id="wallPanel">
+      <summary>Wall construction</summary>
+      <label class="checkline"><input type="checkbox" id="wallSolid"> <span>Solid wall (single leaf: cavity and inner leaf set to zero)</span></label>
+      <div class="wall-leaf">
+        <div class="wall-leaf-head">Outer leaf &mdash; external face at x<sub>w</sub> = 0</div>
+        <div class="grid2">
+          <div class="fld"><span>Material (sketch / report label)</span><select id="wallMat1"></select></div>
+          <div class="fld"><span>Thickness t<sub>1</sub>, mm</span><input id="wallT1" type="number" step="0.5" min="0"></div>
+        </div>
+        <label class="checkline"><input type="checkbox" id="wallChased1"> <span>leaf chased (cut) over the beam &mdash; unticked: a beam fibre inside this leaf is warned</span></label>
+      </div>
+      <div class="wall-leaf" id="wallCavityRow">
+        <div class="wall-leaf-head">Cavity</div>
+        <div class="grid2">
+          <div class="fld"><span>Width c, mm</span><input id="wallC" type="number" step="5" min="0"></div>
+          <div class="fld"><span>Insulation (label only)</span><input id="wallIns" type="text" placeholder="e.g. 50 PIR, full fill"></div>
+        </div>
+      </div>
+      <div class="wall-leaf" id="wallInnerRow">
+        <div class="wall-leaf-head">Inner leaf &mdash; internal face at x<sub>w</sub> = W</div>
+        <div class="grid2">
+          <div class="fld"><span>Material (sketch / report label)</span><select id="wallMat2"></select></div>
+          <div class="fld"><span>Thickness t<sub>2</sub>, mm</span><input id="wallT2" type="number" step="0.5" min="0"></div>
+        </div>
+        <label class="checkline"><input type="checkbox" id="wallChased2"> <span>leaf chased (cut) over the beam &mdash; unticked: a beam fibre inside this leaf is warned</span></label>
+      </div>
+      <div class="hint live-hint" id="wallLayoutHint"></div>
+      <div class="hint">Wall axis x<sub>w</sub> (mm) runs from the EXTERNAL face of the outer leaf inward: outer leaf [0, t<sub>1</sub>], cavity [t<sub>1</sub>, t<sub>1</sub> + c], inner leaf [t<sub>1</sub> + c, W], W = t<sub>1</sub> + c + t<sub>2</sub>. The materials are labels for the sketch and the report only (no masonry design here); picking one sets its usual thickness, editable.</div>
+    </details>
+
+    <details open id="wallPlacePanel">
+      <summary>Beam position in wall</summary>
+      <div class="wall-mode" id="wallModeRow">
+        <button type="button" data-wmode="flush-inside">Flush inside</button>
+        <button type="button" data-wmode="flush-outside">Flush outside</button>
+        <button type="button" data-wmode="cavity-centre">Cavity centre</button>
+        <button type="button" data-wmode="wall-centre">Wall centre</button>
+        <button type="button" data-wmode="custom">Custom</button>
+      </div>
+      <div class="grid2">
+        <div class="fld"><span>Recess r, mm (minimum 10)</span><input id="wallRecess" type="number" step="0.5" min="10"></div>
+        <div class="fld" id="wallXcRow" style="display:none"><span>Centroid x<sub>w,c</sub>, mm (custom)</span><input id="wallXc" type="number" step="0.5"></div>
+      </div>
+      <div id="wallPfcRow" style="display:none">
+        <label>Channel web faces
+          <select id="wallPfcWeb"><option value="outside">outside (web back at the external side)</option><option value="inside">inside (web back at the internal side)</option></select>
+        </label>
+      </div>
+      <div class="wall-sketch" id="wallSketch"></div>
+      <div class="wall-derived" id="wallDerived"></div>
+      <div class="hint">Flush inside: innermost fibre at W &minus; r; flush outside: outermost fibre at r; cavity centre: centroid at t<sub>1</sub> + c/2; wall centre: centroid at W/2; custom: the centroid x<sub>w</sub> typed. r is the mortar / pointing cover from the steel to the wall face (10 mm minimum so the steel is not seen). The extreme fibres include the welded plate outstands when the plate is on; a channel&rsquo;s outline is built from its Blue Book c<sub>y</sub> (= e<sub>sc</sub> &minus; e<sub>0</sub> + t<sub>w</sub>/2). Errors (red) block the report; a beam fibre inside a leaf declared not chased, the beam under neither leaf and a leaf load line outside the steel are warnings.</div>
+    </details>
+
+    <details open id="wallLedgerOuterPanel">
+      <summary>Loads on outer leaf</summary>
+      <div class="hint live-hint wall-ledger-note">Act at the outer leaf centre, x<sub>w</sub> = t<sub>1</sub>/2. Characteristic values; the load height sets z<sub>g</sub> (top flange +D/2 default). Trapezoidal loads through the row type drop-list.</div>
+      <div class="list wall-ledger" id="wallLedgerOuter"></div>
+      <div class="addbar">
+        <button type="button" data-wadd="outer" data-wtype="udl">+ UDL</button>
+        <button type="button" data-wadd="outer" data-wtype="pudl">+ Partial UDL</button>
+        <button type="button" data-wadd="outer" data-wtype="point">+ Point</button>
+        <button type="button" data-wadd="outer" data-wtype="moment">+ Moment</button>
+      </div>
+    </details>
+
+    <details open id="wallLedgerInnerPanel">
+      <summary>Loads on inner leaf</summary>
+      <div class="hint live-hint wall-ledger-note">Act at the inner leaf centre, x<sub>w</sub> = t<sub>1</sub> + c + t<sub>2</sub>/2.</div>
+      <div class="hint live-hint wall-errs" id="wallInnerLedgerNote" style="display:none">Solid wall: there is no inner leaf, this ledger is ignored.</div>
+      <div class="list wall-ledger" id="wallLedgerInner"></div>
+      <div class="addbar">
+        <button type="button" data-wadd="inner" data-wtype="udl">+ UDL</button>
+        <button type="button" data-wadd="inner" data-wtype="pudl">+ Partial UDL</button>
+        <button type="button" data-wadd="inner" data-wtype="point">+ Point</button>
+        <button type="button" data-wadd="inner" data-wtype="moment">+ Moment</button>
+      </div>
+    </details>
+
+    <details open id="wallLedgerBeamPanel">
+      <summary>Loads on the beam</summary>
+      <div class="hint live-hint wall-ledger-note">Act through the shear centre (e = 0) unless an x<sub>w</sub> of the load line is typed.</div>
+      <div class="list wall-ledger" id="wallLedgerBeam"></div>
+      <div class="addbar">
+        <button type="button" data-wadd="beam" data-wtype="udl">+ UDL</button>
+        <button type="button" data-wadd="beam" data-wtype="pudl">+ Partial UDL</button>
+        <button type="button" data-wadd="beam" data-wtype="point">+ Point</button>
+        <button type="button" data-wadd="beam" data-wtype="moment">+ Moment</button>
+      </div>
+    </details>
+
+    <details open id="wallLedgerOtherPanel">
+      <summary>Other loads (manual eccentricity)</summary>
+      <div class="hint live-hint wall-ledger-note">e typed in beam-v03&rsquo;s own convention (mm from the shear centre, + toward the inside); z<sub>g</sub> from the drop-list (top flange default) or typed (custom). Not judged against the steel outline (brackets, hangers).</div>
+      <div class="list wall-ledger" id="wallLedgerOther"></div>
+      <div class="addbar">
+        <button type="button" data-wadd="other" data-wtype="udl">+ UDL</button>
+        <button type="button" data-wadd="other" data-wtype="pudl">+ Partial UDL</button>
+        <button type="button" data-wadd="other" data-wtype="point">+ Point</button>
+        <button type="button" data-wadd="other" data-wtype="moment">+ Moment</button>
+      </div>
+    </details>
+
+    <details open class="wall-hidden" id="loadsPanel">
+      <summary>Loads</summary>
+      <div class="list" id="loadList"></div>
+      <div class="addbar">
+        <button type="button" data-add="point">+ Point</button>
+        <button type="button" data-add="udl">+ UDL</button>
+        <button type="button" data-add="trap">+ Trapezoidal</button>
+        <button type="button" data-add="moment">+ Moment</button>
+        <button type="button" id="addSelfWeight">Self-weight auto</button>
+      </div>
+      <div class="hint">Forces positive <b>downward</b> (kN, kN/m). Moment positive anticlockwise (kN m). Enter <b>characteristic</b> (unfactored) values and tag each load's <b>case</b>   the partial factors come from the Load Combinations below, not from the load itself. Section self-weight is added automatically as Dead (G) from the selected section mass/m. <b>Point loads (EC3):</b> each is also checked as a transverse force on the web (EN 1993-1-5 clause 6, with the 7.2 interaction) using its own <b>stiff bearing length s<sub>s</sub></b> (blank = 0 mm); tick <b>bearing stiffener provided</b> where a stiffener will be designed (EN 1993-1-5 9.4). A load directly over an end holding U<sub>z</sub> is treated as transferred through the web (type b).</div>
+      <label class="checkline"><input type="checkbox" id="eccOn"> <span>Load eccentricity</span></label>
+      <div class="hint">When activated, each load row gains its own shear-centre offset <b>e (mm)</b>. In EC3 unrestrained mode each transverse load also gets its own <b>z<sub>g</sub></b> load height above the shear centre. Applied moments act through the shear centre. Automatic self-weight acts through the centroid: e = 0 for doubly symmetric sections, but e = e<sub>sc</sub> for PFC channels. <b>Open-section torsion (EC3):</b> twist is prevented at every end whose R<sub>x</sub> box is ticked (at least one end must hold it); with U<sub>y</sub> + R<sub>x</sub> at both ends and warping free at both, full-span or point torques use the SCI P385 Appendix C closed forms, any other layout (torsion cantilever with R<sub>x</sub> at one end only, partial-span eccentric load, warping-fixed end) the warping-torsion finite-element model, which reports its mesh error. Tick <b>warping</b> under End conditions only where the connection really prevents warping of the flanges; the default is a fork end with free warping.</div>
+    </details>
+
+    <details open>
+      <summary>Load Combinations</summary>
+      <div class="list" id="comboList"></div>
+      <div class="addbar">
+        <button type="button" id="addCombo">+ Add combination</button>
+      </div>
+      <div class="hint">Defaults: ULS 1.35G + 1.5Q (Eq 6.10) and SLS 1.0G + 1.0Q (total deflection); for the NA 2.23 variable-actions-only deflection criterion set G = 0 in the SLS combination. Switch on every combination you want <b>considered in the design</b>. For each ULS combination switched on, the solver finds Shear/Moment everywhere along the member; the worst case from any switched-on combination governs each check (envelope), and the report states which combination governs which check. At least one ULS and one SLS (deflection) combination must be on. Every ULS combination with &gamma;<sub>G</sub> &gt; 1.0 is supplemented automatically by its &gamma;<sub>G,inf</sub> companions (G at 1.0, STR set B, and 0.9, EQU set A, variable factors as entered) solved for the end reactions only (uplift / hold-down and web bearing); the moment and shear envelopes keep the entered factors.</div>
+    </details>
+
+    <details class="compact-details axial-ltb" open>
+      <summary>Axial &amp; lateral-torsional buckling</summary>
+      <div id="restraintRow">
+        <label><span>Restraint</span>
+          <select id="restraint"><option value="full">Fully restrained</option><option value="ltb">Not fully restrained (LTB)</option></select>
+        </label>
+        <div class="hint">Fully restrained: the compression flange is held in position along its length (e.g. by a slab or decking), so lateral&ndash;torsional buckling cannot occur and the design follows the SCI restrained-beam procedure to EN 1993-1-1 (classification &rarr; shear &rarr; shear buckling &rarr; moment &rarr; deflection). Applies to the EC3 code path.</div>
+        <div id="mcrMethodRow" style="display:none">
+          <label><span>M<sub>cr</sub> method</span>
+            <select id="mcrMethod"><option value="eigen">FE eigenvalue (actual diagram, load heights, restraints, hinges)</option><option value="standard">Standard closed form (C<sub>1</sub> tables, SN003a / SN006a)</option></select>
+          </label>
+          <div class="hint"><b>Standard</b> = closed-form M<sub>cr</sub> = C<sub>1</sub>(&pi;&sup2;EI<sub>z</sub>/L<sub>E</sub>&sup2;)&radic;[I<sub>w</sub>/I<sub>z</sub> + L<sub>E</sub>&sup2;GI<sub>t</sub>/(&pi;&sup2;EI<sub>z</sub>)] with C<sub>1</sub> from the NCCI SN003a tables (simply supported or fixed-ended full-span UDL / central point load, recognised from the load list) or the end-moment formula (&psi; = M<sub>1</sub>/M<sub>2</sub>), the Serna quarter-point expression for a general diagram, C<sub>2</sub>&middot;z<sub>g</sub> where published (a destabilising z<sub>g</sub> on any other diagram blocks PASS unless the destabilising L<sub>E</sub> switch carries it), NCCI SN006a for cantilevers and the P385/P362 channel chain &mdash; as MasterSeries-type software does; L<sub>E</sub> = L<sub>E</sub>-factor &times; L over the whole member; M<sub>b,Rd</sub> from the M<sub>cr</sub> chain (the P362 simplified slenderness is printed for comparison only). <b>Eigen</b> = finite-element eigenvalue of the actual moment diagram with each load&rsquo;s height, the end degree-of-freedom flags (U<sub>y</sub>, R<sub>z</sub>, R<sub>x</sub>, warping), the intermediate lateral restraints (bay by bay between them) and internal hinges. The report prints both values and their ratio.</div>
+        </div>
+      </div>
+      <label><span>Axial F, kN</span> <input id="axial" type="number" step="0.001"></label>
+      <div class="hint">Positive = compression, negative = tension. Entered directly as the governing ULS design value   it is <b>not</b> run through the Load Combinations below. Leave 0 for a pure beam.</div>
+      <label><span>Minor-axis moment M<sub>z,Ed</sub>, kN&middot;m</span> <input id="Mz" type="number" step="0.001"></label>
+      <div class="hint">Coincident ULS design moment about the <b>minor (z&ndash;z)</b> axis, entered directly (this solver bends in one plane). Forms the full EC3 biaxial interaction (M<sub>y</sub>/M<sub>N,y</sub>)<sup>&alpha;</sup> + (M<sub>z</sub>/M<sub>N,z</sub>)<sup>&beta;</sup> &le; 1 (cl 6.2.9.1). Leave 0 for uniaxial bending.</div>
+      <label id="leRow"><span>L<sub>E</sub> / L factor</span> <input id="leFactor" type="number" step="0.01" placeholder="auto: from the end fixities"></label>
+      <div class="hint">Blank = the strut buckling lengths L<sub>cr,y</sub> and L<sub>cr,z</sub> come from the end fixities under End conditions (y-y from U<sub>z</sub> / R<sub>y</sub>, z-z from U<sub>y</sub> / R<sub>z</sub>: 0.7 L held in position and direction at both ends, 0.85 L direction at one end, 1.0 L direction at neither, 2.0 L cantilever, 1.2 L fixed with a guided far end; P360 Table 6.2 / BS 5950 Table 22 style, printed [verify]); the minor axis is shortened to the lateral-restraint spacing where restraints are modelled. A number here overrides both axes (an entered 1.0 is an override). <b>LTB effective length:</b> on the EC3 standard (closed-form) route L<sub>E</sub> = factor &times; L (blank = 1.0) with fork ends (U<sub>y</sub> + R<sub>x</sub>) required at both ends &mdash; an end that releases U<sub>y</sub> or R<sub>x</sub> is NOT VERIFIED on that route (use the FE eigenvalue method, which models the end flags), a laterally clamped or warping-fixed end is taken as a fork (conservative). On the BS 5950 path a blank factor takes L<sub>E</sub> from the end flags: Table 13 for fork ends at both ends (1.0 L, or 0.7 L with R<sub>z</sub> held at both ends; 1.2 L / 0.85 L destabilising), Table 14 (d) for a cantilever whose root holds U<sub>y</sub>, R<sub>z</sub> and R<sub>x</sub> (tip free 0.8 L / 1.4 L destabilising, tip R<sub>x</sub> 0.6 L, tip U<sub>y</sub> + R<sub>x</sub> 0.5 L), printed [verify]; any other end flag set has no tabulated row and is NOT VERIFIED until a factor is entered here.</div>
+      <label id="LTRow" style="display:none"><span>Torsional buckling length L<sub>T</sub>, m</span> <input id="LT" type="number" step="0.01" placeholder="blank = twist-restraint spacing"></label>
+      <div class="hint">PFC under axial compression: torsional and torsional-flexural buckling (EN 1993-1-1 cl 6.3.1.4) are checked with N<sub>cr,T</sub> = (GI<sub>T</sub> + &pi;&sup2;EI<sub>w</sub>/L<sub>T</sub>&sup2;)/i<sub>0</sub>&sup2; and the torsional-flexural coupling with the major-axis flexural mode through the shear-centre offset e<sub>sc</sub> (SCI P385 Table A.3). L<sub>T</sub> is the length between points where twist is prevented; blank takes the largest spacing of the twist restraints (the ends with R<sub>x</sub> ticked and the intermediate restraints with &phi; held, capped at L<sub>cr,y</sub>) &mdash; a lateral-only restraint shortens L<sub>cr,z</sub> but not L<sub>T</sub>.</div>
+      <label id="zaRow" class="wall-hidden"><span>Default z<sub>g</sub>, mm</span> <input id="za" type="number" step="1" placeholder="0"></label>
+      <div class="hint live-hint" id="zaHint"></div>
+      <label class="checkline" id="destabRow"><input type="checkbox" id="destab"> <span>Destabilising load &times;1.2 L<sub>E</sub></span></label>
+      <div class="hint">For PFC, this sets both the LTB effective length (Table 13/14) and the strut effective length. For SHS, LTB does not apply (cl 4.3.6.1), so this sets only the strut effective length (Table 22).</div>
+      <div id="bsFactorsRow">
+        <label><span>m<sub>LT</sub> override</span> <input id="mLTo" type="number" step="0.01" placeholder="auto"></label>
+        <label><span>m<sub>x</sub> override</span> <input id="mxo" type="number" step="0.01" placeholder="auto"></label>
+      </div>
+      <div id="ec3FactorsRow" style="display:none">
+        <label><span>C<sub>1</sub> override</span> <input id="C1o" type="number" step="0.01" placeholder="auto"></label>
+        <div class="hint" id="c1Hint">C<sub>1</sub> (moment-gradient factor for LTB) is computed from the official end-moment-gradient table where that case applies. For transverse-load or combined cases, the safe default C<sub>1</sub>=1.0 is used unless you override it with a verified value (e.g. from LTBeam or other software).</div>
+      </div>
+    </details>
+
+    <details>
+      <summary>Deflection &amp; advanced</summary>
+      <label>Deflection limit span/ <input id="divisor" type="number" step="1"></label>
+      <label>Cantilever deflection limit L/ <input id="divisorCant" type="number" step="1"></label>
+      <label>Absolute deflection limit, mm <input id="deflAbs" type="number" step="1" placeholder="blank = none"></label>
+      <div class="hint">Span/divisor when both ends hold U<sub>z</sub>; L / the cantilever divisor (default 180 &mdash; UK NA to EN 1993-1-1 Table NA.2, cantilevers: length/180 <b>[verify]</b>) when an end is vertically free (cantilever tip, guided tip: the tip deflection relative to the held end); both capped by the absolute limit when one is entered.</div>
+      <label>E, N/mm  <input id="E" type="number" step="1000"></label>
+      <label>K<sub>e</sub> (effective area) <input id="Ke" type="number" step="0.05" placeholder="auto"></label>
+      <div id="robRow">
+      <label>Robertson const., x-x (major) <input id="robertsonX" type="number" step="0.5"></label>
+      <label>Robertson const., y-y (minor) <input id="robertsonY" type="number" step="0.5"></label>
+      <div class="hint">Defaults: E = 205 000 for BS 5950 and 210 000 for EC3. K<sub>e</sub> = 1.2 / 1.1 / 1.0 for S275 / S355 / S460. Robertson constant (Table 23/24) auto-selects per axis: SHS hot-finished a=2.0/2.0, cold-formed a=5.5/5.5 (both axes, by symmetry); UB rolled I-section a=2.0/3.5 (curve a/b) for flange =40&nbsp;mm, a=3.5/5.5 (curve b/c) over 40&nbsp;mm; UC rolled H-section a=3.5/5.5 (curve b/c) for flange =40&nbsp;mm, a=5.5/8.0 (curve c/d) over 40&nbsp;mm   one curve lower than UB at the same thickness; PFC defaults to a=5.5/5.5   channels properly sit under Table 25, not these generic curves, so override if you have a precise value.</div>
+      </div>
+    </details>
+  </aside>
+
+  <section class="sheet-wrap">
+    <article class="report" id="report"><!-- rendered by JS --></article>
+  </section>
+</main>
+
+  <script src="js/01-computation-engine.js"></script>
+  <script src="js/sections/pfc-section-data.js"></script>
+  <script src="js/sections/shs-section-data.js"></script>
+  <script src="js/sections/rhs-section-data.js"></script>
+  <script src="js/sections/ub-section-data.js"></script>
+  <script src="js/sections/uc-section-data.js"></script>
+  <script src="js/02-section-data.js"></script>
+  <script src="js/03-state-ui.js"></script>
+  <script src="js/04-checks.js"></script>
+  <script src="js/checks/bs5950-checks.js"></script>
+  <script src="js/checks/eurocode-checks.js"></script>
+  <script src="js/checks/torsion-fe.js"></script>
+  <script src="js/05-diagrams.js"></script>
+  <script src="js/05-section-view.js"></script>
+  <script src="js/05-view3d.js"></script>
+  <script src="js/06-render.js"></script>
+  <script src="js/06-brief-masterseries.js"></script>
+  <script src="js/07-wiring.js"></script>
+  <script src="js/08-mcr-eigen-patch.js"></script>
+  <script src="js/wall/01-wall-state.js"></script>
+  <script src="js/wall/02-wall-geometry.js"></script>
+  <script src="js/wall/03-wall-ui.js"></script>
+  <script src="js/wall/04-wall-report.js"></script>
+  <script src="js/wall/09-wall-startup.js"></script>
+</body>
+</html>

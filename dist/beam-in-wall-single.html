@@ -6,7 +6,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Steel Beam Designer — Eurocode 3 / BS 5950</title>
+<title>Beam in Wall — Eurocode 3 / BS 5950</title>
 <style>
 :root{
     --ink:#111; --line:#222; --muted:#555; --paper:#fffdf8; --panel:#f4f5f7;
@@ -251,12 +251,79 @@
     .ms-diag-full svg.diag{max-width:540px;}
   }
 </style>
+<style>
+/* ===========================================================================
+   Beam in Wall (wall.html, 20 Sep 2026) - additions only; css/beam-design.css
+   is still loaded first and styles everything beam-v03 renders.
+   =========================================================================== */
+  /* beam-v03 elements the wall page keeps in the DOM (js/07-wiring.js binds
+     them) but never shows: the generic Loads panel and the PFC mirror box */
+  .wall-hidden{display:none !important;}
+  /* wall construction panel */
+  .wall-leaf{border:1px solid #cfd6e2; border-radius:6px; padding:7px 8px; background:#fbfcfe; margin:6px 0;}
+  .wall-leaf-head{font-size:12px; font-weight:700; color:#1f2937; margin-bottom:4px;}
+  .wall-leaf .checkline{font-size:10.5px; margin:5px 0 0;}
+  .wall-dim{opacity:.45;}
+  /* placement mode buttons (as the end-condition preset row) */
+  .wall-mode{display:flex; flex-wrap:wrap; gap:6px; margin:4px 0 8px;}
+  .wall-mode button{background:#fff; color:#1e40af; border-color:#9fb0d6; font-size:11px; padding:5px 8px;}
+  .wall-mode button.on{background:var(--accent); color:#fff; border-color:#1e40af;}
+  /* live sketch + derived box */
+  .wall-sketch{margin:6px 0 4px; border:1px solid #d8dee8; border-radius:5px; background:#fffdf8; padding:3px;}
+  .wall-sketch svg,.wall-svg{width:100%; height:auto; display:block;}
+  .wall-derived{font-size:11px; color:#374151; background:#fff; border:1px solid #d8dee8; border-radius:5px; padding:6px 7px; margin:2px 0 6px; line-height:1.35;}
+  .wall-kv{display:grid; grid-template-columns:minmax(110px,44%) 1fr; gap:6px; padding:1px 0;}
+  .wall-kv b{font-weight:700; color:#111827;}
+  .wall-no{color:#b45309; font-weight:700;}
+  .wall-errs{color:#b91c1c; font-weight:700; margin-top:4px;}
+  .wall-warns{color:#b45309; margin-top:4px;}
+  .wall-notes{color:#6b7280; margin-top:4px;}
+  .wall-sub{color:#6b7280; margin-top:4px; border-top:1px dashed #d3d8e2; padding-top:3px;}
+  /* ledgers */
+  .controls .hint.wall-ledger-note{font-size:10.5px; color:#6b7280; background:#f8fafc;}
+  .wall-empty{font-size:11px; color:#6b7280; margin:2px 0 6px;}
+  .wall-row .grid2,.wall-row .grid3{margin-top:6px;}
+  .wall-row .rowhead .wall-tag{font-size:10px; font-weight:700; color:#1e40af; border:1px solid #b9c6e6; background:#eef2fb; border-radius:4px; padding:1px 5px; white-space:nowrap;}
+  .wall-row .wall-label{margin-top:6px;}
+  .wall-row .wall-label input{font-size:11.5px;}
+  .wall-row input.wall-bad{border-color:#b91c1c; background:#fff5f5;}   /* a refused row value (wallRowErrors, js/wall/02-wall-geometry.js) */
+  /* report block "Wall model and load derivation" (js/wall/04-wall-report.js),
+     styled with the MasterSeries brief so the page reads as one document */
+  .wall-block{background:#fff; border:1px solid #9a9a9a; padding:10px 14px 12px; margin:6px 0 12px; font-family:Arial,Helvetica,sans-serif; font-size:13px; color:#000; line-height:1.3;}
+  .wall-block sub{font-size:9px; line-height:0;}
+  .wall-h{font-weight:700; color:#1a237e; font-size:16px; margin:0 0 6px; line-height:1.2;}
+  .wall-grid{display:grid; grid-template-columns:minmax(300px,46%) minmax(0,1fr); gap:12px; align-items:start;}
+  .wall-block .wall-sketch{margin:0; padding:4px; border-color:#c9c9c9;}
+  .wall-lines{font-size:12px; line-height:1.4;}
+  .wall-lines>div{margin:0 0 3px;}
+  .wall-lines .wall-key{font-size:11px; color:#333; margin-top:6px; border-top:1px solid #d3d8e2; padding-top:5px;}
+  .wall-table{width:100%; border-collapse:collapse; margin:8px 0 4px; font-size:11.5px; table-layout:fixed;}
+  .wall-table th,.wall-table td{border:1px solid #333; padding:2px 5px; vertical-align:top; overflow-wrap:break-word;}
+  .wall-table th{font-weight:700; text-align:left; background:#f4f6fb;}
+  .wall-table td.num{text-align:right; white-space:normal; overflow-wrap:anywhere;}
+  .wall-table th:nth-child(1),.wall-table td:nth-child(1){width:30px;}
+  .wall-table th:nth-child(2),.wall-table td:nth-child(2){width:21%;}
+  .wall-table th:nth-child(3),.wall-table td:nth-child(3){width:9%;}
+  .wall-table th:nth-child(5),.wall-table td:nth-child(5){width:8%;}
+  .wall-table th:nth-child(6),.wall-table td:nth-child(6){width:9%;}
+  .wall-table th:nth-child(8),.wall-table td:nth-child(8){width:20%;}
+  .wall-table .wall-src{font-size:9.5px; color:#555;}
+  .wall-note{font-size:11px; color:#333; margin:4px 0 0;}
+  @media (max-width:900px){
+    .wall-grid{grid-template-columns:1fr;}
+  }
+  @media print{
+    .wall-block{border:0; padding:0;}
+    .wall-block,.wall-grid,.wall-table{break-inside:avoid; page-break-inside:avoid;}
+    .wall-h{break-after:avoid; page-break-after:avoid;}
+  }
+</style>
 </head>
 <body>
 <main class="app">
   <aside class="controls">
-    <h1>Steel Beam Designer — Eurocode 3 / BS 5950</h1>
-    <p class="sub">Solves one single-span beam with any end condition (six degrees of freedom plus warping at each end: simply supported, fixed, propped, cantilever, guided / sliding end, laterally clamped, or any custom combination) and internal hinges under arbitrary loads by the direct stiffness method, then performs the EN 1993-1-1 (UK NA) or BS 5950-1:2000 member checks for PFC channels, SHS (hot-finished or cold-formed), RHS (hot-finished), UB universal beams, or UC universal columns. Blue Book section data is built in; every value is editable.</p>
+    <h1>Beam in Wall — Eurocode 3 / BS 5950</h1>
+    <p class="sub">Beam-in-wall front end of the Steel Beam Designer (20 Sep 2026): the cavity-wall model below (leaves, cavity, recess, placement, load ledgers per leaf) generates the load list of the unchanged beam-v03 engine, which then solves one single-span beam with any end condition (six degrees of freedom plus warping at each end: simply supported, fixed, propped, cantilever, guided / sliding end, laterally clamped, or any custom combination) and internal hinges under arbitrary loads by the direct stiffness method, then performs the EN 1993-1-1 (UK NA) or BS 5950-1:2000 member checks for PFC channels, SHS (hot-finished or cold-formed), RHS (hot-finished), UB universal beams, or UC universal columns. Blue Book section data is built in; every value is editable.</p>
 
     <div class="buttons">
       <button type="button" id="printBtn">Print / PDF</button>
@@ -289,8 +356,8 @@
       </div>
       <div id="pfcRow">
         <label>PFC section <select id="pfcSelect"></select></label>
-        <label class="checkline"><input type="checkbox" id="pfcMirror"> <span>Mirror section (web back on right)</span></label>
-        <div class="hint">Drawing orientation only &mdash; section properties and resistances are identical. The shear centre, self-weight eccentricity, and plate sides follow the mirrored orientation; per-load e is always measured from the shear centre as drawn.</div>
+        <label class="checkline wall-hidden"><input type="checkbox" id="pfcMirror"> <span>Mirror section (web back on right)</span></label>
+        <div class="hint">Orientation on this page follows <b>Channel web faces</b> under Beam position in wall (the beam&rsquo;s +x always points inward); section properties and resistances are identical either way. The shear centre, the self-weight eccentricity and the plate sides follow that orientation; per-load e is measured from the shear centre.</div>
       </div>
       <div id="shsRow" style="display:none">
         <label>SHS section <select id="shsSelect"></select></label>
@@ -325,7 +392,7 @@
           <div class="fld"><span>Outstand left, mm</span><input id="plateOutL" type="number" step="5"></div>
           <div class="fld"><span>Outstand right, mm</span><input id="plateOutR" type="number" step="5"></div>
         </div>
-        <div class="hint">Continuous plate along the full length, welded to the flange edges (or section edges for SHS/RHS). Outstands are measured beyond each flange tip; 0 = stops at the flange edge. It carries eccentric supported loads (e.g. a wall outside the flange) &mdash; enter those loads with their <b>e</b> in Loads. The plate is <b>not designed</b>; it only adds self-weight, included automatically as Dead (G).</div>
+        <div class="hint">Continuous plate along the full length, welded to the flange edges (or section edges for SHS/RHS). Outstands are measured beyond each flange tip; 0 = stops at the flange edge. A leaf sitting on the outstand is entered in its leaf ledger below (the load line stays at the leaf centre, the derived box reports the bearing on the outstand). The plate is <b>not designed</b> here (outstand bending / weld: separate check); it only adds self-weight, included automatically as Dead (G).</div>
         <div class="hint live-hint" id="plateHint" style="display:none"></div>
       </div>
     </details>
@@ -359,7 +426,109 @@
       <div class="hint">An internal hinge releases the in-plane bending moment (M&nbsp;=&nbsp;0) at that point inside the span &mdash; the moment diagram, deflection and elastic critical moment M<sub>cr</sub> all redistribute. The ends must keep the member stable with the hinge (e.g. a fixed-pinned span with one hinge); a mechanism is refused. Lateral and torsional continuity are kept across the hinge; if the physical connection also releases warping or is braced, add that separately in the LTB restraint options.</div>
     </details>
 
-    <details open>
+    <details open id="wallPanel">
+      <summary>Wall construction</summary>
+      <label class="checkline"><input type="checkbox" id="wallSolid"> <span>Solid wall (single leaf: cavity and inner leaf set to zero)</span></label>
+      <div class="wall-leaf">
+        <div class="wall-leaf-head">Outer leaf &mdash; external face at x<sub>w</sub> = 0</div>
+        <div class="grid2">
+          <div class="fld"><span>Material (sketch / report label)</span><select id="wallMat1"></select></div>
+          <div class="fld"><span>Thickness t<sub>1</sub>, mm</span><input id="wallT1" type="number" step="0.5" min="0"></div>
+        </div>
+        <label class="checkline"><input type="checkbox" id="wallChased1"> <span>leaf chased (cut) over the beam &mdash; unticked: a beam fibre inside this leaf is warned</span></label>
+      </div>
+      <div class="wall-leaf" id="wallCavityRow">
+        <div class="wall-leaf-head">Cavity</div>
+        <div class="grid2">
+          <div class="fld"><span>Width c, mm</span><input id="wallC" type="number" step="5" min="0"></div>
+          <div class="fld"><span>Insulation (label only)</span><input id="wallIns" type="text" placeholder="e.g. 50 PIR, full fill"></div>
+        </div>
+      </div>
+      <div class="wall-leaf" id="wallInnerRow">
+        <div class="wall-leaf-head">Inner leaf &mdash; internal face at x<sub>w</sub> = W</div>
+        <div class="grid2">
+          <div class="fld"><span>Material (sketch / report label)</span><select id="wallMat2"></select></div>
+          <div class="fld"><span>Thickness t<sub>2</sub>, mm</span><input id="wallT2" type="number" step="0.5" min="0"></div>
+        </div>
+        <label class="checkline"><input type="checkbox" id="wallChased2"> <span>leaf chased (cut) over the beam &mdash; unticked: a beam fibre inside this leaf is warned</span></label>
+      </div>
+      <div class="hint live-hint" id="wallLayoutHint"></div>
+      <div class="hint">Wall axis x<sub>w</sub> (mm) runs from the EXTERNAL face of the outer leaf inward: outer leaf [0, t<sub>1</sub>], cavity [t<sub>1</sub>, t<sub>1</sub> + c], inner leaf [t<sub>1</sub> + c, W], W = t<sub>1</sub> + c + t<sub>2</sub>. The materials are labels for the sketch and the report only (no masonry design here); picking one sets its usual thickness, editable.</div>
+    </details>
+
+    <details open id="wallPlacePanel">
+      <summary>Beam position in wall</summary>
+      <div class="wall-mode" id="wallModeRow">
+        <button type="button" data-wmode="flush-inside">Flush inside</button>
+        <button type="button" data-wmode="flush-outside">Flush outside</button>
+        <button type="button" data-wmode="cavity-centre">Cavity centre</button>
+        <button type="button" data-wmode="wall-centre">Wall centre</button>
+        <button type="button" data-wmode="custom">Custom</button>
+      </div>
+      <div class="grid2">
+        <div class="fld"><span>Recess r, mm (minimum 10)</span><input id="wallRecess" type="number" step="0.5" min="10"></div>
+        <div class="fld" id="wallXcRow" style="display:none"><span>Centroid x<sub>w,c</sub>, mm (custom)</span><input id="wallXc" type="number" step="0.5"></div>
+      </div>
+      <div id="wallPfcRow" style="display:none">
+        <label>Channel web faces
+          <select id="wallPfcWeb"><option value="outside">outside (web back at the external side)</option><option value="inside">inside (web back at the internal side)</option></select>
+        </label>
+      </div>
+      <div class="wall-sketch" id="wallSketch"></div>
+      <div class="wall-derived" id="wallDerived"></div>
+      <div class="hint">Flush inside: innermost fibre at W &minus; r; flush outside: outermost fibre at r; cavity centre: centroid at t<sub>1</sub> + c/2; wall centre: centroid at W/2; custom: the centroid x<sub>w</sub> typed. r is the mortar / pointing cover from the steel to the wall face (10 mm minimum so the steel is not seen). The extreme fibres include the welded plate outstands when the plate is on; a channel&rsquo;s outline is built from its Blue Book c<sub>y</sub> (= e<sub>sc</sub> &minus; e<sub>0</sub> + t<sub>w</sub>/2). Errors (red) block the report; a beam fibre inside a leaf declared not chased, the beam under neither leaf and a leaf load line outside the steel are warnings.</div>
+    </details>
+
+    <details open id="wallLedgerOuterPanel">
+      <summary>Loads on outer leaf</summary>
+      <div class="hint live-hint wall-ledger-note">Act at the outer leaf centre, x<sub>w</sub> = t<sub>1</sub>/2. Characteristic values; the load height sets z<sub>g</sub> (top flange +D/2 default). Trapezoidal loads through the row type drop-list.</div>
+      <div class="list wall-ledger" id="wallLedgerOuter"></div>
+      <div class="addbar">
+        <button type="button" data-wadd="outer" data-wtype="udl">+ UDL</button>
+        <button type="button" data-wadd="outer" data-wtype="pudl">+ Partial UDL</button>
+        <button type="button" data-wadd="outer" data-wtype="point">+ Point</button>
+        <button type="button" data-wadd="outer" data-wtype="moment">+ Moment</button>
+      </div>
+    </details>
+
+    <details open id="wallLedgerInnerPanel">
+      <summary>Loads on inner leaf</summary>
+      <div class="hint live-hint wall-ledger-note">Act at the inner leaf centre, x<sub>w</sub> = t<sub>1</sub> + c + t<sub>2</sub>/2.</div>
+      <div class="hint live-hint wall-errs" id="wallInnerLedgerNote" style="display:none">Solid wall: there is no inner leaf, this ledger is ignored.</div>
+      <div class="list wall-ledger" id="wallLedgerInner"></div>
+      <div class="addbar">
+        <button type="button" data-wadd="inner" data-wtype="udl">+ UDL</button>
+        <button type="button" data-wadd="inner" data-wtype="pudl">+ Partial UDL</button>
+        <button type="button" data-wadd="inner" data-wtype="point">+ Point</button>
+        <button type="button" data-wadd="inner" data-wtype="moment">+ Moment</button>
+      </div>
+    </details>
+
+    <details open id="wallLedgerBeamPanel">
+      <summary>Loads on the beam</summary>
+      <div class="hint live-hint wall-ledger-note">Act through the shear centre (e = 0) unless an x<sub>w</sub> of the load line is typed.</div>
+      <div class="list wall-ledger" id="wallLedgerBeam"></div>
+      <div class="addbar">
+        <button type="button" data-wadd="beam" data-wtype="udl">+ UDL</button>
+        <button type="button" data-wadd="beam" data-wtype="pudl">+ Partial UDL</button>
+        <button type="button" data-wadd="beam" data-wtype="point">+ Point</button>
+        <button type="button" data-wadd="beam" data-wtype="moment">+ Moment</button>
+      </div>
+    </details>
+
+    <details open id="wallLedgerOtherPanel">
+      <summary>Other loads (manual eccentricity)</summary>
+      <div class="hint live-hint wall-ledger-note">e typed in beam-v03&rsquo;s own convention (mm from the shear centre, + toward the inside); z<sub>g</sub> from the drop-list (top flange default) or typed (custom). Not judged against the steel outline (brackets, hangers).</div>
+      <div class="list wall-ledger" id="wallLedgerOther"></div>
+      <div class="addbar">
+        <button type="button" data-wadd="other" data-wtype="udl">+ UDL</button>
+        <button type="button" data-wadd="other" data-wtype="pudl">+ Partial UDL</button>
+        <button type="button" data-wadd="other" data-wtype="point">+ Point</button>
+        <button type="button" data-wadd="other" data-wtype="moment">+ Moment</button>
+      </div>
+    </details>
+
+    <details open class="wall-hidden" id="loadsPanel">
       <summary>Loads</summary>
       <div class="list" id="loadList"></div>
       <div class="addbar">
@@ -405,7 +574,7 @@
       <div class="hint">Blank = the strut buckling lengths L<sub>cr,y</sub> and L<sub>cr,z</sub> come from the end fixities under End conditions (y-y from U<sub>z</sub> / R<sub>y</sub>, z-z from U<sub>y</sub> / R<sub>z</sub>: 0.7 L held in position and direction at both ends, 0.85 L direction at one end, 1.0 L direction at neither, 2.0 L cantilever, 1.2 L fixed with a guided far end; P360 Table 6.2 / BS 5950 Table 22 style, printed [verify]); the minor axis is shortened to the lateral-restraint spacing where restraints are modelled. A number here overrides both axes (an entered 1.0 is an override). <b>LTB effective length:</b> on the EC3 standard (closed-form) route L<sub>E</sub> = factor &times; L (blank = 1.0) with fork ends (U<sub>y</sub> + R<sub>x</sub>) required at both ends &mdash; an end that releases U<sub>y</sub> or R<sub>x</sub> is NOT VERIFIED on that route (use the FE eigenvalue method, which models the end flags), a laterally clamped or warping-fixed end is taken as a fork (conservative). On the BS 5950 path a blank factor takes L<sub>E</sub> from the end flags: Table 13 for fork ends at both ends (1.0 L, or 0.7 L with R<sub>z</sub> held at both ends; 1.2 L / 0.85 L destabilising), Table 14 (d) for a cantilever whose root holds U<sub>y</sub>, R<sub>z</sub> and R<sub>x</sub> (tip free 0.8 L / 1.4 L destabilising, tip R<sub>x</sub> 0.6 L, tip U<sub>y</sub> + R<sub>x</sub> 0.5 L), printed [verify]; any other end flag set has no tabulated row and is NOT VERIFIED until a factor is entered here.</div>
       <label id="LTRow" style="display:none"><span>Torsional buckling length L<sub>T</sub>, m</span> <input id="LT" type="number" step="0.01" placeholder="blank = twist-restraint spacing"></label>
       <div class="hint">PFC under axial compression: torsional and torsional-flexural buckling (EN 1993-1-1 cl 6.3.1.4) are checked with N<sub>cr,T</sub> = (GI<sub>T</sub> + &pi;&sup2;EI<sub>w</sub>/L<sub>T</sub>&sup2;)/i<sub>0</sub>&sup2; and the torsional-flexural coupling with the major-axis flexural mode through the shear-centre offset e<sub>sc</sub> (SCI P385 Table A.3). L<sub>T</sub> is the length between points where twist is prevented; blank takes the largest spacing of the twist restraints (the ends with R<sub>x</sub> ticked and the intermediate restraints with &phi; held, capped at L<sub>cr,y</sub>) &mdash; a lateral-only restraint shortens L<sub>cr,z</sub> but not L<sub>T</sub>.</div>
-      <label id="zaRow"><span>Default z<sub>g</sub>, mm</span> <input id="za" type="number" step="1" placeholder="0"></label>
+      <label id="zaRow" class="wall-hidden"><span>Default z<sub>g</sub>, mm</span> <input id="za" type="number" step="1" placeholder="0"></label>
       <div class="hint live-hint" id="zaHint"></div>
       <label class="checkline" id="destabRow"><input type="checkbox" id="destab"> <span>Destabilising load &times;1.2 L<sub>E</sub></span></label>
       <div class="hint">For PFC, this sets both the LTB effective length (Table 13/14) and the strut effective length. For SHS, LTB does not apply (cl 4.3.6.1), so this sets only the strut effective length (Table 22).</div>
@@ -9672,10 +9841,1130 @@ function wire(){
                        assertSaggingPositive: assertSaggingPositive };
 })();
 
+/* ===========================================================================
+   W1. BEAM IN WALL - STATE   (js/wall/01-wall-state.js, 20 Sep 2026)
+   The cavity-wall model that replaces beam-v03's generic load editor on
+   wall.html. Pure data + pure row builders: no DOM, no engine call. The
+   beam-v03 state S (js/03-state-ui.js) is untouched here; syncWall()
+   (js/wall/03-wall-ui.js) writes S.loads / S.eccOn / S.pfcMirror from
+   wallToLoads() (js/wall/02-wall-geometry.js).
+
+   Wall axis x_w (mm) runs from the EXTERNAL face of the outer leaf inward:
+     outer leaf [0, t1] | cavity [t1, t1 + c] | inner leaf [t1 + c, W],
+     W = t1 + c + t2. A solid wall is t2 = 0 (and c = 0): one leaf of t1.
+   The beam's own +x (js/05-section-view.js: + toward the flange tips of an
+   unmirrored channel) always points INWARD (+x_w), so
+     e_beamv03 = x_w,load - x_w,shear-centre   (mm, beam-v03 sign convention).
+   Owner decisions (20 Sep 2026): a leaf load acts at the LEAF CENTRE; load
+   height per load from a drop-list (top flange +D/2 default); plate outstand
+   bending / weld checks out of scope; stiff bearing lengths as beam-v03;
+   an "other" ledger takes a typed e and z_g.
+   =========================================================================== */
+
+/* Leaf materials: labels for the sketch / report only (no masonry design).
+   t = the usual leaf thickness the UI offers when the material is picked
+   (null = keep what is typed); hatch = the sketch hatch family. */
+const WALL_MATERIALS=[
+  {key:'brick',     label:'Brick 102.5',       t:102.5, hatch:'brick'},
+  {key:'block-d100',label:'Dense block 100',   t:100,   hatch:'block'},
+  {key:'block-d140',label:'Dense block 140',   t:140,   hatch:'block'},
+  {key:'block-d215',label:'Dense block 215',   t:215,   hatch:'block'},
+  {key:'block-a100',label:'Aerated block 100', t:100,   hatch:'aac'},
+  {key:'block-a140',label:'Aerated block 140', t:140,   hatch:'aac'},
+  {key:'block-a215',label:'Aerated block 215', t:215,   hatch:'aac'},
+  {key:'stone',     label:'Stone',             t:null,  hatch:'stone'},
+  {key:'concrete',  label:'Concrete',          t:null,  hatch:'concrete'},
+  {key:'timber',    label:'Timber frame',      t:null,  hatch:'timber'},
+  {key:'custom',    label:'Custom',            t:null,  hatch:'plain'}
+];
+const WALL_MATERIAL_MAP=Object.fromEntries(WALL_MATERIALS.map(m=>[m.key,m]));
+function wallMaterial(key){ return WALL_MATERIAL_MAP[key]||WALL_MATERIAL_MAP.custom; }
+
+/* Beam placement modes: ONE typed number, the recess r (mm, >= 10: the mortar
+   / pointing cover so the steel is not seen), plus the mode. The extreme
+   fibres (plate outstands included) come from sectionViewGeometry /
+   plateGeom (js/05-section-view.js, js/02-section-data.js). */
+const WALL_RECESS_MIN=10;                       // mm, hard minimum (owner rule)
+const WALL_PLACEMENTS=[
+  {key:'flush-inside',  label:'Flush inside (innermost fibre at W - r)'},
+  {key:'flush-outside', label:'Flush outside (outermost fibre at r)'},
+  {key:'cavity-centre', label:'Cavity centre (centroid at t1 + c/2)'},
+  {key:'wall-centre',   label:'Wall centre (centroid at W/2)'},
+  {key:'custom',        label:'Custom (centroid x_w typed)'}
+];
+
+/* Load height choices: z_g from the shear centre, + = above = destabilising
+   (EN 1993-1-1 / SN003a sign, beam-v03's own). 'plate' = underside of the
+   welded bottom plate (-D/2 - t; a hanger load on the plate outstand) or, with
+   the plate on top, its top (+D/2 + t): wallHeightOptions() (02-wall-geometry)
+   relabels it and offers it only while the plate is on; wallNormaliseHeights()
+   maps rows left at 'plate' back to the flange when the plate is switched off
+   (21 Sep 2026 review: the select and the applied z_g must never disagree). */
+const WALL_HEIGHTS=[
+  {key:'top',    label:'top flange (+D/2)'},
+  {key:'bottom', label:'bottom flange (-D/2)'},
+  {key:'sc',     label:'shear centre (0)'},
+  {key:'plate',  label:'plate underside (-D/2 - t)'},
+  {key:'custom', label:'custom (mm, + above the shear centre)'}
+];
+
+/* The four ledgers, in the order they are generated into S.loads. */
+const WALL_LEDGERS=[
+  {key:'outer', label:'Outer leaf',  note:'acts at the outer leaf centre, x_w = t1/2'},
+  {key:'inner', label:'Inner leaf',  note:'acts at the inner leaf centre, x_w = t1 + c + t2/2 (disabled for a solid wall)'},
+  {key:'beam',  label:'On the beam', note:'acts through the shear centre (e = 0) unless an x_w is typed'},
+  {key:'other', label:'Other loads', note:'e (mm, beam-v03 convention: + toward the inside) and z_g typed by the engineer'}
+];
+const WALL_LEDGER_MAP=Object.fromEntries(WALL_LEDGERS.map(l=>[l.key,l]));
+
+/* Ledger row types. 'udl' = the full span (x1 / x2 follow S.L at generation
+   time); 'pudl' = partial UDL over the typed x1-x2; 'trap' = trapezoidal
+   w1 -> w2 over x1-x2 (beam-v03's 'trap'); 'point' = P at pos; 'moment' =
+   M at pos (no e / z_g: a moment has no line of action). */
+const WALL_ROW_TYPES=[
+  {key:'udl',   label:'UDL (full span)'},
+  {key:'pudl',  label:'Partial UDL'},
+  {key:'trap',  label:'Trapezoidal'},
+  {key:'point', label:'Point load'},
+  {key:'moment',label:'Applied moment'}
+];
+
+let wallRowSeq=0;                               // row ids for the UI's add / remove
+/* One ledger row with beam-v03-style fields. L (m) sets the span defaults. */
+function wallNewRow(ledger, type, L, overrides){
+  L=Number.isFinite(+L)? +L : 4;
+  const row={
+    id:'w'+(++wallRowSeq), type:type||'udl', label:'', case:'G',
+    w:10, w1:0, w2:10, x1:0, x2:L,              // kN/m, m
+    P:10, M:10, pos:+(L/2).toFixed(3),          // kN, kN.m, m
+    height:'top', zgCustom:0,                   // load height choice (WALL_HEIGHTS) + custom z_g (mm); top flange for EVERY ledger (owner: "defaulting to top flange"; 21 Sep 2026 review - the other ledger too, its typed value is the e; a typed z_g is the 'custom' choice)
+    xw:null,                                    // 'beam' ledger only: typed x_w of the load line (null = shear centre)
+    e:0,                                        // 'other' ledger only: typed eccentricity from the shear centre (mm)
+    ss:null, stiff:false                        // point loads: stiff bearing length (mm, null = beam-v03 lower bound 0) and stiffener flag, passed through unchanged
+  };
+  return Object.assign(row, overrides||{});
+}
+
+/* Demo wall (owner's demo, 20 Sep 2026): brick 102.5 outer leaf, 100 cavity,
+   100 aerated-block inner leaf (W = 302.5) with the DEMO UB 457 x 191 x 82
+   of beam-v03 flush inside at r = 10; outer leaf UDL 6 kN/m G, inner leaf
+   UDL 19.7 G + 19.8 Q (beam-v03's own demo loads), all at the top flange -
+   the worked example of tests/wall/geometry.test.cjs (e = -145.6 / +55.65 mm,
+   z_g = +230 mm). WALL_DEMO_SPAN (m) is written into beam-v03's S.L by the
+   page at startup and on Reset (js/wall/03-wall-ui.js wallApplyDemoSpan):
+   beam-v03's own DEMO.L = 8 m fails deflection with these loads and the wall
+   demo on top of it failed at 2.54 on the P385 bending + torsion check
+   (21 Sep 2026 review); at 4 m - a lintel span - the demo passes (governing
+   web transverse force 0.30 fully restrained, LTB + torsion 0.57 unrestrained)
+   and the outer-leaf load line at x_w = 51.25 mm is carried by a 90 mm bottom
+   plate outstand (WALL_DEMO_PLATE -> S.plate), so the demo shows the plate
+   bearing note rather than the "load line outside the steel" warning. */
+const WALL_DEMO_SPAN=4;                                          // m
+const WALL_DEMO_PLATE={on:true, side:'bottom', t:10, outL:90, outR:0};   // outstand 90 mm toward the outside: plate from x_w = 11.2 to 292.5 mm under the demo UB
+const WALL_DEMO={
+  t1:102.5, mat1:'brick',      chased1:true,   // chased: the leaf is cut over the beam, so a beam fibre inside it is intended (false = warning when the beam intrudes)
+  c:100,    insulation:'',                     // cavity width (mm) and an insulation label (sketch / report only)
+  t2:100,   mat2:'block-a100', chased2:true,
+  recess:10, placement:'flush-inside', xcCustom:150,   // r (mm), mode, custom centroid x_w (mm)
+  pfcWebFaces:'outside',                       // channel only: 'outside' = web back toward the external face (S.pfcMirror false) | 'inside' (S.pfcMirror true)
+  ledgers:{
+    outer:[wallNewRow('outer','udl',8,{label:'outer leaf masonry', w:6,    case:'G'})],
+    inner:[wallNewRow('inner','udl',8,{label:'inner leaf + floor', w:19.7, case:'G'}),
+           wallNewRow('inner','udl',8,{label:'floor imposed',      w:19.8, case:'Q'})],
+    beam:[], other:[]
+  }
+};
+let WALL=JSON.parse(JSON.stringify(WALL_DEMO));
+function wallIsSolid(w){ return !((+w.t2||0)>0); }            // one leaf: t2 = 0 (c is then ignored)
+function wallLedgerEnabled(w, ledger){ return !(ledger==='inner' && wallIsSolid(w)); }
+
+/* ===========================================================================
+   W2. BEAM IN WALL - GEOMETRY AND LOAD DERIVATION
+   (js/wall/02-wall-geometry.js, 20 Sep 2026; review fixes 21 Sep 2026)
+   PURE functions, no DOM, usable in the vm harness (tests/wall/harness-wall.cjs).
+   They lean on beam-v03's own section helpers, unchanged:
+     sectionViewGeometry(sec) / sectionViewShearCentre(sec)  js/05-section-view.js
+     plateGeom(sec) / pfcMirrored() / selfWeightEccentricity js/02-section-data.js
+   Those helpers consult the LIVE state S (S.pfcMirror, S.plate), so the
+   placement is evaluated with S.pfcMirror set from the wall's "web faces"
+   input for the duration of the call (wallWithMirror) and restored after.
+   Every derived number is returned raw (mm, kN) and rounded only where it
+   becomes a beam-v03 input (e, z_g to 0.01 mm) so the report can trace it.
+
+   Coordinates (see js/wall/01-wall-state.js): x_w from the EXTERNAL face
+   inward; beam +x (js/05-section-view.js) = +x_w; e_beamv03 = x_w,load -
+   x_w,sc; z_g + = above the shear centre = destabilising.
+
+   Channel outline (21 Sep 2026 review, three reviewers): beam-v03's
+   sectionViewGeometry() / plateGeom() / build3DProfile() place a channel's
+   web back at -sec.x from the centroid, but the PFC table's x column is the
+   Blue Book TORSIONAL INDEX (17.0 for 300x100x46), not the centroid distance
+   c_y (30.5 mm). The wall page needs the true extreme fibres (flush
+   placements, recess check, the leaf eccentricities e), so this module builds
+   the channel outline itself from the P385 torsion row it already carries:
+     c_y = e_sc - e_0 + t_w/2     (e_sc: shear centre to centroid, e_0: shear
+                                    centre to the web centreline, both mm)
+   = 62.7 - 36.7 + 4.5 = 30.5 mm for 300x100x46 (Blue Book 3.05 cm; a
+   rectangles + fillets centroid by hand gives 30.52), 26.2 for 430x100x64
+   (Blue Book 2.62), 17.3 for 100x50x10 (Blue Book 1.73). The plate extents
+   are rebuilt from that outline (x1 = web back or toe - outL, x2 = + outR).
+   beam-v03 itself is NOT changed (house rule): its section card, 3D view and
+   - with a plate on a channel - its automatic self-weight eccentricity keep
+   their own outline; the report block says so (placement note).
+   =========================================================================== */
+const WALL_TOL=1e-6;                            // mm: "touching" is not "under"
+
+/* number -> string with d decimals, trailing zeros stripped (fmtMM style) */
+function wallNum(v,d){
+  if(!Number.isFinite(+v)) return '-';
+  d=d==null? 2 : d;
+  const s=(Math.abs(+v)<5e-9? 0 : +v).toFixed(d);
+  return s.replace(/(\.\d*?)0+$/,'$1').replace(/\.$/,'');
+}
+function wallSigned(v,d){ const s=wallNum(v,d); return (s==='-'||s.startsWith('-')||s==='0')? s : '+'+s; }
+/* Sketch / table tag of a ledger row: O1 (outer leaf), I1 / I2 (inner leaf),
+   B1 (on the beam), X1 (other). */
+function wallRowTag(ledger, i){ return ({outer:'O', inner:'I', beam:'B', other:'X'}[ledger]||'L')+((i|0)+1); }
+
+/* Leaf extents along x_w. A solid wall (t2 = 0) ignores c (cIgnored flags
+   a typed cavity that was dropped). chased: the leaf is cut over the beam
+   (default true); false makes a beam fibre inside the leaf a WARNING. */
+function wallLayout(w){
+  const t1=Math.max(+w.t1||0,0), solid=wallIsSolid(w);
+  const c=solid? 0 : Math.max(+w.c||0,0), t2=solid? 0 : Math.max(+w.t2||0,0);
+  const W=t1+c+t2;
+  const outer={key:'outer', label:'outer leaf', x1:0, x2:t1, t:t1, mat:w.mat1||'custom', chased:w.chased1!==false, centre:t1/2};
+  const inner=solid? null : {key:'inner', label:'inner leaf', x1:t1+c, x2:W, t:t2, mat:w.mat2||'custom', chased:w.chased2!==false, centre:t1+c+t2/2};
+  return {t1, c, t2, W, solid, cIgnored: solid && (+w.c||0)>0,
+    outer, inner, cavity: solid? null : {x1:t1, x2:t1+c, w:c, insulation:w.insulation||''},
+    leaves: inner? [outer, inner] : [outer]};
+}
+
+/* "web faces" input -> S.pfcMirror: unmirrored channel = web back at -x =
+   toward the OUTSIDE, flange tips inward; mirrored = web toward the inside.
+   Returned for every family (pfcMirrored() ignores it unless S.family is
+   'pfc'), so syncWall() can always write it. */
+function wallPfcMirror(w){ return (w.pfcWebFaces||'outside')==='inside'; }
+
+/* Run fn with S.pfcMirror = mirror (the beam-v03 helpers read the live S),
+   restoring the previous value whatever happens: placeBeam() stays free of
+   observable side effects. st is the state object handed in; the global S
+   is set too when a copy was handed in. */
+function wallWithMirror(st, mirror, fn){
+  const targets=[st];
+  if(typeof S!=='undefined' && S && S!==st) targets.push(S);
+  const had=targets.map(t=>t.pfcMirror);
+  targets.forEach(t=>{ t.pfcMirror=!!mirror; });
+  try{ return fn(); }
+  finally{ targets.forEach((t,i)=>{ t.pfcMirror=had[i]; }); }
+}
+
+/* Blue Book centroid distance c_y of a channel (mm from the web back to the
+   centroid): c_y = e_sc - e_0 + t_w/2 from the P385 Table A.3 row beam-v03
+   attaches as sec.tp (esc, e0 in mm). Fallback without the row: beam-v03's
+   own -sec.x convention (flagged in the source text). */
+function wallChannelCy(sec){
+  const tp=sec&&sec.tp, tw=+sec.tw||0, B=+sec.B||0;
+  if(tp && Number.isFinite(+tp.esc) && Number.isFinite(+tp.e0)){
+    const cy=+tp.esc-+tp.e0+tw/2;
+    return {cy, source:'e_sc - e_0 + t_w/2 = '+wallNum(+tp.esc,1)+' - '+wallNum(+tp.e0,1)+' + '+wallNum(tw/2,2)+' = '+wallNum(cy,2)+' mm (P385 Table A.3 / Blue Book c_y)'};
+  }
+  const cy=Number.isFinite(+sec.x)? +sec.x : 0.25*B;
+  return {cy, source:'no P385 torsion row: beam-v03 fallback '+wallNum(cy,2)+' mm'};
+}
+/* The channel outline in beam coordinates (mm from the centroid), the shape
+   of sectionViewGeometry() but with the web back at -c_y: unmirrored = web
+   back at -c_y (toward the outside), toes at -c_y + B (inward); mirrored =
+   the reverse. minZ / maxZ = -D/2 / +D/2 as beam-v03. */
+function wallChannelOutline(sec, mirror){
+  const D=+sec.D||1, B=+sec.B||1, tw=+sec.tw||+sec.tf||1, tf=+sec.tf||+sec.tw||1;
+  const cyInfo=wallChannelCy(sec), webBack=-cyInfo.cy;
+  const rects=[
+    {x1:webBack, z1:-D/2,     x2:webBack+tw, z2:D/2},
+    {x1:webBack, z1:D/2-tf,   x2:webBack+B,  z2:D/2},
+    {x1:webBack, z1:-D/2,     x2:webBack+B,  z2:-D/2+tf}
+  ];
+  let minX=webBack, maxX=webBack+B;
+  if(mirror){ rects.forEach(r=>{ const a=r.x1; r.x1=-r.x2; r.x2=-a; }); const m=minX; minX=-maxX; maxX=-m; }
+  return {type:'channel', rects, minX, maxX, minZ:-D/2, maxZ:D/2, cy:cyInfo.cy, cySource:cyInfo.source, mirror:!!mirror};
+}
+
+/* Extreme fibres of the beam in beam coordinates (mm from the centroid):
+   the section outline (beam-v03's sectionViewGeometry() for I / H / box
+   sections, wallChannelOutline() for a channel - see the header) extended
+   by the welded plate (x1 = section edge - outL, x2 = section edge + outR)
+   when it is on. top* = the bearing extent the masonry can sit on: the
+   section's own top flange, extended only by a TOP plate; a bottom plate
+   carries a leaf on its outstand (reported separately, plate not designed).
+   Reads S.pfcMirror / S.plate via the helpers, so call it inside
+   wallWithMirror(). outline: the channel correction (null for other kinds). */
+function beamExtremes(sec, st){
+  const isCh=sec.kind==='channel';
+  const mirror=(typeof pfcMirrored==='function')? pfcMirrored() : !!(st&&st.pfcMirror);
+  const geomV03=sectionViewGeometry(sec), sc=sectionViewShearCentre(sec);
+  const geom=isCh? wallChannelOutline(sec, mirror) : geomV03;
+  let pl=(typeof plateGeom==='function')? plateGeom(sec) : null;
+  let outline=null;
+  if(isCh){
+    const delta=geom.cy-(Number.isFinite(+sec.x)? +sec.x : 0.25*(+sec.B||0));   // c_y - beam-v03's web-back distance (mm)
+    outline={cy:geom.cy, cySource:geom.cySource, v03:(Number.isFinite(+sec.x)? +sec.x : null), delta,
+      differs:Math.abs(delta)>0.05, v03MinX:geomV03.minX, v03MaxX:geomV03.maxX};
+    if(pl){   // the plate hangs off the corrected outline (beam-v03's plateGeom uses its own web-back distance)
+      const x1=geom.minX-pl.oL, x2=geom.maxX+pl.oR;
+      outline.plateV03={x1:pl.x1, x2:pl.x2, cx:pl.cx};
+      pl=Object.assign({}, pl, {x1, x2, w:x2-x1, cx:(x1+x2)/2});
+    }
+  }
+  let minX=geom.minX, maxX=geom.maxX, topMinX=geom.minX, topMaxX=geom.maxX;
+  if(pl){
+    minX=Math.min(minX,pl.x1); maxX=Math.max(maxX,pl.x2);
+    if(pl.side==='top'){ topMinX=Math.min(topMinX,pl.x1); topMaxX=Math.max(topMaxX,pl.x2); }
+  }
+  return {minX, maxX, topMinX, topMaxX, width:maxX-minX, B:+sec.B||0, D:+sec.D||0,
+    scX:sc.x, scZ:sc.z, geom, sc, plate:pl, plateOn:!!pl, outline};
+}
+
+/* Bearing of one leaf: the top flange (or top plate) overlap and, with a
+   bottom plate, the plate overlap; outstand = the plate width under the leaf
+   beyond the flange. on = the leaf sits on any steel. */
+function wallBearingText(u){
+  if(!u || !u.on) return 'NOT under it';
+  const fl=u.flange, pl=u.plate;
+  if(fl.on && pl.on && pl.outstand>WALL_TOL) return 'top flange under it over '+wallNum(fl.width,1)+' mm + bottom-plate outstand over '+wallNum(pl.outstand,1)+' mm (plate not designed here)';
+  if(fl.on) return 'top flange under it over '+wallNum(fl.width,1)+' mm';
+  return 'bottom-plate outstand under it over '+wallNum(pl.outstand,1)+' mm, no top flange under it (plate not designed here)';
+}
+
+/* The beam in the wall: centroid x_w from the placement mode and the recess
+   r, then the shear centre, the extreme fibres, the clearances to the wall
+   faces, the bearing under each leaf and the validation lists.
+     errors   (report not run): r < 10; beam wider than W - 2r; an extreme
+              fibre outside [r, W - r]; custom mode without a number
+     warnings (report runs): a fibre inside a leaf declared not chased;
+              the beam under neither leaf (top flange or bottom-plate outstand)
+     notes    : solid-wall fallbacks, channel outline / shear-centre position */
+function placeBeam(w, sec, st){
+  const lay=wallLayout(w), W=lay.W;
+  const r=+w.recess, mode=w.placement||'flush-inside', mirror=wallPfcMirror(w);
+  const ext=wallWithMirror(st, mirror, ()=>beamExtremes(sec, st));
+  const errors=[], warnings=[], notes=[];
+  if(!(lay.t1>0)) errors.push('Outer leaf thickness t1 must be greater than 0 mm.');
+  if(lay.cIgnored) notes.push('t2 = 0: single-leaf (solid) wall of t1 = '+wallNum(lay.t1,1)+' mm; the typed cavity c = '+wallNum(+w.c,1)+' mm is ignored (W = t1).');
+  if(!Number.isFinite(r) || r<WALL_RECESS_MIN-WALL_TOL)
+    errors.push('Recess r = '+(Number.isFinite(r)? wallNum(r,2) : '?')+' mm is below the '+WALL_RECESS_MIN+' mm minimum (mortar / pointing cover so the steel is not seen).');   // 2 decimals: r = 9.99 must not read "10 mm is below the 10 mm minimum" (21 Sep 2026 review)
+  const rr=Number.isFinite(r)? r : WALL_RECESS_MIN;
+  let xc, modeText;
+  switch(mode){
+    case 'flush-inside':  xc=W-rr-ext.maxX; modeText='flush inside: innermost fibre at W - r = '+wallNum(W-rr)+' mm'; break;
+    case 'flush-outside': xc=rr-ext.minX;   modeText='flush outside: outermost fibre at r = '+wallNum(rr)+' mm'; break;
+    case 'cavity-centre':
+      if(lay.solid){ xc=W/2; modeText='cavity centre (solid wall: no cavity, centroid at W/2 = '+wallNum(W/2)+' mm)'; notes.push('Solid wall has no cavity: "cavity centre" places the centroid at the wall centre W/2 = '+wallNum(W/2)+' mm.'); }
+      else { xc=lay.t1+lay.c/2; modeText='cavity centre: centroid at t1 + c/2 = '+wallNum(xc)+' mm'; }
+      break;
+    case 'wall-centre':   xc=W/2; modeText='wall centre: centroid at W/2 = '+wallNum(xc)+' mm'; break;
+    case 'custom':
+      xc=(w.xcCustom===null || w.xcCustom===undefined || w.xcCustom==='')? NaN : +w.xcCustom;   // blank input is "not typed", not 0
+      if(!Number.isFinite(xc)){ errors.push('Custom placement: type the centroid x_w (mm).'); xc=W/2; }
+      modeText='custom: centroid at x_w = '+wallNum(xc)+' mm (typed)'; break;
+    default: errors.push('Unknown placement mode "'+mode+'".'); xc=W/2; modeText=String(mode);
+  }
+  const xsc=xc+ext.scX, xmin=xc+ext.minX, xmax=xc+ext.maxX, xTopMin=xc+ext.topMinX, xTopMax=xc+ext.topMaxX;
+  const plB=(ext.plate && ext.plate.side!=='top')? {x1:xc+ext.plate.x1, x2:xc+ext.plate.x2} : null;   // bottom plate extent in x_w
+  const available=W-2*rr;
+  const widthText='total width '+wallNum(ext.width,1)+' mm (B = '+wallNum(ext.B,1)+(ext.plate? ' + plate outstands '+wallNum(ext.plate.oL,1)+' / '+wallNum(ext.plate.oR,1) : '')+')';
+  if(ext.width>available+WALL_TOL){
+    errors.push('Beam wider than the wall: '+widthText+' > W - 2r = '+wallNum(available,1)+' mm (W = '+wallNum(W,1)+', r = '+wallNum(rr,1)+').');
+  } else {
+    if(xmin<rr-WALL_TOL) errors.push('Beam outer extreme fibre at x_w = '+wallNum(xmin)+' mm is outside the recess limits [r, W - r] = ['+wallNum(rr)+', '+wallNum(W-rr)+'] mm.');
+    if(xmax>W-rr+WALL_TOL) errors.push('Beam inner extreme fibre at x_w = '+wallNum(xmax)+' mm is outside the recess limits [r, W - r] = ['+wallNum(rr)+', '+wallNum(W-rr)+'] mm.');
+  }
+  // bearing: the top flange (or top plate) overlapping a leaf's thickness, and
+  // the bottom-plate outstand under it (21 Sep 2026 review: a leaf on the
+  // plate outstand is the owner's stated use; touching = 0 = not under)
+  const under={}, inLeaf={};
+  lay.leaves.forEach(lf=>{
+    const ovF=Math.min(xTopMax,lf.x2)-Math.max(xTopMin,lf.x1);
+    const ovP=plB? Math.min(plB.x2,lf.x2)-Math.max(plB.x1,lf.x1) : -1;
+    const flange={on:ovF>WALL_TOL, width:Math.max(ovF,0)};
+    const plate={on:ovP>WALL_TOL, width:Math.max(ovP,0), outstand:Math.max(Math.max(ovP,0)-Math.max(ovF,0),0)};
+    const u={on:flange.on||plate.on, width:flange.width, flange, plate};
+    u.text=wallBearingText(u);
+    under[lf.key]=u;
+    const intr=Math.min(xmax,lf.x2)-Math.max(xmin,lf.x1);      // any part of the beam (plate incl.) within the leaf thickness
+    inLeaf[lf.key]=intr>WALL_TOL;
+    if(intr>WALL_TOL && !lf.chased)
+      warnings.push('The beam ('+wallNum(xmin)+' to '+wallNum(xmax)+' mm) lies '+wallNum(intr)+' mm inside the '+lf.label+' ('+wallNum(lf.x1)+' to '+wallNum(lf.x2)+' mm), which is declared not chased: cut the leaf over the beam or accept that the beam bears it.');
+  });
+  const underOuter=!!under.outer.on, underInner=!!(under.inner&&under.inner.on);
+  if(!underOuter && !underInner)
+    warnings.push('The beam sits under neither leaf (top flange x_w '+wallNum(xTopMin)+' to '+wallNum(xTopMax)+' mm'+(plB? ', bottom plate '+wallNum(plB.x1)+' to '+wallNum(plB.x2)+' mm' : '')+'; outer leaf 0 to '+wallNum(lay.t1)+(lay.inner? ', inner leaf '+wallNum(lay.inner.x1)+' to '+wallNum(lay.inner.x2) : '')+' mm): no masonry bearing on the beam.');
+  let cavity=null;
+  if(lay.cavity){
+    const whole=xmin>=lay.cavity.x1-WALL_TOL && xmax<=lay.cavity.x2+WALL_TOL;
+    cavity={whole, clearance: whole? Math.min(xmin-lay.cavity.x1, lay.cavity.x2-xmax) : null,
+      needed: ext.width+2*rr};   // cavity width that would hold the beam with the recess r each side
+  }
+  if(ext.outline && ext.outline.differs){
+    const o=ext.outline;
+    notes.push('Channel outline: web back at c_y = '+wallNum(o.cy,2)+' mm from the centroid ('+o.cySource+'); beam-v03\'s own section card and 3D view draw it at '+wallNum(o.v03,2)+' mm (its table\'s torsional index x), '+wallNum(Math.abs(o.delta),2)+' mm off - a beam-v03 drawing issue flagged 20 Sep 2026, corrected here for the placement, the sketch and every e'
+      +(o.plateV03? '; with the plate, beam-v03\'s automatic self-weight eccentricity still uses its own plate position (plate centroid '+wallSigned(o.plateV03.cx,1)+' instead of '+wallSigned(ext.plate.cx,1)+' mm)' : '')+'.');
+  }
+  if(Math.abs(ext.scX)>WALL_TOL){
+    notes.push('Channel: shear centre at x_w = '+wallNum(xsc)+' mm ('+wallSigned(ext.scX,1)+' mm from the centroid, web toward the '+(mirror? 'inside' : 'outside')+')'+((xsc<-WALL_TOL||xsc>W+WALL_TOL)? ' - outside the wall thickness, as a channel\'s shear centre lies beyond its web; every e is measured from it.' : '.'));
+  }
+  return {layout:lay, r:rr, mode, modeText, mirror, ext,
+    xc, xsc, xmin, xmax, xTopMin, xTopMax, plateX:plB, width:ext.width, B:ext.B, available,
+    clearances:{outer:xmin, inner:W-xmax},        // each extreme fibre to its wall face (must be >= r)
+    under, underOuter, underInner, inLeaf, cavity,
+    errors, warnings, notes, ok:errors.length===0};
+}
+
+/* x_w of a leaf load line: the LEAF CENTRE (owner decision). null when the
+   leaf does not exist (inner leaf of a solid wall) or for the other ledgers. */
+function leafLoadX(w, leaf){
+  const lay=wallLayout(w);
+  if(leaf==='outer') return lay.outer.centre;
+  if(leaf==='inner') return lay.inner? lay.inner.centre : null;
+  return null;
+}
+
+/* z_g (mm from the shear centre, + above) for a load height choice.
+   'plate' = the plate underside (-D/2 - t; a top plate: +D/2 + t) and falls
+   back to the flange it would sit against when the plate is off. */
+function zgFor(choice, sec, custom){
+  const D=+sec.D||0;
+  switch(choice){
+    case 'bottom': return -D/2;
+    case 'sc':     return 0;
+    case 'plate': { const pl=(typeof plateGeom==='function')? plateGeom(sec) : null; return pl? (pl.side==='top'? pl.z2 : pl.z1) : -D/2; }
+    case 'custom': return Number.isFinite(+custom)? +custom : 0;
+    default:       return D/2;   // 'top' and anything unknown: the default choice
+  }
+}
+function zgChoiceText(choice, sec, custom){
+  const zg=zgFor(choice, sec, custom), z=wallSigned(zg,1)+' mm';
+  const pl=(typeof plateGeom==='function')? plateGeom(sec) : null;
+  return choice==='bottom'? 'bottom flange (-D/2 = '+z+')' : choice==='sc'? 'shear centre (0)' :
+    choice==='plate'? (pl? (pl.side==='top'? 'plate top (+D/2 + t = '+z+')' : 'plate underside (-D/2 - t = '+z+')') : 'plate underside (no plate: bottom flange '+z+')') :
+    choice==='custom'? 'custom ('+z+')' : 'top flange (+D/2 = '+z+')';
+}
+/* The load-height drop-list for the current plate: 'plate' offered only while
+   the plate is on, labelled by its side. */
+function wallHeightOptions(sec){
+  const pl=(typeof plateGeom==='function')? plateGeom(sec) : null;
+  return WALL_HEIGHTS.filter(h=>h.key!=='plate' || pl).map(h=>(h.key==='plate' && pl && pl.side==='top')? {key:'plate', label:'plate top (+D/2 + t)'} : h);
+}
+/* Rows left at 'plate' after the plate is switched off go to the flange the
+   plate sat against (S.plate.side survives the switch-off), so the ledger's
+   select always shows the z_g applied. Mutates w; returns the rows changed. */
+function wallNormaliseHeights(w, sec, st){
+  const pl=(typeof plateGeom==='function')? plateGeom(sec) : null;
+  if(pl) return 0;
+  const to=(st&&st.plate&&st.plate.side==='top')? 'top' : 'bottom';
+  let n=0;
+  WALL_LEDGERS.forEach(lg=>((w.ledgers&&w.ledgers[lg.key])||[]).forEach(row=>{ if(row.height==='plate'){ row.height=to; n++; } }));
+  return n;
+}
+
+/* "UDL 12 kN/m 0-4 m" / "TRAP 0->12 kN/m 0-4 m" / "P 30 kN @ 2 m" / "M 10 kN.m @ 2 m" */
+function wallLoadMagText(ld){
+  if(ld.type==='point')  return 'P '+wallNum(ld.P,3)+' kN @ '+wallNum(ld.pos,3)+' m';
+  if(ld.type==='moment') return 'M '+wallNum(ld.M,3)+' kN.m @ '+wallNum(ld.pos,3)+' m';
+  if(ld.type==='trap')   return 'TRAP '+wallNum(ld.w1,3)+'->'+wallNum(ld.w2,3)+' kN/m '+wallNum(ld.x1,3)+'-'+wallNum(ld.x2,3)+' m';
+  return 'UDL '+wallNum(ld.w,3)+' kN/m '+wallNum(ld.x1,3)+'-'+wallNum(ld.x2,3)+' m';
+}
+
+/* Ledger row validation (21 Sep 2026 review): a partial UDL / trapezoid typed
+   beyond the span or with x1 >= x2, a position outside [0, L] or a blank
+   magnitude used to be clamped silently and then refused by beam-v03's
+   generic "Load N must have x2 greater than x1". Returns [{msg, keys}] with
+   the row tag so the derived box prints it in red and marks the inputs. */
+function wallRowErrors(row, ledger, i, L){
+  const tag=wallRowTag(ledger, i), out=[], fin=v=>Number.isFinite(+v) && v!==null && v!=='';
+  const rowType=row.type||'udl', hasL=Number.isFinite(+L) && +L>0;
+  const Ltxt='L = '+wallNum(L,3)+' m';
+  const typeText={udl:'UDL', pudl:'partial UDL', trap:'trapezoidal load', point:'point load', moment:'applied moment'}[rowType]||rowType;
+  if(rowType==='pudl' || rowType==='trap'){
+    if(!fin(row.x1) || !fin(row.x2)) out.push({msg:tag+' ('+typeText+'): x1 and x2 must be numbers (m).', keys:['x1','x2']});
+    else if(!(+row.x2>+row.x1+1e-9) || +row.x1<-1e-9 || (hasL && +row.x2>+L+1e-9))
+      out.push({msg:tag+' ('+typeText+'): x1 = '+wallNum(row.x1,3)+' m, x2 = '+wallNum(row.x2,3)+' m must satisfy 0 <= x1 < x2 <= '+Ltxt+'.', keys:['x1','x2']});
+    if(rowType==='pudl' && !fin(row.w)) out.push({msg:tag+' ('+typeText+'): w is not a number.', keys:['w']});
+    if(rowType==='trap' && (!fin(row.w1) || !fin(row.w2))) out.push({msg:tag+' ('+typeText+'): w1 / w2 are not numbers.', keys:['w1','w2']});
+  } else if(rowType==='point' || rowType==='moment'){
+    if(!fin(row.pos) || +row.pos<-1e-9 || (hasL && +row.pos>+L+1e-9))
+      out.push({msg:tag+' ('+typeText+'): position '+(fin(row.pos)? wallNum(row.pos,3)+' m' : '(blank)')+' must lie within 0 to '+Ltxt+'.', keys:['pos']});
+    if(rowType==='point' && !fin(row.P)) out.push({msg:tag+' ('+typeText+'): P is not a number.', keys:['P']});
+    if(rowType==='moment' && !fin(row.M)) out.push({msg:tag+' ('+typeText+'): M is not a number.', keys:['M']});
+  } else {
+    if(!fin(row.w)) out.push({msg:tag+' (UDL): w is not a number.', keys:['w']});
+  }
+  if(rowType!=='moment'){
+    if(ledger==='other' && row.e!=null && row.e!=='' && !Number.isFinite(+row.e)) out.push({msg:tag+': e is not a number (mm).', keys:['e']});
+    if((row.height||'top')==='custom' && row.zgCustom!=null && row.zgCustom!=='' && !Number.isFinite(+row.zgCustom)) out.push({msg:tag+': custom z_g is not a number (mm).', keys:['zgCustom']});
+    if(ledger==='beam' && row.xw!=null && row.xw!=='' && !Number.isFinite(+row.xw)) out.push({msg:tag+': x_w of the load line is not a number (mm).', keys:['xw']});
+  }
+  return out;
+}
+
+/* One ledger row -> one beam-v03 load {type, x1,x2,w | w1,w2 | pos,P | pos,M,
+   case, e, zg, ss, stiff, label, wall:{...origin}}. Returns null for an
+   unknown row type. Span positions are clamped to [0, L] (m) so the sketch
+   and the table still draw a row that wallRowErrors() has refused. */
+function wallRowToLoad(row, ledger, i, P, sec, st, L){
+  const lg=WALL_LEDGER_MAP[ledger]||{label:ledger};
+  const rowType=row.type||'udl', type=rowType==='pudl'? 'udl' : rowType;
+  if(!['udl','trap','point','moment'].includes(type)) return null;
+  const clamp=v=>Math.min(Math.max(Number.isFinite(+v)? +v : 0,0),L);
+  const cs=['G','Q','W','E'].includes(row.case)? row.case : 'G';
+  const isMoment=type==='moment';
+  let xwLoad, e, eSource;
+  if(ledger==='outer'){ xwLoad=P.layout.outer.centre; eSource='outer leaf centre t1/2'; }
+  else if(ledger==='inner'){ xwLoad=P.layout.inner? P.layout.inner.centre : P.xsc; eSource='inner leaf centre t1 + c + t2/2'; }
+  else if(ledger==='beam'){
+    const typed=row.xw!=null && row.xw!=='' && Number.isFinite(+row.xw);
+    xwLoad=typed? +row.xw : P.xsc; eSource=typed? 'typed x_w' : 'through the shear centre';
+  } else { e=Number.isFinite(+row.e)? +row.e : 0; xwLoad=P.xsc+e; eSource='typed e'; }
+  if(e===undefined) e=xwLoad-P.xsc;
+  e=+e.toFixed(2);
+  const height=row.height||'top';
+  const custom=row.zgCustom!=null? row.zgCustom : row.zg;
+  const zg=isMoment? null : +zgFor(height, sec, custom).toFixed(2);
+  const load={type, case:cs, label:String(row.label||'')};
+  if(type==='point'){
+    load.pos=clamp(row.pos); load.P=Number.isFinite(+row.P)? +row.P : 0;
+    if(row.ss!=null && row.ss!=='' && Number.isFinite(+row.ss)) load.ss=+row.ss;   // stiff bearing length: beam-v03's own field, untouched
+    if(row.stiff) load.stiff=true;
+  } else if(isMoment){
+    load.pos=clamp(row.pos); load.M=Number.isFinite(+row.M)? +row.M : 0;
+  } else if(rowType==='udl'){
+    load.x1=0; load.x2=L; load.w=Number.isFinite(+row.w)? +row.w : 0;
+  } else if(rowType==='pudl'){
+    let x1=clamp(row.x1), x2=clamp(row.x2); if(x2<x1){ const t=x1; x1=x2; x2=t; }
+    load.x1=x1; load.x2=x2; load.w=Number.isFinite(+row.w)? +row.w : 0;
+  } else {
+    let x1=clamp(row.x1), x2=clamp(row.x2); if(x2<x1){ const t=x1; x1=x2; x2=t; }
+    load.x1=x1; load.x2=x2; load.w1=Number.isFinite(+row.w1)? +row.w1 : 0; load.w2=Number.isFinite(+row.w2)? +row.w2 : 0;
+  }
+  if(!isMoment){ load.e=e; load.zg=zg; }
+  const mag=wallLoadMagText(load);
+  const text=lg.label+': '+(load.label? load.label+' ' : '')+mag+(isMoment
+    ? ' (a moment carries no e / z_g)'
+    : ' at x_w = '+wallNum(xwLoad)+' mm ('+eSource+'), e = '+wallSigned(e)+' mm, z_g = '+wallSigned(zg,1)+' mm ('+zgChoiceText(height, sec, custom)+')');
+  load.wall={ledger, ledgerLabel:lg.label, i, id:row.id||null, tag:wallRowTag(ledger, i), rowType, xwLoad, xwSc:P.xsc, eSource, height, heightText:zgChoiceText(height, sec, custom), text};
+  return load;
+}
+
+/* Plausibility of a masonry / bearing load line against the steel (21 Sep
+   2026 review): outer, inner and typed-x_w beam loads must fall on the top
+   flange (or top plate); on a bottom-plate outstand they are carried by the
+   plate (note: plate not designed here); outside the steel altogether they
+   need a bearing detail (warning). 'other' loads (typed e: brackets, hangers)
+   are the engineer's own and are not judged. */
+function wallLoadLineCheck(ld, P){
+  const w=ld.wall; if(!w || ld.type==='moment') return null;
+  if(!(w.ledger==='outer' || w.ledger==='inner' || (w.ledger==='beam' && w.eSource==='typed x_w'))) return null;
+  const x=w.xwLoad;
+  if(x<P.xmin-WALL_TOL || x>P.xmax+WALL_TOL)
+    return {warning:w.tag+': load line at x_w = '+wallNum(x)+' mm lies outside the steel ('+wallNum(P.xmin)+' to '+wallNum(P.xmax)+' mm): needs a plate outstand / bearing detail to reach the beam (not designed here).'};
+  if(x<P.xTopMin-WALL_TOL || x>P.xTopMax+WALL_TOL)
+    return {note:w.tag+': load line at x_w = '+wallNum(x)+' mm is carried by the bottom-plate outstand (top flange '+wallNum(P.xTopMin)+' to '+wallNum(P.xTopMax)+' mm; plate outstand bending / weld not designed here).'};
+  return null;
+}
+
+/* The whole wall model -> beam-v03 inputs. loads = S.loads (self-weight is
+   NOT among them: beam-v03 adds it automatically, PFC centroid offset and
+   plate included); eccOn = any e or z_g non-zero, or a channel (its automatic
+   self-weight is eccentric and beam-v03 adds that torque only on its
+   eccentric path - 21 Sep 2026 review), else beam-v03's plain path runs;
+   pfcMirror = S.pfcMirror. placement = placeBeam(); errors = its errors +
+   the row errors (both block the report), warnings = its warnings + the
+   load-line warnings. Ledgers are generated in WALL_LEDGERS order. */
+function wallToLoads(w, sec, st){
+  const P=placeBeam(w, sec, st);
+  const L=Number.isFinite(+st.L)? +st.L : 0;
+  const loads=[], notes=P.notes.slice(), warnings=P.warnings.slice(), rowErrors=[];
+  WALL_LEDGERS.forEach(lg=>{
+    const rows=(w.ledgers&&w.ledgers[lg.key])||[];
+    if(!wallLedgerEnabled(w, lg.key)){
+      if(rows.length) notes.push('Inner leaf ledger ignored: solid wall ('+rows.length+' row'+(rows.length>1?'s':'')+' not applied).');
+      return;
+    }
+    rows.forEach((row,i)=>{
+      wallRowErrors(row, lg.key, i, L).forEach(e=>rowErrors.push({ledger:lg.key, i, keys:e.keys, msg:e.msg}));
+      const ld=wallRowToLoad(row, lg.key, i, P, sec, st, L); if(!ld) return;
+      loads.push(ld);
+      const chk=wallLoadLineCheck(ld, P);
+      if(chk&&chk.warning) warnings.push(chk.warning);
+      if(chk&&chk.note) notes.push(chk.note);
+    });
+  });
+  const loadsEcc=loads.some(ld=>ld.type!=='moment' && (Math.abs(ld.e||0)>WALL_TOL || Math.abs(ld.zg||0)>WALL_TOL));
+  const swE=(typeof selfWeightEccentricity==='function')? wallWithMirror(st, P.mirror, ()=>+selfWeightEccentricity(sec)||0) : 0;
+  const swEcc=Math.abs(swE)>WALL_TOL;
+  if(swEcc && !loadsEcc) notes.push('Self-weight eccentric: beam-v03\'s automatic self-weight acts through the centroid, e_sw = '+wallSigned(swE,1)+' mm from the shear centre, so S.eccOn = true although no ledger load is eccentric (beam-v03 adds the self-weight torque on its eccentric path only).');
+  const errors=P.errors.concat(rowErrors.map(e=>e.msg));
+  return {loads, eccOn:loadsEcc||swEcc, swE, pfcMirror:P.mirror, notes, warnings, placement:P, errors, rowErrors, ok:errors.length===0};
+}
+
+/* Text / table material of the "Wall model and load derivation" block
+   (plain strings and numbers, no HTML: js/wall/04-wall-report.js renders
+   them). res = wallToLoads() result. */
+function formatPlacement(P, sec){
+  const lay=P.layout, lines=[];
+  const mat=k=>(typeof wallMaterial==='function'? wallMaterial(k).label : k);
+  lines.push('Wall W = '+wallNum(lay.W,1)+' mm: outer leaf '+mat(lay.outer.mat)+' t1 = '+wallNum(lay.t1,1)+' mm [0, '+wallNum(lay.t1,1)+']'
+    +(lay.cavity? ', cavity c = '+wallNum(lay.c,1)+' mm ['+wallNum(lay.cavity.x1,1)+', '+wallNum(lay.cavity.x2,1)+']'+(lay.cavity.insulation? ' ('+lay.cavity.insulation+')' : '')
+      +', inner leaf '+mat(lay.inner.mat)+' t2 = '+wallNum(lay.t2,1)+' mm ['+wallNum(lay.inner.x1,1)+', '+wallNum(lay.inner.x2,1)+']' : ' (solid wall)')+'.');
+  lines.push('Beam '+(sec&&sec.key? sec.key : '')+', B = '+wallNum(P.B,1)+' mm'+(P.ext.plate? ' with a '+(P.ext.plate.side||'bottom')+' plate '+wallNum(P.ext.plate.w,1)+' x '+wallNum(P.ext.plate.t,1)+' mm (outstands '+wallNum(P.ext.plate.oL,1)+' outside / '+wallNum(P.ext.plate.oR,1)+' inside)' : '')
+    +', total width '+wallNum(P.width,1)+' mm vs W - 2r = '+wallNum(P.available,1)+' mm (r = '+wallNum(P.r,1)+' mm).');
+  lines.push('Placement '+P.modeText+(Math.abs(P.ext.scX)>WALL_TOL? ' (channel, web toward the '+(P.mirror? 'inside' : 'outside')+')' : '')+'.');
+  lines.push('Centroid x_w,c = '+wallNum(P.xc)+' mm; shear centre x_w,sc = '+wallNum(P.xsc)+' mm'+(Math.abs(P.ext.scX)>WALL_TOL? ' (= x_w,c '+wallSigned(P.ext.scX,1)+')' : ' (= centroid)')
+    +'; extreme fibres x_w = '+wallNum(P.xmin)+' / '+wallNum(P.xmax)+' mm; clearance to the external / internal face '+wallNum(P.clearances.outer,1)+' / '+wallNum(P.clearances.inner,1)+' mm (r = '+wallNum(P.r,1)+').');
+  const bearing=lay.leaves.map(lf=>lf.label+': '+wallBearingText(P.under[lf.key]));
+  lines.push('Bearing (top flange x_w '+wallNum(P.xTopMin)+' to '+wallNum(P.xTopMax)+' mm'+(P.plateX? ', bottom plate '+wallNum(P.plateX.x1)+' to '+wallNum(P.plateX.x2)+' mm' : '')+') - '+bearing.join('; ')+'.');
+  if(P.cavity && P.cavity.whole) lines.push('The beam sits wholly in the cavity with '+wallNum(P.cavity.clearance,1)+' mm to the nearer leaf face.');
+  return lines;
+}
+function formatDerivation(res, sec){
+  const P=res.placement||res;
+  const rows=(res.loads||[]).map(ld=>{
+    const wl=ld.wall||{};
+    const isM=ld.type==='moment';
+    return {
+      load:(ld.label? ld.label+' - ' : '')+wallLoadMagText(ld)+' ['+ld.case+']',
+      leaf:wl.ledgerLabel||'',
+      xwLoad:isM? null : wl.xwLoad, xwSc:isM? null : wl.xwSc,
+      e:isM? null : ld.e, zg:isM? null : ld.zg,
+      xwLoadText:isM? '-' : wallNum(wl.xwLoad)+' mm ('+wl.eSource+')',
+      xwScText:isM? '-' : wallNum(wl.xwSc)+' mm',
+      eText:isM? '-' : wallSigned(ld.e)+' mm', zgText:isM? '-' : wallSigned(ld.zg,1)+' mm ('+(wl.heightText||'')+')',
+      beamLoad:ld.case+' '+wallLoadMagText(ld)+(isM? '' : ' e = '+wallSigned(ld.e)+' mm z_g = '+wallSigned(ld.zg,1)+' mm'),
+      text:wl.text||''
+    };
+  });
+  return {placement:formatPlacement(P, sec), rows, lines:rows.map(r=>r.text),
+    eccOn:!!res.eccOn, swE:res.swE||0, pfcMirror:!!res.pfcMirror, notes:res.notes||[], warnings:res.warnings||P.warnings||[], errors:res.errors||P.errors||[]};
+}
+
+/* ===========================================================================
+   W3. BEAM IN WALL - PANELS, LEDGERS, LIVE SKETCH AND THE SYNC INTO beam-v03
+   (js/wall/03-wall-ui.js, 20 Sep 2026; review fixes 21 Sep 2026)
+   The only wall module that touches the DOM. Nothing runs at load time (the
+   test harness loads it beside the pure modules); wall.html's startup
+   (js/wall/09-wall-startup.js) calls wireWall(), fillWallPanels() and
+   syncWall() after beam-v03's own syncInputs() / wire().
+   Data flow (one direction, owner rule "the engine stays beam-v03's"):
+     panels + ledgers -> WALL (js/wall/01-wall-state.js)
+     syncWall(): wallToLoads(WALL, activeSection(), S) (js/wall/02-wall-geometry.js)
+                 -> S.loads (labelled "Outer leaf: ..."), S.eccOn, S.pfcMirror
+                 -> the #eccOn / #pfcMirror boxes of the hidden beam-v03 panels
+                    (readScalarInputs() reads them back on every scalar edit)
+                 -> the derived box + live sketch -> recompute() (beam-v03)
+   beam-v03's generic load editor is hidden on wall.html but kept in the
+   DOM so js/07-wiring.js binds unchanged; it never writes S.loads on this
+   page (its buttons are unreachable). The beam-v03 events that can change
+   the loads or the placement (span, section, plate, reset) are followed by
+   listeners registered AFTER wire(), so the ledgers always have the last
+   word: a span change re-syncs the ledgers (clamped like beam-v03's own
+   clampLoadsToSpan), never the other way round.
+   Hard placement errors (recess < 10 mm, beam outside [r, W - r], ...) and
+   ledger row errors (a partial UDL beyond the span, x1 >= x2, a blank
+   magnitude) are shown in red in the derived box, the offending inputs get
+   the class wall-bad, AND they block the report through the same
+   validateInputs() wrapper pattern js/08-mcr-eigen-patch.js uses (render()
+   prints "Could not analyse: Beam in wall: ..."); the wall check runs before
+   beam-v03's own so the message names the ledger row (I3), not "Load 4".
+   On this page every load height comes from its ledger row, so beam-v03's
+   "Default z_g" (S.za, applied to every load when S.eccOn is false) is held
+   at 0 and its input hidden (21 Sep 2026 review).
+   =========================================================================== */
+
+/* ---- pure helpers (no DOM) ---- */
+/* The ledger rows follow a span change from Lold to Lnew exactly as beam-v03's
+   loads do (clampLoadsToSpan, js/03-state-ui.js, applied to a proxy load per
+   row): a full-span UDL row always spans 0-L; a partial UDL / trapezoidal
+   row whose end sat at Lold follows, one beyond Lnew is clamped or slid
+   inwards keeping its length; a point / moment position beyond Lnew is
+   clamped. Mutates w and returns it; an invalid Lnew leaves the rows alone. */
+function wallClampRowsToSpan(w, Lold, Lnew){
+  Lnew=+Lnew; if(!(Number.isFinite(Lnew)&&Lnew>0)) return w;
+  WALL_LEDGERS.forEach(lg=>{
+    ((w.ledgers&&w.ledgers[lg.key])||[]).forEach(row=>{
+      const t=row.type||'udl';
+      if(t==='udl'){ row.x1=0; row.x2=Lnew; return; }
+      const proxy=(t==='point'||t==='moment')? {type:t, pos:+row.pos} : {type:(t==='pudl'? 'udl' : 'trap'), x1:+row.x1, x2:+row.x2};
+      clampLoadsToSpan({loads:[proxy]}, Lold, Lnew);
+      if(proxy.pos!=null) row.pos=proxy.pos; else { row.x1=proxy.x1; row.x2=proxy.x2; }
+    });
+  });
+  return w;
+}
+/* The generated loads get their origin as the label the brief prints after
+   its own magnitude / e / z_g: "Outer leaf: outer leaf masonry, x_w = 51.25 mm"
+   (the x_w the e was derived from; a moment has no load line). Pure. */
+function wallDecorateLoads(loads){
+  loads.forEach(ld=>{ if(ld.wall) ld.label=ld.wall.ledgerLabel+(ld.label? ': '+ld.label : '')+(ld.type==='moment'? '' : ', x_w = '+wallNum(ld.wall.xwLoad)+' mm'); });
+  return loads;
+}
+/* The demo span (WALL_DEMO_SPAN, js/wall/01-wall-state.js) and the demo plate
+   (WALL_DEMO_PLATE) written into beam-v03's S and its inputs at startup and
+   on Reset: beam-v03's own DEMO (L = 8 m, no plate) belongs to index.html. */
+function wallApplyDemoBeam(){
+  const L=(typeof WALL_DEMO_SPAN!=='undefined')? +WALL_DEMO_SPAN : NaN;
+  if(Number.isFinite(L) && L>0){ S.L=L; const el=wallEl('length'); if(el) el.value=L; wallLastL=L; }
+  if(typeof WALL_DEMO_PLATE!=='undefined' && WALL_DEMO_PLATE){ S.plate=JSON.parse(JSON.stringify(WALL_DEMO_PLATE)); if(typeof updatePlateUI==='function' && wallEl('platePanel')) updatePlateUI(); }
+}
+function wallEl(id){ return (typeof document!=='undefined' && document && document.getElementById)? document.getElementById(id) : null; }
+const WALL_LEDGER_IDS={outer:'wallLedgerOuter', inner:'wallLedgerInner', beam:'wallLedgerBeam', other:'wallLedgerOther'};
+let wallLastL=null;          // span the ledgers were last generated for (the Lold of a span edit without a focus event)
+let wallSpanEdit=null;       // snapshot of the ledgers taken when the span field is entered (as beam-v03's spanEdited)
+let wallSolidMemo=null;      // {c, t2} remembered when the solid-wall box is ticked, restored when unticked
+
+/* ---- panels: WALL -> DOM ---- */
+function wallFillMaterialSelects(){
+  ['wallMat1','wallMat2'].forEach(id=>{
+    const sel=wallEl(id); if(!sel || sel.options.length) return;
+    WALL_MATERIALS.forEach(m=>{ const o=document.createElement('option'); o.value=m.key; o.textContent=m.label; sel.appendChild(o); });
+  });
+}
+function fillWallPanels(){
+  wallFillMaterialSelects();
+  const setV=(id,v)=>{ const el=wallEl(id); if(el && document.activeElement!==el) el.value=(v==null? '' : v); };
+  const setC=(id,v)=>{ const el=wallEl(id); if(el) el.checked=!!v; };
+  const solid=wallIsSolid(WALL);
+  setV('wallMat1',WALL.mat1||'custom'); setV('wallT1',WALL.t1); setC('wallChased1',WALL.chased1!==false);
+  setV('wallC',WALL.c); setV('wallIns',WALL.insulation||'');
+  setV('wallMat2',WALL.mat2||'custom'); setV('wallT2',WALL.t2); setC('wallChased2',WALL.chased2!==false);
+  setC('wallSolid',solid);
+  ['wallCavityRow','wallInnerRow'].forEach(id=>{ const el=wallEl(id); if(el) el.classList.toggle('wall-dim',solid); });
+  setV('wallRecess',WALL.recess); setV('wallXc',WALL.xcCustom);
+  const xcRow=wallEl('wallXcRow'); if(xcRow) xcRow.style.display=(WALL.placement==='custom')? '' : 'none';
+  document.querySelectorAll('[data-wmode]').forEach(b=>b.classList.toggle('on',b.dataset.wmode===(WALL.placement||'flush-inside')));
+  setV('wallPfcWeb',WALL.pfcWebFaces||'outside');
+  const pfcRow=wallEl('wallPfcRow'); if(pfcRow) pfcRow.style.display=(S.family==='pfc')? '' : 'none';
+  const innerNote=wallEl('wallInnerLedgerNote'); if(innerNote) innerNote.style.display=solid? '' : 'none';
+  renderWallLedgers();
+}
+/* ---- panels: DOM -> WALL (scalars; the ledgers write through their own listeners) ---- */
+function readWallScalars(){
+  const num=(id)=>{ const el=wallEl(id); if(!el) return null; const v=parseFloat(el.value); return Number.isFinite(v)? v : null; };
+  const str=(id)=>{ const el=wallEl(id); return el? el.value : ''; };
+  const chk=(id)=>{ const el=wallEl(id); return el? el.checked : true; };
+  WALL.mat1=str('wallMat1')||'custom'; WALL.t1=num('wallT1')??0; WALL.chased1=chk('wallChased1');
+  WALL.mat2=str('wallMat2')||'custom'; WALL.chased2=chk('wallChased2');
+  WALL.insulation=str('wallIns');
+  if(chk('wallSolid')){ WALL.c=0; WALL.t2=0; }
+  else { WALL.c=num('wallC')??0; WALL.t2=num('wallT2')??0; }
+  const r=wallEl('wallRecess'); WALL.recess= r&&r.value!==''? parseFloat(r.value) : NaN;   // blank = invalid (placeBeam reports it)
+  const xc=wallEl('wallXc'); WALL.xcCustom= xc&&xc.value!==''? parseFloat(xc.value) : null;
+  WALL.pfcWebFaces=str('wallPfcWeb')==='inside'? 'inside' : 'outside';
+}
+
+/* ---- ledgers ---- */
+function wallRowHtml(row, ledger, i){
+  const L=Number.isFinite(+S.L)? +S.L : 0, t=row.type||'udl', isMoment=t==='moment';
+  const A=(k)=>' data-wl="'+ledger+'" data-wi="'+i+'" data-wk="'+k+'"';
+  const num=(label,k,val,step,ph)=>'<div class="fld"><span>'+label+'</span><input type="number" step="'+(step||0.01)+'" value="'+(val==null? '' : val)+'"'+(ph? ' placeholder="'+ph+'"' : '')+A(k)+'></div>';
+  const sel=(label,k,val,opts)=>'<div class="fld"><span>'+label+'</span><select'+A(k)+'>'+opts.map(o=>'<option value="'+o.key+'"'+(o.key===val? ' selected' : '')+'>'+o.label+'</option>').join('')+'</select></div>';
+  const head='<div class="rowhead"><select data-wlt="'+ledger+'" data-wi="'+i+'">'+WALL_ROW_TYPES.map(o=>'<option value="'+o.key+'"'+(o.key===t? ' selected' : '')+'>'+o.label+'</option>').join('')+'</select>'
+    +'<span class="wall-tag">'+({outer:'O',inner:'I',beam:'B',other:'X'}[ledger]||'L')+(i+1)+'</span><button type="button" class="del" data-wdel="'+ledger+'" data-wi="'+i+'">remove</button></div>';
+  const caseSel=sel('Case','case',row.case||'G',Object.entries(CASE_LABELS).map(([k,v])=>({key:k,label:v})));
+  let mags='';
+  if(t==='udl') mags='<div class="grid2">'+num('w, kN/m (full span 0&ndash;'+L+' m)','w',row.w)+caseSel+'</div>';
+  else if(t==='pudl') mags='<div class="grid3">'+num('Start x1, m','x1',row.x1)+num('End x2, m','x2',row.x2)+num('w, kN/m','w',row.w)+'</div><div class="grid2">'+caseSel+'<div></div></div>';
+  else if(t==='trap') mags='<div class="grid2">'+num('Start x1, m','x1',row.x1)+num('End x2, m','x2',row.x2)+'</div><div class="grid3">'+num('w1, kN/m','w1',row.w1)+num('w2, kN/m','w2',row.w2)+caseSel+'</div>';
+  else if(t==='point') mags='<div class="grid3">'+num('Position, m','pos',row.pos)+num('P, kN','P',row.P)+caseSel+'</div>';
+  else mags='<div class="grid3">'+num('Position, m','pos',row.pos)+num('M, kN&middot;m','M',row.M)+caseSel+'</div>';
+  const heightOpts=wallHeightOptions(activeSection());   // 'plate' offered only while the plate is on, labelled by its side
+  const height=isMoment? '' : '<div class="grid2">'+sel('Load height (z<sub>g</sub>)','height',row.height||'top',heightOpts)
+    +((row.height||'top')==='custom'? num('z<sub>g</sub> custom, mm (+ above SC)','zgCustom',row.zgCustom,1) : '<div></div>')+'</div>';
+  const extra= isMoment? '' : ledger==='beam'? '<div class="grid2">'+num('x<sub>w</sub> of the load line, mm','xw',row.xw,0.5,'blank = shear centre')+'<div></div></div>'
+    : ledger==='other'? '<div class="grid2">'+num('e, mm from the shear centre (+ inward)','e',row.e,1)+'<div></div></div>' : '';
+  const bearing=(t==='point' && S.code==='EC3')? '<div class="grid2">'+num('Stiff bearing s<sub>s</sub>, mm','ss',row.ss,1,'blank = 0')
+    +'<label class="checkline" style="align-self:end"><input type="checkbox" data-wlc="stiff" data-wl="'+ledger+'" data-wi="'+i+'"'+(row.stiff? ' checked' : '')+'> <span>bearing stiffener provided</span></label></div>' : '';
+  const label='<div class="fld wall-label"><span>Label (printed in the brief and the derivation table)</span><input type="text" value="'+wallEsc(row.label||'')+'" placeholder="e.g. floor joists, roof, beam B2"'+A('label')+'></div>';
+  return head+mags+height+extra+bearing+label;
+}
+function renderWallLedger(ledger){
+  const c=wallEl(WALL_LEDGER_IDS[ledger]); if(!c) return;
+  const rows=(WALL.ledgers&&WALL.ledgers[ledger])||[];
+  c.innerHTML='';
+  if(!rows.length){ c.innerHTML='<div class="wall-empty">No loads in this ledger &mdash; add one below.</div>'; return; }
+  rows.forEach((row,i)=>{ const div=document.createElement('div'); div.className='row wall-row'; div.innerHTML=wallRowHtml(row,ledger,i); c.appendChild(div); });
+}
+function renderWallLedgers(){ WALL_LEDGERS.forEach(lg=>renderWallLedger(lg.key)); }
+/* One ledger row edit from its input element (data-wl / data-wi / data-wk). */
+function wallRowEdit(el){
+  const ledger=el.dataset.wl, i=+el.dataset.wi, k=el.dataset.wk;
+  const row=WALL.ledgers[ledger]&&WALL.ledgers[ledger][i]; if(!row) return false;
+  if(k==='label'||k==='case'||k==='height') row[k]=el.value;
+  else if(k==='xw'||k==='ss') row[k]= el.value===''? null : parseFloat(el.value);
+  else row[k]=parseFloat(el.value);
+  return k==='height';   // the custom z_g field appears / disappears
+}
+
+/* ---- the derived box and the live sketch ---- */
+function updateWallDerived(res, sec){
+  const P=res.placement, box=wallEl('wallDerived'), sk=wallEl('wallSketch');
+  const n=(v,d)=>wallNum(v,d==null? 2 : d);
+  if(box){
+    const kv=(k,v)=>'<div class="wall-kv"><span>'+k+'</span><b>'+v+'</b></div>';
+    const lay=P.layout;
+    let h='';
+    h+=kv('Wall W','<span>'+n(lay.W,1)+' mm'+(lay.solid? ' (solid)' : ' = '+n(lay.t1,1)+' + '+n(lay.c,1)+' + '+n(lay.t2,1))+'</span>');
+    h+=kv('Centroid x<sub>w,c</sub>',n(P.xc)+' mm');
+    h+=kv('Shear centre x<sub>w,sc</sub>',n(P.xsc)+' mm'+(Math.abs(P.ext.scX)>1e-6? ' (centroid '+wallSigned(P.ext.scX,1)+')' : ' (= centroid)'));
+    h+=kv('Extreme fibres x<sub>w</sub>',n(P.xmin)+' / '+n(P.xmax)+' mm'+(P.ext.plate? ' (plate incl.)' : ''));
+    h+=kv('Clearance to faces',n(P.clearances.outer,1)+' / '+n(P.clearances.inner,1)+' mm (r = '+n(P.r,1)+')');
+    h+=kv('Width vs W &minus; 2r',n(P.width,1)+' vs '+n(P.available,1)+' mm');
+    const bearing=u=>u.on? 'yes: '+wallEsc(u.text) : '<span class="wall-no">no</span>';   // top flange and / or bottom-plate outstand (plate not designed here)
+    h+=kv('Bearing under outer leaf',bearing(P.under.outer));
+    if(lay.inner) h+=kv('Bearing under inner leaf',bearing(P.under.inner));
+    if(P.cavity&&P.cavity.whole) h+=kv('In the cavity',n(P.cavity.clearance,1)+' mm to the nearer leaf');
+    const list=(arr,cls)=>arr.length? '<div class="'+cls+'">'+arr.map(t=>'<div>'+wallEsc(t)+'</div>').join('')+'</div>' : '';
+    h+=list(res.errors,'wall-errs')+list(res.warnings,'wall-warns')+list(res.notes,'wall-notes');   // placement + row errors, placement + load-line warnings
+    h+='<div class="wall-sub">'+res.loads.length+' load'+(res.loads.length===1? '' : 's')+' generated; S.eccOn = '+res.eccOn+(sec&&sec.kind==='channel'? '; S.pfcMirror = '+res.pfcMirror : '')+'</div>';
+    box.innerHTML=h;
+  }
+  if(sk){ try{ sk.innerHTML=wallSectionSvg(P, res, {compact:true, idPrefix:'wsk'}); } catch(err){ sk.innerHTML='<div class="wall-errs">Sketch: '+wallEsc(err&&err.message||err)+'</div>'; } }
+  // the inputs of a refused row are marked (class wall-bad; css/beam-in-wall.css)
+  if(typeof document!=='undefined' && document.querySelectorAll){
+    document.querySelectorAll('.wall-ledger .wall-bad').forEach(el=>el.classList.remove('wall-bad'));
+    (res.rowErrors||[]).forEach(e=>e.keys.forEach(k=>{
+      const el=document.querySelector('.wall-ledger [data-wl="'+e.ledger+'"][data-wi="'+e.i+'"][data-wk="'+k+'"]'); if(el) el.classList.add('wall-bad');
+    }));
+  }
+  const hint=wallEl('wallLayoutHint');
+  if(hint){ const lay=P.layout; hint.innerHTML='x<sub>w</sub> from the external face: outer leaf 0&ndash;'+n(lay.t1,1)+(lay.cavity? ' | cavity '+n(lay.cavity.x1,1)+'&ndash;'+n(lay.cavity.x2,1)+' | inner leaf '+n(lay.inner.x1,1)+'&ndash;'+n(lay.W,1) : ' (solid wall)')+' mm; W = '+n(lay.W,1)+' mm.'; }
+}
+
+/* ---- the sync: WALL -> S ---- */
+function syncWall(opts){
+  opts=opts||{};
+  const sec=activeSection();
+  if(wallNormaliseHeights(WALL, sec, S)>0) renderWallLedgers();   // rows left at 'plate' after the plate went off (safety net; the plate handler normalises first)
+  const res=wallToLoads(WALL, sec, S);
+  S.loads=wallDecorateLoads(res.loads);
+  S.eccOn=res.eccOn;
+  S.pfcMirror=res.pfcMirror;
+  S.za=0;                                                          // every z_g is per load here; beam-v03's default z_g must not apply when S.eccOn is false
+  const ecc=wallEl('eccOn'); if(ecc) ecc.checked=res.eccOn;        // readScalarInputs() reads these back
+  const mir=wallEl('pfcMirror'); if(mir) mir.checked=res.pfcMirror;
+  const za=wallEl('za'); if(za) za.value=0;
+  if(typeof updatePlateUI==='function' && wallEl('platePanel')) updatePlateUI();   // the plate hint follows S.pfcMirror
+  wallLastL=Number.isFinite(+S.L)? +S.L : wallLastL;
+  updateWallDerived(res, sec);
+  if(opts.immediate){ if(typeof render==='function') render(); }
+  else if(typeof recompute==='function') recompute();
+  return res;
+}
+
+/* ---- listeners (once, after beam-v03's wire()) ---- */
+function wireWall(){
+  const on=(id,ev,fn)=>{ const el=wallEl(id); if(el) el.addEventListener(ev,fn); };
+  // wall construction
+  ['wallT1','wallC','wallT2','wallIns','wallRecess','wallXc'].forEach(id=>on(id,'input',()=>{ readWallScalars(); syncWall(); }));
+  ['wallChased1','wallChased2','wallPfcWeb'].forEach(id=>on(id,'change',()=>{ readWallScalars(); syncWall(); }));
+  [['wallMat1','wallT1'],['wallMat2','wallT2']].forEach(([mid,tid])=>on(mid,'change',()=>{
+    const m=wallMaterial(wallEl(mid).value);
+    if(m.t!=null && wallEl(tid)) wallEl(tid).value=m.t;   // the material's usual thickness (Brick 102.5 -> 102.5); Custom / Stone / Concrete / Timber keep what is typed
+    readWallScalars(); syncWall();
+  }));
+  on('wallSolid','change',()=>{
+    const box=wallEl('wallSolid');
+    if(box.checked){ wallSolidMemo={c:WALL.c, t2:WALL.t2}; if(wallEl('wallC')) wallEl('wallC').value=0; if(wallEl('wallT2')) wallEl('wallT2').value=0; }
+    else { const m=wallSolidMemo||{c:100,t2:100}; if(wallEl('wallC')) wallEl('wallC').value=m.c>0? m.c : 100; if(wallEl('wallT2')) wallEl('wallT2').value=m.t2>0? m.t2 : 100; }
+    readWallScalars(); fillWallPanels(); syncWall();
+  });
+  // placement
+  document.querySelectorAll('[data-wmode]').forEach(b=>b.addEventListener('click',()=>{
+    WALL.placement=b.dataset.wmode;
+    document.querySelectorAll('[data-wmode]').forEach(q=>q.classList.toggle('on',q===b));
+    const xcRow=wallEl('wallXcRow'); if(xcRow) xcRow.style.display=(WALL.placement==='custom')? '' : 'none';
+    readWallScalars(); syncWall();
+  }));
+  // ledgers: delegated listeners per container (rows are re-rendered freely)
+  WALL_LEDGERS.forEach(lg=>{
+    const c=wallEl(WALL_LEDGER_IDS[lg.key]); if(!c) return;
+    c.addEventListener('input',e=>{ const el=e.target; if(el.dataset&&el.dataset.wk&&el.tagName!=='SELECT'){ wallRowEdit(el); syncWall(); } });
+    c.addEventListener('change',e=>{
+      const el=e.target; if(!el.dataset) return;
+      if(el.dataset.wk && el.tagName==='SELECT'){ const rerender=wallRowEdit(el); if(rerender) renderWallLedger(lg.key); syncWall(); }
+      else if(el.dataset.wlc){ const row=WALL.ledgers[lg.key][+el.dataset.wi]; if(row) row[el.dataset.wlc]=el.checked; syncWall(); }
+      else if(el.dataset.wlt){   // row type change: new defaults for the type, the label / case / height / e / x_w kept
+        const i=+el.dataset.wi, old=WALL.ledgers[lg.key][i]; if(!old) return;
+        WALL.ledgers[lg.key][i]=wallNewRow(lg.key, el.value, S.L, {label:old.label, case:old.case, height:old.height, zgCustom:old.zgCustom, e:old.e, xw:old.xw, ss:old.ss, stiff:old.stiff});
+        renderWallLedger(lg.key); syncWall();
+      }
+    });
+    c.addEventListener('click',e=>{
+      const b=e.target.closest? e.target.closest('[data-wdel]') : null; if(!b) return;
+      WALL.ledgers[lg.key].splice(+b.dataset.wi,1); renderWallLedger(lg.key); syncWall();
+    });
+  });
+  document.querySelectorAll('[data-wadd]').forEach(b=>b.addEventListener('click',()=>{
+    const lg=b.dataset.wadd; if(!WALL.ledgers[lg]) WALL.ledgers[lg]=[];
+    WALL.ledgers[lg].push(wallNewRow(lg, b.dataset.wtype||'udl', S.L)); renderWallLedger(lg); syncWall();
+  }));
+  // beam-v03 events after which the placement / z_g / loads must be regenerated
+  // (these listeners run after beam-v03's own, registered first by wire())
+  ['family','pfcSelect','shsSelect','rhsSelect','ubSelect','ucSelect','shsType','rhsType','grade','code','restraint'].forEach(id=>on(id,'change',()=>{ fillWallPanels(); syncWall(); }));
+  ['plateOn','plateSide'].forEach(id=>on(id,'change',()=>{ wallNormaliseHeights(WALL, activeSection(), S); fillWallPanels(); syncWall(); }));   // plate off: 'plate' rows -> the flange, BEFORE the ledgers re-render
+  ['plateT','plateOutL','plateOutR'].forEach(id=>on(id,'input',()=>{ renderWallLedgers(); syncWall(); }));
+  // span: beam-v03's spanEdited() restores S.loads from ITS snapshot and clamps them; the ledgers then regenerate S.loads
+  // from their own snapshot clamped from the same Lold, so the last word is the ledgers' (positions follow the span)
+  on('length','focus',()=>{ wallSpanEdit={L0:Number.isFinite(+S.L)? +S.L : wallLastL, ledgers:JSON.parse(JSON.stringify(WALL.ledgers))}; });
+  const spanEdited=(commit)=>{
+    if(!wallSpanEdit) wallSpanEdit={L0:wallLastL, ledgers:JSON.parse(JSON.stringify(WALL.ledgers))};   // spinner / programmatic edit: S.L is already the new value, wallLastL the old
+    WALL.ledgers=JSON.parse(JSON.stringify(wallSpanEdit.ledgers));
+    wallClampRowsToSpan(WALL, wallSpanEdit.L0, parseFloat(wallEl('length').value));
+    renderWallLedgers();
+    if(commit) wallSpanEdit=null;
+    syncWall();
+  };
+  on('length','input',()=>spanEdited(false));
+  on('length','change',()=>spanEdited(true));
+  on('length','blur',()=>{ wallSpanEdit=null; });
+  // reset: beam-v03 restored S = DEMO (its generic demo loads); the wall demo takes over
+  on('resetBtn','click',()=>{ WALL=JSON.parse(JSON.stringify(WALL_DEMO)); wallSolidMemo=null; wallApplyDemoBeam(); fillWallPanels(); syncWall(); });
+  // hard placement errors block the report (same wrapper pattern as js/08-mcr-eigen-patch.js)
+  if(typeof window!=='undefined' && typeof window.validateInputs==='function' && !window.validateInputs.wallWrapped){
+    const _v=window.validateInputs;
+    const wrapped=function(){ const R=wallToLoads(WALL, activeSection(), S); if(R.errors.length) throw 'Beam in wall: '+R.errors.join(' '); _v.apply(this,arguments); };   // wall check first, so the message names the ledger row (I3) rather than beam-v03's "Load 4" 
+    wrapped.wallWrapped=true;
+    window.validateInputs=wrapped;
+  }
+}
+
+/* ===========================================================================
+   W4. BEAM IN WALL - REPORT PREFIX AND THE WALL SECTION SKETCH
+   (js/wall/04-wall-report.js, 20 Sep 2026; review fixes 21 Sep 2026)
+   Pure string builders, no DOM (usable in tests/wall/harness-wall.cjs):
+     wallSectionSvg(P, res, opts) -> SVG of the wall section: leaves hatched
+        by material, cavity (+ insulation label), the beam and its plate to
+        scale, the recess / clearance dimensions, the centroid and shear
+        centre marks and one load line per ledger row with its x_w. Shared
+        by the live sidebar sketch (js/wall/03-wall-ui.js, opts.compact)
+        and the report block.
+     wallDerivationTableHtml(D) -> the derivation table (load | leaf |
+        x_w,load | x_w,sc | e | z_g | beam-v03 load) from formatDerivation().
+     reportPrefixHtml(a, c, sec) -> the ONE block "Wall model and load
+        derivation" that js/06-render.js places between the verdict banner
+        and the brief when this function exists (the only beam-v03 hook).
+   Every number printed is a field of placeBeam() / wallToLoads() /
+   formatDerivation() (js/wall/02-wall-geometry.js): nothing is recomputed
+   here. The block is rendered from a FRESH wallToLoads(WALL, sec, S), which
+   is deterministic, so the table and S.loads always agree.
+   =========================================================================== */
+
+/* HTML text escape for the engineer's own labels (row labels, insulation). */
+function wallEsc(s){ return String(s==null? '' : s).replace(/[&<>"]/g, ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch])); }
+
+/* Short tag of a generated load for the sketch and the table: O1 (outer leaf),
+   I1 / I2 (inner leaf), B1 (on the beam), X1 (other). */
+function wallLoadTag(ld){
+  const w=ld&&ld.wall; if(!w) return '?';
+  return w.tag||(typeof wallRowTag==='function'? wallRowTag(w.ledger, w.i) : ({outer:'O', inner:'I', beam:'B', other:'X'}[w.ledger]||'L')+((w.i|0)+1));
+}
+
+/* SVG hatch patterns by material family (UK drawing convention, simplified:
+   brickwork 45 deg dense, blockwork 45 deg sparse, aerated block sparse +
+   dots, stone cross-hatch, concrete dots + triangles, timber grain, plain
+   none; insulation zig-zag). userSpaceOnUse so the courses keep their size
+   whatever the drawing scale; ids prefixed so the sidebar and report copies
+   never share a pattern id. */
+function wallHatchDefs(pid){
+  const diag=(w,stroke,sw)=>'<path d="M0 '+w+' L'+w+' 0 M-1 1 L1 -1 M'+(w-1)+' '+(w+1)+' L'+(w+1)+' '+(w-1)+'" stroke="'+stroke+'" stroke-width="'+sw+'" fill="none"/>';
+  const pat=(id,w,h,fill,body)=>'<pattern id="'+pid+'-'+id+'" patternUnits="userSpaceOnUse" width="'+w+'" height="'+h+'"><rect width="'+w+'" height="'+h+'" fill="'+fill+'"/>'+body+'</pattern>';
+  return pat('brick',6,6,'#f2ddcc',diag(6,'#b5734f',0.7))
+    +pat('block',10,10,'#e4e7ec',diag(10,'#6b7280',0.7))
+    +pat('aac',12,12,'#eef1f4',diag(12,'#9ca3af',0.6)+'<circle cx="3" cy="9" r="0.7" fill="#9ca3af"/>')
+    +pat('stone',12,12,'#e8e3d6',diag(12,'#8a7d66',0.6)+'<path d="M0 0 L12 12" stroke="#8a7d66" stroke-width="0.5"/>')
+    +pat('concrete',12,12,'#dfe2e6','<circle cx="3" cy="3" r="0.8" fill="#4b5563"/><circle cx="9" cy="8" r="0.8" fill="#4b5563"/><path d="M5 10 L7 7 L8.5 10.5 Z" fill="#6b7280"/>')
+    +pat('timber',8,8,'#f3e7cf','<path d="M2 0 L2 8 M5.5 0 L5.5 8" stroke="#b08a4a" stroke-width="0.5"/>')
+    +pat('plain',8,8,'#ececec','')
+    +pat('ins',10,8,'#fff8dc','<path d="M0 6 L2.5 2 L5 6 L7.5 2 L10 6" stroke="#c9a227" stroke-width="0.8" fill="none"/>');
+}
+
+/* The wall section sketch. P = placeBeam() result (layout, ext with the
+   beam-v03 outline, xc, xsc, xmin, xmax, r, clearances), res = wallToLoads()
+   result (its loads carry .wall.xwLoad and .zg) or null; opts.compact for the
+   sidebar (no material labels, larger fonts), opts.idPrefix for the pattern /
+   marker ids. Numbers formatted by wallNum() (js/wall/02-wall-geometry.js). */
+function wallSectionSvg(P, res, opts){
+  opts=opts||{};
+  const compact=!!opts.compact, pid=opts.idPrefix||(compact? 'wsk' : 'wrp');
+  const lay=P.layout, W=lay.W, ext=P.ext, geom=ext.geom, D=ext.D||100, pl=ext.plate;
+  const loads=((res&&res.loads)||[]).filter(ld=>ld.type!=='moment' && ld.wall);
+  const mat=k=>(typeof wallMaterial==='function'? wallMaterial(k) : {label:k, hatch:'plain'});
+  // vertical extents (mm, z from the beam centroid, + up): masonry above the
+  // top of the steel (the loaded leaves), wall below the underside (plate incl.)
+  const zTopSteel=pl&&pl.side==='top'? Math.max(geom.maxZ,pl.z2) : geom.maxZ;
+  const zBotSteel=pl&&pl.side!=='top'? Math.min(geom.minZ,pl.z1) : geom.minZ;
+  const hAbove=Math.min(Math.max(0.35*D,70),160), hBelow=Math.min(Math.max(0.22*D,45),100);
+  const zTop=zTopSteel+hAbove, zBot=zBotSteel-hBelow;
+  // horizontal extents: the wall plus a margin, widened for a channel's shear
+  // centre outside the wall and for every load line
+  const xsAll=[0,W,P.xmin,P.xmax,P.xsc].concat(loads.map(ld=>ld.wall.xwLoad));
+  const mrg=Math.max(18,0.06*W);
+  const x0=Math.min.apply(null,xsAll)-mrg, x1=Math.max.apply(null,xsAll)+mrg;
+  // canvas: fixed width, height from the section (to scale in both directions)
+  const CW=560, padL=compact? 30 : 44, padR=compact? 30 : 44, padT=compact? 58 : 76, padB=compact? 46 : 62;
+  const drawW=CW-padL-padR, maxH=compact? 340 : 440;
+  const scale=Math.min(drawW/(x1-x0), maxH/(zTop-zBot));
+  const dW=(x1-x0)*scale, dH=(zTop-zBot)*scale;
+  const offX=padL+(drawW-dW)/2;
+  const X=x=>offX+(x-x0)*scale, Y=z=>padT+(zTop-z)*scale;
+  const CH=padT+dH+padB;
+  const fs=compact? 11 : 10.5, fsSmall=compact? 10 : 9.5;
+  const halo=' stroke="#fffdf8" stroke-width="3" paint-order="stroke" stroke-linejoin="round"';   // paper-coloured halo: text stays legible over the hatching
+  const num=(v,d)=>(typeof wallNum==='function'? wallNum(v,d==null?1:d) : String(v));
+  let s='';
+  // ---- leaves and cavity (full height), then the beam chase ----
+  const yT=Y(zTop), yB=Y(zBot), hPx=yB-yT;
+  lay.leaves.forEach(lf=>{
+    const m=mat(lf.mat);
+    s+='<rect x="'+X(lf.x1)+'" y="'+yT+'" width="'+((lf.x2-lf.x1)*scale)+'" height="'+hPx+'" fill="url(#'+pid+'-'+(m.hatch||'plain')+')" stroke="#111" stroke-width="1.1"/>';
+    if(!compact){   // material label, vertical, in the masonry above the steel
+      const cx=X((lf.x1+lf.x2)/2), cy=yT+Math.min(hAbove*scale,hPx)/2;
+      s+='<text x="'+cx+'" y="'+cy+'" font-family="Arial" font-size="'+fsSmall+'" fill="#374151" text-anchor="middle" transform="rotate(-90 '+cx+' '+cy+')"'+halo+'>'+wallEsc(m.label)+'</text>';
+    }
+  });
+  if(lay.cavity){
+    const cv=lay.cavity;
+    if(cv.insulation) s+='<rect x="'+X(cv.x1)+'" y="'+yT+'" width="'+(cv.w*scale)+'" height="'+hPx+'" fill="url(#'+pid+'-ins)" stroke="none" opacity="0.9"/>';
+    if(!compact){
+      const cx=X((cv.x1+cv.x2)/2), cy=yT+Math.min(hAbove*scale,hPx)/2;
+      s+='<text x="'+cx+'" y="'+cy+'" font-family="Arial" font-size="'+fsSmall+'" fill="#6b7280" text-anchor="middle" transform="rotate(-90 '+cx+' '+cy+')"'+halo+'>cavity'+(cv.insulation? ' - '+wallEsc(cv.insulation) : '')+'</text>';
+    }
+  }
+  // wall faces as heavier lines (external at 0, internal at W)
+  s+='<line x1="'+X(0)+'" y1="'+yT+'" x2="'+X(0)+'" y2="'+yB+'" stroke="#111" stroke-width="1.6"/><line x1="'+X(W)+'" y1="'+yT+'" x2="'+X(W)+'" y2="'+yB+'" stroke="#111" stroke-width="1.6"/>';
+  // the chase: the steel envelope is cut out of the masonry (white), the
+  // recess r each side stays masonry / pointing
+  s+='<rect x="'+X(P.xmin)+'" y="'+Y(zTopSteel)+'" width="'+((P.xmax-P.xmin)*scale)+'" height="'+((zTopSteel-zBotSteel)*scale)+'" fill="#fffdf8" stroke="none"/>';
+  // ---- the beam (beam-v03 outline in beam coordinates, shifted by x_w,c) and the plate ----
+  const rw=(r,fill)=>'<rect x="'+X(P.xc+r.x1)+'" y="'+Y(r.z2)+'" width="'+((r.x2-r.x1)*scale)+'" height="'+((r.z2-r.z1)*scale)+'" fill="'+fill+'" stroke="#111" stroke-width="1"/>';
+  if(geom.type==='box'){ s+=rw(geom.outer,'#a3a9b3')+rw(geom.inner,'#fffdf8'); }
+  else (geom.rects||[]).forEach(r=>{ s+=rw(r,'#a3a9b3'); });
+  if(pl) s+=rw({x1:pl.x1,x2:pl.x2,z1:pl.z1,z2:pl.z2},'#6b7280');
+  // ---- load lines: one per generated load, grouped by (x_w, z_g), labelled in a two-row band at the top ----
+  const colors=['#b91c1c','#2563eb','#16a34a','#9333ea','#ea580c','#0891b2','#be123c','#4f46e5'];
+  const groups=[];
+  loads.forEach(ld=>{
+    const key=num(ld.wall.xwLoad,2)+','+num(ld.zg,1);
+    let g=groups.find(q=>q.key===key);
+    if(!g){ g={key, x:ld.wall.xwLoad, zg:ld.zg, tags:[]}; groups.push(g); }
+    g.tags.push(wallLoadTag(ld));
+  });
+  groups.sort((a,b)=>a.x-b.x);
+  const bandY=[13,26], lastEnd=[-1e9,-1e9], est=t=>t.length*(fs*0.62)+6;
+  let lines='', defs='';
+  groups.forEach((g,i)=>{
+    g.color=colors[i%colors.length];
+    const lab=g.tags.join('+'), w=est(lab), lx=X(g.x);
+    let row=0, labX=lx;
+    if(lx-w/2<=lastEnd[0]+4){ if(lx-w/2>lastEnd[1]+4) row=1; else { row=lastEnd[0]<=lastEnd[1]? 0 : 1; labX=lastEnd[row]+4+w/2; } }
+    labX=Math.min(Math.max(labX,w/2+2),CW-w/2-2); lastEnd[row]=labX+w/2;
+    const tipY=Y(g.zg), startY=bandY[1]+8;
+    defs+='<marker id="'+pid+'-arr'+i+'" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L8,4 L0,8 Z" fill="'+g.color+'"/></marker>';
+    if(Math.abs(labX-lx)>6) lines+='<line x1="'+labX+'" y1="'+(bandY[row]+2)+'" x2="'+lx+'" y2="'+startY+'" stroke="'+g.color+'" stroke-width="0.7" opacity="0.7"/>';
+    lines+='<line x1="'+lx+'" y1="'+startY+'" x2="'+lx+'" y2="'+(tipY-1)+'" stroke="'+g.color+'" stroke-width="2" marker-end="url(#'+pid+'-arr'+i+')"/>';
+    lines+='<line x1="'+lx+'" y1="'+tipY+'" x2="'+lx+'" y2="'+yB+'" stroke="'+g.color+'" stroke-width="0.8" stroke-dasharray="4 3" opacity="0.7"/>';
+    lines+='<text x="'+labX+'" y="'+bandY[row]+'" text-anchor="middle" font-family="Arial" font-size="'+fs+'" font-weight="700" fill="'+g.color+'"'+halo+'>'+lab+'</text>';
+    if(!compact) lines+='<text x="'+(lx+3)+'" y="'+(yB-3)+'" font-family="Arial" font-size="'+fsSmall+'" fill="'+g.color+'"'+halo+'>x<tspan baseline-shift="sub" font-size="'+(fsSmall*0.8)+'">w</tspan> '+num(g.x,2)+'</text>';
+  });
+  // ---- centroid C and shear centre SC ----
+  const cx=X(P.xc), cy=Y(0), sx=X(P.xsc);
+  const together=Math.abs(sx-cx)<6;
+  s+='<circle cx="'+cx+'" cy="'+cy+'" r="3" fill="#2563eb" stroke="#1e3a8a" stroke-width="0.8"/>';
+  s+='<circle cx="'+sx+'" cy="'+cy+'" r="'+(together? 5.5 : 3.2)+'" fill="'+(together? 'none' : '#dc2626')+'" stroke="#dc2626" stroke-width="1.5"/>';
+  s+='<text x="'+(Math.max(cx,sx)+8)+'" y="'+(cy+4)+'" font-family="Arial" font-size="'+fs+'" font-weight="700"'+halo+'>'+(together? '<tspan fill="#dc2626">SC</tspan> = <tspan fill="#2563eb">C</tspan>' : '<tspan fill="#2563eb">C</tspan>')+'</text>';
+  if(!together) s+='<text x="'+(sx-8)+'" y="'+(cy+4)+'" text-anchor="end" font-family="Arial" font-size="'+fs+'" font-weight="700" fill="#dc2626"'+halo+'>SC</text>';
+  // ---- dimensions: the wall chain above, the recess / clearance and the centroid below ----
+  const dim=(xa,xb,y,label,opts2)=>{
+    const o=opts2||{}, a=X(xa), b=X(xb), tick=4;
+    let d='<line x1="'+a+'" y1="'+y+'" x2="'+b+'" y2="'+y+'" stroke="#374151" stroke-width="0.8"/>';
+    d+='<line x1="'+a+'" y1="'+(y-tick)+'" x2="'+a+'" y2="'+(y+tick)+'" stroke="#374151" stroke-width="0.8"/><line x1="'+b+'" y1="'+(y-tick)+'" x2="'+b+'" y2="'+(y+tick)+'" stroke="#374151" stroke-width="0.8"/>';
+    const w=est(label.replace(/<[^>]+>/g,'')), mid=(a+b)/2, narrow=(b-a)<w+6;
+    const tx= narrow? (o.side==='left'? a-3 : b+3) : mid, anchor= narrow? (o.side==='left'? 'end' : 'start') : 'middle';
+    d+='<text x="'+tx+'" y="'+(y-3)+'" text-anchor="'+anchor+'" font-family="Arial" font-size="'+fsSmall+'" fill="#111"'+halo+'>'+label+'</text>';
+    return d;
+  };
+  const yChain=padT-10;
+  s+=dim(0,lay.t1,yChain,num(lay.t1,1),{side:'left'});
+  if(lay.cavity){ s+=dim(lay.cavity.x1,lay.cavity.x2,yChain,num(lay.c,1)); s+=dim(lay.inner.x1,lay.inner.x2,yChain,num(lay.t2,1),{side:'right'}); }
+  if(!compact) s+=dim(0,W,yChain-14,'W = '+num(W,1));
+  const yRec=Y(zBotSteel)+12;
+  s+=dim(0,P.xmin,yRec,num(P.clearances.outer,1),{side:'left'});
+  s+=dim(P.xmax,W,yRec,(Math.abs(P.clearances.inner-P.r)<1e-6? 'r = ' : '')+num(P.clearances.inner,1),{side:'right'});
+  const yC=yB+14;
+  s+=dim(0,P.xc,yC,'x<tspan baseline-shift="sub" font-size="'+(fsSmall*0.8)+'">w,c</tspan> = '+num(P.xc,2));
+  if(!together) s+=dim(0,P.xsc,yC+14,'x<tspan baseline-shift="sub" font-size="'+(fsSmall*0.8)+'">w,sc</tspan> = '+num(P.xsc,2));
+  // external / internal faces
+  const fy=yT+hPx*0.5;
+  s+='<text x="'+(X(0)-6)+'" y="'+fy+'" text-anchor="middle" font-family="Arial" font-size="'+fsSmall+'" fill="#374151" transform="rotate(-90 '+(X(0)-6)+' '+fy+')"'+halo+'>OUTSIDE</text>';
+  s+='<text x="'+(X(W)+9)+'" y="'+fy+'" text-anchor="middle" font-family="Arial" font-size="'+fsSmall+'" fill="#374151" transform="rotate(-90 '+(X(W)+9)+' '+fy+')"'+halo+'>INSIDE</text>';
+  return '<svg class="wall-svg" viewBox="0 0 '+CW+' '+CH+'" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Wall section with the beam, the recess and the load lines">'
+    +'<defs>'+wallHatchDefs(pid)+defs+'</defs><rect x="0" y="0" width="'+CW+'" height="'+CH+'" fill="#fffdf8"/>'+s+lines+'</svg>';
+}
+
+/* The derivation table from formatDerivation() rows (+ the sketch tags). */
+function wallDerivationTableHtml(D, loads){
+  const two=t=>{ const m=/^(.*?) \((.*)\)$/.exec(String(t||'')); return m? wallEsc(m[1])+'<br><span class="wall-src">('+wallEsc(m[2])+')</span>' : wallEsc(t); };   // "51.25 mm (outer leaf centre t1/2)" -> value + its source on a second line
+  const rows=D.rows.map((r,i)=>{
+    const ld=loads&&loads[i], tag=ld? wallLoadTag(ld) : '';
+    return '<tr><td class="num">'+tag+'</td><td>'+wallEsc(r.load)+'</td><td>'+wallEsc(r.leaf)+'</td><td class="num">'+two(r.xwLoadText)+'</td><td class="num">'+wallEsc(r.xwScText)+'</td><td class="num">'+wallEsc(r.eText)+'</td><td class="num">'+two(r.zgText)+'</td><td>'+wallEsc(r.beamLoad)+'</td></tr>';
+  }).join('');
+  return '<table class="wall-table"><thead><tr><th>#</th><th>Load (characteristic)</th><th>Leaf / ledger</th><th>x<sub>w,load</sub></th><th>x<sub>w,sc</sub></th><th>e = x<sub>w,load</sub> &minus; x<sub>w,sc</sub></th><th>z<sub>g</sub></th><th>beam-v03 load</th></tr></thead><tbody>'
+    +(rows||'<tr><td colspan="8">No ledger loads (self-weight only).</td></tr>')+'</tbody></table>';
+}
+
+/* The report block. a, c: analysis / check results (unused here beyond the
+   section: the block derives from WALL and S only, so it also stands when
+   the checks are blocked). Never throws: a failure prints a red note so the
+   brief still renders (the hook in js/06-render.js has no try / catch). */
+function reportPrefixHtml(a, c, sec){
+  try{
+    if(typeof WALL==='undefined' || !WALL) return '';
+    sec=sec||(a&&a.sec)||activeSection();
+    const res=wallToLoads(WALL, sec, S), P=res.placement, D=formatDerivation(res, sec);
+    const lines=D.placement.map(l=>'<div>'+wallEsc(l)+'</div>').join('');
+    const list=(arr,cls)=>arr.length? '<div class="'+cls+'">'+arr.map(t=>'<div>'+wallEsc(t)+'</div>').join('')+'</div>' : '';
+    const ltbOn=typeof loadHeightPerLoadOn==='function'? loadHeightPerLoadOn() : false;
+    const swE=Math.abs(res.swE||0)>1e-6;
+    const ecc='beam-v03 inputs written: S.eccOn = '+(res.eccOn? 'true (every load carries its own e and z<sub>g</sub>'+(swE&&!res.loads.some(ld=>ld.type!=='moment'&&(Math.abs(ld.e||0)>1e-6||Math.abs(ld.zg||0)>1e-6))? '; switched on by the eccentric self-weight of the channel, e<sub>sw</sub> = '+wallSigned(res.swE,1)+' mm' : '')+')' : 'false (every load through the shear centre at z<sub>g</sub> = 0, S.za = 0 on this page: the plain beam-v03 path)')
+      +(sec.kind==='channel'? '; S.pfcMirror = '+(res.pfcMirror? 'true (web toward the inside)' : 'false (web toward the outside)') : '')
+      +'. e enters the torsion / eccentric-load checks; z<sub>g</sub> enters the LTB M<sub>cr</sub> of the EC3 unrestrained route only'+(ltbOn? '.' : ' (fully restrained here: printed for traceability, not applied).')
+      +' Self-weight is added by beam-v03 automatically ('+(sec.kind==='channel'? 'through the channel centroid, e = e<sub>sc</sub>' : 'through the centroid')+(P.ext.plate? ', plate included' : '')+').';
+    return '<div class="wall-block"><div class="wall-h">Wall model and load derivation</div>'
+      +'<div class="wall-grid"><div class="wall-sketch">'+wallSectionSvg(P, res, {compact:false, idPrefix:'wrp'})+'</div>'
+      +'<div class="wall-lines">'+lines+list(res.notes,'wall-notes')+list(res.warnings,'wall-warns')+list(res.errors,'wall-errs')
+      +'<div class="wall-key">Conventions: x<sub>w</sub> in mm from the external face of the outer leaf inward (outer leaf [0, t<sub>1</sub>], cavity [t<sub>1</sub>, t<sub>1</sub> + c], inner leaf [t<sub>1</sub> + c, W]); the beam&rsquo;s +x points inward, so e = x<sub>w,load</sub> &minus; x<sub>w,sc</sub> (+ toward the inside, beam-v03&rsquo;s own sign); z<sub>g</sub> + above the shear centre (destabilising); a leaf load acts at the leaf centre; the recess r is the pointing cover from the steel to the wall face.</div></div></div>'
+      +wallDerivationTableHtml(D, res.loads)
+      +'<div class="wall-note">'+ecc+'</div></div>';
+  } catch(err){
+    return '<div class="err">Wall model block could not be rendered: '+wallEsc(err&&err.message? err.message : err)+'</div>';
+  }
+}
+
+/* Beam in Wall startup (wall.html, 20 Sep 2026). Replaces js/09-startup.js
+   on this page: beam-v03's own four startup steps in the same order, with
+   the wall panels wired between them so the generic demo loads of DEMO are
+   never rendered - syncWall() writes S.loads / S.eccOn / S.pfcMirror from
+   the ledgers and renders once, synchronously (immediate), the way
+   js/09-startup.js renders once. wireWall() registers its listeners AFTER
+   wire(), so on every shared event (span, section, plate, reset) beam-v03's
+   handler runs first and the ledgers have the last word. wallApplyDemoBeam()
+   (21 Sep 2026) writes the wall demo's span and plate (WALL_DEMO_SPAN,
+   WALL_DEMO_PLATE) over beam-v03's DEMO before the first render. */
 syncInputs();
 wire();
-render();
-installDiagramHover();   // 20 Sep 2026: one delegated hover-readout listener set for the analysis diagrams (js/05-diagrams.js)
+wireWall();
+wallApplyDemoBeam();
+fillWallPanels();
+syncWall({immediate:true});
+installDiagramHover();   // one delegated hover-readout listener set for the analysis diagrams (js/05-diagrams.js)
 </script>
 </body>
 </html>

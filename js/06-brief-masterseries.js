@@ -407,12 +407,13 @@ function renderMasterSeriesBrief(a,c,sec){
   const loadLines=[];
   loadLines.push('Loading Combination : '+a.governM.combo.label+(nULS>1? ' (governing moment; '+nULS+' ULS cases enabled)' : ''));
   const ecc=(ld)=> S.eccOn && ld.type!=='moment'? ' e = '+g(ld.e||0,0)+' mm'+(loadHeightPerLoadOn()? ' z<sub>g</sub> = '+g(loadZgValue(ld),0)+' mm' : '') : '';
+  const lab=(ld)=> ld.label? ' &mdash; '+String(ld.label).replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])) : '';   // 20 Sep 2026: optional load label / origin text (wall.html ledgers write "Inner leaf: floor joists")
   S.loads.filter(ld=>!ld.isSelfWeight).forEach(ld=>{
     const cs=ld.case||'?';
-    if(ld.type==='udl') loadLines.push(cs+' UDL '+f1(ld.w,3)+' '+g(ld.x1)+'&ndash;'+g(ld.x2)+' m'+ecc(ld)+' ( kN/m )');
-    else if(ld.type==='trap') loadLines.push(cs+' TRAP '+f1(ld.w1,3)+'&rarr;'+f1(ld.w2,3)+' '+g(ld.x1)+'&ndash;'+g(ld.x2)+' m'+ecc(ld)+' ( kN/m )');
-    else if(ld.type==='point') loadLines.push(cs+' PY '+f1(ld.P,3)+' @ '+g(ld.pos)+' m'+ecc(ld)+' ( kN )');
-    else if(ld.type==='moment') loadLines.push(cs+' M '+f1(ld.M,3)+' @ '+g(ld.pos)+' m ( kN.m )');
+    if(ld.type==='udl') loadLines.push(cs+' UDL '+f1(ld.w,3)+' '+g(ld.x1)+'&ndash;'+g(ld.x2)+' m'+ecc(ld)+' ( kN/m )'+lab(ld));
+    else if(ld.type==='trap') loadLines.push(cs+' TRAP '+f1(ld.w1,3)+'&rarr;'+f1(ld.w2,3)+' '+g(ld.x1)+'&ndash;'+g(ld.x2)+' m'+ecc(ld)+' ( kN/m )'+lab(ld));
+    else if(ld.type==='point') loadLines.push(cs+' PY '+f1(ld.P,3)+' @ '+g(ld.pos)+' m'+ecc(ld)+' ( kN )'+lab(ld));
+    else if(ld.type==='moment') loadLines.push(cs+' M '+f1(ld.M,3)+' @ '+g(ld.pos)+' m ( kN.m )'+lab(ld));
   });
   const swE=selfWeightEccentricity(sec);
   loadLines.push('G SW '+g(selfWeightValue(sec),4)+' kN/m 0&ndash;'+g(S.L)+' m'+(S.eccOn&&Math.abs(swE)>1e-9? ' e = '+g(swE,1)+' mm' : '')+' ( automatic )');

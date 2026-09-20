@@ -98,6 +98,8 @@ function render(){
         ? `Shear ${g(c.utils[0].val,2)} &bull; Bending ${g(c.utils[1].val,2)} &bull; LTB ${g(c.utils[2].val,2)} &bull; Defl ${g(c.utils[3].val,2)}`
         : `Shear ${g(c.utils[0].val,2)}   Bending ${g(c.utils[1].val,2)}   ${sec.isBox?'M/Mcx':'LTB'} ${g(c.utils[2].val,2)}   Defl ${g(c.utils[5].val,2)}`}
       ${c.unsupported&&c.unsupported.length?`<br><b>Unsupported exact check(s): ${c.unsupported.length}</b>`:''}</div></div>`;
+  // 20 Sep 2026 Beam in Wall (wall.html, js/wall/04-wall-report.js): an optional block between the banner and the brief / report when the page defines reportPrefixHtml(a, c, sec); index.html defines none, so this is '' there
+  const prefix=(typeof reportPrefixHtml==='function')? reportPrefixHtml(a,c,sec) : '';
 
   // 20 Sep 2026 (owner: "I see two briefs; it shall be one brief to avoid
   // confusion"): on the EC3 path the report is the verdict banner followed by
@@ -114,6 +116,7 @@ function render(){
     else { try{ brief=renderMasterSeriesBrief(a,c,sec); } catch(err){ brief=`<div class="err">Design brief could not be rendered: ${err}</div>`; } }
     rep.innerHTML=`
   ${banner}
+  ${prefix}
   ${brief}
   <div class="note" style="margin-top:8px;color:#9a8f78">Analysis: 2-node Euler Bernoulli beam elements (direct stiffness); reactions exact, shear/moment by statics, deflection at nodes exact. Section data: SCI P363 Blue Book. This is a design aid   results to be verified by a competent engineer.</div>`;
     // the section load-line card inside the brief zooms on click / Enter: listeners bound here (no inline handlers in the markup)
@@ -200,6 +203,7 @@ function render(){
 
   rep.innerHTML = `
   ${banner}
+  ${prefix}
   <div class="report-head">
     <div>
       <h2>Member Loading and Member Forces</h2>
