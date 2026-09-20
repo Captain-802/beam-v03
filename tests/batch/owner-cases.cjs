@@ -23,7 +23,10 @@
    PFC on the L2 loading) - see the OWNER table below for the owner's wording.
    Units: m, kN, kN/m, kN.m; mm for e (horizontal offset of the load line from
    the shear centre, + towards the flange tips of a channel) and z_g (height of
-   the load above the shear centre, + = destabilising).
+   the load above the shear centre, + = destabilising). Loads in the load list
+   are characteristic values factored by the combinations; the axial force
+   (S.axial = N_Ed) and the constant minor-axis moment (S.Mz = M_z,Ed) are ULS
+   DESIGN values the tool takes as entered (not factored).
    Every LTB case (restraint 'ltb') is run in BOTH M_cr methods ('eigen' FE
    eigenvalue, 'standard' SN003a / P385 closed forms); 'full' cases once; a
    case with `refuse` is not run at all - it is a documented refusal (the
@@ -88,9 +91,19 @@ const E_H = 40;                                        // mm, horizontal eccentr
 const INC_DEG = 20, INC_P = 30, INC_X = 2.0, L = 6.0;  // L6: 30 kN at 20 deg from the vertical at 2.0 m
 const INC_V = +(INC_P * Math.cos(INC_DEG * Math.PI / 180)).toFixed(3);          // 28.191 kN vertical component
 const INC_H = +(INC_P * Math.sin(INC_DEG * Math.PI / 180)).toFixed(3);          // 10.261 kN horizontal component
-const INC_MZ = +(INC_H * INC_X * (L - INC_X) / L).toFixed(3);                   // 13.681 kN.m = H a b / L, the SS minor-axis moment at 2.0 m
-const COUPLE = 40, COUPLE_X = 4.0;                    // L7: external couple 40 kN.m at 4.0 m
-const N_AX = 150;                                     // L5..L7: axial compression, U_x at End 1 (the preset)
+const INC_MZ = +(INC_H * INC_X * (L - INC_X) / L).toFixed(3);                   // 13.681 kN.m = H a b / L, the SS minor-axis moment at 2.0 m (characteristic, Q)
+// The tool's M_z input is M_z,Ed, a ULS DESIGN value entered directly and NOT run through the load
+// combinations (index.html "Minor-axis moment M_z,Ed"; js/checks/eurocode-checks.js MzEd = |S.Mz|),
+// so the Q-case moment is entered factored: gamma_Q x 13.681 (20 Sep 2026 review correction - the
+// first build entered the characteristic 13.681 kN.m as the design value).
+const GAMMA_Q = 1.5;
+const INC_MZ_ED = +(GAMMA_Q * INC_MZ).toFixed(3);                                 // 20.521 kN.m = 1.5 x 13.681, the ULS design M_z,Ed
+const COUPLE = 40, COUPLE_X = 4.0;                    // L7: external couple 40 kN.m at 4.0 m (Q, factored by the combination)
+// L5..L7: axial compression, U_x at End 1 (the preset). The tool's axial input is N_Ed, a ULS DESIGN
+// value entered directly and NOT run through the load combinations (index.html "Axial F, kN ... entered
+// directly as the governing ULS design value"), so 150 kN is the design force: in MasterSeries enter an
+// axial load whose factored value is 150 kN (e.g. 100 kN in the imposed case, 1.5 x 100 = 150).
+const N_AX = 150;
 
 /* Base loads with the given per-load e / z_g (mm). */
 function baseLoads(e, zg) {
@@ -133,14 +146,16 @@ for (const s of SECTIONS) {
   mk(T + '-L4', 'L4', s, s.label + ', 6 m SS, unrestrained; L4 "vertical horizontal eccentricity": all loads at e = +40 mm and z_g = ' + hs + ' mm (top flange)',
     ecc(E_H, h2));
   // L5 - L4 + axial compression N = 150 kN (U_x at End 1)
-  mk(T + '-L5', 'L5', s, s.label + ', 6 m SS, unrestrained; L5 = L4 + "axial load on beam": N_Ed = 150 kN compression (U_x at End 1), all loads at e = +40 mm, z_g = ' + hs + ' mm',
+  const N_TXT = 'N_Ed = ' + N_AX + ' kN compression (U_x at End 1; the ULS DESIGN value entered directly, not factored by the combination - in MasterSeries an axial load whose factored value is ' + N_AX + ' kN, e.g. ' + (N_AX / GAMMA_Q) + ' kN imposed)';
+  const MZ_TXT = 'an entered CONSTANT M_z,Ed = ' + INC_MZ_ED + ' kN.m (= ' + GAMMA_Q + ' x ' + INC_MZ + ', the ULS design value of the Q-case moment H a b / L = ' + INC_H + ' x 2 x 4 / 6 = ' + INC_MZ + ' kN.m, the simply supported minor-axis moment at 2.0 m; the tool\'s M_z input is a design value not run through the combinations)';
+  mk(T + '-L5', 'L5', s, s.label + ', 6 m SS, unrestrained; L5 = L4 + "axial load on beam": ' + N_TXT + ', all loads at e = +40 mm, z_g = ' + hs + ' mm',
     Object.assign(ecc(E_H, h2), { axial: N_AX }));
-  // L6 - L5 + an inclined point load (APPROXIMATION: vertical component + a constant M_z)
-  mk(T + '-L6', 'L6', s, s.label + ', 6 m SS, unrestrained; L6 = L5 + "load applied at angle on beam": a further 30 kN (Q) point load at 2.0 m inclined ' + INC_DEG + ' deg from the vertical - APPROXIMATION: modelled as its vertical component ' + INC_V + ' kN (e = +40, z_g = ' + hs + ') plus an entered CONSTANT M_z = ' + INC_MZ + ' kN.m (= horizontal component ' + INC_H + ' kN x 2 x 4 / 6, the simply supported minor-axis moment at 2.0 m); the tool has no lateral load, so the minor-axis moment is applied as a constant along the member, not as the true triangular diagram, and the torque of the horizontal component acting at z_g is not modelled',
-    Object.assign(ecc(E_H, h2), { axial: N_AX, Mz: INC_MZ, loads: baseLoads(E_H, h2).concat([P(INC_X, INC_V, 'Q', { e: E_H, zg: h2 })]) }));
+  // L6 - L5 + an inclined point load (APPROXIMATION: vertical component + a constant M_z,Ed)
+  mk(T + '-L6', 'L6', s, s.label + ', 6 m SS, unrestrained; L6 = L5 + "load applied at angle on beam": a further 30 kN (Q) point load at 2.0 m inclined ' + INC_DEG + ' deg from the vertical - APPROXIMATION: modelled as its vertical component ' + INC_V + ' kN (Q, e = +40, z_g = ' + hs + ', factored by the combination) plus ' + MZ_TXT + '; the tool has no lateral load, so the minor-axis moment is applied as a constant along the member (C_mz = 1.0), not as the true triangular diagram, and the torque of the horizontal component acting at z_g (H x z_g = ' + INC_H + ' x ' + (h2 / 1000).toFixed(3) + ' = ' + (INC_H * h2 / 1000).toFixed(2) + ' kN.m characteristic) is not modelled',
+    Object.assign(ecc(E_H, h2), { axial: N_AX, Mz: INC_MZ_ED, loads: baseLoads(E_H, h2).concat([P(INC_X, INC_V, 'Q', { e: E_H, zg: h2 })]) }));
   // L7 - L6 + an external couple 40 kN.m at 4.0 m
-  mk(T + '-L7', 'L7', s, s.label + ', 6 m SS, unrestrained; L7 = L6 + "EXTERNAL BENDING MOMENT AT ANY POINT ON BEAM": couple ' + COUPLE + ' kN.m (Q) at ' + COUPLE_X + ' m, applied as a pure M_y in the diagram - the "on / above / below the shear centre" variant is NOT a distinct case for a member tool: a couple has no line of action, so it produces no torque (P.e) and no load-height term (C2 z_g); only forces with a lever arm do',
-    Object.assign(ecc(E_H, h2), { axial: N_AX, Mz: INC_MZ, loads: baseLoads(E_H, h2).concat([P(INC_X, INC_V, 'Q', { e: E_H, zg: h2 }), MOM(COUPLE_X, COUPLE, 'Q')]) }));
+  mk(T + '-L7', 'L7', s, s.label + ', 6 m SS, unrestrained; L7 = L6 + "EXTERNAL BENDING MOMENT AT ANY POINT ON BEAM": couple ' + COUPLE + ' kN.m (Q, factored by the combination) at ' + COUPLE_X + ' m, applied as a pure M_y in the diagram - the "on / above / below the shear centre" variant is NOT a distinct case for a member tool: a couple has no line of action, so it produces no torque (P.e) and no load-height term (C2 z_g); only forces with a lever arm do',
+    Object.assign(ecc(E_H, h2), { axial: N_AX, Mz: INC_MZ_ED, loads: baseLoads(E_H, h2).concat([P(INC_X, INC_V, 'Q', { e: E_H, zg: h2 }), MOM(COUPLE_X, COUPLE, 'Q')]) }));
 }
 
 /* =========================================================================
@@ -180,4 +195,4 @@ for (const s of SECTIONS.filter(x => x.tag === 'UB' || x.tag === 'PFC')) {
   cases.forEach(c => { if (seen.has(c.id)) throw new Error('duplicate case id ' + c.id); seen.add(c.id); });
 }
 
-module.exports = { cases, SECTIONS, OWNER, constants: { E_H, INC_DEG, INC_P, INC_X, INC_V, INC_H, INC_MZ, COUPLE, COUPLE_X, N_AX, L } };
+module.exports = { cases, SECTIONS, OWNER, constants: { E_H, INC_DEG, INC_P, INC_X, INC_V, INC_H, INC_MZ, INC_MZ_ED, GAMMA_Q, COUPLE, COUPLE_X, N_AX, L } };

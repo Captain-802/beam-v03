@@ -1,0 +1,481 @@
+VER 5.0
+BEAM
+Project title : beam-v03 comparison MSRHS-L2b
+2,2,1,1,1,0,2,0,0
+0,0,0
+5,0,0
+1,2,1,1,0
+" 77 77"
+ UT Torq  ex +0.040 ey +0.000( m, m )    D1 UDLY -003.000            ( kN/m )    L1 UDLY -003.000            ( kN/m )    L1 PY   -008.000 2.000      ( kN,m )    
+ SEC +2157 Gr 28
+ 0 
+ 2 
+1
+UT Rs 1 1 1 1 0 0
+2
+UT Rs 0 1 1 1 0 0
+ 0 
+ 0 
+1,0,1.35,0,0,0,0,0,0,0,0,0,1.5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,4,0.5,0,0
+1,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0
+
+
+Load Case 001 : Dead plus Live (Ultimate)
+Load Case 002 : Dead plus Live (Serviceability)
+1111111111111111111111111111111111111111111
+Load Group UT : Unity Load Factor (All Cases)
+Load Group D0 : Dead Load
+Load Group D1 : Dead Load
+Load Group D2 : Dead Load
+Load Group D3 : Dead Load
+Load Group D4 : Dead Load
+Load Group D5 : Dead Load
+Load Group D6 : Dead Load
+Load Group D7 : Dead Load
+Load Group D8 : Dead Load
+Load Group D9 : Dead Load
+Load Group L0 : Live Load
+Load Group L1 : Live Load
+Load Group L2 : Live Load
+Load Group L3 : Live Load
+Load Group L4 : Live Load
+Load Group L5 : Live Load
+Load Group L6 : Live Load
+Load Group L7 : Live Load
+Load Group L8 : Live Load
+Load Group L9 : Live Load
+Load Group W0 : Wind Load
+Load Group W1 : Wind Load
+Load Group W2 : Wind Load
+Load Group W3 : Wind Load
+Load Group W4 : Wind Load
+Load Group W5 : Wind Load
+Load Group W6 : Wind Load
+Load Group W7 : Wind Load
+Load Group W8 : Wind Load
+Load Group W9 : Wind Load
+Load Group N0 :
+Load Group N1 :
+Load Group N2 :
+Load Group N3 :
+Load Group N4 :
+Load Group N5 :
+Load Group N6 :
+Load Group N7 :
+Load Group N8 :
+Load Group N9 :
+                                                                                                                                                           
+Design Briefs
+Data Set 11
+ 1 
+"Front View",0,0,0,5,0,0,1
+Data Set 31
+ 0 
+Data Set 28
+TOP 0
+Data Set 32
+ 0 
+Data Set 39
+
+
+ 1  0 
+Data Set 40
+ 5 
+ 0 
+ 0 
+ 0 
+ 0 
+Data Set 41
+ 1 
+Data Set 45
+ 1 
+ 200  77.0085  20  24  2  10  0  10  0  0  0  0  0  0  0  0  0  0  0  0 
+Data Set 47
+ 30  24  26 
+Data Set 50
+-1
+Data Set 52
+ 24 
+Data Set 53
+CaseData VALUES
+                    |000|000|000.00|000.00||||||+0.00|+0.00||||||||MDLmOB||0|                                                                                                                           
+                    |000|000|000.00|000.00||||||+0.00|+0.00||||||||Pw5oke|                                                                                                                              
+Data Set 54
+ 0 
+0
+ 0  1 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Data Set 55
+ 7 
+ 0 
+                                                                      005.000 m          0
+ 0 
+
+Data Set 56
+ 0 
+ 5 
+1
+0.5
+0.75
+2350
+0.2
+P
+C
+Data Set 57
+ .25 
+Data Set 58
+Steel Design Deflection Limits
+"0","360;25","250;40","0","0","0","Internal Beams"
+"0","360;25","250;40","0","0","0","Edge Beams"
+"0","180;25","125;40","0","0","0","Cantilevers"
+"","","","","","",""
+"","","","","","",""
+"","","","","","",""
+"","","","","","",""
+"","","","","","",""
+"","","","","","",""
+"","","","","","",""
+"","","","","","",""
+"","","","","","",""
+"","","","","","",""
+"","","","","","",""
+"","","","","","",""
+"","","","","","",""
+"","","","","","",""
+"","","","","","",""
+"","","","","","",""
+"","","","","","",""
+Data Set 59
+ 0 
+Data Set 60
+Composite Design Deflection Limits
+"360;25","250;40","200;50","0;25","","","Internal Beams"
+"500;20","300;35","250;50","0;25","","","Edge Beams"
+"","","","","","",""
+"","","","","","",""
+"","","","","","",""
+"","","","","","",""
+"","","","","","",""
+"","","","","","",""
+"","","","","","",""
+"","","","","","",""
+"","","","","","",""
+"","","","","","",""
+"","","","","","",""
+"","","","","","",""
+"","","","","","",""
+"","","","","","",""
+"","","","","","",""
+"","","","","","",""
+"","","","","","",""
+"","","","","","",""
+Data Set 61
+ 1 
+Data Set 62
+ 0 
+Data Set 63
+0; 98; 142; 193; 252; 393; 503; 785; 1131
+
+30
+Data Set 64
+ 0 
+Data Set 66
+
+Data Set 67
+ 0  1 
+Data Set 69
+ 1.6 
+2-3
+ 5  8 
+Data Set 71
+ 0 
+Data Set 73
+
+Data Set 74
+ 1 
+Data Set 77
+ 6 
+Data Set 80
+C:\Users\Rog\OneDrive - Sheffield Hallam University\Desktop\MSCOMP01.TXT
+Data Set 86
+ 0 
+000000000000
+Data Set 87
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+Load Group A0 : Dead Load
+Load Group A1 : Dead Load
+Load Group A2 : Dead Load
+Load Group A3 : Dead Load
+Load Group A4 : Dead Load
+Load Group A5 : Dead Load
+Load Group A6 : Dead Load
+Load Group A7 : Dead Load
+Load Group A8 : Dead Load
+Load Group A9 : Dead Load
+Load Group B0 : Dead Load
+Load Group B1 : Dead Load
+Load Group B2 : Dead Load
+Load Group B3 : Dead Load
+Load Group B4 : Dead Load
+Load Group B5 : Dead Load
+Load Group B6 : Dead Load
+Load Group B7 : Dead Load
+Load Group B8 : Dead Load
+Load Group B9 : Dead Load
+Load Group C0 : Dead Load
+Load Group C1 : Dead Load
+Load Group C2 : Dead Load
+Load Group C3 : Dead Load
+Load Group C4 : Dead Load
+Load Group C5 : Dead Load
+Load Group C6 : Dead Load
+Load Group C7 : Dead Load
+Load Group C8 : Dead Load
+Load Group C9 : Dead Load
+Load Group E0 : Dead Load
+Load Group E1 : Dead Load
+Load Group E2 : Dead Load
+Load Group E3 : Dead Load
+Load Group E4 : Dead Load
+Load Group E5 : Dead Load
+Load Group E6 : Dead Load
+Load Group E7 : Dead Load
+Load Group E8 : Dead Load
+Load Group E9 : Dead Load
+Load Group F0 : Dead Load
+Load Group F1 : Dead Load
+Load Group F2 : Dead Load
+Load Group F3 : Dead Load
+Load Group F4 : Dead Load
+Load Group F5 : Dead Load
+Load Group F6 : Dead Load
+Load Group F7 : Dead Load
+Load Group F8 : Dead Load
+Load Group F9 : Dead Load
+Load Group G0 : Live Load
+Load Group G1 : Live Load
+Load Group G2 : Live Load
+Load Group G3 : Live Load
+Load Group G4 : Live Load
+Load Group G5 : Live Load
+Load Group G6 : Live Load
+Load Group G7 : Live Load
+Load Group G8 : Live Load
+Load Group G9 : Live Load
+Load Group H0 : Live Load
+Load Group H1 : Live Load
+Load Group H2 : Live Load
+Load Group H3 : Live Load
+Load Group H4 : Live Load
+Load Group H5 : Live Load
+Load Group H6 : Live Load
+Load Group H7 : Live Load
+Load Group H8 : Live Load
+Load Group H9 : Live Load
+Load Group I0 : Live Load
+Load Group I1 : Live Load
+Load Group I2 : Live Load
+Load Group I3 : Live Load
+Load Group I4 : Live Load
+Load Group I5 : Live Load
+Load Group I6 : Live Load
+Load Group I7 : Live Load
+Load Group I8 : Live Load
+Load Group I9 : Live Load
+Load Group J0 : Live Load
+Load Group J1 : Live Load
+Load Group J2 : Live Load
+Load Group J3 : Live Load
+Load Group J4 : Live Load
+Load Group J5 : Live Load
+Load Group J6 : Live Load
+Load Group J7 : Live Load
+Load Group J8 : Live Load
+Load Group J9 : Live Load
+Load Group K0 : Live Load
+Load Group K1 : Live Load
+Load Group K2 : Live Load
+Load Group K3 : Live Load
+Load Group K4 : Live Load
+Load Group K5 : Live Load
+Load Group K6 : Live Load
+Load Group K7 : Live Load
+Load Group K8 : Live Load
+Load Group K9 : Live Load
+
+
+
+
+
+
+
+
+
+
+Data Set 88
+ 0 
+
+Data Set 89
+0; 2.5; 5 ; 7.5; 10; 12.5; 15; 20; 25; 30; 40; 50; 60; 70; 80; 90; 100; 120; 150; 200
+1000; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0
+
+00051.000;00100.957;00150.932;00200.914;00300.888;00500.857;01000.813;02000.770;03000.745;05000.713;
+Data Set 90
+ 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0! 0!
+Data Set 94
+ 0 
+Data Set 108
+ 0  0  0  0  0  0 
+
+
+Data Set 110
+ 0 
+ 0 
+Data Set 111
+
+
+
+
+
+
+
+
+Data Set 112
+ 2 
+Data Set 113
+ 0  1  0  0  0  0  0  0  0  0  0  0  450 
+Data Set 114
+ 1 
+Data Set 115
+ 1 
+0,0
+ 2 
+0,0
+ 1 
+0,0
+0,0
+ 0  0  0  0  0  0 
+
+
+
+Data Set 116
+ 1 
+Data Set 117
+ 0  0  0 
+Data Set 122
+ 0  0  0 
+ 0  0  0 
+Data Set 123
+UK UK  0 
+Data Set 124
+ 0  1 
+Data Set 132
+-1 
+Data Set 133
+
+Data Set 134
+000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+ 5 
+Dead+Live|10011000jYbIJn|001000020001200|111|100, 90, 180, 270|0|00.50|1000
+Live Only|120110000mqj2Q|01200|111|100, 90, 180, 270|0|00.50|1000
+Dead Only|12011000Tv_Uzy|0010000200|111|100, 90, 180, 270|0|00.50|1000
+Dead+ Live+Wind|10011000HKyijM|00100002000120002100|111|100, 90, 180, 270|0|00.50|1000
+Dead+Wind|10011000KjuEpk|001100021002100|111|100, 90, 180, 270|0|00.50|1000
+ 0 
+ 2 
+ 2 
+0.700 0.700 0.700 0.700 1.000 0.700 0.700 0.700 0.700 0.700 0.500 0.500 0.600 0.500 0.500 0.700 0.700 0.900 0.700 0.500 0.000 0.500 0.500 0.200 0.200 0.500 0.300 0.300 0.600 0.600 0.800 0.600 0.300 0.000 0.200 0.200 0.000 0.000 0.000 1.350 1.000 1.500 1.500 0.925
+Data Set 136
+0.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.00
+Data Set 139
+ 0 
+Data Set 141
+Y3fwo4
+Data Set 143
+OrVw71
+Data Set 144
+dDWJ3k
+cJNAVD
+Data Set 145
+1111111
+Data Set 147
+<?xml version="1.0" encoding="utf-8"?>#crlf#<MemberReferencing xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">#crlf#  <MemberRefNumberList>#crlf#    <int>0</int>#crlf#    <int>1</int>#crlf#  </MemberRefNumberList>#crlf#  <MemberStampGroup />#crlf#  <BracingStamp>#crlf#    <Name />#crlf#    <Holders />#crlf#    <Guid>_b$wyx</Guid>#crlf#  </BracingStamp>#crlf#  <BeamStamp>#crlf#    <Name />#crlf#    <Holders>#crlf#      <StampHolder xsi:type="MaterialHolder">#crlf#        <TrialingSeparator />#crlf#        <CompositeId>Cp</CompositeId>#crlf#        <ConcreteId>C</ConcreteId>#crlf#        <TimberId>T</TimberId>#crlf#        <SteelId>S</SteelId>#crlf#      </StampHolder>#crlf#      <StampHolder xsi:type="OrientationHolder">#crlf#        <TrialingSeparator />#crlf#        <BracingId>Br</BracingId>#crlf#        <ColumnId>C</ColumnId>#crlf#        <BeamId>B</BeamId>#crlf#      </StampHolder>#crlf#      <StampHolder xsi:type="GridLineHolder">#crlf#        <TrialingSeparator />#crlf#        <SeparatorId>\</SeparatorId>#crlf#      </StampHolder>#crlf#      <StampHolder xsi:type="LevelHolder">#crlf#        <TrialingSeparator />#crlf#        <PreceedingText>L</PreceedingText>#crlf#      </StampHolder>#crlf#      <StampHolder xsi:type="NumberHolder">#crlf#        <TrialingSeparator />#crlf#        <PreceedingText>Id </PreceedingText>#crlf#        <NonUniqueLabels>false</NonUniqueLabels>#crlf#      </StampHolder>#crlf#    </Holders>#crlf#    <Guid>Qf5oMZ</Guid>#crlf#  </BeamStamp>#crlf#  <ColStamp>#crlf#    <Name />#crlf#    <Holders />#crlf#    <Guid>RldYMf</Guid>#crlf#  </ColStamp>#crlf#  <UseStampInAllOutput>true</UseStampInAllOutput>#crlf#  <UseMemberNodeIDInTabularOutput>false</UseMemberNodeIDInTabularOutput>#crlf#  <ColAsBeam>true</ColAsBeam>#crlf#  <BracingAsBeam>true</BracingAsBeam>#crlf#  <Numbering>NumbersGlobalyUnique</Numbering>#crlf#</MemberReferencing>#crlf#
+Data Set 148
+ 0 
+Data Set 149
+ 0 
+Data Set 151
+ 0 
+ 0 
+ 1 
+Data Set 153
+-1 
+Data Set 154
+<?xml version="1.0" encoding="utf-8"?>#crlf#<dictionary />#crlf#
+Data Set 155
+ 0 
+ 0 
+Data Set 157
+<?xml version="1.0" encoding="utf-8"?>#crlf#<SlabReinfManager xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">#crlf#  <PanelZoneManager>#crlf#    <Items />#crlf#  </PanelZoneManager>#crlf#  <StripZoneManager>#crlf#    <Items />#crlf#  </StripZoneManager>#crlf#  <ColHeadZoneManager>#crlf#    <Items />#crlf#  </ColHeadZoneManager>#crlf#  <PunchingShear>#crlf#    <Items />#crlf#  </PunchingShear>#crlf#  <Defaults>#crlf#    <MainRebarGrade>500H</MainRebarGrade>#crlf#    <MainRebarCoverTop>30</MainRebarCoverTop>#crlf#    <MainRebarCoverBot>30</MainRebarCoverBot>#crlf#    <MainRebBarTopOuterLayerDir1>true</MainRebBarTopOuterLayerDir1>#crlf#    <MainRebBarBottomOuterLayerDir1>true</MainRebBarBottomOuterLayerDir1>#crlf#    <MainRebarCoverInnerLayerOpt>MaxOutDia</MainRebarCoverInnerLayerOpt>#crlf#    <MainRebarCoverInnerAdd>16</MainRebarCoverInnerAdd>#crlf#    <ShearRebarGrade>500H</ShearRebarGrade>#crlf#    <ShearRebarDia>12</ShearRebarDia>#crlf#    <ShearRebarAngle>90</ShearRebarAngle>#crlf#    <BasiRebarTopDir1Dia>10</BasiRebarTopDir1Dia>#crlf#    <BasiRebarTopDir1Spc>200</BasiRebarTopDir1Spc>#crlf#    <BasiRebarTopDir2Dia>10</BasiRebarTopDir2Dia>#crlf#    <BasiRebarTopDir2Spc>200</BasiRebarTopDir2Spc>#crlf#    <BasiRebarBotDir1Dia>10</BasiRebarBotDir1Dia>#crlf#    <BasiRebarBotDir1Spc>200</BasiRebarBotDir1Spc>#crlf#    <BasiRebarBotDir2Dia>10</BasiRebarBotDir2Dia>#crlf#    <BasiRebarBotDir2Spc>200</BasiRebarBotDir2Spc>#crlf#    <AutoRebarTopDir1Dia>10;12;16;20;25;32</AutoRebarTopDir1Dia>#crlf#    <AutoRebarTopDir1Spc>100;125;150;175;200;225;250;275;300</AutoRebarTopDir1Spc>#crlf#    <AutoRebarTopDir2Dia>10;12;16;20;25;32</AutoRebarTopDir2Dia>#crlf#    <AutoRebarTopDir2Spc>100;125;150;175;200;225;250;275;300</AutoRebarTopDir2Spc>#crlf#    <AutoRebarBotDir1Dia>10;12;16;20;25;32</AutoRebarBotDir1Dia>#crlf#    <AutoRebarBotDir1Spc>100;125;150;175;200;225;250;275;300</AutoRebarBotDir1Spc>#crlf#    <AutoRebarBotDir2Dia>10;12;16;20;25;32</AutoRebarBotDir2Dia>#crlf#    <AutoRebarBotDir2Spc>100;125;150;175;200;225;250;275;300</AutoRebarBotDir2Spc>#crlf#    <UseWoodArmerAxailTensionForce>false</UseWoodArmerAxailTensionForce>#crlf#    <Peak>#crlf#      <Dir1Left>1</Dir1Left>#crlf#      <Dir1Right>1</Dir1Right>#crlf#      <Dir2Left>1</Dir2Left>#crlf#      <Dir2Right>1</Dir2Right>#crlf#      <OneZone>false</OneZone>#crlf#      <Zone2FullWidth>false</Zone2FullWidth>#crlf#      <AlignWithColBeta>false</AlignWithColBeta>#crlf#      <ReplaceBasic>false</ReplaceBasic>#crlf#      <AutoDesStrat>AutoDesign</AutoDesStrat>#crlf#      <AutoSizeZone>false</AutoSizeZone>#crlf#      <Shape>Symmetrical</Shape>#crlf#      <AutoSizeResolution>25</AutoSizeResolution>#crlf#    </Peak>#crlf#    <Strip>#crlf#      <StartLeft>1</StartLeft>#crlf#      <Startight>1</Startight>#crlf#      <Endeft>1</Endeft>#crlf#      <EndRight>1</EndRight>#crlf#      <Parallel>true</Parallel>#crlf#      <ReplaceBasic>false</ReplaceBasic>#crlf#      <AutoDesStrat>AutoDesign</AutoDesStrat>#crlf#    </Strip>#crlf#    <Detailing>#crlf#      <AlternateBarSpacings>true</AlternateBarSpacings>#crlf#      <EC2LargeDepthmaxSpac>false</EC2LargeDepthmaxSpac>#crlf#      <QausiPermServiceToUltRatio>0.67</QausiPermServiceToUltRatio>#crlf#      <CrackWidth>3</CrackWidth>#crlf#      <AggregateSize>20</AggregateSize>#crlf#    </Detailing>#crlf#  </Defaults>#crlf#  <DrawPeakColWallOnly>true</DrawPeakColWallOnly>#crlf#  <DrawRebar>true</DrawRebar>#crlf#  <DrawUnity>false</DrawUnity>#crlf#  <DrawRebar_Filter>SelectedSet</DrawRebar_Filter>#crlf#  <DrawRebar_Sub_Types>None</DrawRebar_Sub_Types>#crlf#  <DrawRebar_Type>None</DrawRebar_Type>#crlf#  <DrawContour_Filter>SelectedSet</DrawContour_Filter>#crlf#  <DrawUnityRelatedBasic>false</DrawUnityRelatedBasic>#crlf#  <DrawSectDiag>true</DrawSectDiag>#crlf#  <DrawSectDiagForceVal>0</DrawSectDiagForceVal>#crlf#  <DrawSectDiagValues>true</DrawSectDiagValues>#crlf#  <SectDiagSale>50</SectDiagSale>#crlf#  <DrawDims>false</DrawDims>#crlf#  <Printsettings>#crlf#    <SelectbasicRebar />#crlf#    <SelectStripRebar />#crlf#    <SelectPunchRebar />#crlf#    <SelectPeakRebar />#crlf#    <GraphicsPunch>true</GraphicsPunch>#crlf#    <VisibleOnly>false</VisibleOnly>#crlf#    <ExpBasic>true</ExpBasic>#crlf#    <ExpStrip>true</ExpStrip>#crlf#    <ExpPunch>true</ExpPunch>#crlf#    <SelBasic>false</SelBasic>#crlf#    <SelStrip>false</SelStrip>#crlf#    <ExpPeak>true</ExpPeak>#crlf#    <SelPunch>false</SelPunch>#crlf#    <SelPeak>false</SelPeak>#crlf#  </Printsettings>#crlf#  <DXfExportSettings>#crlf#    <Snapshot>#crlf#      <Snapshots />#crlf#    </Snapshot>#crlf#    <SeperateRebarTypes>false</SeperateRebarTypes>#crlf#    <loadAutoCAD>false</loadAutoCAD>#crlf#    <BottomDir1>true</BottomDir1>#crlf#    <BottomDir2>true</BottomDir2>#crlf#    <PeakDims>true</PeakDims>#crlf#    <TopDir1>true</TopDir1>#crlf#    <TopDir2>true</TopDir2>#crlf#    <Basic>true</Basic>#crlf#    <Strip>true</Strip>#crlf#    <Peak>true</Peak>#crlf#    <Punch>true</Punch>#crlf#    <dxfscaleIndex>10</dxfscaleIndex>#crlf#    <dxfExportPath />#crlf#    <dxfTextHeight>2.5</dxfTextHeight>#crlf#  </DXfExportSettings>#crlf#</SlabReinfManager>#crlf#
+Data Set 158
+<?xml version="1.0" encoding="utf-8"?>#crlf#<MFProLinePatchLoadManager xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">#crlf#  <LineLoadManager>#crlf#    <Items />#crlf#  </LineLoadManager>#crlf#  <PatchLoadManager>#crlf#    <Items />#crlf#  </PatchLoadManager>#crlf#  <PointLoadManager>#crlf#    <Items />#crlf#  </PointLoadManager>#crlf#  <LineLoadScale>0.2</LineLoadScale>#crlf#  <PointLoadScale>0.2</PointLoadScale>#crlf#  <LabelXZCords>false</LabelXZCords>#crlf#  <DrawSelectedOnly>false</DrawSelectedOnly>#crlf#  <DrawLoadInViewOnly>false</DrawLoadInViewOnly>#crlf#</MFProLinePatchLoadManager>#crlf#
+Data Set 159
+previewimage!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
+Data Set 161
+5
+000000000000
+Data Set 171
+ 0 
+ 0 
+ 0 
+<?xml version="1.0" encoding="utf-8"?>~#<ConcreteDesginGroups xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">~#  <BasicDataGlobal />~#  <BasicDataGblCommon>~#    <MSGuid>HlTLLQ</MSGuid>~#    <MemberGroupSettings>false</MemberGroupSettings>~#    <GlobalBeamColPadSetting>false</GlobalBeamColPadSetting>~#    <FyMainbars>500B</FyMainbars>~#    <FyLinkbars>500B</FyLinkbars>~#  </BasicDataGblCommon>~#  <BasicDataGblBeam>~#    <MSGuid>6hl4pt</MSGuid>~#    <MemberGroupSettings>false</MemberGroupSettings>~#    <GlobalBeamColPadSetting>true</GlobalBeamColPadSetting>~#    <FyMainbars>500B</FyMainbars>~#    <FyLinkbars>500B</FyLinkbars>~#    <TopBarRange>~#      <MinBardia>12</MinBardia>~#    </TopBarRange>~#    <BotBarRange>~#      <MinBardia>12</MinBardia>~#    </BotBarRange>~#    <LinkBarRange>~#      <MaxBardia>16</MaxBardia>~#    </LinkBarRange>~#    <BarGapRange />~#    <BarNoRange>~#      <MinBarNumber>2</MinBarNumber>~#      <MaxBarNumber>5</MaxBarNumber>~#    </BarNoRange>~#    <LinkPitchRange>~#      <MinBarspacing>100</MinBarspacing>~#      <MaxBarSpacing>250</MaxBarSpacing>~#    </LinkPitchRange>~#    <SlabBarPitchRange>~#      <MinBarspacing>100</MinBarspacing>~#    </SlabBarPitchRange>~#  </BasicDataGblBeam>~#  <BasicDataGblCol>~#    <MSGuid>YrBtNB</MSGuid>~#    <MemberGroupSettings>false</MemberGroupSettings>~#    <GlobalBeamColPadSetting>true</GlobalBeamColPadSetting>~#    <FyMainbars>500B</FyMainbars>~#    <FyLinkbars>500B</FyLinkbars>~#    <BarRange>~#      <MinBardia>12</MinBardia>~#    </BarRange>~#    <LinkBarRange>~#      <MaxBardia>16</MaxBardia>~#    </LinkBarRange>~#    <BarGapRange>~#      <MinBarspacing>50</MinBarspacing>~#      <MaxBarSpacing>100</MaxBarSpacing>~#    </BarGapRange>~#    <BarNoRange>~#      <MinBarNumber>2</MinBarNumber>~#      <MaxBarNumber>6</MaxBarNumber>~#    </BarNoRange>~#    <LinkPitchRange>~#      <MinBarspacing>50</MinBarspacing>~#      <MaxBarSpacing>250</MaxBarSpacing>~#    </LinkPitchRange>~#    <BeamColLevels />~#  </BasicDataGblCol>~#  <BasicDataGblPad>~#    <MSGuid>0E7hU6</MSGuid>~#    <MemberGroupSettings>false</MemberGroupSettings>~#    <GlobalBeamColPadSetting>true</GlobalBeamColPadSetting>~#    <FyMainbars>500B</FyMainbars>~#    <FyLinkbars>500B</FyLinkbars>~#    <DesignMethodSet>true</DesignMethodSet>~#    <ConcDensity>24</ConcDensity>~#    <BarRange>~#      <MinBardia>16</MinBardia>~#    </BarRange>~#    <BarGapRange>~#      <MinBarspacing>150</MinBarspacing>~#    </BarGapRange>~#  </BasicDataGblPad>~#  <ConcBeamDesignGroups />~#  <ConcColumnDesignGroups />~#  <ConcPadDesignGroups />~#</ConcreteDesginGroups>~#
+Data Set 172
+<?xml version="1.0" encoding="utf-8"?>#crlf#<SlabDeflectionManager xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">#crlf#  <Briefs />#crlf#  <Printsettings>#crlf#    <SelectCheckLines />#crlf#    <SelectCrackControl />#crlf#    <VisibleOnly>false</VisibleOnly>#crlf#    <ExpCheckLines>true</ExpCheckLines>#crlf#    <ExpCrackControl>true</ExpCrackControl>#crlf#    <SelLines>false</SelLines>#crlf#    <SelCrackControl>false</SelCrackControl>#crlf#  </Printsettings>#crlf#  <DrawSectDiagValues>true</DrawSectDiagValues>#crlf#  <SectDiagSale>500</SectDiagSale>#crlf#</SlabDeflectionManager>#crlf#
+Data Set 174
+ 0 
+0,1
+Data Set 175
+ 1 
+C:\ProgramData\MasterSeries\OPENLIBUK0.DB
+0,0,1,0
+Data Set 176
+ 0 
+<?xml version="1.0" encoding="utf-8"?>~#<TimberDesignGroups xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">~#  <DesignGroups />~#</TimberDesignGroups>~#
+Data Set 179
+<?xml version="1.0" encoding="utf-8"?>#crlf#<FEWallReifManager xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">#crlf#  <WallColumns>#crlf#    <Items />#crlf#  </WallColumns>#crlf#  <WallBeams>#crlf#    <Items />#crlf#  </WallBeams>#crlf#  <WallOpCrnShear>#crlf#    <Items />#crlf#  </WallOpCrnShear>#crlf#  <Printsettings>#crlf#    <SelectPierRebar />#crlf#    <SelectBeamRebar />#crlf#    <SelectOPCrnRebar />#crlf#    <GraphicsWall>true</GraphicsWall>#crlf#    <VisibleOnly>false</VisibleOnly>#crlf#    <ExpPier>true</ExpPier>#crlf#    <ExpBeam>true</ExpBeam>#crlf#    <ExpOpCrn>true</ExpOpCrn>#crlf#    <SelPier>false</SelPier>#crlf#    <SelBeam>false</SelBeam>#crlf#    <SelOPCrn>false</SelOPCrn>#crlf#  </Printsettings>#crlf#  <DXfExportSettings>#crlf#    <Snapshot>#crlf#      <Snapshots />#crlf#    </Snapshot>#crlf#    <SeperateRebarTypes>false</SeperateRebarTypes>#crlf#    <loadAutoCAD>false</loadAutoCAD>#crlf#    <VerticalPier>true</VerticalPier>#crlf#    <HorizontalPier>true</HorizontalPier>#crlf#    <VerticalBeam>true</VerticalBeam>#crlf#    <HorizontalBeams>true</HorizontalBeams>#crlf#    <dxfscaleIndex>10</dxfscaleIndex>#crlf#    <dxfExportPath />#crlf#    <dxfTextHeight>2.5</dxfTextHeight>#crlf#  </DXfExportSettings>#crlf#  <Defaults>#crlf#    <MainRebarGrade>500H</MainRebarGrade>#crlf#    <MainRebarCover>30</MainRebarCover>#crlf#    <DesMethodPier>EqualStripsFixedWidth</DesMethodPier>#crlf#    <LeftRigthWidth>2</LeftRigthWidth>#crlf#    <LRSymmetricalRebar>-1</LRSymmetricalRebar>#crlf#    <EqualWidth>1</EqualWidth>#crlf#    <EqualNo>4</EqualNo>#crlf#    <OneZoneDtLimit>6</OneZoneDtLimit>#crlf#    <VertRebarDia>16</VertRebarDia>#crlf#    <VertRebarSpc>200</VertRebarSpc>#crlf#    <HorzRebarDia>10</HorzRebarDia>#crlf#    <HorzRebarSpc>200</HorzRebarSpc>#crlf#    <AutoRebarPierVerticalDia>10;12;16;20;25;32</AutoRebarPierVerticalDia>#crlf#    <AutoRebarPierVerticalSpc>100;150;200;250;300;350;400</AutoRebarPierVerticalSpc>#crlf#    <AutoRebarPierHorzDia>10;12;16;20</AutoRebarPierHorzDia>#crlf#    <AutoRebarPierHorzSpc>100;125;150;175;200;225;250;275;300</AutoRebarPierHorzSpc>#crlf#    <AutoGenPiers>true</AutoGenPiers>#crlf#    <AutoGenBeams>true</AutoGenBeams>#crlf#    <AutoGenIncludeConnectedSurfaces>true</AutoGenIncludeConnectedSurfaces>#crlf#    <AutoGenPierSplitLevels>true</AutoGenPierSplitLevels>#crlf#    <AutoGenPierSplitSlabs>true</AutoGenPierSplitSlabs>#crlf#    <AutoGenBeamMinSpanDepthRatio>0.5</AutoGenBeamMinSpanDepthRatio>#crlf#    <StruTieSpanOverDLimit>2</StruTieSpanOverDLimit>#crlf#    <StruTieBearingMultiple>1</StruTieBearingMultiple>#crlf#    <AutoRebarBeamTBDia>10;12;16;20;25;32</AutoRebarBeamTBDia>#crlf#    <AutoRebarBeamTBNo>2;3;4;5;6</AutoRebarBeamTBNo>#crlf#    <AutoRebarBeamLinkDia>10;12;16</AutoRebarBeamLinkDia>#crlf#    <AutoRebarBeamLinkSpc>100;150;200;250;300;350;400;450;500;550;600</AutoRebarBeamLinkSpc>#crlf#  </Defaults>#crlf#  <DrawSectDiag>false</DrawSectDiag>#crlf#  <DrawSectDiagValues>true</DrawSectDiagValues>#crlf#  <SectDiagSale>500</SectDiagSale>#crlf#  <DrawRebar_Filter>SelectedSet</DrawRebar_Filter>#crlf#  <DrawRebar_Sub_Types>None</DrawRebar_Sub_Types>#crlf#  <DrawRebar_Type>None</DrawRebar_Type>#crlf#  <DrawSecDiagForce_Type>Axial</DrawSecDiagForce_Type>#crlf#  <DrawRebar>true</DrawRebar>#crlf#</FEWallReifManager>#crlf#
+Data Set 180
+<?xml version="1.0" encoding="utf-8"?>~#<SteelDesignBriefManager xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">~#  <SteelDesignBriefs>~#    <SteelDesignBrief xsi:type="SteelAxailwithMomentBrief">~#      <Guid>BVQ$Us</Guid>~#      <MemNos>00001</MemNos>~#      <McritProps />~#      <LamdaLimit>250</LamdaLimit>~#      <ThetaTorqRotLimit>2</ThetaTorqRotLimit>~#      <PortionsEnd1 />~#      <PortionsEnd2 />~#      <Bolt_Holes />~#      <StaysAtPurlinNo />~#    </SteelDesignBrief>~#  </SteelDesignBriefs>~#  <SteelDesDefCases />~#</SteelDesignBriefManager>~#
+Data Set 183
+<?xml version="1.0" encoding="utf-8"?>#crlf#<Snapshot xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">#crlf#  <MasterCad>#crlf#    <ShowEndPlates>false</ShowEndPlates>#crlf#    <CropMembers>false</CropMembers>#crlf#    <DrawPads>false</DrawPads>#crlf#  </MasterCad>#crlf#  <Supports>#crlf#    <DrawStaticSupports>false</DrawStaticSupports>#crlf#    <DrawSpringSupports>false</DrawSpringSupports>#crlf#    <DrawNodalLoads>false</DrawNodalLoads>#crlf#    <DrawSettlement>false</DrawSettlement>#crlf#  </Supports>#crlf#  <Display>#crlf#    <MultiColorShading>true</MultiColorShading>#crlf#    <ShowSectionLegend>false</ShowSectionLegend>#crlf#    <ColorBySection>true</ColorBySection>#crlf#    <UseDirectX>true</UseDirectX>#crlf#    <Members3D>false</Members3D>#crlf#  </Display>#crlf#  <Members>#crlf#    <MultiSelect>false</MultiSelect>#crlf#    <Horizontal>false</Horizontal>#crlf#    <NorthSouth>false</NorthSouth>#crlf#    <Vertical>false</Vertical>#crlf#    <Inclined>false</Inclined>#crlf#    <EastWest>false</EastWest>#crlf#    <EndReleasesVisible>false</EndReleasesVisible>#crlf#    <StiffDeckVisible>false</StiffDeckVisible>#crlf#    <BetaAngleVisible>false</BetaAngleVisible>#crlf#    <SectionsVisible>false</SectionsVisible>#crlf#    <NumbersVisible>false</NumbersVisible>#crlf#    <LengthsVisible>true</LengthsVisible>#crlf#    <StudsVisible>false</StudsVisible>#crlf#    <MeshVisible>false</MeshVisible>#crlf#    <Size>WireFrame</Size>#crlf#  </Members>#crlf#  <Options>#crlf#    <ShowNodeViewingGroup />#crlf#    <ShowViewingGroup />#crlf#    <ShowDesignGroup />#crlf#    <ShowDesignConcBGroup />#crlf#    <ShowDesignConcCGroup />#crlf#    <ShowDesignTimbGroup />#crlf#    <ShowMaterial />#crlf#    <ShowSections />#crlf#    <ShowFeGroup />#crlf#    <ViewingGroupLabelsOnly>false</ViewingGroupLabelsOnly>#crlf#    <OrientationLabelsOnly>false</OrientationLabelsOnly>#crlf#    <DesignGroupLabelsOnly>false</DesignGroupLabelsOnly>#crlf#    <MaterialLabelsOnly>false</MaterialLabelsOnly>#crlf#    <SectionLabelsOnly>false</SectionLabelsOnly>#crlf#    <HideNodeViewingGroup>false</HideNodeViewingGroup>#crlf#    <HideFeFilterGroup>false</HideFeFilterGroup>#crlf#    <HideDesignGroups>false</HideDesignGroups>#crlf#    <HideViewGroups>false</HideViewGroups>#crlf#  </Options>#crlf#  <Filter>#crlf#    <ViewingGroupLabelsOnly>false</ViewingGroupLabelsOnly>#crlf#    <OrientationLabelsOnly>false</OrientationLabelsOnly>#crlf#    <DesignGroupLabelsOnly>false</DesignGroupLabelsOnly>#crlf#    <MaterialLabelsOnly>false</MaterialLabelsOnly>#crlf#    <SectionLabelsOnly>false</SectionLabelsOnly>#crlf#    <HideNodeViewingGroup>false</HideNodeViewingGroup>#crlf#    <HideFeFilterGroup>false</HideFeFilterGroup>#crlf#    <HideDesignGroups>false</HideDesignGroups>#crlf#    <HideViewGroups>false</HideViewGroups>#crlf#  </Filter>#crlf#  <Model>#crlf#    <TargetX>0</TargetX>#crlf#    <TargetY>0</TargetY>#crlf#    <TargetZ>0</TargetZ>#crlf#    <Alpha1>30</Alpha1>#crlf#    <Alpha2>30</Alpha2>#crlf#    <Alpha3>0</Alpha3>#crlf#    <EyeX>0</EyeX>#crlf#    <EyeY>0</EyeY>#crlf#    <EyeZ>5.45596</EyeZ>#crlf#    <ShiftX>0</ShiftX>#crlf#    <ShiftY>0</ShiftY>#crlf#    <IsOrtho>true</IsOrtho>#crlf#    <Zoom>30</Zoom>#crlf#    <FrXYZ>4.330127</FrXYZ>#crlf#  </Model>#crlf#  <Range>#crlf#    <ClipPlanes>#crlf#      <ClipPlaneXY>#crlf#        <ClipPolygon />#crlf#        <ClipRange>#crlf#          <X1>-0.1</X1>#crlf#          <X2>5.1</X2>#crlf#          <Y1>-0.1</Y1>#crlf#          <Y2>0.1</Y2>#crlf#        </ClipRange>#crlf#        <UseBasicRange>true</UseBasicRange>#crlf#        <ax1>0</ax1>#crlf#        <ax2>1</ax2>#crlf#      </ClipPlaneXY>#crlf#      <ClipPlaneXZ>#crlf#        <ClipPolygon />#crlf#        <ClipRange>#crlf#          <X1>-0.1</X1>#crlf#          <X2>5.1</X2>#crlf#          <Y1>-0.1</Y1>#crlf#          <Y2>0.1</Y2>#crlf#        </ClipRange>#crlf#        <UseBasicRange>true</UseBasicRange>#crlf#        <ax1>0</ax1>#crlf#        <ax2>2</ax2>#crlf#      </ClipPlaneXZ>#crlf#      <ClipPlaneZY>#crlf#        <ClipPolygon />#crlf#        <ClipRange>#crlf#          <X1>-0.1</X1>#crlf#          <X2>0.1</X2>#crlf#          <Y1>-0.1</Y1>#crlf#          <Y2>0.1</Y2>#crlf#        </ClipRange>#crlf#        <UseBasicRange>true</UseBasicRange>#crlf#        <ax1>2</ax1>#crlf#        <ax2>1</ax2>#crlf#      </ClipPlaneZY>#crlf#    </ClipPlanes>#crlf#    <DrawLowerColumns>false</DrawLowerColumns>#crlf#  </Range>#crlf#  <Loads>#crlf#    <AreaLoadingDrawPerIntensity>false</AreaLoadingDrawPerIntensity>#crlf#    <DrawGravityAreaLoads>false</DrawGravityAreaLoads>#crlf#    <ShowValuesPatchLoads>false</ShowValuesPatchLoads>#crlf#    <ShowValuesLineLoads>false</ShowValuesLineLoads>#crlf#    <DrawWindAreaLoads>false</DrawWindAreaLoads>#crlf#    <DrawPatchLoads>false</DrawPatchLoads>#crlf#    <DrawLineLoads>false</DrawLineLoads>#crlf#    <ShowLegend>false</ShowLegend>#crlf#    <LegendValues>02 </LegendValues>#crlf#  </Loads>#crlf#  <Nodes>#crlf#    <XCoordVisible>true</XCoordVisible>#crlf#    <YCoordVisible>false</YCoordVisible>#crlf#    <ZCoordVisible>false</ZCoordVisible>#crlf#    <NodeNumbers>false</NodeNumbers>#crlf#    <NodeReferences>false</NodeReferences>#crlf#    <Size>WireFrame</Size>#crlf#  </Nodes>#crlf#  <Grid>#crlf#    <DrawGridLineReferences>false</DrawGridLineReferences>#crlf#    <DrawMemberLabelsEWNS>false</DrawMemberLabelsEWNS>#crlf#    <DrawLevelReferences>false</DrawLevelReferences>#crlf#    <DrawLevelNumbers>false</DrawLevelNumbers>#crlf#    <DrawMemberRef>false</DrawMemberRef>#crlf#    <DrawGlobalAxis>true</DrawGlobalAxis>#crlf#    <DrawGridLines>false</DrawGridLines>#crlf#  </Grid>#crlf#  <Wind>#crlf#    <ShowWindLoadValues>false</ShowWindLoadValues>#crlf#    <ShowCpCpiValues>false</ShowCpCpiValues>#crlf#    <ShowWindZone>false</ShowWindZone>#crlf#    <WindCase>W1-W8</WindCase>#crlf#    <WindSign>0</WindSign>#crlf#  </Wind>#crlf#  <GUID>KKiLIJ</GUID>#crlf#  <Name>lastview</Name>#crlf#</Snapshot>#crlf#
+Data Set 185
+ 0 
+Data Set 187
+<?xml version="1.0" encoding="utf-8"?>#crlf#<NodeReferencing xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">#crlf#  <NodeRefNumberList>#crlf#    <int>0</int>#crlf#    <int>0</int>#crlf#    <int>0</int>#crlf#  </NodeRefNumberList>#crlf#  <NodeIDPrefix />#crlf#  <UseNodeIDInDesginOutput>false</UseNodeIDInDesginOutput>#crlf#</NodeReferencing>#crlf#
+Data Set 5
+END
+ 0 
+***

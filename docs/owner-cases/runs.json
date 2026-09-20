@@ -715,7 +715,7 @@
    "section": "UB 457 x 191 x 82",
    "sectionTag": "UB",
    "owner": "udl point vertical loads acting at vertical horizontal eccentricity from shear center, and axial load on beam",
-   "title": "UB 457 x 191 x 82, 6 m SS, unrestrained; L5 = L4 + \"axial load on beam\": N_Ed = 150 kN compression (U_x at End 1), all loads at e = +40 mm, z_g = +230 mm",
+   "title": "UB 457 x 191 x 82, 6 m SS, unrestrained; L5 = L4 + \"axial load on beam\": N_Ed = 150 kN compression (U_x at End 1; the ULS DESIGN value entered directly, not factored by the combination - in MasterSeries an axial load whose factored value is 150 kN, e.g. 100 kN imposed), all loads at e = +40 mm, z_g = +230 mm",
    "method": "eigen",
    "restraint": "ltb",
    "file": "UB-L5-eigen.html",
@@ -811,7 +811,7 @@
    "section": "UB 457 x 191 x 82",
    "sectionTag": "UB",
    "owner": "udl point vertical loads acting at vertical horizontal eccentricity from shear center, and axial load on beam",
-   "title": "UB 457 x 191 x 82, 6 m SS, unrestrained; L5 = L4 + \"axial load on beam\": N_Ed = 150 kN compression (U_x at End 1), all loads at e = +40 mm, z_g = +230 mm",
+   "title": "UB 457 x 191 x 82, 6 m SS, unrestrained; L5 = L4 + \"axial load on beam\": N_Ed = 150 kN compression (U_x at End 1; the ULS DESIGN value entered directly, not factored by the combination - in MasterSeries an axial load whose factored value is 150 kN, e.g. 100 kN imposed), all loads at e = +40 mm, z_g = +230 mm",
    "method": "standard",
    "restraint": "ltb",
    "file": "UB-L5-standard.html",
@@ -907,7 +907,7 @@
    "section": "UB 457 x 191 x 82",
    "sectionTag": "UB",
    "owner": "... and axial load on beam, load applied at angle on beam",
-   "title": "UB 457 x 191 x 82, 6 m SS, unrestrained; L6 = L5 + \"load applied at angle on beam\": a further 30 kN (Q) point load at 2.0 m inclined 20 deg from the vertical - APPROXIMATION: modelled as its vertical component 28.191 kN (e = +40, z_g = +230) plus an entered CONSTANT M_z = 13.681 kN.m (= horizontal component 10.261 kN x 2 x 4 / 6, the simply supported minor-axis moment at 2.0 m); the tool has no lateral load, so the minor-axis moment is applied as a constant along the member, not as the true triangular diagram, and the torque of the horizontal component acting at z_g is not modelled",
+   "title": "UB 457 x 191 x 82, 6 m SS, unrestrained; L6 = L5 + \"load applied at angle on beam\": a further 30 kN (Q) point load at 2.0 m inclined 20 deg from the vertical - APPROXIMATION: modelled as its vertical component 28.191 kN (Q, e = +40, z_g = +230, factored by the combination) plus an entered CONSTANT M_z,Ed = 20.521 kN.m (= 1.5 x 13.681, the ULS design value of the Q-case moment H a b / L = 10.261 x 2 x 4 / 6 = 13.681 kN.m, the simply supported minor-axis moment at 2.0 m; the tool's M_z input is a design value not run through the combinations); the tool has no lateral load, so the minor-axis moment is applied as a constant along the member (C_mz = 1.0), not as the true triangular diagram, and the torque of the horizontal component acting at z_g (H x z_g = 10.261 x 0.230 = 2.36 kN.m characteristic) is not modelled",
    "method": "eigen",
    "restraint": "ltb",
    "file": "UB-L6-eigen.html",
@@ -939,15 +939,15 @@
     },
     {
      "name": "Biaxial bending + axial (6.2.9.1)",
-     "val": 0.3595207642320126
+     "val": 0.4413389460501945
     },
     {
      "name": "Member buckling y-y (Eq 6.61)",
-     "val": 1.3999974663638588
+     "val": 1.540402785086251
     },
     {
      "name": "Member buckling z-z (Eq 6.62)",
-     "val": 1.4958108163197976
+     "val": 1.6362161350421898
     },
     {
      "name": "LTB+torsion (EN 1993-6 Annex A)",
@@ -1004,14 +1004,14 @@
    "section": "UB 457 x 191 x 82",
    "sectionTag": "UB",
    "owner": "... and axial load on beam, load applied at angle on beam",
-   "title": "UB 457 x 191 x 82, 6 m SS, unrestrained; L6 = L5 + \"load applied at angle on beam\": a further 30 kN (Q) point load at 2.0 m inclined 20 deg from the vertical - APPROXIMATION: modelled as its vertical component 28.191 kN (e = +40, z_g = +230) plus an entered CONSTANT M_z = 13.681 kN.m (= horizontal component 10.261 kN x 2 x 4 / 6, the simply supported minor-axis moment at 2.0 m); the tool has no lateral load, so the minor-axis moment is applied as a constant along the member, not as the true triangular diagram, and the torque of the horizontal component acting at z_g is not modelled",
+   "title": "UB 457 x 191 x 82, 6 m SS, unrestrained; L6 = L5 + \"load applied at angle on beam\": a further 30 kN (Q) point load at 2.0 m inclined 20 deg from the vertical - APPROXIMATION: modelled as its vertical component 28.191 kN (Q, e = +40, z_g = +230, factored by the combination) plus an entered CONSTANT M_z,Ed = 20.521 kN.m (= 1.5 x 13.681, the ULS design value of the Q-case moment H a b / L = 10.261 x 2 x 4 / 6 = 13.681 kN.m, the simply supported minor-axis moment at 2.0 m; the tool's M_z input is a design value not run through the combinations); the tool has no lateral load, so the minor-axis moment is applied as a constant along the member (C_mz = 1.0), not as the true triangular diagram, and the torque of the horizontal component acting at z_g (H x z_g = 10.261 x 0.230 = 2.36 kN.m characteristic) is not modelled",
    "method": "standard",
    "restraint": "ltb",
    "file": "UB-L6-standard.html",
    "verdict": "FAIL",
    "gov": {
     "name": "Member buckling z-z (Eq 6.62)",
-    "val": 1.2821942560884747
+    "val": 1.4225995748108669
    },
    "utils": [
     {
@@ -1036,15 +1036,15 @@
     },
     {
      "name": "Biaxial bending + axial (6.2.9.1)",
-     "val": 0.3595207642320126
+     "val": 0.4413389460501945
     },
     {
      "name": "Member buckling y-y (Eq 6.61)",
-     "val": 1.181184292836764
+     "val": 1.321589611559156
     },
     {
      "name": "Member buckling z-z (Eq 6.62)",
-     "val": 1.2821942560884747
+     "val": 1.4225995748108669
     },
     {
      "name": "LTB+torsion (EN 1993-6 Annex A)",
@@ -1101,7 +1101,7 @@
    "section": "UB 457 x 191 x 82",
    "sectionTag": "UB",
    "owner": "... load applied at angle on beam AND EXTERNAL BENDING MOMENT AT ANY POINT ON BEAM, ON SHEAR CENTER AND ABOVE OR BELOW SHEAR CENTER",
-   "title": "UB 457 x 191 x 82, 6 m SS, unrestrained; L7 = L6 + \"EXTERNAL BENDING MOMENT AT ANY POINT ON BEAM\": couple 40 kN.m (Q) at 4 m, applied as a pure M_y in the diagram - the \"on / above / below the shear centre\" variant is NOT a distinct case for a member tool: a couple has no line of action, so it produces no torque (P.e) and no load-height term (C2 z_g); only forces with a lever arm do",
+   "title": "UB 457 x 191 x 82, 6 m SS, unrestrained; L7 = L6 + \"EXTERNAL BENDING MOMENT AT ANY POINT ON BEAM\": couple 40 kN.m (Q, factored by the combination) at 4 m, applied as a pure M_y in the diagram - the \"on / above / below the shear centre\" variant is NOT a distinct case for a member tool: a couple has no line of action, so it produces no torque (P.e) and no load-height term (C2 z_g); only forces with a lever arm do",
    "method": "eigen",
    "restraint": "ltb",
    "file": "UB-L7-eigen.html",
@@ -1133,15 +1133,15 @@
     },
     {
      "name": "Biaxial bending + axial (6.2.9.1)",
-     "val": 0.39830441868593447
+     "val": 0.48012260050411637
     },
     {
      "name": "Member buckling y-y (Eq 6.61)",
-     "val": 1.4891454110818982
+     "val": 1.6295507298042904
     },
     {
      "name": "Member buckling z-z (Eq 6.62)",
-     "val": 1.5828415786609946
+     "val": 1.7232468973833868
     },
     {
      "name": "LTB+torsion (EN 1993-6 Annex A)",
@@ -1198,14 +1198,14 @@
    "section": "UB 457 x 191 x 82",
    "sectionTag": "UB",
    "owner": "... load applied at angle on beam AND EXTERNAL BENDING MOMENT AT ANY POINT ON BEAM, ON SHEAR CENTER AND ABOVE OR BELOW SHEAR CENTER",
-   "title": "UB 457 x 191 x 82, 6 m SS, unrestrained; L7 = L6 + \"EXTERNAL BENDING MOMENT AT ANY POINT ON BEAM\": couple 40 kN.m (Q) at 4 m, applied as a pure M_y in the diagram - the \"on / above / below the shear centre\" variant is NOT a distinct case for a member tool: a couple has no line of action, so it produces no torque (P.e) and no load-height term (C2 z_g); only forces with a lever arm do",
+   "title": "UB 457 x 191 x 82, 6 m SS, unrestrained; L7 = L6 + \"EXTERNAL BENDING MOMENT AT ANY POINT ON BEAM\": couple 40 kN.m (Q, factored by the combination) at 4 m, applied as a pure M_y in the diagram - the \"on / above / below the shear centre\" variant is NOT a distinct case for a member tool: a couple has no line of action, so it produces no torque (P.e) and no load-height term (C2 z_g); only forces with a lever arm do",
    "method": "standard",
    "restraint": "ltb",
    "file": "UB-L7-standard.html",
    "verdict": "FAIL",
    "gov": {
     "name": "Member buckling z-z (Eq 6.62)",
-    "val": 1.3614890790037646
+    "val": 1.5018943977261567
    },
    "utils": [
     {
@@ -1230,15 +1230,15 @@
     },
     {
      "name": "Biaxial bending + axial (6.2.9.1)",
-     "val": 0.39830441868593447
+     "val": 0.48012260050411637
     },
     {
      "name": "Member buckling y-y (Eq 6.61)",
-     "val": 1.262408107261894
+     "val": 1.4028134259842862
     },
     {
      "name": "Member buckling z-z (Eq 6.62)",
-     "val": 1.3614890790037646
+     "val": 1.5018943977261567
     },
     {
      "name": "LTB+torsion (EN 1993-6 Annex A)",
@@ -2006,7 +2006,7 @@
    "section": "UC 203 x 203 x 60",
    "sectionTag": "UC",
    "owner": "udl point vertical loads acting at vertical horizontal eccentricity from shear center, and axial load on beam",
-   "title": "UC 203 x 203 x 60, 6 m SS, unrestrained; L5 = L4 + \"axial load on beam\": N_Ed = 150 kN compression (U_x at End 1), all loads at e = +40 mm, z_g = +104.8 mm",
+   "title": "UC 203 x 203 x 60, 6 m SS, unrestrained; L5 = L4 + \"axial load on beam\": N_Ed = 150 kN compression (U_x at End 1; the ULS DESIGN value entered directly, not factored by the combination - in MasterSeries an axial load whose factored value is 150 kN, e.g. 100 kN imposed), all loads at e = +40 mm, z_g = +104.8 mm",
    "method": "eigen",
    "restraint": "ltb",
    "file": "UC-L5-eigen.html",
@@ -2103,7 +2103,7 @@
    "section": "UC 203 x 203 x 60",
    "sectionTag": "UC",
    "owner": "udl point vertical loads acting at vertical horizontal eccentricity from shear center, and axial load on beam",
-   "title": "UC 203 x 203 x 60, 6 m SS, unrestrained; L5 = L4 + \"axial load on beam\": N_Ed = 150 kN compression (U_x at End 1), all loads at e = +40 mm, z_g = +104.8 mm",
+   "title": "UC 203 x 203 x 60, 6 m SS, unrestrained; L5 = L4 + \"axial load on beam\": N_Ed = 150 kN compression (U_x at End 1; the ULS DESIGN value entered directly, not factored by the combination - in MasterSeries an axial load whose factored value is 150 kN, e.g. 100 kN imposed), all loads at e = +40 mm, z_g = +104.8 mm",
    "method": "standard",
    "restraint": "ltb",
    "file": "UC-L5-standard.html",
@@ -2200,7 +2200,7 @@
    "section": "UC 203 x 203 x 60",
    "sectionTag": "UC",
    "owner": "... and axial load on beam, load applied at angle on beam",
-   "title": "UC 203 x 203 x 60, 6 m SS, unrestrained; L6 = L5 + \"load applied at angle on beam\": a further 30 kN (Q) point load at 2.0 m inclined 20 deg from the vertical - APPROXIMATION: modelled as its vertical component 28.191 kN (e = +40, z_g = +104.8) plus an entered CONSTANT M_z = 13.681 kN.m (= horizontal component 10.261 kN x 2 x 4 / 6, the simply supported minor-axis moment at 2.0 m); the tool has no lateral load, so the minor-axis moment is applied as a constant along the member, not as the true triangular diagram, and the torque of the horizontal component acting at z_g is not modelled",
+   "title": "UC 203 x 203 x 60, 6 m SS, unrestrained; L6 = L5 + \"load applied at angle on beam\": a further 30 kN (Q) point load at 2.0 m inclined 20 deg from the vertical - APPROXIMATION: modelled as its vertical component 28.191 kN (Q, e = +40, z_g = +104.8, factored by the combination) plus an entered CONSTANT M_z,Ed = 20.521 kN.m (= 1.5 x 13.681, the ULS design value of the Q-case moment H a b / L = 10.261 x 2 x 4 / 6 = 13.681 kN.m, the simply supported minor-axis moment at 2.0 m; the tool's M_z input is a design value not run through the combinations); the tool has no lateral load, so the minor-axis moment is applied as a constant along the member (C_mz = 1.0), not as the true triangular diagram, and the torque of the horizontal component acting at z_g (H x z_g = 10.261 x 0.105 = 1.08 kN.m characteristic) is not modelled",
    "method": "eigen",
    "restraint": "ltb",
    "file": "UC-L6-eigen.html",
@@ -2232,15 +2232,15 @@
     },
     {
      "name": "Biaxial bending + axial (6.2.9.1)",
-     "val": 1.6714938744548657
+     "val": 1.7530437999392174
     },
     {
      "name": "Member buckling y-y (Eq 6.61)",
-     "val": 1.8437521053219548
+     "val": 1.9056628359640482
     },
     {
      "name": "Member buckling z-z (Eq 6.62)",
-     "val": 1.8960743129134894
+     "val": 1.999258863983645
     },
     {
      "name": "LTB+torsion (EN 1993-6 Annex A)",
@@ -2297,7 +2297,7 @@
    "section": "UC 203 x 203 x 60",
    "sectionTag": "UC",
    "owner": "... and axial load on beam, load applied at angle on beam",
-   "title": "UC 203 x 203 x 60, 6 m SS, unrestrained; L6 = L5 + \"load applied at angle on beam\": a further 30 kN (Q) point load at 2.0 m inclined 20 deg from the vertical - APPROXIMATION: modelled as its vertical component 28.191 kN (e = +40, z_g = +104.8) plus an entered CONSTANT M_z = 13.681 kN.m (= horizontal component 10.261 kN x 2 x 4 / 6, the simply supported minor-axis moment at 2.0 m); the tool has no lateral load, so the minor-axis moment is applied as a constant along the member, not as the true triangular diagram, and the torque of the horizontal component acting at z_g is not modelled",
+   "title": "UC 203 x 203 x 60, 6 m SS, unrestrained; L6 = L5 + \"load applied at angle on beam\": a further 30 kN (Q) point load at 2.0 m inclined 20 deg from the vertical - APPROXIMATION: modelled as its vertical component 28.191 kN (Q, e = +40, z_g = +104.8, factored by the combination) plus an entered CONSTANT M_z,Ed = 20.521 kN.m (= 1.5 x 13.681, the ULS design value of the Q-case moment H a b / L = 10.261 x 2 x 4 / 6 = 13.681 kN.m, the simply supported minor-axis moment at 2.0 m; the tool's M_z input is a design value not run through the combinations); the tool has no lateral load, so the minor-axis moment is applied as a constant along the member (C_mz = 1.0), not as the true triangular diagram, and the torque of the horizontal component acting at z_g (H x z_g = 10.261 x 0.105 = 1.08 kN.m characteristic) is not modelled",
    "method": "standard",
    "restraint": "ltb",
    "file": "UC-L6-standard.html",
@@ -2329,15 +2329,15 @@
     },
     {
      "name": "Biaxial bending + axial (6.2.9.1)",
-     "val": 1.6714938744548657
+     "val": 1.7530437999392174
     },
     {
      "name": "Member buckling y-y (Eq 6.61)",
-     "val": 1.7141729676470185
+     "val": 1.776083698289112
     },
     {
      "name": "Member buckling z-z (Eq 6.62)",
-     "val": 1.7763512306427007
+     "val": 1.8795357817128564
     },
     {
      "name": "LTB+torsion (EN 1993-6 Annex A)",
@@ -2394,7 +2394,7 @@
    "section": "UC 203 x 203 x 60",
    "sectionTag": "UC",
    "owner": "... load applied at angle on beam AND EXTERNAL BENDING MOMENT AT ANY POINT ON BEAM, ON SHEAR CENTER AND ABOVE OR BELOW SHEAR CENTER",
-   "title": "UC 203 x 203 x 60, 6 m SS, unrestrained; L7 = L6 + \"EXTERNAL BENDING MOMENT AT ANY POINT ON BEAM\": couple 40 kN.m (Q) at 4 m, applied as a pure M_y in the diagram - the \"on / above / below the shear centre\" variant is NOT a distinct case for a member tool: a couple has no line of action, so it produces no torque (P.e) and no load-height term (C2 z_g); only forces with a lever arm do",
+   "title": "UC 203 x 203 x 60, 6 m SS, unrestrained; L7 = L6 + \"EXTERNAL BENDING MOMENT AT ANY POINT ON BEAM\": couple 40 kN.m (Q, factored by the combination) at 4 m, applied as a pure M_y in the diagram - the \"on / above / below the shear centre\" variant is NOT a distinct case for a member tool: a couple has no line of action, so it produces no torque (P.e) and no load-height term (C2 z_g); only forces with a lever arm do",
    "method": "eigen",
    "restraint": "ltb",
    "file": "UC-L7-eigen.html",
@@ -2426,15 +2426,15 @@
     },
     {
      "name": "Biaxial bending + axial (6.2.9.1)",
-     "val": 1.970764433483521
+     "val": 2.0523143589678727
     },
     {
      "name": "Member buckling y-y (Eq 6.61)",
-     "val": 2.000428203959901
+     "val": 2.0623389346019945
     },
     {
      "name": "Member buckling z-z (Eq 6.62)",
-     "val": 2.0408333056315375
+     "val": 2.1440178567016934
     },
     {
      "name": "LTB+torsion (EN 1993-6 Annex A)",
@@ -2442,7 +2442,7 @@
     },
     {
      "name": "Bending+shear+axial+biaxial (6.2.10)",
-     "val": 0.23128649396904638
+     "val": 0.31283642072275286
     },
     {
      "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
@@ -2496,7 +2496,7 @@
    "section": "UC 203 x 203 x 60",
    "sectionTag": "UC",
    "owner": "... load applied at angle on beam AND EXTERNAL BENDING MOMENT AT ANY POINT ON BEAM, ON SHEAR CENTER AND ABOVE OR BELOW SHEAR CENTER",
-   "title": "UC 203 x 203 x 60, 6 m SS, unrestrained; L7 = L6 + \"EXTERNAL BENDING MOMENT AT ANY POINT ON BEAM\": couple 40 kN.m (Q) at 4 m, applied as a pure M_y in the diagram - the \"on / above / below the shear centre\" variant is NOT a distinct case for a member tool: a couple has no line of action, so it produces no torque (P.e) and no load-height term (C2 z_g); only forces with a lever arm do",
+   "title": "UC 203 x 203 x 60, 6 m SS, unrestrained; L7 = L6 + \"EXTERNAL BENDING MOMENT AT ANY POINT ON BEAM\": couple 40 kN.m (Q, factored by the combination) at 4 m, applied as a pure M_y in the diagram - the \"on / above / below the shear centre\" variant is NOT a distinct case for a member tool: a couple has no line of action, so it produces no torque (P.e) and no load-height term (C2 z_g); only forces with a lever arm do",
    "method": "standard",
    "restraint": "ltb",
    "file": "UC-L7-standard.html",
@@ -2528,15 +2528,15 @@
     },
     {
      "name": "Biaxial bending + axial (6.2.9.1)",
-     "val": 1.970764433483521
+     "val": 2.0523143589678727
     },
     {
      "name": "Member buckling y-y (Eq 6.61)",
-     "val": 1.8576515256805544
+     "val": 1.9195622563226478
     },
     {
      "name": "Member buckling z-z (Eq 6.62)",
-     "val": 1.9089165148062313
+     "val": 2.012101065876387
     },
     {
      "name": "LTB+torsion (EN 1993-6 Annex A)",
@@ -2544,7 +2544,7 @@
     },
     {
      "name": "Bending+shear+axial+biaxial (6.2.10)",
-     "val": 0.23128649396904638
+     "val": 0.31283642072275286
     },
     {
      "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
@@ -3288,7 +3288,7 @@
    "section": "RHS 200 x 100 x 8.0 (HF)",
    "sectionTag": "RHS",
    "owner": "udl point vertical loads acting at vertical horizontal eccentricity from shear center, and axial load on beam",
-   "title": "RHS 200 x 100 x 8.0 (HF), 6 m SS, unrestrained; L5 = L4 + \"axial load on beam\": N_Ed = 150 kN compression (U_x at End 1), all loads at e = +40 mm, z_g = +100 mm",
+   "title": "RHS 200 x 100 x 8.0 (HF), 6 m SS, unrestrained; L5 = L4 + \"axial load on beam\": N_Ed = 150 kN compression (U_x at End 1; the ULS DESIGN value entered directly, not factored by the combination - in MasterSeries an axial load whose factored value is 150 kN, e.g. 100 kN imposed), all loads at e = +40 mm, z_g = +100 mm",
    "method": "eigen",
    "restraint": "ltb",
    "file": "RHS-L5-eigen.html",
@@ -3380,7 +3380,7 @@
    "section": "RHS 200 x 100 x 8.0 (HF)",
    "sectionTag": "RHS",
    "owner": "udl point vertical loads acting at vertical horizontal eccentricity from shear center, and axial load on beam",
-   "title": "RHS 200 x 100 x 8.0 (HF), 6 m SS, unrestrained; L5 = L4 + \"axial load on beam\": N_Ed = 150 kN compression (U_x at End 1), all loads at e = +40 mm, z_g = +100 mm",
+   "title": "RHS 200 x 100 x 8.0 (HF), 6 m SS, unrestrained; L5 = L4 + \"axial load on beam\": N_Ed = 150 kN compression (U_x at End 1; the ULS DESIGN value entered directly, not factored by the combination - in MasterSeries an axial load whose factored value is 150 kN, e.g. 100 kN imposed), all loads at e = +40 mm, z_g = +100 mm",
    "method": "standard",
    "restraint": "ltb",
    "file": "RHS-L5-standard.html",
@@ -3472,14 +3472,14 @@
    "section": "RHS 200 x 100 x 8.0 (HF)",
    "sectionTag": "RHS",
    "owner": "... and axial load on beam, load applied at angle on beam",
-   "title": "RHS 200 x 100 x 8.0 (HF), 6 m SS, unrestrained; L6 = L5 + \"load applied at angle on beam\": a further 30 kN (Q) point load at 2.0 m inclined 20 deg from the vertical - APPROXIMATION: modelled as its vertical component 28.191 kN (e = +40, z_g = +100) plus an entered CONSTANT M_z = 13.681 kN.m (= horizontal component 10.261 kN x 2 x 4 / 6, the simply supported minor-axis moment at 2.0 m); the tool has no lateral load, so the minor-axis moment is applied as a constant along the member, not as the true triangular diagram, and the torque of the horizontal component acting at z_g is not modelled",
+   "title": "RHS 200 x 100 x 8.0 (HF), 6 m SS, unrestrained; L6 = L5 + \"load applied at angle on beam\": a further 30 kN (Q) point load at 2.0 m inclined 20 deg from the vertical - APPROXIMATION: modelled as its vertical component 28.191 kN (Q, e = +40, z_g = +100, factored by the combination) plus an entered CONSTANT M_z,Ed = 20.521 kN.m (= 1.5 x 13.681, the ULS design value of the Q-case moment H a b / L = 10.261 x 2 x 4 / 6 = 13.681 kN.m, the simply supported minor-axis moment at 2.0 m; the tool's M_z input is a design value not run through the combinations); the tool has no lateral load, so the minor-axis moment is applied as a constant along the member (C_mz = 1.0), not as the true triangular diagram, and the torque of the horizontal component acting at z_g (H x z_g = 10.261 x 0.100 = 1.03 kN.m characteristic) is not modelled",
    "method": "eigen",
    "restraint": "ltb",
    "file": "RHS-L6-eigen.html",
    "verdict": "FAIL",
    "gov": {
     "name": "Biaxial bending + axial (6.2.9.1)",
-    "val": 5.948555537682401
+    "val": 6.069588764977224
    },
    "utils": [
     {
@@ -3504,15 +3504,15 @@
     },
     {
      "name": "Biaxial bending + axial (6.2.9.1)",
-     "val": 5.948555537682401
+     "val": 6.069588764977224
     },
     {
      "name": "Member buckling y-y (Eq 6.61)",
-     "val": 3.7984273535316704
+     "val": 3.990188580750676
     },
     {
      "name": "Member buckling z-z (Eq 6.62)",
-     "val": 2.7326786857427545
+     "val": 2.92443991296176
     },
     {
      "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
@@ -3565,14 +3565,14 @@
    "section": "RHS 200 x 100 x 8.0 (HF)",
    "sectionTag": "RHS",
    "owner": "... and axial load on beam, load applied at angle on beam",
-   "title": "RHS 200 x 100 x 8.0 (HF), 6 m SS, unrestrained; L6 = L5 + \"load applied at angle on beam\": a further 30 kN (Q) point load at 2.0 m inclined 20 deg from the vertical - APPROXIMATION: modelled as its vertical component 28.191 kN (e = +40, z_g = +100) plus an entered CONSTANT M_z = 13.681 kN.m (= horizontal component 10.261 kN x 2 x 4 / 6, the simply supported minor-axis moment at 2.0 m); the tool has no lateral load, so the minor-axis moment is applied as a constant along the member, not as the true triangular diagram, and the torque of the horizontal component acting at z_g is not modelled",
+   "title": "RHS 200 x 100 x 8.0 (HF), 6 m SS, unrestrained; L6 = L5 + \"load applied at angle on beam\": a further 30 kN (Q) point load at 2.0 m inclined 20 deg from the vertical - APPROXIMATION: modelled as its vertical component 28.191 kN (Q, e = +40, z_g = +100, factored by the combination) plus an entered CONSTANT M_z,Ed = 20.521 kN.m (= 1.5 x 13.681, the ULS design value of the Q-case moment H a b / L = 10.261 x 2 x 4 / 6 = 13.681 kN.m, the simply supported minor-axis moment at 2.0 m; the tool's M_z input is a design value not run through the combinations); the tool has no lateral load, so the minor-axis moment is applied as a constant along the member (C_mz = 1.0), not as the true triangular diagram, and the torque of the horizontal component acting at z_g (H x z_g = 10.261 x 0.100 = 1.03 kN.m characteristic) is not modelled",
    "method": "standard",
    "restraint": "ltb",
    "file": "RHS-L6-standard.html",
    "verdict": "FAIL",
    "gov": {
     "name": "Biaxial bending + axial (6.2.9.1)",
-    "val": 5.948555537682401
+    "val": 6.069588764977224
    },
    "utils": [
     {
@@ -3597,15 +3597,15 @@
     },
     {
      "name": "Biaxial bending + axial (6.2.9.1)",
-     "val": 5.948555537682401
+     "val": 6.069588764977224
     },
     {
      "name": "Member buckling y-y (Eq 6.61)",
-     "val": 3.7984273535316704
+     "val": 3.990188580750676
     },
     {
      "name": "Member buckling z-z (Eq 6.62)",
-     "val": 2.7326786857427545
+     "val": 2.92443991296176
     },
     {
      "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
@@ -3658,14 +3658,14 @@
    "section": "RHS 200 x 100 x 8.0 (HF)",
    "sectionTag": "RHS",
    "owner": "... load applied at angle on beam AND EXTERNAL BENDING MOMENT AT ANY POINT ON BEAM, ON SHEAR CENTER AND ABOVE OR BELOW SHEAR CENTER",
-   "title": "RHS 200 x 100 x 8.0 (HF), 6 m SS, unrestrained; L7 = L6 + \"EXTERNAL BENDING MOMENT AT ANY POINT ON BEAM\": couple 40 kN.m (Q) at 4 m, applied as a pure M_y in the diagram - the \"on / above / below the shear centre\" variant is NOT a distinct case for a member tool: a couple has no line of action, so it produces no torque (P.e) and no load-height term (C2 z_g); only forces with a lever arm do",
+   "title": "RHS 200 x 100 x 8.0 (HF), 6 m SS, unrestrained; L7 = L6 + \"EXTERNAL BENDING MOMENT AT ANY POINT ON BEAM\": couple 40 kN.m (Q, factored by the combination) at 4 m, applied as a pure M_y in the diagram - the \"on / above / below the shear centre\" variant is NOT a distinct case for a member tool: a couple has no line of action, so it produces no torque (P.e) and no load-height term (C2 z_g); only forces with a lever arm do",
    "method": "eigen",
    "restraint": "ltb",
    "file": "RHS-L7-eigen.html",
    "verdict": "FAIL",
    "gov": {
     "name": "Biaxial bending + axial (6.2.9.1)",
-    "val": 6.912444607619084
+    "val": 7.033477834913907
    },
    "utils": [
     {
@@ -3690,15 +3690,15 @@
     },
     {
      "name": "Biaxial bending + axial (6.2.9.1)",
-     "val": 6.912444607619084
+     "val": 7.033477834913907
     },
     {
      "name": "Member buckling y-y (Eq 6.61)",
-     "val": 4.105627911035679
+     "val": 4.297389138254684
     },
     {
      "name": "Member buckling z-z (Eq 6.62)",
-     "val": 2.9169990202451594
+     "val": 3.108760247464165
     },
     {
      "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
@@ -3751,14 +3751,14 @@
    "section": "RHS 200 x 100 x 8.0 (HF)",
    "sectionTag": "RHS",
    "owner": "... load applied at angle on beam AND EXTERNAL BENDING MOMENT AT ANY POINT ON BEAM, ON SHEAR CENTER AND ABOVE OR BELOW SHEAR CENTER",
-   "title": "RHS 200 x 100 x 8.0 (HF), 6 m SS, unrestrained; L7 = L6 + \"EXTERNAL BENDING MOMENT AT ANY POINT ON BEAM\": couple 40 kN.m (Q) at 4 m, applied as a pure M_y in the diagram - the \"on / above / below the shear centre\" variant is NOT a distinct case for a member tool: a couple has no line of action, so it produces no torque (P.e) and no load-height term (C2 z_g); only forces with a lever arm do",
+   "title": "RHS 200 x 100 x 8.0 (HF), 6 m SS, unrestrained; L7 = L6 + \"EXTERNAL BENDING MOMENT AT ANY POINT ON BEAM\": couple 40 kN.m (Q, factored by the combination) at 4 m, applied as a pure M_y in the diagram - the \"on / above / below the shear centre\" variant is NOT a distinct case for a member tool: a couple has no line of action, so it produces no torque (P.e) and no load-height term (C2 z_g); only forces with a lever arm do",
    "method": "standard",
    "restraint": "ltb",
    "file": "RHS-L7-standard.html",
    "verdict": "FAIL",
    "gov": {
     "name": "Biaxial bending + axial (6.2.9.1)",
-    "val": 6.912444607619084
+    "val": 7.033477834913907
    },
    "utils": [
     {
@@ -3783,15 +3783,15 @@
     },
     {
      "name": "Biaxial bending + axial (6.2.9.1)",
-     "val": 6.912444607619084
+     "val": 7.033477834913907
     },
     {
      "name": "Member buckling y-y (Eq 6.61)",
-     "val": 4.105627911035679
+     "val": 4.297389138254684
     },
     {
      "name": "Member buckling z-z (Eq 6.62)",
-     "val": 2.9169990202451594
+     "val": 3.108760247464165
     },
     {
      "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
@@ -4535,7 +4535,7 @@
    "section": "SHS 150 x 150 x 6.3 (HF)",
    "sectionTag": "SHS",
    "owner": "udl point vertical loads acting at vertical horizontal eccentricity from shear center, and axial load on beam",
-   "title": "SHS 150 x 150 x 6.3 (HF), 6 m SS, unrestrained; L5 = L4 + \"axial load on beam\": N_Ed = 150 kN compression (U_x at End 1), all loads at e = +40 mm, z_g = +75 mm",
+   "title": "SHS 150 x 150 x 6.3 (HF), 6 m SS, unrestrained; L5 = L4 + \"axial load on beam\": N_Ed = 150 kN compression (U_x at End 1; the ULS DESIGN value entered directly, not factored by the combination - in MasterSeries an axial load whose factored value is 150 kN, e.g. 100 kN imposed), all loads at e = +40 mm, z_g = +75 mm",
    "method": "eigen",
    "restraint": "ltb",
    "file": "SHS-L5-eigen.html",
@@ -4627,7 +4627,7 @@
    "section": "SHS 150 x 150 x 6.3 (HF)",
    "sectionTag": "SHS",
    "owner": "udl point vertical loads acting at vertical horizontal eccentricity from shear center, and axial load on beam",
-   "title": "SHS 150 x 150 x 6.3 (HF), 6 m SS, unrestrained; L5 = L4 + \"axial load on beam\": N_Ed = 150 kN compression (U_x at End 1), all loads at e = +40 mm, z_g = +75 mm",
+   "title": "SHS 150 x 150 x 6.3 (HF), 6 m SS, unrestrained; L5 = L4 + \"axial load on beam\": N_Ed = 150 kN compression (U_x at End 1; the ULS DESIGN value entered directly, not factored by the combination - in MasterSeries an axial load whose factored value is 150 kN, e.g. 100 kN imposed), all loads at e = +40 mm, z_g = +75 mm",
    "method": "standard",
    "restraint": "ltb",
    "file": "SHS-L5-standard.html",
@@ -4719,14 +4719,14 @@
    "section": "SHS 150 x 150 x 6.3 (HF)",
    "sectionTag": "SHS",
    "owner": "... and axial load on beam, load applied at angle on beam",
-   "title": "SHS 150 x 150 x 6.3 (HF), 6 m SS, unrestrained; L6 = L5 + \"load applied at angle on beam\": a further 30 kN (Q) point load at 2.0 m inclined 20 deg from the vertical - APPROXIMATION: modelled as its vertical component 28.191 kN (e = +40, z_g = +75) plus an entered CONSTANT M_z = 13.681 kN.m (= horizontal component 10.261 kN x 2 x 4 / 6, the simply supported minor-axis moment at 2.0 m); the tool has no lateral load, so the minor-axis moment is applied as a constant along the member, not as the true triangular diagram, and the torque of the horizontal component acting at z_g is not modelled",
+   "title": "SHS 150 x 150 x 6.3 (HF), 6 m SS, unrestrained; L6 = L5 + \"load applied at angle on beam\": a further 30 kN (Q) point load at 2.0 m inclined 20 deg from the vertical - APPROXIMATION: modelled as its vertical component 28.191 kN (Q, e = +40, z_g = +75, factored by the combination) plus an entered CONSTANT M_z,Ed = 20.521 kN.m (= 1.5 x 13.681, the ULS design value of the Q-case moment H a b / L = 10.261 x 2 x 4 / 6 = 13.681 kN.m, the simply supported minor-axis moment at 2.0 m; the tool's M_z input is a design value not run through the combinations); the tool has no lateral load, so the minor-axis moment is applied as a constant along the member (C_mz = 1.0), not as the true triangular diagram, and the torque of the horizontal component acting at z_g (H x z_g = 10.261 x 0.075 = 0.77 kN.m characteristic) is not modelled",
    "method": "eigen",
    "restraint": "ltb",
    "file": "SHS-L6-eigen.html",
    "verdict": "FAIL",
    "gov": {
     "name": "Biaxial bending + axial (6.2.9.1)",
-    "val": 11.479715812689825
+    "val": 11.579354864016855
    },
    "utils": [
     {
@@ -4751,19 +4751,19 @@
     },
     {
      "name": "Biaxial bending + axial (6.2.9.1)",
-     "val": 11.479715812689825
+     "val": 11.579354864016855
     },
     {
      "name": "Member buckling y-y (Eq 6.61)",
-     "val": 5.699576251510983
+     "val": 5.858263679728711
     },
     {
      "name": "Member buckling z-z (Eq 6.62)",
-     "val": 3.6591827665683896
+     "val": 3.8178701947861176
     },
     {
      "name": "Bending+shear+axial+biaxial (6.2.10)",
-     "val": 1.6431371971954896
+     "val": 1.7427763864296202
     },
     {
      "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
@@ -4816,14 +4816,14 @@
    "section": "SHS 150 x 150 x 6.3 (HF)",
    "sectionTag": "SHS",
    "owner": "... and axial load on beam, load applied at angle on beam",
-   "title": "SHS 150 x 150 x 6.3 (HF), 6 m SS, unrestrained; L6 = L5 + \"load applied at angle on beam\": a further 30 kN (Q) point load at 2.0 m inclined 20 deg from the vertical - APPROXIMATION: modelled as its vertical component 28.191 kN (e = +40, z_g = +75) plus an entered CONSTANT M_z = 13.681 kN.m (= horizontal component 10.261 kN x 2 x 4 / 6, the simply supported minor-axis moment at 2.0 m); the tool has no lateral load, so the minor-axis moment is applied as a constant along the member, not as the true triangular diagram, and the torque of the horizontal component acting at z_g is not modelled",
+   "title": "SHS 150 x 150 x 6.3 (HF), 6 m SS, unrestrained; L6 = L5 + \"load applied at angle on beam\": a further 30 kN (Q) point load at 2.0 m inclined 20 deg from the vertical - APPROXIMATION: modelled as its vertical component 28.191 kN (Q, e = +40, z_g = +75, factored by the combination) plus an entered CONSTANT M_z,Ed = 20.521 kN.m (= 1.5 x 13.681, the ULS design value of the Q-case moment H a b / L = 10.261 x 2 x 4 / 6 = 13.681 kN.m, the simply supported minor-axis moment at 2.0 m; the tool's M_z input is a design value not run through the combinations); the tool has no lateral load, so the minor-axis moment is applied as a constant along the member (C_mz = 1.0), not as the true triangular diagram, and the torque of the horizontal component acting at z_g (H x z_g = 10.261 x 0.075 = 0.77 kN.m characteristic) is not modelled",
    "method": "standard",
    "restraint": "ltb",
    "file": "SHS-L6-standard.html",
    "verdict": "FAIL",
    "gov": {
     "name": "Biaxial bending + axial (6.2.9.1)",
-    "val": 11.479715812689825
+    "val": 11.579354864016855
    },
    "utils": [
     {
@@ -4848,19 +4848,19 @@
     },
     {
      "name": "Biaxial bending + axial (6.2.9.1)",
-     "val": 11.479715812689825
+     "val": 11.579354864016855
     },
     {
      "name": "Member buckling y-y (Eq 6.61)",
-     "val": 5.699576251510983
+     "val": 5.858263679728711
     },
     {
      "name": "Member buckling z-z (Eq 6.62)",
-     "val": 3.6591827665683896
+     "val": 3.8178701947861176
     },
     {
      "name": "Bending+shear+axial+biaxial (6.2.10)",
-     "val": 1.6431371971954896
+     "val": 1.7427763864296202
     },
     {
      "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
@@ -4913,14 +4913,14 @@
    "section": "SHS 150 x 150 x 6.3 (HF)",
    "sectionTag": "SHS",
    "owner": "... load applied at angle on beam AND EXTERNAL BENDING MOMENT AT ANY POINT ON BEAM, ON SHEAR CENTER AND ABOVE OR BELOW SHEAR CENTER",
-   "title": "SHS 150 x 150 x 6.3 (HF), 6 m SS, unrestrained; L7 = L6 + \"EXTERNAL BENDING MOMENT AT ANY POINT ON BEAM\": couple 40 kN.m (Q) at 4 m, applied as a pure M_y in the diagram - the \"on / above / below the shear centre\" variant is NOT a distinct case for a member tool: a couple has no line of action, so it produces no torque (P.e) and no load-height term (C2 z_g); only forces with a lever arm do",
+   "title": "SHS 150 x 150 x 6.3 (HF), 6 m SS, unrestrained; L7 = L6 + \"EXTERNAL BENDING MOMENT AT ANY POINT ON BEAM\": couple 40 kN.m (Q, factored by the combination) at 4 m, applied as a pure M_y in the diagram - the \"on / above / below the shear centre\" variant is NOT a distinct case for a member tool: a couple has no line of action, so it produces no torque (P.e) and no load-height term (C2 z_g); only forces with a lever arm do",
    "method": "eigen",
    "restraint": "ltb",
    "file": "SHS-L7-eigen.html",
    "verdict": "FAIL",
    "gov": {
     "name": "Biaxial bending + axial (6.2.9.1)",
-    "val": 13.383744576069747
+    "val": 13.483383627396776
    },
    "utils": [
     {
@@ -4945,19 +4945,19 @@
     },
     {
      "name": "Biaxial bending + axial (6.2.9.1)",
-     "val": 13.383744576069747
+     "val": 13.483383627396776
     },
     {
      "name": "Member buckling y-y (Eq 6.61)",
-     "val": 6.18416471361851
+     "val": 6.342852141836238
     },
     {
      "name": "Member buckling z-z (Eq 6.62)",
-     "val": 3.949935843832906
+     "val": 4.108623272050634
     },
     {
      "name": "Bending+shear+axial+biaxial (6.2.10)",
-     "val": 4.324694556121491
+     "val": 4.424333624087362
     },
     {
      "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
@@ -5010,14 +5010,14 @@
    "section": "SHS 150 x 150 x 6.3 (HF)",
    "sectionTag": "SHS",
    "owner": "... load applied at angle on beam AND EXTERNAL BENDING MOMENT AT ANY POINT ON BEAM, ON SHEAR CENTER AND ABOVE OR BELOW SHEAR CENTER",
-   "title": "SHS 150 x 150 x 6.3 (HF), 6 m SS, unrestrained; L7 = L6 + \"EXTERNAL BENDING MOMENT AT ANY POINT ON BEAM\": couple 40 kN.m (Q) at 4 m, applied as a pure M_y in the diagram - the \"on / above / below the shear centre\" variant is NOT a distinct case for a member tool: a couple has no line of action, so it produces no torque (P.e) and no load-height term (C2 z_g); only forces with a lever arm do",
+   "title": "SHS 150 x 150 x 6.3 (HF), 6 m SS, unrestrained; L7 = L6 + \"EXTERNAL BENDING MOMENT AT ANY POINT ON BEAM\": couple 40 kN.m (Q, factored by the combination) at 4 m, applied as a pure M_y in the diagram - the \"on / above / below the shear centre\" variant is NOT a distinct case for a member tool: a couple has no line of action, so it produces no torque (P.e) and no load-height term (C2 z_g); only forces with a lever arm do",
    "method": "standard",
    "restraint": "ltb",
    "file": "SHS-L7-standard.html",
    "verdict": "FAIL",
    "gov": {
     "name": "Biaxial bending + axial (6.2.9.1)",
-    "val": 13.383744576069747
+    "val": 13.483383627396776
    },
    "utils": [
     {
@@ -5042,19 +5042,19 @@
     },
     {
      "name": "Biaxial bending + axial (6.2.9.1)",
-     "val": 13.383744576069747
+     "val": 13.483383627396776
     },
     {
      "name": "Member buckling y-y (Eq 6.61)",
-     "val": 6.18416471361851
+     "val": 6.342852141836238
     },
     {
      "name": "Member buckling z-z (Eq 6.62)",
-     "val": 3.949935843832906
+     "val": 4.108623272050634
     },
     {
      "name": "Bending+shear+axial+biaxial (6.2.10)",
-     "val": 4.324694556121491
+     "val": 4.424333624087362
     },
     {
      "name": "Web transverse force  F_Ed/F_Rd (EN 1993-1-5 6.2)",
@@ -5224,11 +5224,12 @@
    "vt": null,
    "annexA": null,
    "boxT": null,
-   "Mcr": 35.68035125824901,
+   "Mcr": 9.128392768000003,
    "C1": 1.1635950549474243,
    "MbRd": 8.806091066984385,
    "ltbUtil": 18.79421782384062,
    "ltbBasis": "P385/P362 channel kappa chain, lambdaLT = (LE/iz)/kappa, curve d, no f-factor; Mb,Rd = chiLTWyfy/gammaM1 <= Mc,Rd",
+   "McrSN003a": 35.68035125824901,
    "stdBasis": "channel kappa chain",
    "zg": 0
   },
@@ -5398,6 +5399,7 @@
    "MbRd": 8.806091066984385,
    "ltbUtil": 18.79421782384062,
    "ltbBasis": "P385/P362 channel kappa chain, lambdaLT = (LE/iz)/kappa, curve d, no f-factor; Mb,Rd = chiLTWyfy/gammaM1 <= Mc,Rd",
+   "McrSN003a": null,
    "stdBasis": "channel kappa chain",
    "zg": 0
   },
@@ -5559,6 +5561,7 @@
    "MbRd": 8.806091066984385,
    "ltbUtil": 18.79421782384062,
    "ltbBasis": "P385/P362 channel kappa chain, lambdaLT = (LE/iz)/kappa, curve d, no f-factor; Mb,Rd = chiLTWyfy/gammaM1 <= Mc,Rd",
+   "McrSN003a": null,
    "stdBasis": "channel kappa chain",
    "zg": 0
   },
@@ -5718,6 +5721,7 @@
    "MbRd": 8.806091066984385,
    "ltbUtil": 18.79421782384062,
    "ltbBasis": "P385/P362 channel kappa chain, lambdaLT = (LE/iz)/kappa, curve d, no f-factor; Mb,Rd = chiLTWyfy/gammaM1 <= Mc,Rd",
+   "McrSN003a": null,
    "stdBasis": "channel kappa chain",
    "zg": 100
   },
@@ -5877,6 +5881,7 @@
    "MbRd": 8.806091066984385,
    "ltbUtil": 18.79421782384062,
    "ltbBasis": "P385/P362 channel kappa chain, lambdaLT = (LE/iz)/kappa, curve d, no f-factor; Mb,Rd = chiLTWyfy/gammaM1 <= Mc,Rd",
+   "McrSN003a": null,
    "stdBasis": "channel kappa chain",
    "zg": -100
   },
@@ -6046,6 +6051,7 @@
    "MbRd": 8.806091066984385,
    "ltbUtil": 18.79421782384062,
    "ltbBasis": "P385/P362 channel kappa chain, lambdaLT = (LE/iz)/kappa, curve d, no f-factor; Mb,Rd = chiLTWyfy/gammaM1 <= Mc,Rd",
+   "McrSN003a": null,
    "stdBasis": "channel kappa chain",
    "zg": 100
   },
@@ -6055,7 +6061,7 @@
    "section": "PFC 200 x 75 x 23",
    "sectionTag": "PFC",
    "owner": "udl point vertical loads acting at vertical horizontal eccentricity from shear center, and axial load on beam",
-   "title": "PFC 200 x 75 x 23, 6 m SS, unrestrained; L5 = L4 + \"axial load on beam\": N_Ed = 150 kN compression (U_x at End 1), all loads at e = +40 mm, z_g = +100 mm",
+   "title": "PFC 200 x 75 x 23, 6 m SS, unrestrained; L5 = L4 + \"axial load on beam\": N_Ed = 150 kN compression (U_x at End 1; the ULS DESIGN value entered directly, not factored by the combination - in MasterSeries an axial load whose factored value is 150 kN, e.g. 100 kN imposed), all loads at e = +40 mm, z_g = +100 mm",
    "method": "eigen",
    "restraint": "ltb",
    "file": "PFC-L5-eigen.html",
@@ -6161,7 +6167,7 @@
    "section": "PFC 200 x 75 x 23",
    "sectionTag": "PFC",
    "owner": "udl point vertical loads acting at vertical horizontal eccentricity from shear center, and axial load on beam",
-   "title": "PFC 200 x 75 x 23, 6 m SS, unrestrained; L5 = L4 + \"axial load on beam\": N_Ed = 150 kN compression (U_x at End 1), all loads at e = +40 mm, z_g = +100 mm",
+   "title": "PFC 200 x 75 x 23, 6 m SS, unrestrained; L5 = L4 + \"axial load on beam\": N_Ed = 150 kN compression (U_x at End 1; the ULS DESIGN value entered directly, not factored by the combination - in MasterSeries an axial load whose factored value is 150 kN, e.g. 100 kN imposed), all loads at e = +40 mm, z_g = +100 mm",
    "method": "standard",
    "restraint": "ltb",
    "file": "PFC-L5-standard.html",
@@ -6257,6 +6263,7 @@
    "MbRd": 8.806091066984385,
    "ltbUtil": 18.79421782384062,
    "ltbBasis": "P385/P362 channel kappa chain, lambdaLT = (LE/iz)/kappa, curve d, no f-factor; Mb,Rd = chiLTWyfy/gammaM1 <= Mc,Rd",
+   "McrSN003a": null,
    "stdBasis": "channel kappa chain",
    "zg": 100
   },
@@ -6266,7 +6273,7 @@
    "section": "PFC 200 x 75 x 23",
    "sectionTag": "PFC",
    "owner": "... and axial load on beam, load applied at angle on beam",
-   "title": "PFC 200 x 75 x 23, 6 m SS, unrestrained; L6 = L5 + \"load applied at angle on beam\": a further 30 kN (Q) point load at 2.0 m inclined 20 deg from the vertical - APPROXIMATION: modelled as its vertical component 28.191 kN (e = +40, z_g = +100) plus an entered CONSTANT M_z = 13.681 kN.m (= horizontal component 10.261 kN x 2 x 4 / 6, the simply supported minor-axis moment at 2.0 m); the tool has no lateral load, so the minor-axis moment is applied as a constant along the member, not as the true triangular diagram, and the torque of the horizontal component acting at z_g is not modelled",
+   "title": "PFC 200 x 75 x 23, 6 m SS, unrestrained; L6 = L5 + \"load applied at angle on beam\": a further 30 kN (Q) point load at 2.0 m inclined 20 deg from the vertical - APPROXIMATION: modelled as its vertical component 28.191 kN (Q, e = +40, z_g = +100, factored by the combination) plus an entered CONSTANT M_z,Ed = 20.521 kN.m (= 1.5 x 13.681, the ULS design value of the Q-case moment H a b / L = 10.261 x 2 x 4 / 6 = 13.681 kN.m, the simply supported minor-axis moment at 2.0 m; the tool's M_z input is a design value not run through the combinations); the tool has no lateral load, so the minor-axis moment is applied as a constant along the member (C_mz = 1.0), not as the true triangular diagram, and the torque of the horizontal component acting at z_g (H x z_g = 10.261 x 0.100 = 1.03 kN.m characteristic) is not modelled",
    "method": "eigen",
    "restraint": "ltb",
    "file": "PFC-L6-eigen.html",
@@ -6298,7 +6305,7 @@
     },
     {
      "name": "Biaxial bending + axial (6.2.9.1)",
-     "val": 4.52153960610126
+     "val": 4.93198065020567
     },
     {
      "name": "Torsional-flexural buckling  N_Ed/N_b,T,Rd (6.3.1.4)",
@@ -6306,11 +6313,11 @@
     },
     {
      "name": "Member buckling y-y (Eq 6.61)",
-     "val": 14.44899597811871
+     "val": 15.976686636691024
     },
     {
      "name": "Member buckling z-z (Eq 6.62)",
-     "val": 13.021969874685697
+     "val": 14.549660533258013
     },
     {
      "name": "LTB+torsion (EN 1993-6 Annex A)",
@@ -6373,7 +6380,7 @@
    "section": "PFC 200 x 75 x 23",
    "sectionTag": "PFC",
    "owner": "... and axial load on beam, load applied at angle on beam",
-   "title": "PFC 200 x 75 x 23, 6 m SS, unrestrained; L6 = L5 + \"load applied at angle on beam\": a further 30 kN (Q) point load at 2.0 m inclined 20 deg from the vertical - APPROXIMATION: modelled as its vertical component 28.191 kN (e = +40, z_g = +100) plus an entered CONSTANT M_z = 13.681 kN.m (= horizontal component 10.261 kN x 2 x 4 / 6, the simply supported minor-axis moment at 2.0 m); the tool has no lateral load, so the minor-axis moment is applied as a constant along the member, not as the true triangular diagram, and the torque of the horizontal component acting at z_g is not modelled",
+   "title": "PFC 200 x 75 x 23, 6 m SS, unrestrained; L6 = L5 + \"load applied at angle on beam\": a further 30 kN (Q) point load at 2.0 m inclined 20 deg from the vertical - APPROXIMATION: modelled as its vertical component 28.191 kN (Q, e = +40, z_g = +100, factored by the combination) plus an entered CONSTANT M_z,Ed = 20.521 kN.m (= 1.5 x 13.681, the ULS design value of the Q-case moment H a b / L = 10.261 x 2 x 4 / 6 = 13.681 kN.m, the simply supported minor-axis moment at 2.0 m; the tool's M_z input is a design value not run through the combinations); the tool has no lateral load, so the minor-axis moment is applied as a constant along the member (C_mz = 1.0), not as the true triangular diagram, and the torque of the horizontal component acting at z_g (H x z_g = 10.261 x 0.100 = 1.03 kN.m characteristic) is not modelled",
    "method": "standard",
    "restraint": "ltb",
    "file": "PFC-L6-standard.html",
@@ -6405,7 +6412,7 @@
     },
     {
      "name": "Biaxial bending + axial (6.2.9.1)",
-     "val": 4.52153960610126
+     "val": 4.93198065020567
     },
     {
      "name": "Torsional-flexural buckling  N_Ed/N_b,T,Rd (6.3.1.4)",
@@ -6413,11 +6420,11 @@
     },
     {
      "name": "Member buckling y-y (Eq 6.61)",
-     "val": 33.04620639216383
+     "val": 34.57389705073615
     },
     {
      "name": "Member buckling z-z (Eq 6.62)",
-     "val": 26.80700812768855
+     "val": 28.334698786260866
     },
     {
      "name": "LTB+torsion (EN 1993-6 Annex A)",
@@ -6470,6 +6477,7 @@
    "MbRd": 8.806091066984385,
    "ltbUtil": 24.93976477679512,
    "ltbBasis": "P385/P362 channel kappa chain, lambdaLT = (LE/iz)/kappa, curve d, no f-factor; Mb,Rd = chiLTWyfy/gammaM1 <= Mc,Rd",
+   "McrSN003a": null,
    "stdBasis": "channel kappa chain",
    "zg": 100
   },
@@ -6479,7 +6487,7 @@
    "section": "PFC 200 x 75 x 23",
    "sectionTag": "PFC",
    "owner": "... load applied at angle on beam AND EXTERNAL BENDING MOMENT AT ANY POINT ON BEAM, ON SHEAR CENTER AND ABOVE OR BELOW SHEAR CENTER",
-   "title": "PFC 200 x 75 x 23, 6 m SS, unrestrained; L7 = L6 + \"EXTERNAL BENDING MOMENT AT ANY POINT ON BEAM\": couple 40 kN.m (Q) at 4 m, applied as a pure M_y in the diagram - the \"on / above / below the shear centre\" variant is NOT a distinct case for a member tool: a couple has no line of action, so it produces no torque (P.e) and no load-height term (C2 z_g); only forces with a lever arm do",
+   "title": "PFC 200 x 75 x 23, 6 m SS, unrestrained; L7 = L6 + \"EXTERNAL BENDING MOMENT AT ANY POINT ON BEAM\": couple 40 kN.m (Q, factored by the combination) at 4 m, applied as a pure M_y in the diagram - the \"on / above / below the shear centre\" variant is NOT a distinct case for a member tool: a couple has no line of action, so it produces no torque (P.e) and no load-height term (C2 z_g); only forces with a lever arm do",
    "method": "eigen",
    "restraint": "ltb",
    "file": "PFC-L7-eigen.html",
@@ -6511,7 +6519,7 @@
     },
     {
      "name": "Biaxial bending + axial (6.2.9.1)",
-     "val": 4.855914286697799
+     "val": 5.2663553308022095
     },
     {
      "name": "Torsional-flexural buckling  N_Ed/N_b,T,Rd (6.3.1.4)",
@@ -6519,11 +6527,11 @@
     },
     {
      "name": "Member buckling y-y (Eq 6.61)",
-     "val": 15.539019545400336
+     "val": 17.06671020397265
     },
     {
      "name": "Member buckling z-z (Eq 6.62)",
-     "val": 13.82994140574413
+     "val": 15.357632064316444
     },
     {
      "name": "LTB+torsion (EN 1993-6 Annex A)",
@@ -6586,7 +6594,7 @@
    "section": "PFC 200 x 75 x 23",
    "sectionTag": "PFC",
    "owner": "... load applied at angle on beam AND EXTERNAL BENDING MOMENT AT ANY POINT ON BEAM, ON SHEAR CENTER AND ABOVE OR BELOW SHEAR CENTER",
-   "title": "PFC 200 x 75 x 23, 6 m SS, unrestrained; L7 = L6 + \"EXTERNAL BENDING MOMENT AT ANY POINT ON BEAM\": couple 40 kN.m (Q) at 4 m, applied as a pure M_y in the diagram - the \"on / above / below the shear centre\" variant is NOT a distinct case for a member tool: a couple has no line of action, so it produces no torque (P.e) and no load-height term (C2 z_g); only forces with a lever arm do",
+   "title": "PFC 200 x 75 x 23, 6 m SS, unrestrained; L7 = L6 + \"EXTERNAL BENDING MOMENT AT ANY POINT ON BEAM\": couple 40 kN.m (Q, factored by the combination) at 4 m, applied as a pure M_y in the diagram - the \"on / above / below the shear centre\" variant is NOT a distinct case for a member tool: a couple has no line of action, so it produces no torque (P.e) and no load-height term (C2 z_g); only forces with a lever arm do",
    "method": "standard",
    "restraint": "ltb",
    "file": "PFC-L7-standard.html",
@@ -6618,7 +6626,7 @@
     },
     {
      "name": "Biaxial bending + axial (6.2.9.1)",
-     "val": 4.855914286697799
+     "val": 5.2663553308022095
     },
     {
      "name": "Torsional-flexural buckling  N_Ed/N_b,T,Rd (6.3.1.4)",
@@ -6626,11 +6634,11 @@
     },
     {
      "name": "Member buckling y-y (Eq 6.61)",
-     "val": 35.861671775068295
+     "val": 37.389362433640606
     },
     {
      "name": "Member buckling z-z (Eq 6.62)",
-     "val": 28.893950047431094
+     "val": 30.42164070600341
     },
     {
      "name": "LTB+torsion (EN 1993-6 Annex A)",
@@ -6683,6 +6691,7 @@
    "MbRd": 8.806091066984385,
    "ltbUtil": 27.310094503965086,
    "ltbBasis": "P385/P362 channel kappa chain, lambdaLT = (LE/iz)/kappa, curve d, no f-factor; Mb,Rd = chiLTWyfy/gammaM1 <= Mc,Rd",
+   "McrSN003a": null,
    "stdBasis": "channel kappa chain",
    "zg": 100
   },
@@ -8176,6 +8185,7 @@
    "MbRd": 8.806091066984385,
    "ltbUtil": 18.79421782384062,
    "ltbBasis": "P385/P362 channel kappa chain, lambdaLT = (LE/iz)/kappa, curve d, no f-factor; Mb,Rd = chiLTWyfy/gammaM1 <= Mc,Rd",
+   "McrSN003a": null,
    "stdBasis": "channel kappa chain",
    "zg": 0
   },
@@ -8346,6 +8356,7 @@
    "MbRd": 8.806091066984385,
    "ltbUtil": 18.79421782384062,
    "ltbBasis": "P385/P362 channel kappa chain, lambdaLT = (LE/iz)/kappa, curve d, no f-factor; Mb,Rd = chiLTWyfy/gammaM1 <= Mc,Rd",
+   "McrSN003a": null,
    "stdBasis": "channel kappa chain",
    "zg": 0
   },
@@ -8508,6 +8519,7 @@
    "MbRd": 8.806091066984385,
    "ltbUtil": 18.79421782384062,
    "ltbBasis": "P385/P362 channel kappa chain, lambdaLT = (LE/iz)/kappa, curve d, no f-factor; Mb,Rd = chiLTWyfy/gammaM1 <= Mc,Rd. Clamped / warping-fixed end(s) taken as fork ends, k = kw = 1 (conservative)",
+   "McrSN003a": null,
    "stdBasis": "channel kappa chain",
    "zg": 0
   },
@@ -8677,6 +8689,7 @@
    "MbRd": 8.806091066984385,
    "ltbUtil": 18.79421782384062,
    "ltbBasis": "P385/P362 channel kappa chain, lambdaLT = (LE/iz)/kappa, curve d, no f-factor; Mb,Rd = chiLTWyfy/gammaM1 <= Mc,Rd",
+   "McrSN003a": null,
    "stdBasis": "channel kappa chain",
    "zg": 0
   },
@@ -8847,6 +8860,7 @@
    "MbRd": 6.339161644444446,
    "ltbUtil": 26.108120122560155,
    "ltbBasis": "P385/P362 channel kappa chain, lambdaLT = (LE/iz)/kappa, curve d, no f-factor; Mb,Rd = chiLTWyfy/gammaM1 <= Mc,Rd",
+   "McrSN003a": null,
    "stdBasis": "channel kappa chain",
    "zg": 0
   },
@@ -9016,6 +9030,7 @@
    "MbRd": 8.806091066984385,
    "ltbUtil": 18.79421782384062,
    "ltbBasis": "P385/P362 channel kappa chain, lambdaLT = (LE/iz)/kappa, curve d, no f-factor; Mb,Rd = chiLTWyfy/gammaM1 <= Mc,Rd",
+   "McrSN003a": null,
    "stdBasis": "channel kappa chain",
    "zg": -100
   },
@@ -9185,6 +9200,7 @@
    "MbRd": 11.548569735226566,
    "ltbUtil": 14.331090124922262,
    "ltbBasis": "P385/P362 channel kappa chain, lambdaLT = (LE/iz)/kappa, curve d, no f-factor; Mb,Rd = chiLTWyfy/gammaM1 <= Mc,Rd",
+   "McrSN003a": null,
    "stdBasis": "channel kappa chain",
    "zg": 0
   },
