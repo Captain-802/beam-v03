@@ -85,7 +85,7 @@ function build3DScene(){
     profile:{outer:prof.outer.map(p=>[+p[0].toFixed(2),+p[1].toFixed(2)]),
              inner:prof.inner? prof.inner.map(p=>[+p[0].toFixed(2),+p[1].toFixed(2)]):null,
              plate:pl? [[pl.x1,pl.z1],[pl.x2,pl.z1],[pl.x2,pl.z2],[pl.x1,pl.z2]]:null},
-    name:(sec.key||'')+' '+({pfc:'PFC',shs:'SHS',rhs:'RHS',ub:'UB',uc:'UC'}[S.family]||''),
+    name:sectionDisplayName(sec.key)+' '+({pfc:'PFC',shs:'SHS',rhs:'RHS',ub:'UB',uc:'UC'}[S.family]||''),   // "200 x 75 x 23 PFC" (js/03-state-ui.js), not the raw key
     supports:endsToSupports(S).map(s=>{ const e=endsList()[s.end-1]; return {x:(+s.pos)*1000,type:s.type,vp:!!e.rz,phip:!!e.warp}; }),
     restraints:(S.code==='EC3'&&(S.restraint||'full')!=='full'? (S.ltbRestraints||[]):[]).map(r=>({
       x:(+r.pos)*1000, v:r.v!==false, phi:r.phi!==false, vp:!!r.vp, phip:!!r.phip})),

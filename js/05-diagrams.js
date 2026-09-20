@@ -1,7 +1,7 @@
 /* ===========================================================================
    5. DIAGRAMS (inline SVG)
    =========================================================================== */
-function svgEl(W,H,inner){ return `<svg class="diag" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${inner}</svg>`; }
+function svgEl(W,H,inner,attrs){ return `<svg class="diag${attrs?' diag-hover':''}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg"${attrs||''}>${inner}</svg>`; }
 function plot(xs,ys,opt){
   const W=540,H=150,padL=46,padR=16,padT=16,padB=24;
   const xmax=xs[xs.length-1]||1;
@@ -29,7 +29,132 @@ function plot(xs,ys,opt){
     <text x="6" y="${midY+4}" font-family="Arial" font-size="10" fill="#555">0</text>
     <text x="${padL}" y="${H-8}" font-family="Arial" font-size="10" fill="#555">0</text>
     <text x="${W-padR}" y="${H-8}" font-family="Arial" font-size="10" fill="#555" text-anchor="end">${xmax.toFixed(2)} m</text>`;
-  return svgEl(W,H,inner);
+  // 20 Sep 2026 hover readout (owner: "see values on the diagram at any point
+  // when I hover"). The sample arrays (7 s.f., x in m; 20 Sep 2026 review: 4
+  // s.f. let the 2-dp readout disagree with the peak label and the forces
+  // table above ~1000 kN.m, e.g. 2607.00 for 2606.92) and every number of the
+  // data -> viewBox mapping above ride on the <svg> as data-* attributes, and a
+  // hidden <g class="hover"> (guide line, marker, haloed readout) waits at the
+  // end so it paints on top. installDiagramHover() below drives it through ONE
+  // delegated listener set - no per-svg state, so innerHTML re-renders are free.
+  // opt.name ('V','M','delta','T') and opt.caption feed the readout only; with
+  // no name the readout is "x = .. m   <value> <unit>" except for the three
+  // unambiguous defaults: unit 'kN' -> V, unit 'mm' -> delta, and a flipped
+  // (sagging-down) moment plot -> M (torsion is not flipped, so it stays blank).
+  const sig=v=>+Number(v).toPrecision(7), esc=v=>String(v==null?'':v).replace(/"/g,'&quot;').replace(/</g,'&lt;');
+  const unit=opt.unit||'';
+  const name=opt.name!=null? String(opt.name) : unit==='kN'?'V' : unit==='mm'?'δ' : (opt.flip&&/^kN.{0,9}m$/.test(unit))?'M':'';
+  const attrs=` data-xs="${JSON.stringify(xs.map(sig))}" data-ys="${JSON.stringify(ys.map(sig))}"`+
+    ` data-unit="${esc(unit)}" data-fmt-dp="${opt.dp!=null?+opt.dp:2}" data-xlabel="${esc(opt.xlabel||'x')}" data-name="${esc(name)}" data-caption="${esc(opt.caption||'')}"`+
+    ` data-padl="${padL}" data-padr="${padR}" data-padt="${padT}" data-padb="${padB}" data-xmax="${sig(xmax)}" data-ymax="${sig(ymax)}" data-flip="${opt.flip?1:0}" data-midy="${midY}" data-amp="${amp}"`;
+  inner+=`
+    <g class="hover" style="display:none" pointer-events="none">
+      <line class="hover-x" x1="${padL}" y1="${padT}" x2="${padL}" y2="${H-padB}" stroke="#444" stroke-width="1" stroke-dasharray="3 2"/>
+      <circle class="hover-pt" cx="${padL}" cy="${midY}" r="4" fill="${opt.color}" stroke="#fffdf8" stroke-width="1.5"/>
+      <text class="hover-txt" x="${padL+8}" y="${midY-9}" font-family="Arial" font-size="11" font-weight="700" fill="#111" stroke="#fffdf8" stroke-width="4" paint-order="stroke" stroke-linejoin="round" text-anchor="start"></text>
+    </g>`;
+  return svgEl(W,H,inner,attrs);
+}
+
+/* ---- hover readout driver (20 Sep 2026) ------------------------------------
+   Pure helpers first (they run in the vm test harness, which has no DOM):
+   diagHoverData(svg)      -> the data-* attributes parsed once per element
+                              (cached in a WeakMap keyed by the svg, so a
+                              re-rendered svg simply parses afresh);
+   diagHoverReadout(d,vx)  -> for a viewBox x: the interpolated sample, the
+                              marker position on the curve, the readout text
+                              and its anchor/position kept inside the viewBox.
+   installDiagramHover(root) (default document) attaches ONE delegated listener
+   set - mousemove / mouseleave (capture, it does not bubble) / touchmove /
+   touchend / touchcancel - for every svg.diag-hover under root, present now or
+   rendered later by innerHTML. Idempotent per root; returns false when the
+   root cannot take listeners (the harness stub document). No inline handlers,
+   no eval: CSP-safe. */
+function diagHoverData(svg){
+  const cache=diagHoverData.cache||(diagHoverData.cache=(typeof WeakMap==='function')? new WeakMap() : null);
+  if(cache&&cache.has(svg)) return cache.get(svg);
+  const g=k=>svg.getAttribute('data-'+k), n=k=>+g(k);
+  let xs,ys; try{ xs=JSON.parse(g('xs')||'[]'); ys=JSON.parse(g('ys')||'[]'); }catch(e){ xs=[]; ys=[]; }
+  const vb=String(svg.getAttribute('viewBox')||'0 0 540 150').trim().split(/[\s,]+/).map(Number);
+  const d={xs,ys,W:vb[2]||540,H:vb[3]||150,padL:n('padl'),padR:n('padr'),padT:n('padt'),padB:n('padb'),xmax:n('xmax')||1,ymax:n('ymax')||1e-9,
+    flip:g('flip')==='1',midY:n('midy'),amp:n('amp'),unit:g('unit')||'',name:g('name')||'',dp:(g('fmt-dp')!=null&&g('fmt-dp')!=='')? +g('fmt-dp') : 2,
+    xlabel:g('xlabel')||'x',caption:g('caption')||''};
+  if(!(d.midY>0)) d.midY=d.padT+(d.H-d.padT-d.padB)/2;
+  if(!(d.amp>0)) d.amp=(d.H-d.padT-d.padB)/2-4;
+  if(cache) cache.set(svg,d);
+  return d;
+}
+function diagHoverReadout(d,vx){
+  const n=d.xs.length; if(!n||d.ys.length!==n) return null;
+  const span=d.W-d.padL-d.padR;
+  // viewBox x -> member x, clamped to the sampled range
+  let x=(vx-d.padL)/span*d.xmax; x=Math.min(Math.max(x,d.xs[0]),d.xs[n-1]);
+  // segment [lo,hi] by bisection, linear interpolation inside it (a zero-length
+  // segment - the two samples either side of a jump - takes its first end)
+  let lo=0,hi=n-1; while(hi-lo>1){ const m=(lo+hi)>>1; if(d.xs[m]<=x) lo=m; else hi=m; }
+  const x0=d.xs[lo],x1=d.xs[hi]; let t=(x1>x0)? (x-x0)/(x1-x0) : 0; t=Math.min(Math.max(t,0),1);
+  const y=d.ys[lo]+(d.ys[hi]-d.ys[lo])*t;
+  const cx=d.padL+x/d.xmax*span, cy=d.midY-(d.flip?-1:1)*y/d.ymax*d.amp;
+  let ys=y.toFixed(d.dp); if(/^-0\.?0*$/.test(ys)) ys=ys.slice(1);   // no "-0.00"
+  const text=(d.caption? d.caption+': ' : '')+`${d.xlabel} = ${x.toFixed(2)} m ${d.name? d.name+' = ' : ''}${ys} ${d.unit}`.trim();
+  // keep the readout inside the viewBox: flip the anchor near the right edge,
+  // and sit the text on the EMPTY side of the axis at this x (the curve is on
+  // one side only there), tied to the marker by the guide line - so it never
+  // fights the peak label, which lives on the curve's outer side
+  const est=text.length*6.3;
+  const flipAnchor=cx+8+est>d.W-2;
+  const tx=flipAnchor? cx-8 : cx+8, anchor=flipAnchor? 'end' : 'start';
+  const ty=(cy>=d.midY)? d.midY-12 : d.midY+20;
+  return {x,y,cx,cy,text,tx,ty,anchor};
+}
+function diagHoverPoint(svg,clientX,clientY){
+  // pointer -> viewBox units: the screen CTM when the browser gives one, else
+  // the bounding-rect ratio (width:100%, default xMidYMid meet => uniform scale)
+  try{
+    if(typeof svg.getScreenCTM==='function'){
+      const m=svg.getScreenCTM();
+      if(m){ const inv=m.inverse();
+        if(typeof DOMPoint==='function'){ const p=new DOMPoint(clientX,clientY).matrixTransform(inv); return {x:p.x,y:p.y}; }
+        if(typeof svg.createSVGPoint==='function'){ let p=svg.createSVGPoint(); p.x=clientX; p.y=clientY; p=p.matrixTransform(inv); return {x:p.x,y:p.y}; }
+      }
+    }
+  }catch(e){ /* fall through to the ratio */ }
+  const d=diagHoverData(svg), r=svg.getBoundingClientRect();
+  const sc=Math.min(r.width/d.W,r.height/d.H)||1;
+  return {x:(clientX-r.left-(r.width-d.W*sc)/2)/sc, y:(clientY-r.top-(r.height-d.H*sc)/2)/sc};
+}
+function diagHoverShow(svg,clientX,clientY){
+  const grp=svg.querySelector('.hover'); if(!grp) return;
+  const d=diagHoverData(svg), p=diagHoverPoint(svg,clientX,clientY), r=diagHoverReadout(d,p.x);
+  if(!r){ grp.style.display='none'; return; }
+  const ln=grp.querySelector('.hover-x'), pt=grp.querySelector('.hover-pt'), tx=grp.querySelector('.hover-txt');
+  if(ln){ ln.setAttribute('x1',r.cx); ln.setAttribute('x2',r.cx); }
+  if(pt){ pt.setAttribute('cx',r.cx); pt.setAttribute('cy',r.cy); }
+  if(tx){ tx.setAttribute('x',r.tx); tx.setAttribute('y',r.ty); tx.setAttribute('text-anchor',r.anchor); tx.textContent=r.text; }
+  grp.style.display='';
+}
+function diagHoverHide(svg){ const grp=svg&&svg.querySelector&&svg.querySelector('.hover'); if(grp) grp.style.display='none'; }
+function installDiagramHover(root){
+  root=root||(typeof document!=='undefined'? document : null);
+  if(!root||typeof root.addEventListener!=='function') return false;
+  const roots=installDiagramHover.roots||(installDiagramHover.roots=[]);
+  if(roots.indexOf(root)>=0) return false;   // idempotent: one listener set per root
+  roots.push(root);
+  let active=null;   // the svg currently showing a readout (dropped when detached)
+  const svgOf=t=>(t&&typeof t.closest==='function')? t.closest('svg.diag-hover') : null;
+  const hideActive=()=>{ if(active){ diagHoverHide(active); active=null; } };
+  const move=(target,clientX,clientY)=>{
+    const svg=svgOf(target);
+    if(!svg){ hideActive(); return; }
+    if(active&&active!==svg) hideActive();
+    active=svg; diagHoverShow(svg,clientX,clientY);
+  };
+  root.addEventListener('mousemove',e=>move(e.target,e.clientX,e.clientY),{passive:true});
+  root.addEventListener('mouseleave',e=>{ const svg=svgOf(e.target); if(svg){ diagHoverHide(svg); if(active===svg) active=null; } },{capture:true,passive:true});
+  root.addEventListener('touchmove',e=>{ const t=e.touches&&e.touches[0]; if(t) move(t.target||e.target,t.clientX,t.clientY); },{passive:true});
+  root.addEventListener('touchend',hideActive,{passive:true});
+  root.addEventListener('touchcancel',hideActive,{passive:true});
+  return true;
 }
 function beamDiagram(a){
   // Collision-free loading sketch:

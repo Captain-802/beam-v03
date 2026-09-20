@@ -156,7 +156,7 @@ Heading `Member Loading and Member Forces`.
 | Mem ber No. | 1 | | NOT AVAILABLE (single member); print `1` |
 | Node End1 / End2 | `End 1, x = 0` | `End 2, x = L` | DERIVE: positions `0` and `S.L` m (no node numbers exist); for the governing portion print `xa`, `xb` |
 | Axial Force (kN) | `N` with suffix `C` (compression, `S.axial > 0`) or `T` (tension) | same | `S.axial` (constant along the member; sign convention: positive = compression, as `render()` prints `c.F >= 0 ? 'C' : 'T'`) |
-| Torque Moment (kN.m) | `T` at x = 0 | at x = L | `T.p385 ? T.TtEnds[0] : 0`, `T.TtEnds[1]`; boxes: DERIVE `interpAt(a.tors.diag.xs, a.tors.diag.T, 0)` and at `S.L`; `0.00` when `a.tors` is null |
+| Torque Moment (kN.m) | `T` at x = 0 | at x = L | the end torque REACTION as MasterSeries prints it (20 Sep 2026 review): the total `T.TEnds[0]` / `T.TEnds[1]` (T = GI<sub>T</sub>φ′ − EI<sub>w</sub>φ‴) when `T.p385` provides it, else the St Venant part `T.TtEnds`; boxes: DERIVE `interpAt(a.tors.diag.xs, a.tors.diag.T, 0)` and at `S.L`; `0.00` when `a.tors` is null (the "End torques" row of the Torsion block prints both parts) |
 | Shear Force y-y (kN) | DERIVE `interpAt(fb.xs, fb.V, 1e-4)/1000` | DERIVE `interpAt(fb.xs, fb.V, a.L−1e-4)/1000` | `fb = a.governM.fb` (governing combination's own diagram, not the envelope) |
 | Shear Force z-z (kN) | 0.00 | 0.00 | NOT AVAILABLE (single-plane solver; M<sub>z</sub> is an applied constant moment with no shear) |
 | Bending Moment y-y (kN.m) | `a.M0end` | `a.MLend` | signed, hogging negative |
@@ -418,12 +418,12 @@ Heading `Deflection Check - Load Case <m>` with `m` = index/label of `a.governD.
 
 | Cell | Value | Source |
 |---|---|---|
-| `N_Ed/N_(pl.Rd)` | `AX.nUtil` | |
+| `N_Ed/N_(pl.Rd)` (labelled `N_Ed/N_(c.Rd)` when `AX.aeff.active`, 20 Sep 2026 review) | `AX.nUtil` | |
 | `Local` | `AX.mUtil` (biaxial / M<sub>N</sub> interaction, see section 1 item 2) | |
-| `UNyz` | DERIVE `max(B.ny, B.nz)`; `0.000` when `B === null` (tension) | |
-| `UMyz` | DERIVE `max(B.Mx/B.MbRdI, B.mzTerm)`; tension: `c.ltbUtil` (unrestrained) or `c.momUtil` | |
-| `Ax+M_6.61` | `B.u1`; tension: `0.000` | |
-| `Ax+M_6.62` | `B.u2`; tension: `0.000` | |
+| `UNyz` | DERIVE `max(B.ny, B.nz)`; `—` when `B === null` (tension: not evaluated; was `0.000` before the 20 Sep 2026 review) | |
+| `UMyz` | DERIVE `max(B.Mx/B.MbRdEff, B.mzTerm)` (`B.MbRdEff` = M<sub>b.Rd</sub> with W<sub>el.y</sub>/W<sub>pl.y</sub> applied on the A<sub>eff</sub> route, else `B.MbRdI`; equals the printed U<sub>M.y</sub> row, 20 Sep 2026 review); tension: `c.ltbUtil` (unrestrained) or `c.momUtil` | |
+| `Ax+M_6.61` | `B.u1`; tension: `—` | |
+| `Ax+M_6.62` | `B.u2`; tension: `—` | |
 | `Deflection` | `c.dmax/c.dlimit` | |
 | extra cells as above (`V/Vpl`, `MA/Mc` = `c.momUtil`, `LTB` = `c.ltbUtil`, `M-V`, `Torsion`, `V+T`, `LTB+T`) **[beam-v03 addition]** | | `c.utils` |
 | `Max` | as above, excluding Deflection | |
@@ -594,7 +594,34 @@ Acceptance tests to add in `tests/brief.test.cjs` once the renderer exists: (1) 
 
 ---
 
-## 11. Open decisions before implementation
+## 11. Single-brief blocks added 20 Sep 2026 (owner: one brief, MasterSeries order, every block on its trigger) and the review fixes
+
+The brief IS the EC3 report since 20 Sep 2026 (`render()` prints the verdict banner and `renderMasterSeriesBrief()` only; the long CED report is the BS 5950 output). Blocks and lines added or changed, with their triggers and field sources (the header comment of `js/06-brief-masterseries.js` carries the block order):
+
+| Block / line | Trigger | Source |
+|---|---|---|
+| Title line 2 `Includes Design for Torsion with Span Warping, Ends Free to Warp` / `End Warping Fixed` / `End n Warping Fixed, End m Free to Warp`; `Includes Design for Torsion` for a hollow section | `c.tor` exists | `msbTorsionTitle(T, sec)`: `T.fe` and the end `warp` flags (`S.ends.e1/e2.warp`); the P385 closed forms assume fork ends free to warp |
+| Diagram panel `<div class="ms-diagrams">` after the forces table: loading sketch full width, then Shear force V (kN), Bending moment M (kN.m, tension side down), Deflection δ (mm, `<SLS label>`), Torsional moment T (kN.m, `<combo>`) two per row, each a `plot()` svg with `data-xs/ys` samples (7 s.f.) and the hidden hover group | always; the T plot with `a.tors.on` | `msbDiagramPanel(a)`: `a.diag`, `a.tors.diag`, `a.governD.combo.label`, `a.tors.governT`; `installDiagramHover()` (js/05-diagrams.js) drives the readout |
+| `Shear Capacity Check` block before Local / Moment Capacity: `V_pl.y.Rd = A_v f_y/(√3 γ_M0)`, `V_y.Ed/V_pl.y.Rd` (max V over the ULS cases, OK / Warning), `h_w/t_w ≤ 72ε/η` screen | always | `c.Av`, `c.avFloor`, `c.VcRd`, `c.Fv`, `c.shearUtil`, `c.sbRatio/sbLimit/sbOk` |
+| `V_y.Ed/V_pl.y.Rd (at max M)` first line of the Local / Moment Capacity block, Low / High Shear ("(at max M)" in the label, 20 Sep 2026 review) | always | `c.VatM`, `c.VcRd`, `c.lowShearAtM` |
+| `V_z.Ed/V_pl.z.Rd`, `M_c.z.Rd` | only with M<sub>z</sub> (`AX.biax`) | `c.ax.VplZ`, `c.ax.Avz`, `c.ax.Mcz` |
+| Web Transverse Forces block | only when the engine ran it (`c.web`) | `msbWebBlock` |
+| Compression Resistance N.b.Rd | `c.buck.Fc > 0` only; the MasterSeries `L_et = K_t.L_z ; λ̄_T ; N_b.T.Rd` line printed as `n/a - not evaluated by beam-v03` for non-channels; `N_Ed/N_b.Rd` = max(U<sub>N.y</sub>, U<sub>N.z</sub>) | `c.buck` |
+| EUMF heading `Equivalent Uniform Moment Factors C1, C.mLT, C.mz, and C.my` / `... Factor C1` | C<sub>m</sub> lines only with `c.buck`; the C<sub>1</sub> block on BOTH Mcr routes whenever LTB is not fully restrained and the route did not fail (20 Sep 2026 review: MasterSeries prints `C1 = ... Uniform` for a hollow section too, so the standard-route box no longer suppresses it) | `LT.c1in`, `LT.C1show`, `LT.c1label`, `LT.c1route` |
+| Cantilever standard route: `C1 = fn(M, Zg, κwt) ... Ncci-sn006` | `LT.cant` | `LT.kwt`, `LT.zg`, `LT.warp` |
+| Channel without the shear-centre M<sub>cr</sub> route (cantilever, torsion active): `C1 = fn(M1, M2, Mo, ψ, μ)` printed with `—` and the tag `not used` (the P362 κ chain sets λ̄<sub>LT</sub> = (L<sub>e</sub>/i<sub>z</sub>)/κ), basis tag `P362` (20 Sep 2026 review) | `LT.channel && !LT.chanMcr` | |
+| Hollow section with λ̄<sub>LT</sub> ≤ 0.4: `M_b.Rd = M_c.y.Rd  closed hollow section — not susceptible to LTB (λ̄_LT = x ≤ 0.4)  [6.3.2.1(2)]` (SHS) / `... LTB may be ignored [6.3.2.2(4)]` (RHS) on BOTH routes; the eigen route keeps its FE M<sub>cr</sub> and λ̄<sub>LT</sub> rows as information (20 Sep 2026 review) | `LT.box` and (`LT.ign` or λ̄ ≤ 0.4) | `boxIgnRow()` in the renderer |
+| Advisory rows of the Lateral Buckling block: the eigen route's notes (L<sub>E</sub> factor ignored on this route, warping flag not applied to a closed section, C<sub>1</sub> not trusted / k<sub>c</sub> floored, L<sub>cr,z</sub> from the restraint spacing) and, for a fixed end / cantilever root without intermediate restraints, `Restraint design force @ x m` = 2.5 % N<sub>f.Ed</sub> (20 Sep 2026 review) | `LT.warn`; `c.restraintForces` rows with a force and no intermediate restraint | `msbAdvisoryRows()` |
+| Buckled mode shape figure `<div class="ms-diag-full ms-mode">` (twist φ solid, lateral v dashed, restraint points) in the Lateral Buckling block, not a hover diagram (20 Sep 2026 review: was a figure of the deleted CED report) | eigen route with `LT.mode` | `msbModeShape(LT)` |
+| `Lateral Restraint Portions (bay by bay, fork ends)` / `(restraint design forces)` block | ONLY with intermediate lateral restraints (`LT.segments`, or a `c.restraintForces` row of kind `lateral`); a plain simply supported, fixed-ended or cantilever member prints no portions block (20 Sep 2026 review; MasterSeries prints no portion without an intermediate restraint) | |
+| Buckling Resistance in every Axial with Moments brief; tension: `n/a - not evaluated by beam-v03 (N_Ed is tensile ...)`; the `k_zy method` Table B.1 / B.2 line | `AX` | `B.useB1` |
+| Torsion Design: `Torsion Bending Design @ x` and `Torsion Shear Design @ x` sub-headings, τ<sub>t</sub> (τ<sub>w</sub>) station line, S<sub>mod</sub>, `k = kw.kzw.kα` before the Annex A interaction; boxes: `W_t (= C)`, `τ_t.Ed = T_Ed/W_t`, the MasterSeries `Modified Local Capacity` label as not evaluated | `c.tor` | `T.vt`, `T.VplTRd`, `c.annex`, `T.Wt` |
+| `Torq in Case n @ x m: θ_max ≤ 2.00°` in the Deflection block (advisory, does not enter the verdict) | `c.tor` with `T.p385` or `T.box` | `T.phiSer / phiSerDeg / phiSerPos` (P385) or `T.phiMax / phiDeg / phiPos` (box), `T.governTw` |
+| Unity bar (20 Sep 2026 review): the first Axial-with-Moments cell is `N_Ed/N_(c.Rd)` when the Class-4 A<sub>eff</sub> applies (`AX.aeff.active`, the value is `AX.nUtil` = N<sub>Ed</sub>/N<sub>c.Rd</sub>), `UMyz` = max(U<sub>M.y</sub> against `B.MbRdEff`, U<sub>M.z</sub>) so it equals the printed U<sub>M.y</sub> row, and `UNyz`, `Ax+M_6.61`, `Ax+M_6.62` print `—` (not 0.000) when `B` is null (tension) | | |
+
+Owner decisions recorded, not implemented: (a) a torsion case without N<sub>Ed</sub> / M<sub>z</sub> prints a Beam-Portion brief without the Buckling Resistance block, whereas every MasterSeries torsion printout is an Axial-with-Moments brief with the 6.61 / 6.62 interaction (the engine builds `c.buck` only with N<sub>Ed</sub> or M<sub>z</sub>; MasterSeries uses the torsion-induced M<sub>zt</sub> as M<sub>z.Ed</sub>); (b) under the 1.0G + 1.0Q SLS default the demo beam opens at FAIL on deflection (27.59 mm > 22.22 mm).
+
+## 12. Open decisions before implementation
 
 1. **Design basis of the standard option.** DONE (Sep 2026 review): `checksEC3UnrestrainedSCI` sets `LT.MbRd = LT.MbMcr` (capped at M<sub>c,Rd</sub>) and `c.ltbUtil = c.Mx/LT.MbMcr`; the simplified route is an informational comparison line. Hollow sections print the real χ<sub>LT</sub> chain (curve from the shared `ltbCurveNA()`) when λ̄<sub>LT</sub> > 0.4 and the 6.3.2.1(2) / 6.3.2.2(4) exemption line only when λ̄<sub>LT</sub> ≤ 0.4.
 2. **C1 per portion for the standard option.** `sn003aC1` reads whole-member quantities; on continuous beams the printed `fn(M1, M2, Mo, ψ, μ)` values will be portion values while C1 itself is whole-member. Either evaluate `sn003aC1` on `analysisForCombination`-style portion slices, or print the whole-member M<sub>1</sub>/M<sub>2</sub>/M<sub>o</sub> with the portion extents noted.

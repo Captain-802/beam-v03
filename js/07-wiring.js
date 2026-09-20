@@ -74,8 +74,8 @@ function wirePlate(){
 }
 
 function wire(){
-  ["grade","py","anet","length","axial","Mz","leFactor","LT","mLTo","mxo","C1o","divisor","divisorCant","deflAbs","E","Ke","robertsonX","robertsonY"]
-    .forEach(id=>{ if($(id)) $(id).addEventListener("input",()=>{ readScalarInputs(); recompute(); }); });
+  ["grade","py","anet","axial","Mz","leFactor","LT","mLTo","mxo","C1o","divisor","divisorCant","deflAbs","E","Ke","robertsonX","robertsonY"]
+    .forEach(id=>{ if($(id)) $(id).addEventListener("input",()=>{ readScalarInputs(); recompute(); }); });   // "length" has its own handlers below (span clamp)
   $("za").addEventListener("input",()=>{ readScalarInputs(); renderLoadList(); recompute(); });
   $("destab").addEventListener("change",()=>{ readScalarInputs(); recompute(); });
   $("eccOn").addEventListener("change",()=>{ readScalarInputs(); renderLoadList(); recompute(); });
@@ -111,8 +111,31 @@ function wire(){
     S.shsType=$("shsType").value; syncInputs(); refreshAutoFields(); recompute(); });
   if($("rhsType")) $("rhsType").addEventListener("change",()=>{
     S.rhsType=$("rhsType").value; syncInputs(); refreshAutoFields(); recompute(); });
-  $("length").addEventListener("change",()=>{ // the End 2 label (x = L) and full-span loads follow the new length
-    readScalarInputs(); syncSelfWeightLoads(); renderEndsPanel(); renderHingeList(); renderLoadList(); recompute(); });
+  // Member length (20 Sep 2026 owner request): the loads, hinges and lateral
+  // restraints follow the span (clampLoadsToSpan, js/03-state-ui.js) BEFORE the
+  // inputs are read and validated, so a shorter member never leaves a load
+  // outside it. The clamp works from a snapshot of the load layout taken when
+  // the field is entered and is re-applied on every keystroke from that
+  // snapshot, so an intermediate value typed on the way to the final one (the
+  // "1" of "12") does not clamp the loads for good; the snapshot is dropped on
+  // change (commit) and on blur. The End 2 label (x = L), the load editor, the
+  // hinge list and the restraint list are re-filled so the user sees the values.
+  let spanEdit=null;
+  const spanSnapshot=()=>({L0:+S.L, loads:JSON.parse(JSON.stringify(S.loads)), hinges:JSON.parse(JSON.stringify(S.hinges||[])), ltbRestraints:JSON.parse(JSON.stringify(S.ltbRestraints||[]))});
+  function spanEdited(commit){
+    if(!spanEdit) spanEdit=spanSnapshot();   // spinner / programmatic edit without a focus event: S.L is still the old length here
+    S.loads=JSON.parse(JSON.stringify(spanEdit.loads)); S.hinges=JSON.parse(JSON.stringify(spanEdit.hinges)); S.ltbRestraints=JSON.parse(JSON.stringify(spanEdit.ltbRestraints));
+    clampLoadsToSpan(S, spanEdit.L0, parseFloat($("length").value));
+    readScalarInputs(); syncSelfWeightLoads();
+    renderEndsPanel(); renderHingeList(); renderLoadList();
+    if(typeof renderLtbRestraintList==='function') renderLtbRestraintList();   // js/08-mcr-eigen-patch.js (loaded after this file; called at event time)
+    if(commit) spanEdit=null;
+    recompute();
+  }
+  $("length").addEventListener("focus",()=>{ spanEdit=spanSnapshot(); });
+  $("length").addEventListener("input",()=>spanEdited(false));
+  $("length").addEventListener("change",()=>spanEdited(true));
+  $("length").addEventListener("blur",()=>{ spanEdit=null; });
   // End conditions: the preset drop-list and the quick buttons (data-preset = an
   // END_PRESETS key) apply a preset through applyEndPreset() (the seating /
   // hold-down / stiffener entries of the ends are kept, the hinges cleared);

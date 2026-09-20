@@ -15,6 +15,23 @@
    Blocking messages (c.unsupported) appear as red "NOT VERIFIED" rows in
    the block of the check they concern (a message no block claims is printed
    before the deflection block) and again in the verdict footer.
+   20 Sep 2026 (owner: one brief only, MasterSeries order, every block on its
+   trigger): this brief IS the EC3 report (js/06-render.js prints the verdict
+   banner and then this string alone). Block sequence, audited against the
+   MasterSeries printouts of docs/owner-cases/masterseries/COMPARISON_LOG.md:
+   Title (+ "Includes Design for Torsion ..." line when torsion is active) ->
+   Member Loading and Member Forces (load list, forces table, loading sketch
+   and hover diagrams V / M / delta / T, combination table when > 1 case) ->
+   Classification and Effective Area -> Shear Capacity Check -> Local Capacity
+   Check (or Moment Capacity Check M.c.y.Rd) -> Web Transverse Forces (beam-v03
+   addition, when the engine ran it) -> Compression Resistance N.b.Rd (N_Ed > 0)
+   -> Equivalent Uniform Moment Factor(s) -> Lateral Buckling Check M.b.Rd
+   (+ Lateral Restraint Portions with intermediate restraints) -> Buckling
+   Resistance (Axial with Moments brief) -> Torsion Design / Torsion Bending
+   Design @ x / Torsion Shear Design @ x (torsion active) -> Deflection Check
+   (+ the "Torq in Case n" twist line with torsion) -> unity bar -> verdict.
+   A MasterSeries line beam-v03 has no value for prints its label with
+   "n/a - not evaluated by beam-v03" once; nothing is recomputed here.
    =========================================================================== */
 
 /* ---- formatting (docs/BRIEF_MAPPING.md section 3) ---- */
@@ -157,8 +174,63 @@ function msbRow(label,vals,res,tag,cls){
 function msbNotVerifiedRows(list){
   return (list||[]).map(m=>'<div class="ms-row ms-nv"><div class="ms-l">NOT VERIFIED</div><div class="ms-v ms-nv-msg">'+msbEsc(m)+'</div><div class="ms-r"></div><div class="ms-t"><span class="ms-warn">NOT VERIFIED</span></div></div>').join('');
 }
+// 20 Sep 2026 review: advisory rows (engine notes that do not enter the verdict), one per message
+function msbAdvisoryRows(list){
+  return (list||[]).map(m=>'<div class="ms-row ms-advrow"><div class="ms-l">Advisory</div><div class="ms-v ms-adv-msg">'+msbEsc(m)+'</div><div class="ms-r"></div><div class="ms-t">advisory</div></div>').join('');
+}
+// 20 Sep 2026 review: the eigen route's buckled mode shape (LT.mode: x mm, phi and v normalised to their own
+// peaks; LT.vPoints the lateral restraint stations), formerly a figure of the deleted CED report. Pure SVG string,
+// no hover data (the curves are shapes, not values); empty when the route has no mode.
+function msbModeShape(LT){
+  const md=LT && LT.mode;
+  if(!md || !md.x || md.x.length<3) return '';
+  const W=540,H=120,pd=12,Lm=md.x[md.x.length-1]||1;
+  let vmx=0; md.v.forEach(vv=>{ vmx=Math.max(vmx,Math.abs(vv)); });
+  const X=x=>pd+(W-2*pd)*x/Lm, Yc=H/2, ampl=H/2-pd-14;
+  let pphi='', pv='';
+  md.x.forEach((x,i)=>{ pphi+=(i? ' L ':'M ')+X(x).toFixed(1)+' '+(Yc-ampl*md.phi[i]).toFixed(1); pv+=(i? ' L ':'M ')+X(x).toFixed(1)+' '+(Yc-ampl*(vmx>0? md.v[i]/vmx : 0)).toFixed(1); });
+  const marks=(LT.vPoints||[]).map(x=>{ const xx=X(x).toFixed(1); return '<line x1="'+xx+'" y1="'+pd+'" x2="'+xx+'" y2="'+(H-pd)+'" stroke="#b91c1c" stroke-width="1" stroke-dasharray="3,3"/><text x="'+xx+'" y="'+(H-2)+'" font-family="Arial" font-size="9" text-anchor="middle" fill="#b91c1c">'+g(x/1000,2)+'</text>'; }).join('');
+  return '<div class="ms-diag-full ms-mode"><div class="ms-dt">Buckled mode shape &mdash; critical eigenmode (normalised; twist &phi; solid, lateral v dashed; red: lateral restraint points; peak twist at x = '+(LT.modePeakX!=null? g(LT.modePeakX/1000,2) : '&mdash;')+' m)</div>'+
+    '<svg class="diag" viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg"><line x1="'+pd+'" y1="'+Yc+'" x2="'+(W-pd)+'" y2="'+Yc+'" stroke="#9ca3af" stroke-width="1"/>'+marks+
+    '<path d="'+pphi+'" fill="none" stroke="#1d4ed8" stroke-width="2"/><path d="'+pv+'" fill="none" stroke="#059669" stroke-width="1.6" stroke-dasharray="6,4"/></svg></div>';
+}
 function msbHead(t){ return '<div class="ms-h">'+t+'</div>'; }
 function msbSub(t){ return '<div class="ms-sub">'+t+'</div>'; }
+// [20 Sep 2026] MasterSeries second title line when torsion is designed: an open
+// section names the warping condition of its ends (the P385 closed forms assume
+// fork ends free to warp; the warping-torsion FE reads the end W flags), a
+// hollow section simply "Includes Design for Torsion".
+function msbTorsionTitle(T,sec){
+  if(!T) return '';
+  if(sec.isBox || T.box) return '<div>Includes Design for Torsion</div>';
+  const e1=(S.ends&&S.ends.e1)||{}, e2=(S.ends&&S.ends.e2)||{};
+  const w1=!!(T.fe && e1.warp), w2=!!(T.fe && e2.warp);
+  const txt=(w1&&w2)? 'End Warping Fixed' : (!w1&&!w2)? 'Ends Free to Warp' : 'End '+(w1?1:2)+' Warping Fixed, End '+(w1?2:1)+' Free to Warp';
+  return '<div>Includes Design for Torsion with Span Warping, '+txt+'</div>';
+}
+/* ---- [20 Sep 2026] diagram panel of the Member Loading block ----
+   The loading sketch (beamDiagram) full width, then the shear force, bending
+   moment (tension side down), deflection and - with torsion active - torsional
+   moment plots in a two-column grid. plot() (js/05-diagrams.js) rides every
+   sample on the <svg> as data-* attributes and appends the hidden hover group
+   that installDiagramHover() drives, so each diagram reads "x = .. m  M = ..
+   kN.m" under the pointer; opt.name labels the readout. Pure: a.diag and
+   a.tors.diag only, nothing recomputed. */
+function msbDiagramPanel(a){
+  if(typeof plot!=='function') return '';
+  const cap=(s)=>'<div class="ms-dt">'+s+'</div>';
+  const torsOn=!!(a.tors && a.tors.on && a.tors.diag);
+  let h='<div class="ms-diagrams">';
+  if(typeof beamDiagram==='function') h+='<div class="ms-diag-full">'+cap('Loading')+beamDiagram(a)+'</div>';
+  h+='<div class="ms-diag-grid">'+
+    '<div>'+cap('Shear force V (kN)')+plot(a.diag.xs,a.diag.V,{color:'#1d4ed8',fill:'#bcd0f7',unit:'kN',name:'V',fmt:v=>f1(v,2)})+'</div>'+
+    '<div>'+cap('Bending moment M (kN.m)')+plot(a.diag.xs,a.diag.M,{color:'#b91c1c',fill:'#f3c2c2',unit:'kN.m',name:'M',flip:true,fmt:v=>f1(v,2)})+'</div>'+
+    '<div>'+cap('Deflection &delta; (mm, '+msbEsc(a.governD.combo.label)+')')+plot(a.diag.dx,a.diag.dw,{color:'#166534',fill:'#bfe3cb',unit:'mm',name:'\u03b4',fmt:v=>f1(v,2)})+'</div>'+
+    (torsOn? '<div>'+cap('Torsional moment T (kN.m, '+msbEsc(a.tors.governT)+')')+plot(a.tors.diag.xs,a.tors.diag.T,{color:'#7a4',fill:'#dcebc4',unit:'kN.m',name:'T',fmt:v=>f1(v,2)})+'</div>' : '')+
+    '</div>';
+  h+='<div class="ms-note ms-diag-note"><i>Bending-moment diagram drawn on the tension side (sagging down); shear and deflection to true sign (down = below the axis); hover over a diagram for the value at any point.</i></div>';
+  return h+'</div>';
+}
 
 /* ---- Web Transverse Forces (EN 1993-1-5 cl 6 + 7.2) block, pure ----
    Prints the web geometry and m1/m2, the full derivation of the governing
@@ -168,8 +240,8 @@ function msbSub(t){ return '<div class="ms-sub">'+t+'</div>'; }
 function msbWebTypeText(t){ return t==='a'? 'Fig 6.1(a) interior' : t==='b'? 'Fig 6.1(b) through the web' : 'Fig 6.1(c) end'; }
 function msbWebBlock(a,c,sec,nvRows){
   const W=c.web||null;
+  if(!W) return msbNotVerifiedRows(nvRows);   // 20 Sep 2026: no block when the engine did not run the check (the rows, if any, still print)
   let h=msbHead('Web Transverse Forces (EN 1993-1-5 cl 6)');
-  if(!W){ h+=msbRow('F<sub>Rd</sub>', 'not evaluated by the engine for this section', '&mdash;', 'not evaluated'); return h+msbNotVerifiedRows(nvRows); }
   const webs= W.nWebs>1? W.nWebs+' webs' : '1 web';
   h+=msbRow('Web h<sub>w</sub>, t<sub>w</sub>, t<sub>f</sub>, b<sub>f</sub>', msbMM(W.hw)+', '+msbMM(W.tw)+', '+msbMM(W.tf)+', '+msbMM(W.bf)+' mm ('+(W.isBox? 'B/2' : 'B')+' = '+msbMM(W.bfRaw)+' &le; '+(W.isBox||W.chan? 't<sub>w</sub> + 15&epsilon;t<sub>f</sub>' : 't<sub>w</sub> + 30&epsilon;t<sub>f</sub>')+' = '+msbMM(W.bfLim)+'); f<sub>yw</sub> = f<sub>yf</sub> = '+msbInt(W.fyw)+'; '+webs+(W.isBox? ' (flat depth from the section table, corner geometry)' : ''), '', 'Fig 5.1');
   h+=msbRow('m<sub>1</sub> = f<sub>yf</sub>.b<sub>f</sub>/(f<sub>yw</sub>.t<sub>w</sub>) ; m<sub>2</sub> = 0.02(h<sub>w</sub>/t<sub>f</sub>)&sup2;', msbInt(W.fyf)+' x '+msbMM(W.bf)+'/('+msbInt(W.fyw)+' x '+msbMM(W.tw)+') = '+msbR(W.m1)+' ; 0.02 x ('+msbMM(W.hw)+'/'+msbMM(W.tf)+')&sup2; = '+msbR(W.m2full)+' if &lambda;&#772;<sub>F</sub> &gt; 0.5, else 0', '', '6.5(1)');
@@ -241,6 +313,7 @@ function renderMasterSeriesBrief(a,c,sec){
   let h='';
   /* ---- 5.0 Title ---- */
   h+='<div class="ms-title"><div>'+(AX? 'Axial with Moments (Member)' : 'Beam &amp; Beam-Portion (Member)')+titleSuffix+'</div>'+
+     msbTorsionTitle(T,sec)+   // 20 Sep 2026: "Includes Design for Torsion ..." when torsion is active
      '<div>Member '+memberName+'</div>'+
      '<div>'+(isCant? 'Cantilever 0 to '+msbM(a.L/1000)+' m' : 'Between '+msbM(xa/1000)+' and '+msbM(xb/1000)+' m')+', in Load Case '+caseM+'</div>'+
      // [beam-v03 addition, 19 Sep 2026 scope] the seven DOF flags of each end, the derived end types, the preset name and the hinges
@@ -267,12 +340,17 @@ function renderMasterSeriesBrief(a,c,sec){
     a.ulsCompanions.forEach((r,i)=>loadLines.push('&nbsp;&nbsp;ULS C'+(i+1)+': '+r.combo.label));
   }
   if(a.companionNote) loadLines.push('<span class="ms-note">'+a.companionNote+'</span>');
-  const sketch=(typeof beamDiagram==='function'? beamDiagram(a) : '')+(typeof plot==='function'? plot(a.diag.xs,a.diag.M,{color:'#1a237e',fill:'#c9d3ea',unit:'kN.m',flip:true,fmt:v=>f1(v,2)}) : '');
-  h+='<div class="ms-loading"><div class="ms-loadlist">'+loadLines.join('<br>')+'</div><div class="ms-sketch">'+sketch+'</div></div>';
+  // 20 Sep 2026: the load list stands alone (the section load-lines figure of
+  // js/05-section-view.js beside it when eccentricities / load heights are
+  // entered); the sketch and the value diagrams follow the forces table.
+  const secFig=(typeof sectionLoadLineView==='function' && (S.eccOn || (typeof loadHeightPerLoadOn==='function' && loadHeightPerLoadOn())))? sectionLoadLineView(sec) : '';
+  h+='<div class="ms-loading'+(secFig? '' : ' ms-loading-plain')+'"><div class="ms-loadlist">'+loadLines.join('<br>')+'</div>'+(secFig? '<div class="ms-sketch">'+secFig+'</div>' : '')+'</div>';
 
   // member forces table
   const N=S.axial||0, Ntag=N>=0? 'C':'T';
-  const torqueAt=(x)=>{ if(T && T.p385 && T.TtEnds) return x<=xa+1e-6? T.TtEnds[0] : T.TtEnds[1]; if(a.tors && a.tors.diag) return interpAt(a.tors.diag.xs,a.tors.diag.T,x/1000); return 0; };
+  // 20 Sep 2026 review: the Torque Moment column is the end torque REACTION, as MasterSeries prints it: the total
+  // T = GI_T phi' - EI_w phi''' (T.TEnds) when the P385 / FE torsion analysis provides it, else the St Venant part
+  const torqueAt=(x)=>{ if(T && T.p385 && T.TEnds) return x<=xa+1e-6? T.TEnds[0] : T.TEnds[1]; if(T && T.p385 && T.TtEnds) return x<=xa+1e-6? T.TtEnds[0] : T.TtEnds[1]; if(a.tors && a.tors.diag) return interpAt(a.tors.diag.xs,a.tors.diag.T,x/1000); return 0; };
   const V1=msbEndShear(gfb,xa+1e-4), V2=msbEndShear(gfb,xb-1e-4);
   const M1=wholePortion? a.M0end : msbMomentAt(gfb,xa+1e-4), M2=wholePortion? a.MLend : msbMomentAt(gfb,xb-1e-4);
   const pm=msbPortionMoments(gfb,xa,xb);
@@ -310,6 +388,8 @@ function renderMasterSeriesBrief(a,c,sec){
     h+=msbNotVerifiedRows(nv.forces);
   }
   if(a.uplift && !a.uplift.any) h+=msbRow('Uplift', 'no end lifts in any of the '+(a.uplift.nCombos!=null? a.uplift.nCombos : a.ulsResults.length+a.slsResults.length)+' combinations (all reactions &ge; 0'+((a.ulsCompanions&&a.ulsCompanions.length)? '; incl. the '+a.ulsCompanions.length+' &gamma;<sub>G,inf</sub> companions with G at 1.0 and 0.9' : '')+')', 'R<sub>min</sub> &ge; 0', 'OK');
+  // 20 Sep 2026: loading sketch + hover diagrams (V, M, delta, T) after the forces table
+  h+=msbDiagramPanel(a);
   if(nULS>1 || a.slsResults.length>1){
     h+='<table class="ms-combos"><thead><tr><th>Combination</th><th>V<sub>max</sub> (kN)</th><th>M<sub>max</sub> (kN.m @ m)</th><th>&delta; (mm)</th></tr></thead><tbody>'+
        a.ulsResults.map(r=>'<tr><td>'+r.combo.label+(r===a.governM? ' (governs M)':'')+'</td><td class="num">'+f1(r.Vmax/1000,3)+'</td><td class="num">'+f1(r.Mmax/1e6,3)+' @ '+g(r.Mpos/1000,3)+'</td><td class="num">&mdash;</td></tr>').join('')+
@@ -347,12 +427,21 @@ function renderMasterSeriesBrief(a,c,sec){
   h+=msbRow('Auto Design Load Cases', msbCaseRanges(ulsIdx)+(slsIdx.length? '; SLS '+msbCaseRanges(slsIdx) : ''),'','');
   h+=msbNotVerifiedRows(nv.class);
 
+  /* ---- 5.2b Shear Capacity Check (MasterSeries block; 20 Sep 2026 order) ----
+     the maximum shear of every ULS combination against V_pl.y.Rd (cl 6.2.6)
+     and the cl 6.2.6(6) shear-buckling screen; no V_z.Ed line because the
+     single-plane model has no minor-axis shear (MasterSeries prints one only
+     with a minor-axis load) */
+  h+=msbHead('Shear Capacity Check');
+  h+=msbRow('V<sub>pl.y.Rd</sub> = A<sub>v</sub>f<sub>y</sub>/(&radic;3&gamma;<sub>M0</sub>)', g(c.Av,1)+' mm&sup2; x '+msbInt(c.fy)+'/(&radic;3 x 1)'+(c.avFloor!=null? ' ; A<sub>v</sub> &ge; &eta;h<sub>w</sub>t<sub>w</sub> = '+g(c.avFloor,1)+' mm&sup2;' : ''), msbKN(c.VcRd)+' kN', '6.2.6');
+  h+=msbRow('V<sub>y.Ed</sub>/V<sub>pl.y.Rd</sub>', msbKN(c.Fv)+' / '+msbKN(c.VcRd)+' =', msbR(c.shearUtil), msbWarn(c.shearUtil<=1.0001));
+  if(c.sbRatio!=null && c.sbLimit!=null) h+=msbRow((sec.isBox? 'd/t' : 'h<sub>w</sub>/t<sub>w</sub>')+' &le; 72&epsilon;/&eta;', f1(c.sbRatio,2)+' '+(c.sbOk? '&le;' : '&gt;')+' 72 x '+f1(c.eps,3)+'/'+g(c.eta!=null? c.eta : 1,2)+' = '+f1(c.sbLimit,2)+(c.sbOk? '' : ' (shear buckling, EN 1993-1-5 5: not evaluated)'), c.sbOk? 'no shear buckling' : '&mdash;', c.sbOk? 'OK 6.2.6(6)' : '<span class="ms-warn">BLOCKED</span>');
+
   /* ---- 5.3 Local Capacity Check / Moment Capacity Check ---- */
   h+=msbHead(AX? 'Local Capacity Check' : 'Moment Capacity Check M.c.y.Rd'+(fullRest? ' - Fully Restrained Beam' : ''));
   const VplMoment=(T && T.VplTRd!=null)? T.VplTRd : c.VcRd;
-  h+=msbRow('V<sub>y.Ed</sub>/V<sub>pl.y.Rd</sub>', msbKN(c.VatM)+' / '+msbKN(c.VcRd)+' =', msbR(c.VatM/Math.max(c.VcRd,1e-9)), c.lowShearAtM? 'Low Shear' : 'High Shear');
-  h+=msbRow('V<sub>y.Ed,max</sub>/V<sub>pl.y.Rd</sub>', msbKN(c.Fv)+' / '+msbKN(c.VcRd)+' =', msbR(c.shearUtil), msbWarn(c.shearUtil<=1.0001));
-  h+=msbRow('V<sub>pl.y.Rd</sub> = A<sub>v</sub>f<sub>y</sub>/(&radic;3&gamma;<sub>M0</sub>)', g(c.Av,1)+' mm&sup2; x '+msbInt(c.fy)+'/(&radic;3 x 1)'+(c.avFloor!=null? ' ; A<sub>v</sub> &ge; &eta;h<sub>w</sub>t<sub>w</sub> = '+g(c.avFloor,1)+' mm&sup2;' : ''), msbKN(c.VcRd)+' kN', '6.2.6');
+  // the shear coincident with the maximum moment (cl 6.2.8 low-shear test), as MasterSeries prints it here
+  h+=msbRow('V<sub>y.Ed</sub>/V<sub>pl.y.Rd</sub> (at max M)', msbKN(c.VatM)+' / '+msbKN(c.VcRd)+' =', msbR(c.VatM/Math.max(c.VcRd,1e-9)), c.lowShearAtM? 'Low Shear' : 'High Shear');   // 20 Sep 2026 review: "(at max M)" in the label, as MasterSeries
   const hsReduced = !c.lowShearAtM && /6\.2\.8\(3\)/.test(msbEsc(c.hsNote));
   if(hsReduced){
     h+=msbRow('&rho; = (2V<sub>y.Ed</sub>/V<sub>pl'+(T&&T.VplTRd!=null?'.T':'')+'.Rd</sub> &minus; 1)&sup2;', '(2 x '+msbKN(c.VatM)+'/'+msbKN(VplMoment)+' &minus; 1)&sup2;', msbR(msbRhoShear(c.VatM,VplMoment)), '6.2.8(3)');
@@ -379,11 +468,14 @@ function renderMasterSeriesBrief(a,c,sec){
     h+=msbRow(lbl, vals, msbR(m.u), msbWarn(m.u<=1.0001)+' 6.2.10');
   }
   if(AX){
-    // V_pl.z.Rd, A_v,z and M_c.z.Rd are engine values (c.ax, cl 6.2.6(3) / 6.2.5)
-    if(AX.VplZ!=null) h+=msbRow('V<sub>z.Ed</sub>/V<sub>pl.z.Rd</sub>', '0 / '+msbKN(AX.VplZ)+' = (A<sub>v,z</sub> = '+g(AX.Avz,1)+' mm&sup2;; no minor-axis shear in the single-plane model)', '0.000', 'Low Shear');
-    else h+=msbRow('V<sub>z.Ed</sub>/V<sub>pl.z.Rd</sub>', 'V<sub>pl.z.Rd</sub> not evaluated by the engine for this section', '&mdash;', 'not evaluated');
-    if(AX.Mcz!=null) h+=msbRow('M<sub>c.z.Rd</sub> = f<sub>y</sub>.'+(cls<=2? 'W<sub>pl.z</sub>':'W<sub>el.z</sub>')+'/&gamma;<sub>M0</sub>', msbInt(c.fy)+' x '+f1(cls<=2? sec.Sy : sec.Zy,1)+'/1', msbKNm(AX.Mcz)+' kN.m', '');
-    else h+=msbRow('M<sub>c.z.Rd</sub>', 'not evaluated by the engine', '&mdash;', 'not evaluated');
+    // V_pl.z.Rd, A_v,z and M_c.z.Rd are engine values (c.ax, cl 6.2.6(3) / 6.2.5);
+    // 20 Sep 2026: printed with a minor-axis moment only, as MasterSeries does
+    if(AX.biax){
+      if(AX.VplZ!=null) h+=msbRow('V<sub>z.Ed</sub>/V<sub>pl.z.Rd</sub>', '0 / '+msbKN(AX.VplZ)+' = (A<sub>v,z</sub> = '+g(AX.Avz,1)+' mm&sup2;; no minor-axis shear in the single-plane model)', '0.000', 'Low Shear');
+      else h+=msbRow('V<sub>z.Ed</sub>/V<sub>pl.z.Rd</sub>', 'V<sub>pl.z.Rd</sub> not evaluated by the engine for this section', '&mdash;', 'not evaluated');
+      if(AX.Mcz!=null) h+=msbRow('M<sub>c.z.Rd</sub> = f<sub>y</sub>.'+(cls<=2? 'W<sub>pl.z</sub>':'W<sub>el.z</sub>')+'/&gamma;<sub>M0</sub>', msbInt(c.fy)+' x '+f1(cls<=2? sec.Sy : sec.Zy,1)+'/1', msbKNm(AX.Mcz)+' kN.m', '');
+      else h+=msbRow('M<sub>c.z.Rd</sub>', 'not evaluated by the engine', '&mdash;', 'not evaluated');
+    }
     h+=msbRow('N<sub>pl.Rd</sub> = A<sub>g</sub>.f<sub>y</sub>/&gamma;<sub>M0</sub>', f1(sec.A,2)+' x '+msbInt(c.fy)+'/1 = (No bearing / block tearing design)', msbKN(AX.NplRd)+' kN', '');
     if(AX.aeff && AX.aeff.active) h+=msbRow('N<sub>c.Rd</sub> = A<sub>eff</sub>.f<sub>y</sub>/&gamma;<sub>M0</sub>', f1(AX.aeff.Aeff/100,2)+' x '+msbInt(c.fy)+'/1 (Class-4 web in uniform compression, cl 6.2.4(2))', msbKN(AX.NcRd)+' kN', '6.2.4');
     if(AX.tension && S.anet!=null) h+=msbRow('N<sub>u.Rd</sub> = 0.9A<sub>net</sub>f<sub>u</sub>/&gamma;<sub>M2</sub>', '0.9 x '+f1(S.anet,2)+' x '+msbInt(fuFromGrade(S.grade))+'/1.10', msbKN(AX.NuRd)+' kN', '&gamma;<sub>M2</sub> = 1.10 (UK NA)');
@@ -415,8 +507,9 @@ function renderMasterSeriesBrief(a,c,sec){
   }
   h+=msbNotVerifiedRows(nv.local);
 
-  /* ---- [beam-v03 addition, 19 Sep 2026] Web Transverse Forces (EN 1993-1-5 cl 6), after Local Capacity ---- */
-  h+=msbWebBlock(a,c,sec,nv.web);
+  /* ---- [beam-v03 addition, 19 Sep 2026] Web Transverse Forces (EN 1993-1-5 cl 6), after Local Capacity;
+     20 Sep 2026: the block appears only when the engine ran the check (c.web) ---- */
+  if(c.web) h+=msbWebBlock(a,c,sec,nv.web); else nv.general.push(...nv.web);
 
   /* ---- 5.4 Compression Resistance N.b.Rd ---- */
   if(B && B.Fc>1e-9){
@@ -441,14 +534,25 @@ function renderMasterSeriesBrief(a,c,sec){
       h+=msbRow('&lambda;&#772;<sub>T</sub> = &radic;A.f<sub>y</sub>/N<sub>cr</sub>', '&radic;'+f1(sec.A,2)+'x'+msbInt(c.fy)+'/'+msbKN(t.Ncr), msbR(t.lamT), '');
       h+=msbRow('N<sub>b.T.Rd</sub> = Area.&chi;<sub>T</sub>.f<sub>y</sub>/&gamma;<sub>M1</sub>', f1(sec.A,2)+'x'+msbR(t.chiT)+'x'+msbInt(c.fy)+'/10/1 = (curve related to z-z: Table 6.2 U-sections, any axis [verify])', msbKN(t.NbT)+' kN', 'Curve '+t.cvT.curve);
       h+=msbRow('N<sub>Ed</sub>/N<sub>b.T.Rd</sub>', msbKN(B.Fc)+' / '+msbKN(t.NbT)+' = (the lower of &chi;<sub>T</sub> and the flexural &chi; feeds U<sub>N.y</sub>, U<sub>N.z</sub>)', msbR(t.util), msbWarn(t.util<=1.0001));
+    } else {
+      // 20 Sep 2026: MasterSeries prints a torsional-buckling strut line (L_et, lambda_T, N_b.T.Rd) for every section; beam-v03 evaluates cl 6.3.1.4 for channels only
+      h+=msbRow('L<sub>et</sub> = K<sub>t</sub>.L<sub>z</sub> ; &lambda;&#772;<sub>T</sub> ; N<sub>b.T.Rd</sub>', 'n/a - not evaluated by beam-v03 (cl 6.3.1.4 torsional / torsional-flexural buckling is evaluated for channels only)', '&mdash;', 'not evaluated');
+    }
+    {
+      // N.Ed/N.b.Rd against the lower flexural resistance (the values U_N.y / U_N.z use; N_b.T.Rd already folded in for a channel)
+      const NbYe=(B.NbYeff!=null? B.NbYeff : B.NbY), NbZe=(B.NbZeff!=null? B.NbZeff : B.NbZ), NbMin=Math.min(NbYe,NbZe), uN=B.Fc/Math.max(NbMin,1e-9);
+      h+=msbRow('N<sub>Ed</sub>/N<sub>b.Rd</sub>', msbKN(B.Fc)+' / '+msbKN(NbMin)+' = (min of N<sub>b.y.Rd</sub>, N<sub>b.z.Rd</sub>'+((B.tfb&&B.tfb.ok)? ', N<sub>b.T.Rd</sub>' : '')+')', msbR(uN), msbWarn(uN<=1.0001));
     }
     h+=msbNotVerifiedRows(nv.compression);
   }
 
   /* ---- 5.5 Equivalent Uniform Moment Factor(s) ---- */
-  const c1Line=ltbChecked && LT && !LT.failed;
+  // 20 Sep 2026 review: one rule on both Mcr routes - MasterSeries prints "C1 = ... Uniform" for a hollow section too
+  // (SHS-L2 / RHS-L2 printouts), so the standard-route box with lambda_LT <= 0.4 (LT.na) no longer suppresses the block
+  const c1Line=!fullRest && LT && !LT.failed;
   if(c1Line || B){
-    h+=msbHead(AX? 'Equivalent Uniform Moment Factors C1, C.mLT, C.mz, and C.my' : 'Equivalent Uniform Moment Factor C1');
+    // 20 Sep 2026: the C_mLT / C_mz / C_my lines exist only when the cl 6.3.3 interaction is evaluated (B), so the heading follows B, not the brief type
+    h+=msbHead(B? 'Equivalent Uniform Moment Factors C1, C.mLT, C.mz, and C.my' : 'Equivalent Uniform Moment Factor C1');
     if(c1Line){
       const ci=LT.c1in;
       const ciTxt= ci? f1(ci.M1,1)+', '+f1(ci.M2,1)+', '+f1(ci.Mo,1)+', '+f1(ci.psi,3)+', '+f1(ci.mu,3) : '&mdash;';
@@ -465,8 +569,15 @@ function renderMasterSeriesBrief(a,c,sec){
       } else {
         const C1v=(LT.C1show!=null? LT.C1show : c.C1);
         const tag= LT.cant? 'Cantilever' : msbC1Tag(LT.c1label||c.c1label, LT.c1route);
-        h+=msbRow((LT.cant? 'C' : 'C<sub>1</sub>')+' = fn(M<sub>1</sub>, M<sub>2</sub>, M<sub>o</sub>, &psi;, &mu;)'+(LT.cant? ' &rarr; SN006a C' : ''), ciTxt, msbR(C1v), tag);
-        h+=msbRow('C<sub>1</sub> basis', msbEsc(LT.c1label||c.c1label), '', LT.cant? 'SN006a' : 'SN003a', 'ms-basis');
+        // 20 Sep 2026: the cantilever prints the MasterSeries SN006a form "C1 = fn(M, Zg, kwt) ... Ncci-sn006" (LT.kwt, LT.zg, LT.warp of the engine)
+        // 20 Sep 2026 review: a channel on the P362 kappa chain uses no C1 (lambda_LT = (L_e/i_z)/kappa) unless the
+        // shear-centre Mcr route (LT.chanMcr, SN003a form) is offered; a channel cantilever / torsion case prints the
+        // table value as "not used" rather than an I-section "Cantilever [SN003a]" tag
+        const chanNoC1=!!(LT.channel && !LT.chanMcr);
+        if(LT.cant) h+=msbRow('C<sub>1</sub> = fn(M, Z<sub>g</sub>, &kappa;<sub>wt</sub>)', 'M<sub>1</sub>, M<sub>2</sub> = '+(ci? f1(ci.M1,1)+', '+f1(ci.M2,1) : '&mdash;')+' kN.m; z<sub>g</sub> = '+g(LT.zg||0,0)+' mm; &kappa;<sub>wt</sub> = '+msbDash(LT.kwt,v=>f1(v,3))+'; "Cantilever end warping '+(LT.warp==='restr'? 'fixed' : 'free')+'"', msbR(C1v), 'Ncci-sn006');
+        else if(chanNoC1) h+=msbRow('C<sub>1</sub> = fn(M<sub>1</sub>, M<sub>2</sub>, M<sub>o</sub>, &psi;, &mu;)', ciTxt+' &mdash; not used: the P362 &kappa; chain sets &lambda;&#772;<sub>LT</sub> = (L<sub>e</sub>/i<sub>z</sub>)/&kappa; without C<sub>1</sub>'+(isCant? ' (channel cantilever: the SN006a coefficients are for I sections)' : ''), '&mdash;', 'not used');
+        else h+=msbRow('C<sub>1</sub> = fn(M<sub>1</sub>, M<sub>2</sub>, M<sub>o</sub>, &psi;, &mu;)', ciTxt, msbR(C1v), tag);
+        h+=msbRow('C<sub>1</sub> basis', msbEsc(LT.c1label||c.c1label), '', LT.cant? 'SN006a' : chanNoC1? 'P362' : 'SN003a', 'ms-basis');
       }
     }
     if(B){
@@ -490,6 +601,11 @@ function renderMasterSeriesBrief(a,c,sec){
   const chiModLine=(chi,lam,kc,f,chiMod,tag)=>msbRow('&chi;<sub>LT.mod</sub> = Fn(&chi;<sub>LT</sub>, &lambda;&#772;<sub>LT</sub>, k<sub>c</sub>, f)', msbR(chi)+', '+msbR(lam)+', '+msbDash(kc,v=>f1(v,3))+', '+msbR(f), msbR(chiMod), tag);
   const mbLine=(chiMod,Mb,capped)=>msbRow('M<sub>b.Rd</sub> = &chi;'+Wlbl+'.f<sub>y</sub>'+(capped!==false? ' &le; M<sub>c.y.Rd</sub>' : ''), msbR(chiMod)+' x '+WyTxt+' x '+msbInt(c.fy)+(capped!==false? ' &le; '+msbKNm(c.McRd) : '')+' =', msbKNm(Mb)+' kN.m', '');
   const ratioLine=(Mx,Mb)=>msbRow('M<sub>y.Ed</sub>/M<sub>b.Rd</sub>', msbKNm(Mx)+' / '+msbKNm(Mb), (Mb>0&&isFinite(c.ltbUtil))? msbR(c.ltbUtil) : '&mdash;', (Mb>0&&isFinite(c.ltbUtil))? msbWarn(c.ltbUtil<=1.0001) : 'not evaluated');
+  // 20 Sep 2026 review: the MasterSeries "Section not susceptible to lateral torsional buckling" line of a hollow section
+  // with lambda_LT <= 0.4, the same on both Mcr routes (the eigen route printed the chi_LT = 1 / chi_LT.mod pair instead)
+  const boxIgnRow=(lam,Mb)=> S.family==='shs'
+    ? msbRow('M<sub>b.Rd</sub> = M<sub>c.y.Rd</sub>', 'closed hollow section &mdash; not susceptible to LTB (&lambda;&#772;<sub>LT</sub> = '+msbR(lam)+' &le; 0.4)', msbKNm(Mb)+' kN.m', '6.3.2.1(2)')
+    : msbRow('M<sub>b.Rd</sub> = M<sub>c.y.Rd</sub>', 'closed hollow section, &lambda;&#772;<sub>LT</sub> = '+msbR(lam)+' &le; 0.4: LTB may be ignored', msbKNm(Mb)+' kN.m', '6.3.2.2(4)');
   const leK=ltbLeFactor()*(S.destab?1.2:1);
   if(fullRest){
     h+=msbRow('M<sub>b.Rd</sub> = M<sub>c.y.Rd</sub>', 'Fully Restrained', msbKNm(c.McRd)+' kN.m', '');
@@ -498,8 +614,7 @@ function renderMasterSeriesBrief(a,c,sec){
   } else if(LT.box && !eigen){
     // closed section on the standard route: SN003a chain with I_w = 0
     if(LT.ignM){
-      if(S.family==='shs') h+=msbRow('M<sub>b.Rd</sub> = M<sub>c.y.Rd</sub>', 'closed hollow section &mdash; not susceptible to LTB (&lambda;&#772;<sub>LT</sub> = '+msbR(LT.lamLTmcr)+' &le; 0.4)', msbKNm(LT.MbRd)+' kN.m', '6.3.2.1(2)');
-      else h+=msbRow('M<sub>b.Rd</sub> = M<sub>c.y.Rd</sub>', 'closed hollow section, &lambda;&#772;<sub>LT</sub> = '+msbR(LT.lamLTmcr)+' &le; 0.4: LTB may be ignored', msbKNm(LT.MbRd)+' kN.m', '6.3.2.2(4)');
+      h+=boxIgnRow(LT.lamLTmcr,LT.MbRd);
       if(LT.Mcr>0) h+=msbRow('M<sub>cr</sub> (information, I<sub>w</sub> = 0)', 'SN003a with C<sub>1</sub> = '+msbR(c.C1)+', L<sub>e</sub> = '+msbM(c.LE/1000)+' m; '+msbEsc(LT.zgNote||''), msbKNm(LT.Mcr)+' kN.m', 'SN003a');
     } else {
       h+=msbRow('L<sub>e</sub> = '+g(leK,2)+' L', g(leK,2)+' x '+msbM(S.L)+' =', msbM(c.LE/1000)+' m', '');
@@ -530,6 +645,9 @@ function renderMasterSeriesBrief(a,c,sec){
         h+=chiModLine(sg.chi,lam,null,1,sg.chi,'isolated bay: f = 1');
         h+=mbLine(sg.chi,sg.Mb);
         h+=ratioLine(sg.Ms,sg.Mb);
+      } else if(LT.box && (LT.ign || lam<=0.4)){
+        h+=boxIgnRow(lam,LT.MbRd);   // the FE Mcr and lambda rows above stay as information
+        h+=ratioLine(LT.MxGov!=null? LT.MxGov : c.Mx, LT.MbRd);
       } else {
         if(LT.ign) h+=ignLine(lam);
         else h+=chiLine(lam,LT.Phi,LT.curve.alphaLT,LT.chi,LT.curve.curve);
@@ -576,11 +694,27 @@ function renderMasterSeriesBrief(a,c,sec){
     h+=ratioLine(c.Mx,LT.MbRd);
   }
   h+=msbNotVerifiedRows(nv.ltb);
-
+  // 20 Sep 2026 review: the eigen route's LTB notes (LT.warn: L_E factor ignored on this route, warping flag not
+  // applied to a closed section, C1 not trusted / k_c floored, L_cr,z from the restraint spacing) were printed only
+  // by the deleted CED report; they are advisory rows of this block now
+  h+=msbAdvisoryRows(LT && LT.warn);
   /* ---- 7.2 portion table ---- */
   const RF=c.restraintForces||null;
-  if((LT && LT.segments && LT.segments.length) || (RF && RF.rows && RF.rows.length)){
-    const hasSeg=!!(LT && LT.segments && LT.segments.length);
+  const rfRows=(RF && RF.rows)||[];
+  const hasSeg=!!(LT && LT.segments && LT.segments.length);
+  // 20 Sep 2026 review: a "Lateral Restraint Portions" block only with intermediate lateral restraints (bay by bay
+  // and / or the restraint-force table), as MasterSeries prints no portion for a plain cantilever or fixed-ended
+  // beam; the restraint design force of a support restraint with M_Ed != 0 (fixed end, cantilever root) is an
+  // advisory row of this block instead. A simply supported beam (M_Ed = 0 at both supports) prints nothing.
+  const rfInter=rfRows.some(r=> r.kind==='lateral' || (r.x>1e-6 && r.x<a.L-1e-6));
+  if(RF && !rfInter && !hasSeg){
+    rfRows.filter(r=>Math.abs(r.F)>5e-4).forEach(r=>{   // 5e-4 kN: below the printed 3 dp (a pinned end carries ~1e-5 kN.m numerically)
+      h+=msbRow('Restraint design force @ '+msbM(r.x/1000)+' m', msbEsc(r.label)+': M<sub>Ed</sub> = '+msbKNm(r.MEd)+' kN.m ('+msbEsc(r.combo)+'); N<sub>f.Ed</sub> = M<sub>Ed</sub>/h = '+msbKN(r.NfEd)+' kN (h = '+msbMM(RF.h)+' mm); 2.5 % N<sub>f.Ed</sub> = (restraint design force, advisory: 6.3.5.2(5)(b), not part of the verdict)', msbKN(r.F)+' kN', 'advisory', 'ms-advrow');
+    });
+  }
+  h+=msbModeShape(LT);   // 20 Sep 2026 review: the eigen route's buckled mode shape (was in the deleted CED report)
+  if(hasSeg || rfInter){
+    const rfShow=rfInter;
     h+=msbHead(hasSeg? 'Lateral Restraint Portions (bay by bay, fork ends)' : 'Lateral Restraint Portions (restraint design forces)');
     if(hasSeg){
       let worst=null; LT.segments.forEach(s2=>{ if(s2.ok && (!worst||s2.util>worst.util)) worst=s2; });
@@ -591,7 +725,7 @@ function renderMasterSeriesBrief(a,c,sec){
          '</tbody></table><div class="ms-note">&chi;<sub>LT</sub> per portion without the f-factor. Whole-member M<sub>cr</sub> = '+msbKNm(LT.Mcr)+' kN.m. '+msbEsc(c.ltbBasis)+'</div>';
     }
     // [beam-v03 addition, 19 Sep 2026 G3] restraint design forces (advisory): 2.5 % of N_f,Ed = M_Ed/h at every restraint station
-    if(RF && RF.rows && RF.rows.length){
+    if(rfShow){
       h+='<table class="ms-combos ms-restraint"><thead><tr><th>x (m)</th><th>Restraint</th><th>M<sub>Ed</sub> (kN.m)</th><th>Load case</th><th>N<sub>f.Ed</sub> = M<sub>Ed</sub>/h (kN)</th><th>2.5 % N<sub>f.Ed</sub> (kN)</th><th></th></tr></thead><tbody>'+
         RF.rows.map(r=>'<tr><td class="num">'+msbM(r.x/1000)+'</td><td>'+msbEsc(r.label)+'</td><td class="num">'+msbKNm(r.MEd)+'</td><td>'+msbEsc(r.combo)+'</td><td class="num">'+msbKN(r.NfEd)+'</td><td class="num">'+msbKN(r.F)+'</td><td>restraint design force, advisory</td></tr>').join('')+
         '</tbody></table><div class="ms-note">h = '+msbMM(RF.h)+' mm. '+RF.basis+'</div>';
@@ -599,6 +733,12 @@ function renderMasterSeriesBrief(a,c,sec){
   }
 
   /* ---- 5.7 Buckling Resistance ---- */
+  // 20 Sep 2026: MasterSeries prints this block in every Axial with Moments brief (zeros for N);
+  // with a tensile N_Ed the engine evaluates no cl 6.3.3 interaction (B = null) and the block says so
+  if(AX && !B){
+    h+=msbHead('Buckling Resistance');
+    h+=msbRow('U<sub>N.y</sub>, U<sub>N.z</sub>, U<sub>M.y</sub>, U<sub>M.z</sub>, k<sub>ij</sub>, Eq 6.61 / 6.62', 'n/a - not evaluated by beam-v03 (N<sub>Ed</sub> is tensile: cl 6.3.3 member buckling is not required; lateral-torsional buckling is verified above)', '&mdash;', 'not evaluated');
+  }
   if(B && (B.Fc>1e-9 || B.biax)){
     h+=msbHead('Buckling Resistance');
     const MbEff=(B.MbRdEff!=null? B.MbRdEff : B.MbRdI);
@@ -611,6 +751,8 @@ function renderMasterSeriesBrief(a,c,sec){
     h+=msbRow('U<sub>N.z</sub> = N<sub>Ed</sub>/(&chi;<sub>z</sub>.N<sub>Rk</sub>/&gamma;<sub>M1</sub>)', msbKN(B.Fc)+' / '+msbKN(B.NbZeff!=null? B.NbZeff : B.NbZ)+(tfT? ' ('+tfT.slice(2)+')' : ''), msbR(B.nz), nTag(B.nz));
     h+=msbRow('U<sub>M.y</sub> = M<sub>y.Ed</sub>/(&chi;<sub>LT</sub>.M<sub>y.Rk</sub>/&gamma;<sub>M1</sub>)', msbKNm(B.Mx)+' / '+msbKNm(MbEff)+' (M<sub>y.Rk</sub> = '+msbKNm(B.aeffOn? sec.Zx*1e3*c.fy/1e6 : msbMyRk(c.Wy,c.fy))+(B.aeffOn&&B.wFac!==1? '; W<sub>el.y</sub>/W<sub>pl.y</sub> = '+msbR(B.wFac)+' applied to M<sub>b.Rd</sub>' : '')+')', msbR(UMy), msbWarn(UMy<=1.0001));
     h+=msbRow('U<sub>M.z</sub> = M<sub>z.Ed</sub>/(M<sub>z.Rk</sub>/&gamma;<sub>M1</sub>)', msbKNm(B.MzEd)+' / '+msbKNm(B.Mcz), msbR(B.mzTerm), msbWarn(B.mzTerm<=1.0001));
+    // 20 Sep 2026: the MasterSeries "kzy method" line (the engine's Table B.1 / B.2 choice)
+    h+=msbRow('k<sub>zy</sub> method', B.useB1? 'not susceptible to torsional deformation (closed section, fully restrained, or M<sub>b.Rd</sub> = M<sub>c.y.Rd</sub>), using Table B.1' : 'M<sub>b.Rd</sub> &lt; M<sub>c.y.Rd</sub> therefore susceptible to LTB, using Table B.2', '', B.useB1? 'Table B.1' : 'Table B.2', 'ms-basis');
     if(B.c12){
       h+=msbRow('k<sub>yy</sub> = C<sub>my</sub>{1+(&lambda;&#772;<sub>y</sub>&minus;0.2)U<sub>N.y</sub>}', msbR(B.Cmy)+'{1+('+msbR(B.lamY)+'&minus;0.2)x'+msbR(B.ny)+'} &le; '+msbR(B.Cmy)+'(1+0.8x'+msbR(B.ny)+')', msbR(B.kyy), 'Table B.1');
       if(B.rhsRow){
@@ -659,26 +801,33 @@ function renderMasterSeriesBrief(a,c,sec){
       h+=msbRow(T.cls12? '(M<sub>y</sub>/M<sub>pl.y</sub>)&sup2; + M<sub>w</sub>/M<sub>pl.f</sub> + M<sub>z</sub>/M<sub>pl.z</sub>' : 'M<sub>y</sub>/M<sub>el.y</sub> + M<sub>z</sub>/M<sub>el.z</sub> + M<sub>w</sub>/M<sub>f.Rd</sub>',
         '@ x = '+msbM(cr.x/1000)+' m: '+msbKNm(cr.My)+', '+msbKNm(cr.Mw)+', '+msbKNm(cr.Mz)+' kN.m; '+(T.cls12? 'M<sub>pl.y</sub> = '+msbKNm(T.Mply)+', M<sub>pl.f</sub> = '+msbKNm(T.Mplf)+', M<sub>pl.z</sub> = '+msbKNm(T.Mplz) : 'M<sub>el.y</sub> = '+msbKNm(T.Mely)+', M<sub>el.z</sub> = '+msbKNm(T.Melz)+', M<sub>f.Rd</sub> = '+msbKNm(T.Melf)),
         msbR(cr.u), msbWarn(cr.u<=1.0001)+' P385 3.1.2');
-      const vt=T.vt||{};
-      h+=msbRow(T.chan? 'V<sub>pl.T.Rd</sub> = [&radic;(1 &minus; &tau;<sub>t</sub>/(1.25f<sub>y</sub>/&radic;3)) &minus; &tau;<sub>w</sub>/(f<sub>y</sub>/&radic;3)].V<sub>pl.Rd</sub>' : 'V<sub>pl.T.Rd</sub> = &radic;(1 &minus; &tau;<sub>t</sub>/(1.25f<sub>y</sub>/&radic;3)).V<sub>pl.Rd</sub>',
-        '@ x = '+msbM((vt.x||0)/1000)+' m: &tau;<sub>t</sub> = '+f1(vt.tauT||0,2)+(T.chan? ' (&tau;<sub>w</sub> = '+f1(vt.tauW||0,2)+')' : '')+' N/mm&sup2;; V<sub>pl.Rd</sub> = '+msbKN(c.VcRd), msbKN(T.VplTRd)+' kN', '6.2.7(9)');
-      h+=msbRow('V<sub>Ed</sub>/V<sub>pl.T.Rd</sub>', msbKN(vt.V!=null? vt.V : c.Fv)+' / '+msbKN(T.VplTRd), T.vtZeroCapacity? '&infin;' : msbR(T.vtUtil), msbWarn(!T.vtZeroCapacity && T.vtUtil<=1.0001));
+      // MasterSeries "Combined Torsion buckling": the EN 1993-6 Annex A interaction with its amplifier k = kw.kzw.k_alpha (c.annex)
       if(AN){
         const unb = !isFinite(AN.kAlpha);
+        h+=msbRow('k = k<sub>w</sub>.k<sub>zw</sub>.k<sub>&alpha;</sub>', msbR(AN.kw)+' x '+msbR(AN.kzw)+' x '+(unb? '&infin; (M<sub>y.Ed</sub> &ge; M<sub>cr</sub> = '+msbKNm(AN.McrA)+' kN.m)' : msbR(AN.kAlpha)), unb? '&mdash;' : msbR(AN.kw*AN.kzw*AN.kAlpha), 'EN 1993-6 A');
         h+=msbRow('M<sub>y</sub>/M<sub>b.Rd</sub> + C<sub>mz</sub>M<sub>z</sub>/M<sub>z.Rk</sub> + k<sub>w</sub>k<sub>zw</sub>k<sub>&alpha;</sub>M<sub>w</sub>/M<sub>f.Rk</sub>',
           unb? 'k<sub>&alpha;</sub> unbounded: M<sub>y.Ed</sub> reaches M<sub>cr</sub> = '+msbKNm(AN.McrA)+' kN.m' : '@ x = '+msbM((AN.x||0)/1000)+' m: '+msbKNm(AN.My)+'/'+msbKNm(AN.MbA)+' + '+msbR(AN.Cmz)+'x'+msbKNm(AN.Mz)+'/'+msbKNm(AN.MzR)+' + '+msbR(AN.kw)+'x'+msbR(AN.kzw)+'x'+msbR(AN.kAlpha)+'x'+msbKNm(AN.Mw)+'/'+msbKNm(AN.MfR),
           unb? '&mdash;' : msbR(AN.u), unb? '<span class="ms-warn">BLOCKED</span>' : msbWarn(AN.u<=1.0001)+' EN 1993-6 A');
       }
       h+=msbRow('End torques T<sub>t</sub>', 'St Venant part GI<sub>T</sub>&phi;&prime; at x = 0 / x = L'+(T.TEnds? '; total T = GI<sub>T</sub>&phi;&prime; &minus; EI<sub>w</sub>&phi;&#8244; = '+msbKNm(Math.abs(T.TEnds[0]))+' / '+msbKNm(Math.abs(T.TEnds[1]))+' kN.m' : ''), msbKNm(Math.abs(T.TtEnds[0]))+' / '+msbKNm(Math.abs(T.TtEnds[1]))+' kN.m', '');
-      h+=msbRow('&theta;<sub>ser</sub> &le; &theta;<sub>limit</sub>', '@ x = '+msbM(T.phiSerPos)+' m, '+msbEsc(T.governTw)+'; limit 2&deg; (P385 guidance, advisory)', f1(T.phiSerDeg,2)+'&deg;', T.phiSerDeg<=2? 'OK' : 'review');
+      // Torsion Shear Design @ x (MasterSeries sub-block): St Venant (+ warping, channel) shear stress at the governing V-T station, the shear-torsion reduction and the ratio
+      const vt=T.vt||{};
+      h+=msbSub('Torsion Shear Design @ '+msbM((vt.x||0)/1000)+' m');
+      h+=msbRow('&tau;<sub>t</sub>'+(T.chan? ', &tau;<sub>w</sub>' : '')+' at the V-T station', '@ x = '+msbM((vt.x||0)/1000)+' m'+(vt.combo? ' ('+msbEsc(vt.combo)+')' : '')+': T<sub>t</sub> = '+msbKNm(vt.T!=null? vt.T : 0)+' kN.m, V = '+msbKN(vt.V!=null? vt.V : c.Fv)+' kN', f1(vt.tauT||0,2)+(T.chan? ' / '+f1(vt.tauW||0,2) : '')+' N/mm&sup2;', 'P385');
+      h+=msbRow(T.chan? 'V<sub>pl.T.Rd</sub> = [&radic;(1 &minus; &tau;<sub>t</sub>/(1.25f<sub>y</sub>/&radic;3)) &minus; &tau;<sub>w</sub>/(f<sub>y</sub>/&radic;3)].V<sub>pl.Rd</sub>' : 'V<sub>pl.T.Rd</sub> = &radic;(1 &minus; &tau;<sub>t</sub>/(1.25f<sub>y</sub>/&radic;3)).V<sub>pl.Rd</sub>',
+        '@ x = '+msbM((vt.x||0)/1000)+' m: &tau;<sub>t</sub> = '+f1(vt.tauT||0,2)+(T.chan? ' (&tau;<sub>w</sub> = '+f1(vt.tauW||0,2)+')' : '')+' N/mm&sup2;; V<sub>pl.Rd</sub> = '+msbKN(c.VcRd)+'; S<sub>mod</sub> = V<sub>pl.T.Rd</sub>/V<sub>pl.Rd</sub> = '+msbR(T.VplTRd/Math.max(c.VcRd,1e-9)), msbKN(T.VplTRd)+' kN', '6.2.7(9)');
+      h+=msbRow('V<sub>Ed</sub>/V<sub>pl.T.Rd</sub>', msbKN(vt.V!=null? vt.V : c.Fv)+' / '+msbKN(T.VplTRd), T.vtZeroCapacity? '&infin;' : msbR(T.vtUtil), msbWarn(!T.vtZeroCapacity && T.vtUtil<=1.0001));
     } else if(T.box){
-      h+=msbRow('W<sub>t</sub>', msbEsc(T.WtSrc)+'; I<sub>t</sub> = '+g(T.ItShow/1e4,1)+' cm&#8308;', g(T.Wt/1e3,1)+' cm&sup3;', '');
+      // MasterSeries box form: J, C (= W_t), tau_t.Ed = T/C, the torsion-modified local capacity (not evaluated here), then the torsion shear in the web
+      h+=msbRow('W<sub>t</sub> (= C)', msbEsc(T.WtSrc)+'; I<sub>t</sub> = '+g(T.ItShow/1e4,1)+' cm&#8308;', g(T.Wt/1e3,1)+' cm&sup3;', '');
       h+=msbRow('T<sub>Rd</sub> = f<sub>y</sub>W<sub>t</sub>/(&radic;3&gamma;<sub>M0</sub>)', msbInt(c.fy)+' x '+g(T.Wt/1e3,1)+'/(&radic;3 x 1)', msbKNm(T.TRd)+' kN.m', '6.2.7(7)');
       h+=msbRow('T<sub>Ed</sub>/T<sub>Rd</sub>', msbKNm(T.TEd)+' / '+msbKNm(T.TRd), msbR(T.torUtil), msbWarn(T.torUtil<=1.0001));
+      if(T.tauMax!=null) h+=msbRow('&tau;<sub>t.Ed</sub> = T<sub>Ed</sub>/W<sub>t</sub>', msbKNm(T.TEd)+' x 10&sup3;/'+g(T.Wt/1e3,1), f1(T.tauMax,2)+' N/mm&sup2;', '6.2.7(7)');
+      h+=msbRow('Modified Local Capacity (M<sub>y.Ed</sub>/(M<sub>pl.y.Rd</sub>.S<sub>mod</sub>))<sup>&alpha;</sup> + (M<sub>z.Ed</sub>/(M<sub>pl.z.Rd</sub>.S<sub>mod</sub>))<sup>&beta;</sup>', 'n/a - not evaluated by beam-v03 (the cl 6.2.7 T<sub>Ed</sub>/T<sub>Rd</sub> and V<sub>pl.T.Rd</sub> checks are the verdict basis)', '&mdash;', 'not evaluated');
       const vt=T.vt||{};
-      h+=msbRow('V<sub>pl.T.Rd</sub> = [1 &minus; &tau;<sub>t</sub>/(f<sub>y</sub>/&radic;3)].V<sub>pl.Rd</sub>', '@ x = '+msbM((vt.x||0)/1000)+' m: &tau;<sub>t</sub> = '+f1(vt.tau||0,2)+' N/mm&sup2;', msbKN(T.VplTRd)+' kN', '6.2.7(9) Eq 6.28');
+      h+=msbSub('Torsion Shear Design @ '+msbM((vt.x||0)/1000)+' m');
+      h+=msbRow('V<sub>pl.T.Rd</sub> = [1 &minus; &tau;<sub>t</sub>/(f<sub>y</sub>/&radic;3)].V<sub>pl.Rd</sub>', '@ x = '+msbM((vt.x||0)/1000)+' m'+(vt.combo? ' ('+msbEsc(vt.combo)+')' : '')+': T = '+msbKNm(vt.T!=null? vt.T : 0)+' kN.m, &tau;<sub>t</sub> = '+f1(vt.tau||0,2)+' N/mm&sup2;; V<sub>pl.Rd</sub> = '+msbKN(c.VcRd)+'; S<sub>mod</sub> = V<sub>pl.T.Rd</sub>/V<sub>pl.Rd</sub> = '+msbR(T.VplTRd/Math.max(c.VcRd,1e-9)), msbKN(T.VplTRd)+' kN', '6.2.7(9) Eq 6.28');
       h+=msbRow('V<sub>Ed</sub>/V<sub>pl.T.Rd</sub>', msbKN(vt.V!=null? vt.V : c.Fv)+' / '+msbKN(T.VplTRd), T.vtZeroCapacity? '&infin;' : msbR(T.vtUtil), msbWarn(!T.vtZeroCapacity && T.vtUtil<=1.0001));
-      h+=msbRow('&theta; (SLS)', 'T<sub>Ed,SLS</sub> = '+msbKNm(T.TmaxSLS)+' kN.m; @ x = '+msbM(T.phiPos)+' m', f1(T.phiDeg,2)+'&deg;', T.phiDeg<=2? 'advisory' : 'review');
     } else {
       h+=msbRow('P385 warping analysis', 'not covered for this arrangement (see NOT VERIFIED)', '&mdash;', '<span class="ms-warn">BLOCKED</span>');
     }
@@ -698,6 +847,13 @@ function renderMasterSeriesBrief(a,c,sec){
   const limVals=(sg)=>msbMM(Math.abs(sg.dmax))+' &le; '+(sg.absGoverns? msbMM(sg.abs)+' mm (absolute limit governs; '+g(sg.span,0)+' / '+msbInt(sg.divisor)+' = '+msbMM(sg.limSpan)+' mm)' : g(sg.span,0)+' / '+msbInt(sg.divisor)+' = '+msbMM(sg.limit)+' mm'+(sg.abs!=null? ' (absolute limit '+msbMM(sg.abs)+' mm not governing)' : ''))+' @ x = '+msbM(sg.dpos/1000)+' m';
   const gseg = a.deflection || {dmax:c.dmax,dpos:dfl.dpos,span:c.span,divisor:c.divisor,limit:c.dlimit,limSpan:c.dlimit,abs:null,absGoverns:false};
   h+=msbRow(limLbl(dCant,c.divisor), limVals(gseg)+(dCant? ' (vertically free end: tip deflection relative to the held end; L/'+msbInt(c.divisor)+' per UK NA to EN 1993-1-1 Table NA.2 [verify], cantilever row)' : ''), msbMM(c.dmax)+' mm', msbWarn(c.defOk)+(dAbsGov? ' abs' : ''));
+  // 20 Sep 2026: with torsion active MasterSeries prints the SLS twist here - "Torq in Case n @ x: theta_max = .. rad = .. deg <= 2.00 deg";
+  // the 2 degree limit is P385 guidance and stays an advisory in beam-v03 (it does not enter c.utils)
+  if(T && (T.p385 || T.box)){
+    const twRad= T.p385? T.phiSer : T.phiMax, twDeg= T.p385? T.phiSerDeg : T.phiDeg, twX= T.p385? T.phiSerPos : T.phiPos;
+    const twN=msbCaseIndex({label:T.governTw},true,a);
+    h+=msbRow('Torq in Case '+(twN!=null? twN : '?')+' @ '+msbM(twX)+' m: &theta;<sub>max</sub> &le; 2.00&deg;', f1(twRad,4)+' rad = '+f1(twDeg,2)+'&deg; &le; 2.00&deg; ('+msbEsc(T.governTw)+'; P385 guidance, advisory: does not enter the verdict)', f1(twDeg,2)+'&deg;', twDeg<=2? 'OK' : '<span class="ms-warn">&gt; 2&deg;</span> advisory');
+  }
 
   /* ---- 5.10 Unity bar ---- */
   const findU=(re)=>{ const u=utils.find(u=>re.test(u.name)); return u? u.val : null; };
@@ -705,12 +861,15 @@ function renderMasterSeriesBrief(a,c,sec){
   const push=(name,val)=>{ if(val!=null && isFinite(val)) cells.push({name,val}); else if(val===undefined) return; else cells.push({name,val:null}); };
   const deflU=c.dlimit>0? c.dmax/c.dlimit : null;
   if(AX){
-    push('N_Ed/N_(pl.Rd)', AX.nUtil);
+    // 20 Sep 2026 review: the cells carry what the block rows print - N_Ed/N_c.Rd when the Class-4 A_eff applies,
+    // U_M.y against the same M_b.Rd (W_el.y/W_pl.y applied) as the printed U_M.y row, and an em dash (not 0.000)
+    // for the cl 6.3.3 cells of a tension brief, where the interaction is not evaluated
+    push(AX.aeff&&AX.aeff.active? 'N_Ed/N_(c.Rd)' : 'N_Ed/N_(pl.Rd)', AX.nUtil);
     push('Local', AX.mUtil);
-    push('UNyz', B? Math.max(B.ny,B.nz) : 0);
-    push('UMyz', B? Math.max(B.Mx/Math.max(B.MbRdI,1e-9), B.mzTerm) : (ltbChecked? c.ltbUtil : c.momUtil));
-    push('Ax+M_6.61', B? B.u1 : 0);
-    push('Ax+M_6.62', B? B.u2 : 0);
+    push('UNyz', B? Math.max(B.ny,B.nz) : null);
+    push('UMyz', B? Math.max(B.Mx/Math.max(B.MbRdEff!=null? B.MbRdEff : B.MbRdI,1e-9), B.mzTerm) : (ltbChecked? c.ltbUtil : c.momUtil));
+    push('Ax+M_6.61', B? B.u1 : null);
+    push('Ax+M_6.62', B? B.u2 : null);
     push('Deflection', deflU);
     push('V/Vpl', c.shearUtil);
     push('MA/Mc', c.momUtil);

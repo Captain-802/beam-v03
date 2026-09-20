@@ -497,9 +497,11 @@ function analyse(){
    lifting in a ULS combination (the gamma_G,inf companions included) is
    blocking (unsupported) unless its "hold-down provided" box is ticked, in
    which case it is an advisory carrying the design force. An end that lifts
-   ONLY in SLS combinations (the default NA 2.23 "variable actions only"
-   deflection case has no G, so its reaction is not an equilibrium state) is
-   reported as an advisory naming the combination and the force.
+   ONLY in SLS combinations (a deflection case is not a ULS equilibrium
+   state; since 20 Sep 2026 the default SLS combination is 1.0G + 1.0Q, so an
+   SLS-only lift needs a user combination without G, e.g. the NA 2.23
+   "variable actions only" case) is reported as an advisory naming the
+   combination and the force.
    Returns {rows, unsupported, advisory}; rows = [{n, pos (mm), R (kN,
    negative), combo, sls, RUls, comboUls, RSls, comboSls, holdDown, level:
    'uls'|'sls', blocking, msg}]. */
@@ -517,7 +519,7 @@ function holdDownCheck(a){
       else { blocking=true; msg='Hold-down required: '+force(true)+'. The end cannot resist uplift as modelled; tick "hold-down provided" for this end once a holding-down connection is designed for this force, or revise the restraints / loading (EN 1990 2.4.4 EQU; the &gamma;<sub>G,inf</sub> companions - G at 1.0 (STR set B) and 0.9 (EQU set A) with the entered variable factors - are included).'; }
     } else {
       level='sls';
-      msg='Hold-down check (SLS only) '+where+': the variable-action-only combination '+u.comboSls+' lifts this end by R = &minus;'+kN(u.RSls)+' kN; no ULS combination lifts it, including the &gamma;<sub>G,inf</sub> companions with G at 1.0 (STR set B) and 0.9 (EQU set A, EN 1990 Table A1.2(A)) and the entered variable factors'+(u.holdDown? '; hold-down provided' : '')+'. A deflection combination without G is not an equilibrium state, so this does not block PASS.';
+      msg='Hold-down check (SLS only) '+where+': the SLS combination '+u.comboSls+' lifts this end by R = &minus;'+kN(u.RSls)+' kN; no ULS combination lifts it, including the &gamma;<sub>G,inf</sub> companions with G at 1.0 (STR set B) and 0.9 (EQU set A, EN 1990 Table A1.2(A)) and the entered variable factors'+(u.holdDown? '; hold-down provided' : '')+'. A deflection (SLS) combination is not a ULS equilibrium state, so this does not block PASS.';   // wording only (20 Sep 2026: the SLS default now carries G)
     }
     const row=Object.assign({},u,{msg,level,blocking});
     out.rows.push(row);

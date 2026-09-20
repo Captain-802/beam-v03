@@ -179,7 +179,8 @@ test('[hand-derived] partial-span eccentric UDL on a UB (matrix probe 457x191x82
   assert.ok(row(h, /^&phi;<sub>max<\/sub> \(ULS\)$/) && /warping-torsion FE/.test(row(h, /^&phi;<sub>max<\/sub> \(ULS\)$/).vals));
   const bb = row(h, /^B<sub>Ed<\/sub> = EI<sub>w<\/sub>&phi;&Prime; \(max\)$/); assert.ok(bb && /kN\.m&sup2;$/.test(bb.res), JSON.stringify(bb));
   const te = row(h, /^End torques T<sub>t<\/sub>$/); assert.ok(te && /total T = /.test(te.vals), JSON.stringify(te));
-  const rep = report(); assert.ok(/Torsion Analysis &mdash; SCI P385 Method B \(elastic; warping-torsion FE\)/.test(rep) && /closed forms not applicable: partial-span/.test(rep) && /Bimoment B<sub>Ed<\/sub>/.test(rep) && /mesh converged/.test(rep), 'report method block');
+  // 20 Sep 2026 single-brief task: the report is the brief - its "Torsion analysis" row (FE method, reasons, mesh error tag) and the bimoment row
+  const rep = report(); assert.ok(/warping-torsion FE/.test(rep) && /closed forms not applicable: partial-span/.test(rep) && /B<sub>Ed<\/sub> = EI<sub>w<\/sub>&phi;&Prime; \(max\)/.test(rep) && /mesh error [\d.]+ %/.test(rep) && /FE \(&le; /.test(rep), 'report method block');
 });
 
 test('cantilever with an eccentric tip load: FE with the root warping fixed, free tip T_t = 0, total root torque = P e, evaluated on both Mcr routes', () => {
@@ -223,7 +224,7 @@ test('closed forms stay the default where they apply (fork-fork full-span UDL + 
   assert.ok(ch.tor && !ch.tor.fe && ch.tor.meshError === null && ch.tor.meshConverged);
   const h = brief(); const ta = row(h, /^Torsion analysis$/); assert.ok(ta && /^SCI P385 App C closed forms/.test(ta.vals) && /^L\/a = /.test(ta.res) && ta.tag === 'P385 App C', JSON.stringify(ta));
   assert.ok(/fork ends, warping free \(P385 Cases 3\/4\/10\)/.test(row(h, /^&phi;<sub>max<\/sub> \(ULS\)$/).vals));
-  const rep = report(); assert.ok(/Torsion Analysis &mdash; SCI P385 Method B \(elastic; fork ends, warping free\)/.test(rep) && /Cases 3\/4\/10 closed forms, superposed per combination/.test(rep));
+  const rep = report(); assert.ok(/SCI P385 App C closed forms/.test(rep) && /fork ends, warping free \(P385 Cases 3\/4\/10\)/.test(rep));   // 20 Sep 2026: the report is the brief (single-brief task)
   // same torques through the FE: the ULS solution (torque list rebuilt from the combination) matches the closed forms
   const cmp = run(`(()=>{ ${MX} const a=analyse(); const O=a.torsO; const g=O.sols[0].sol; const L=a.L; const f=1.5, e=20;
     const sw=selfWeightValue(a.sec), swE=selfWeightEccentricity(a.sec);

@@ -43,7 +43,9 @@ test('[hand-derived] item 5: a UB with M_z keeps its y-y web class (Class 1), th
   assert.ok(bi > 1 && !ch.pass);
   // with M_z = 10 kN.m the same beam passes: 0.832 + 10/83.6 = 0.951
   c.reset({ Mz: 10 });
-  const p = full().c; near(util(p, /Biaxial bending/), 0.8319 + 10 / 83.6, 2e-3); assert.ok(p.pass, JSON.stringify(p.unsupported));
+  const p = full().c; near(util(p, /Biaxial bending/), 0.8319 + 10 / 83.6, 2e-3);
+  // 20 Sep 2026: the SLS default became 1.0G + 1.0Q: the demo beam fails deflection (1.242) under it, unrelated to M_z, so the biaxial verdict is read from the utilisations, not from ch.pass
+  assert.ok(!p.unsupported.length && p.utils.every(u => u.name === 'Deflection' || u.val <= 1), JSON.stringify(p.unsupported));
   // brief: web row names the M_z basis, flange-outstand row present with the stresses; no "uniform-compression web bound" advisory for an I/H
   c.reset({ Mz: 60 });
   const h = brief();
@@ -83,7 +85,7 @@ test('[hand-derived] item 6: 1016x305x249 with N = 3000 kN evaluates with A_eff 
   const ar = row(h, /^A<sub>eff<\/sub> = A/); assert.ok(ar && ar.tag === 'EN 1993-1-5 4.4'); near(num(ar.res), Aeff / 100, 1e-3);
   assert.ok(row(h, /^N<sub>c\.Rd<\/sub> = A<sub>eff<\/sub>/) && row(h, /^N<sub>Ed<\/sub>\/N<sub>c\.Rd<\/sub>$/) && row(h, /^Table 6\.7 Class-4 column$/) && row(h, /^&lambda;&#772;<sub>y<\/sub> = &radic;A<sub>eff<\/sub>/));
   assert.ok(/\(Axial: Slender web\)/.test(h));
-  const rep = report(); assert.ok(/A<sub>eff<\/sub> &mdash; web Class 4 in uniform compression/.test(rep) && /Table 6.7 Class-4 column/.test(rep));
+  const rep = report(); assert.ok(/A<sub>eff<\/sub> = A &minus; /.test(rep) && /web Class 4 in uniform compression/.test(rep) && /Table 6.7 Class-4 column/.test(rep));   // 20 Sep 2026: the report is the brief (single-brief task)
   // a Class-2-under-combined UB (457x191x82, N = 800 kN) also takes A_eff for the compression terms and W_el,y/W_pl,y in the interaction
   c.reset({ axial: 800 });
   const r2 = full().c; assert.ok(!r2.unsupported.length && r2.aeff.active && r2.cl.cls === 2);
@@ -127,7 +129,7 @@ test('[hand-derived] items 7/12: rolled I/H Class 1/2 with high shear and N: (1 
   // brief and report rows
   const h = brief(); const r = row(h, /M<sub>N\.V\.y\.Rd<\/sub>\)<sup>&alpha;<\/sup>/); assert.ok(r && /6\.2\.10/.test(r.tag)); near(num(r.res), m.u, 1e-3);
   assert.ok(/M-V-N/.test(h), 'unity cell');
-  assert.ok(/cl 6\.2\.10\)/.test(report()));
+  assert.ok(/6\.2\.10/.test(report()));   // 20 Sep 2026: the report is the brief (tag "OK 6.2.10")
 });
 
 test('[hand-derived] item 12: M_v,Rd forms for a Class 3 I/H (elastic web), a channel and an RHS, and the peak-station reduction for every family', () => {
@@ -186,7 +188,7 @@ test('[hand-derived] item 8: k_c = 1/sqrt(C1) is floored at 1/sqrt(2.76) = 0.602
   near(L.fM, Math.min(1 - 0.5 * (1 - 1 / Math.sqrt(2.76)) * (1 - 2 * Math.pow(lam - 0.8, 2)), 1), 1e-9);
   near(L.MbRd, Math.min(L.chiM / L.fM * a.sec.Sx * 1e3 * a.fy / 1e6, s.McRd), 1e-9);
   const h = brief(); assert.ok(/k<sub>c<\/sub> floored at 0\.60 \(Table 6\.6\)/.test(row(h, /^&chi;<sub>LT\.mod<\/sub> = Fn/).tag));
-  assert.ok(/floored at 1\/&radic;2\.76/.test(report()));
+  assert.ok(/k<sub>c<\/sub> floored at 0\.60 \(Table 6\.6\)/.test(report()));   // 20 Sep 2026: the report is the brief
   // psi = -1 end moments: C1 = (1.33 + 0.33)^2 = 2.756 < 2.76 -> raw k_c = 0.6024 kept
   c.reset(SS(8, [{ type: 'moment', pos: 0, M: 200, case: 'Q' }, { type: 'moment', pos: 8, M: 200, case: 'Q' }], { restraint: 'ltb', mcrMethod: 'standard' }));
   const p = full().c; near(p.C1, 2.7556, 1e-4); assert.equal(p.ltb.kcFloored, false); near(p.ltb.kc, 1 / Math.sqrt(p.C1), 1e-12);
@@ -201,7 +203,7 @@ test('[hand-derived] item 9: SHS/RHS Class 1/2 use k_zz = C_mz(1 + (lambda_z - 0
   near(B.kyz, B.kzz, 1e-12); near(B.kzy, 0.6 * B.kyy, 1e-12);
   const h = brief(); assert.equal(row(h, /^k<sub>zz<\/sub> = C<sub>mz<\/sub>\{1\+\(&lambda;&#772;<sub>z<\/sub>&minus;0\.2\)/).tag, 'Table B.1 (RHS)');
   assert.equal(row(h, /^k<sub>yz<\/sub> = k<sub>zz<\/sub>$/).tag, 'Table B.1 (RHS)');
-  assert.ok(/Table B\.1 RHS row/.test(report()));
+  assert.ok(/Table B\.1 \(RHS\)/.test(report()));   // 20 Sep 2026: the report is the brief
   // I-section row unchanged: 457x191x133 with N (Class 1): k_zz = C_mz(1 + (2 lambda_z - 0.6) n_z) <= C_mz(1 + 1.4 n_z), k_yz = 0.6 k_zz
   c.reset(SS(6, [{ type: 'udl', x1: 0, x2: 6, w: 15, case: 'Q' }], { ubKey: '457 x 191 x 133', grade: 'S355', restraint: 'ltb', axial: 140, Mz: 5 }));
   const I = full().c.buck; assert.ok(I.c12 && !I.rhsRow);
@@ -242,7 +244,7 @@ test('[hand-derived] item 10: PFC 180x75x20 under N = 50 kN: N_cr,T = 858.1 kN, 
   const h = brief();
   ['i<sub>0</sub>&sup2; = ', 'N<sub>cr\\.T</sub> = ', 'N<sub>cr\\.TF</sub> = ', '&lambda;&#772;<sub>T</sub> = ', 'N<sub>b\\.T\\.Rd</sub> = ', 'N<sub>Ed</sub>/N<sub>b\\.T\\.Rd</sub>'].forEach(l => assert.ok(row(h, new RegExp('^' + l)), 'brief row ' + l));
   assert.ok(/P385 Table A\.3/.test(row(h, /^i<sub>0<\/sub>&sup2;/).vals), 'y0 source printed'); assert.ok(/N_b\.T/.test(h), 'unity cell');
-  assert.ok(/Torsional \/ torsional-flexural buckling \(cl 6\.3\.1\.4\)/.test(report()));
+  assert.ok(/N<sub>cr\.TF<\/sub> = /.test(report()) && /N<sub>b\.T\.Rd<\/sub> = Area/.test(report()));   // 20 Sep 2026: the report is the brief
 });
 
 // ---- item 15: restraint design forces ----
@@ -260,11 +262,22 @@ test('[hand-derived] item 15: 2.5 % of N_f,Ed = M_Ed/h at every lateral restrain
   assert.ok(!ch.utils.some(u => /restraint/i.test(u.name)), 'advisory only: not in the verdict');
   const h = brief(); const i = h.indexOf('<table class="ms-combos ms-restraint">'); assert.ok(i > h.indexOf('Lateral Restraint Portions (bay by bay, fork ends)'), 'table inside the portions block');
   assert.equal((h.match(/restraint design force, advisory/g) || []).length, 4);
-  assert.ok(/Restraint Design Forces \(EN 1993-1-1 5\.3\.3/.test(report()));
+  assert.ok(/Lateral Restraint Portions \(bay by bay, fork ends\)/.test(report()) && /restraint design force, advisory/.test(report()));   // 20 Sep 2026: the report is the brief (single-brief task); this case has intermediate restraints, so the portions block carries the bay-by-bay title
   // fully restrained: no discrete restraints, nothing printed
   c.reset({}); assert.equal(full().c.restraintForces, null);
-  // simply supported unrestrained demo: two support rows with M_Ed = 0 in a block headed "(restraint design forces)"
-  c.reset({ restraint: 'ltb' }); const h2 = brief(); assert.ok(/Lateral Restraint Portions \(restraint design forces\)/.test(h2) && (h2.match(/restraint design force, advisory/g) || []).length === 2);
+  // 20 Sep 2026 single-brief task (MasterSeries order: a portions block only where a portion / restraint force exists):
+  // the simply supported unrestrained demo has M_Ed = 0 at both supports (force 0) and prints NO portions block;
+  // 20 Sep 2026 review: a fixed-ended beam (or a cantilever) prints NO portions block either - MasterSeries prints no portion
+  // without an intermediate restraint - its two support restraint design forces are advisory rows of the Lateral Buckling block
+  c.reset({ restraint: 'ltb' }); const h2 = brief(); assert.ok(!/Lateral Restraint Portions/.test(h2) && !/restraint design force, advisory/.test(h2) && !/Restraint design force @/.test(h2), 'no zero-force portion rows');
+  c.reset({ restraint: 'ltb', ends: E('fixed-fixed') }); const h3 = brief();
+  assert.ok(!/Lateral Restraint Portions/.test(h3) && !/ms-restraint/.test(h3), 'no portions block for a fixed-ended beam');
+  const advRows = [...h3.matchAll(/<div class="ms-row ms-advrow"><div class="ms-l">Restraint design force @ ([\d.]+) m<\/div><div class="ms-v">(.*?)<\/div><div class="ms-r">(.*?)<\/div>/g)];
+  assert.equal(advRows.length, 2); assert.deepEqual(advRows.map(m => m[1]), ['0', '8']);
+  const R3 = full().c.restraintForces; advRows.forEach((m, i) => { assert.ok(/torsional restraint/.test(m[2]) && /2\.5 % N<sub>f\.Ed<\/sub>/.test(m[2])); near(parseFloat(m[3]), R3.rows[i].F, 5e-4, 'advisory row force'); });
+  assert.ok(h3.indexOf('Restraint design force @') > h3.indexOf('Lateral Buckling Check M.b.Rd') && h3.indexOf('Restraint design force @') < h3.indexOf('Deflection Check'), 'rows inside the LTB block');
+  c.reset({ restraint: 'ltb', L: 3, ends: E('cantilever'), loads: [{ type: 'point', pos: 3, P: 20, case: 'Q' }] }); const h4 = brief();
+  assert.ok(!/Lateral Restraint Portions/.test(h4) && (h4.match(/Restraint design force @/g) || []).length === 1, 'cantilever: one advisory row (the root), no portions block');
 });
 
 // ---- the campaign-visible blocks removed by G3 are gone, the verdicts stay consistent ----
@@ -277,5 +290,6 @@ test('G3: the blocks replaced by checks no longer appear (web Class 4 in uniform
   c.reset(SS(6, [{ type: 'udl', x1: 0, x2: 6, w: 10, case: 'Q' }], { ubKey: '1016 x 305 x 249', axial: 6000 }));
   const b = full().c; assert.equal(b.cl.cls, 4); assert.ok(b.unsupported.some(m => /combined bending \+ compression/.test(m)));
   // demo beam untouched
-  c.reset({}); const d = full().c; near(util(d, /^Shear/), 0.303499, 1e-5); near(util(d, /^Bending  M_Ed/), 0.912166, 1e-5); assert.ok(d.pass);
+  c.reset({}); const d = full().c; near(util(d, /^Shear/), 0.303499, 1e-5); near(util(d, /^Bending  M_Ed/), 0.912166, 1e-5);
+  near(util(d, /^Deflection/), 1.241569, 1e-5); assert.ok(!d.unsupported.length);   // 20 Sep 2026: the SLS default became 1.0G + 1.0Q: deflection 0.609935 x (19.7 + 19.8 + 0.8044)/19.8; the demo verdict is FAIL on deflection, nothing blocked
 });

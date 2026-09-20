@@ -26,7 +26,10 @@ const analyseAll = () => run(`(()=>{ const a=analyse(); const ch=checks(a); retu
 test('single-span model: the demo reproduces the audit figures, no combination is generated beyond the gamma_G,inf companions', () => {
   c.reset({});
   const d = analyseAll(); assert.equal(d.a.n, 1); assert.equal(d.a.nS, 1);
-  near(d.c.utils[0], 0.303499, 1e-5); near(d.c.utils[1], 0.912166, 1e-5); near(d.c.utils[2], 0.609935, 1e-5);
+  near(d.c.utils[0], 0.303499, 1e-5); near(d.c.utils[1], 0.912166, 1e-5);
+  // 20 Sep 2026: the SLS default became 1.0G + 1.0Q (was Q only): the AUDIT.md deflection 0.609935 was the Q-only case; with G the SLS load is
+  // (19.7 + 19.8 + 0.8044 self-weight)/19.8 = 2.03558 times larger -> 0.609935 x 2.03558 = 1.241569 [hand-derived], the demo fails deflection
+  near(d.c.utils[2], 1.241569, 1e-5);
   assert.ok(/companions: 2 ULS combination\(s\)/.test(d.a.companionNote) && d.c.advisory.some(m => /gamma;<sub>G,inf<\/sub> companions: 2/.test(m)));
   // the state carries no support list, pattern switch or root-warping select any more
   assert.equal(run('S.supports'), undefined); assert.equal(run('S.autoPattern'), undefined); assert.equal(run('S.rootWarp'), undefined); assert.equal(run('S.fixedLateral'), undefined);
@@ -106,12 +109,13 @@ test('cantilever strut: L_cr defaults to 2.0 L about both axes from the end fixi
 
 // ---- 4. deflection limit of a vertically free end (item 3.19) ----
 test('deflection limits: a vertically free end (cantilever tip, guided tip) uses L/divisorCant (default 180), the absolute limit caps it, validation of the inputs', () => {
-  c.reset({L:4, ends:E('cantilever'), loads:[{type:'point',pos:4,P:10,case:'Q'}]});
+  // the tip formulae below are for the Q load alone, so the Q-only combinations are set explicitly (20 Sep 2026: the SLS default became 1.0G + 1.0Q, which would add the self-weight deflection)
+  c.reset({L:4, ends:E('cantilever'), loads:[{type:'point',pos:4,P:10,case:'Q'}], combos:Q15()});
   let r = analyseAll();
   near(r.c.dlimit, 4000 / 180, 1e-12); assert.equal(r.c.divisor, 180); assert.equal(r.c.deflCant, true); assert.equal(r.a.deflection.cant, true);
   near(r.a.deflection.dpos, 4000, 1e-9, 'tip');
   const sec = run('activeSection()'); near(Math.abs(r.a.dmax), 10 * 1000 * 4000 ** 3 / (3 * 210000 * sec.Ix * 1e4), 1e-6, 'tip deflection relative to the root');
-  c.reset({L:4, ends:E('cantilever'), divisorCant:250, deflAbs:5, loads:[{type:'point',pos:4,P:10,case:'Q'}]});
+  c.reset({L:4, ends:E('cantilever'), divisorCant:250, deflAbs:5, loads:[{type:'point',pos:4,P:10,case:'Q'}], combos:Q15()});
   r = analyseAll();
   assert.equal(r.c.divisor, 250); near(r.a.deflection.limSpan, 16, 1e-12); near(r.c.dlimit, 5, 1e-12); assert.equal(r.c.deflAbsGoverns, true);
   near(r.c.utils.find((v, i) => r.c.names[i] === 'Deflection'), Math.abs(r.a.dmax) / 5, 1e-12);

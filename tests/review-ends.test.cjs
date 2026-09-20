@@ -184,7 +184,9 @@ test('the cantilever-root rule is stated where the user meets it: the End condit
 // ---- F-E: a warping flag on an I_w = 0 box is not a boundary condition ----
 test('F-E: on a closed section (I_w = 0) the warping flag is not applied to the eigen model - the cantilever preset\'s root warping no longer imposes a spurious phi\' = 0 on the St Venant twist field, so the box cantilever converges (RHS 160x80x5.0, 3 m: mesh error 0.51 % -> < 1e-5, PASS) and the flag is printed as not applied; a UB cantilever keeps its warping restraint', () => {
   // RHS-07 of the batch library: 3 m cantilever, 1 G + 1 Q kN/m + 1.5 kN Q at the tip, deflection-governed
+  // the batch library's own combinations (tests/batch/cases.cjs GQ(): SLS Q only) - 20 Sep 2026: the SLS default became 1.0G + 1.0Q, under which this deflection-governed case fails
   const RHS07 = { family: 'rhs', rhsKey: '160 x 80 x 5.0', L: 3, restraint: 'ltb', divisor: 180, mcrMethod: 'eigen',
+    combos: [{id:'c1', label:'ULS: 1.35G + 1.5Q (Eq 6.10)', factors:{G:1.35,Q:1.5,W:0,E:0}, sls:false, on:true}, {id:'s1', label:'SLS: Variable actions only (NA 2.23)', factors:{G:0,Q:1.0,W:0,E:0}, sls:true, on:true}],
     loads: [{ type: 'udl', x1: 0, x2: 3, w: 1, case: 'G' }, { type: 'udl', x1: 0, x2: 3, w: 1, case: 'Q' }, { type: 'point', pos: 3, P: 1.5, case: 'Q' }] };
   c.reset(Object.assign({}, RHS07, { ends: ENDS('cantilever') }));
   assert.equal(run('JSON.stringify({iw: sectionWarpingIw(activeSection()), applies: warpingApplies(activeSection()), warp: S.ends.e1.warp})'), JSON.stringify({ iw: 0, applies: false, warp: true }));

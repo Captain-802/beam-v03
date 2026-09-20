@@ -57,7 +57,7 @@ test('[hand-derived] F1: PFC 150x75x18, 6 m, N = 250 kN, restraints at 1.5 m cen
   // (e) the brief and the report name the source
   c.reset(Object.assign({}, lay, { ltbRestraints: R(false, 1.5, 3, 4.5) }));
   const r = row(brief(), /^N<sub>cr\.T<\/sub>/); assert.ok(r && /L<sub>T<\/sub> = 6 m = L<sub>cr,y<\/sub> \(no intermediate twist restraint\)/.test(r.vals), JSON.stringify(r));
-  assert.ok(/L<sub>T<\/sub> = 6 m \(L<sub>cr,y<\/sub> \(no intermediate twist restraint\)\)/.test(report()));
+  assert.ok(/L<sub>T<\/sub> = 6 m = L<sub>cr,y<\/sub> \(no intermediate twist restraint\)/.test(report()));   // 20 Sep 2026: the report is the brief (single-brief task)
 });
 
 // ---- finding 2: gamma_G,inf companions for uplift / hold-down and web bearing ----
@@ -85,7 +85,7 @@ test('[hand-derived] F2: simply supported 457x191x82, L = 6 m, G 3 kN/m + self-w
   let h = brief();
   assert.ok(/&gamma;<sub>G,inf<\/sub> companions<\/b> \(reactions only\): 2/.test(h) && /ULS C2: ULS: 1\.35G \+ 1\.5Q \(Eq 6\.10\) \[&gamma;<sub>G,inf<\/sub> = 0\.9, EQU set A\]/.test(h), 'companions listed');
   const hr = row(h, /^Hold-down provided at End 1/); assert.ok(hr && /R = &minus;12\.23 kN \(combination .*EQU set A\]\)/.test(hr.vals) && /R = &minus;12\.23 kN/.test(hr.res), JSON.stringify(hr));
-  assert.ok(/Hold-down provided at End 1 \(x = 0 m\):<\/b> R = &minus;12\.23 kN/.test(report()));
+  assert.ok(/Hold-down provided at End 1 \(x = 0 m\)<\/div><div class="ms-v">R = &minus;12\.23 kN/.test(report()));   // 20 Sep 2026: the report is the brief (single-brief task)
   // G = 6 kN/m: no uplift at 1.35G, uplift in both companions -> ULS-level "Hold-down required" (blocking) without the box; 4.13 kN with it
   c.reset(Object.assign({}, lay, { ends: ENDS('ss', { e1: { ss: 100 }, e2: { ss: 100 } }), loads: [{ type: 'udl', x1: 0, x2: 6, w: 6, case: 'G' }, { type: 'moment', pos: 6, M: -90, case: 'Q' }] }));
   ({ a, c: ch } = full());
@@ -108,12 +108,15 @@ test('[hand-derived] F3/F7: a blank end s_s is the lower bound 0 (demo reaction 
   // demo 457x191x82, 8 m, 57.38 kN/m at ULS -> R = 229.5 kN; s_s = 0 type (c): k_F = 2, F_cr = 856.9 kN, l_e = 0, second pass l_y = 16 sqrt(19.3232/2) = 49.73,
   // lambda_F = sqrt(49.73 x 9.9 x 275/856946) = 0.3975, chi_F = 1 -> F_Rd = 275 x 49.73 x 9.9 = 135.4 kN (web-transverse.test.cjs); s_s = 100: F_Rd = 437.3 kN
   c.reset({});
-  let r = full(); assert.equal(r.c.web.stations.filter(s => s.support).every(s => s.ss === 100 && !s.ssDefault), true); assert.ok(r.c.pass); near(r.c.web.gov2.FRdTot, 437.34, 1e-4);
+  let r = full(); assert.equal(r.c.web.stations.filter(s => s.support).every(s => s.ss === 100 && !s.ssDefault), true);
+  assert.ok(!r.c.unsupported.length && util(r.c, /^Web transverse force  F_Ed/) <= 1, 'bearing verified, nothing blocked');   // 20 Sep 2026: the SLS default became 1.0G + 1.0Q: the demo verdict itself is FAIL on deflection (1.242), not on bearing
+  near(r.c.web.gov2.FRdTot, 437.34, 1e-4);
   assert.equal(run('JSON.stringify([DEMO.ends.e1.ss, DEMO.ends.e2.ss])'), '[100,100]');
   c.reset({ ends:ENDS('ss') });
   r = full(); const W = r.c.web;
   assert.ok(W.stations.every(s => s.ss === 0 && s.ssDefault && s.nv), 'lower bound, NOT VERIFIED'); near(W.stations[0].FRdTot, 135.39, 1e-4); near(W.stations[0].eta2, 229.5 / 135.39, 1e-3);
-  assert.equal(r.c.pass, false); assert.ok(!r.c.utils.some(u => u.val > 1.0001), 'no failing entry: NOT VERIFIED'); assert.equal(r.c.unsupported.filter(m => /^Web transverse force at x/.test(m)).length, 2);
+  assert.equal(r.c.pass, false); assert.ok(!r.c.utils.some(u => u.name !== 'Deflection' && u.val > 1.0001), 'no failing entry: NOT VERIFIED');   // 20 Sep 2026: the SLS default became 1.0G + 1.0Q: the demo's deflection entry (1.242) is a FAIL of its own, not of the bearing
+  assert.equal(r.c.unsupported.filter(m => /^Web transverse force at x/.test(m)).length, 2);   // 20 Sep 2026 review: restored (the comment above had swallowed this assertion)
   assert.equal(W.show, W.stations[1]); assert.equal(W.gov2, null); assert.equal(W.checked, false);
   // a lighter beam passes at the lower bound and is verified for any seating: 203x133x25, 4 m, 5 + 5 kN/m -> R = 34.9 kN
   c.reset({ family: 'ub', ubKey: '203 x 133 x 25', L: 4, ends:ENDS('ss'), loads: [{ type: 'udl', x1: 0, x2: 4, w: 5, case: 'G' }, { type: 'udl', x1: 0, x2: 4, w: 5, case: 'Q' }] });

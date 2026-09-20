@@ -45,7 +45,9 @@ function unity(html) {
 const num = s => parseFloat(String(s).replace(/<[^>]+>/g, '').replace(/&[a-z]+;/g, ''));
 const near3 = (s, v, what) => assert.equal(num(s).toFixed(3), (+v).toFixed(3), what + ': printed ' + s + ' vs ' + v);
 // MasterSeries block order (docs/EC3_BEAM_TRIGGER_LIST.md section 4); only the blocks a variant prints are present
-const ORDER = [/^Member Loading and Member Forces$/, /^Classification and Effective Area \(EN 1993: 2006\)$/, /^(Local Capacity Check|Moment Capacity Check M\.c\.y\.Rd)/,
+const ORDER = [/^Member Loading and Member Forces$/, /^Classification and Effective Area \(EN 1993: 2006\)$/,
+  /^Shear Capacity Check$/,   // 20 Sep 2026 single-brief task: the MasterSeries shear block (max V_Ed / V_pl.y.Rd) before Local Capacity
+  /^(Local Capacity Check|Moment Capacity Check M\.c\.y\.Rd)/,
   /^Web Transverse Forces \(EN 1993-1-5 cl 6\)$/,   // [beam-v03 addition, 19 Sep 2026 gap closure G2] after Local Capacity
   /^Compression Resistance N\.b\.Rd$/, /^Equivalent Uniform Moment Factors? C1/, /^Lateral Buckling Check M\.b\.Rd$/, /^Lateral Restraint Portions/,
   /^Buckling Resistance$/, /^Torsion Design$/, /^Deflection Check - Load Case /];
@@ -90,7 +92,9 @@ function checkCommon(r, tag) {
 test('demo beam, fully restrained: Beam-Portion brief with the Fully Restrained line and no C1 block', () => {
   const r = render(CASES.demo);
   const {html, hs, u} = checkCommon(r, 'demo');
-  assert.ok(html.includes('Beam &amp; Beam-Portion (Member)</div>'), 'brief type');
+  // 20 Sep 2026: the SLS default became 1.0G + 1.0Q (was Q only): the demo beam deflects 27.59 mm > 8000/360 = 22.22 mm under
+  // 19.7 G + 19.8 Q + 0.8044 self-weight, so its brief title carries the FAIL suffix and the deflection row a Warning
+  assert.ok(html.includes('Beam &amp; Beam-Portion (Member) (FAIL)</div>'), 'brief type');
   assert.ok(html.includes('Member 457 x 191 x 82 UB [S275]'), 'member line from the section');
   assert.ok(html.includes('Between 0 and 8 m, in Load Case 1 (ULS: 1.35G + 1.5Q (Eq 6.10))'), 'portion + load case');
   assert.ok(hs.includes('Moment Capacity Check M.c.y.Rd - Fully Restrained Beam'));
@@ -99,8 +103,15 @@ test('demo beam, fully restrained: Beam-Portion brief with the Fully Restrained 
   assert.equal(fr.vals, 'Fully Restrained'); near3(fr.res, r.McRd, 'Mb.Rd = Mc.y.Rd');
   assert.deepEqual(u.names, ['MA/Mc', 'M_(y.Ed)/M_(b.Rd)', 'Deflection', 'V/Vpl', 'F/F_Rd', 'Web 7.2', 'Max']);   // F/F_Rd, Web 7.2: web transverse forces at the two support reactions (G2)
   near3(u.vals[0], r.momUtil, 'MA/Mc'); near3(u.vals[1], r.momUtil, 'Mb = Mc cell');
-  assert.ok(row(html, /^V<sub>y\.Ed<\/sub>\/V<sub>pl\.y\.Rd<\/sub>$/).tag === 'Low Shear');
-  assert.ok(row(html, /Deflection|In-span/) && row(html, /^In-span &delta; &le; Span\/360$/).tag === 'OK');
+  // 20 Sep 2026 single-brief task: MasterSeries prints "Vy.Ed/Vpl.y.Rd" twice - the maximum shear in the Shear Capacity Check block
+  // (OK / Warning) and the shear coincident with the maximum moment in the Moment Capacity block (Low / High Shear)
+  const vRows = rows(html).filter(r => /^V<sub>y\.Ed<\/sub>\/V<sub>pl\.y\.Rd<\/sub>( \(at max M\))?$/.test(r.label));
+  assert.equal(vRows.length, 2, 'two V_y.Ed/V_pl.y.Rd rows');
+  assert.equal(vRows[0].tag, 'OK'); near3(vRows[0].res, r.utils[0].val, 'max shear ratio in the Shear Capacity block'); assert.ok(!/at max M/.test(vRows[0].label));
+  // 20 Sep 2026 review: "(at max M)" sits in the label, as MasterSeries prints "Vy.Ed/Vpl.y.Rd (at max M) = 3.407/763.881 = 0.004 Low Shear" (was appended after the "=" of the values cell)
+  assert.equal(vRows[1].tag, 'Low Shear'); assert.ok(/\(at max M\)$/.test(vRows[1].label) && / =$/.test(vRows[1].vals) && !/at max M/.test(vRows[1].vals));
+  assert.ok(hs.indexOf('Shear Capacity Check') === hs.indexOf('Classification and Effective Area (EN 1993: 2006)') + 1, 'Shear Capacity Check right after Classification');
+  assert.equal(row(html, /^In-span &delta; &le; Span\/360$/).tag, '<span class="ms-warn">Warning</span>');   // 20 Sep 2026: the SLS default became 1.0G + 1.0Q (deflection 1.242, was OK at 0.610 with Q only; msbWarn)
   assert.ok(/Class = Fn\(c\/t, d\/t/.test(html) && html.includes('(Axial: Non-Slender)') && html.includes('>Class 1<'), 'classification line');
   assert.ok(html.includes('Member Forces in Load Case 1 (ULS') && html.includes('Maximum Deflection from Load Case 1 (SLS'), 'forces table heading');
 });
@@ -141,10 +152,11 @@ test('UB with axial compression and Mz: Axial with Moments brief with every bloc
     const {html, hs, u} = checkCommon(r, 'ubAxMz/' + m);
     assert.ok(r.ax && r.buck && r.buck.Fc > 0);
     assert.ok(html.includes('Axial with Moments (Member)'));
-    assert.deepEqual(hs, ['Member Loading and Member Forces', 'Classification and Effective Area (EN 1993: 2006)', 'Local Capacity Check',
+    assert.deepEqual(hs, ['Member Loading and Member Forces', 'Classification and Effective Area (EN 1993: 2006)', 'Shear Capacity Check', 'Local Capacity Check',
       'Web Transverse Forces (EN 1993-1-5 cl 6)', 'Compression Resistance N.b.Rd', 'Equivalent Uniform Moment Factors C1, C.mLT, C.mz, and C.my', 'Lateral Buckling Check M.b.Rd',
-      'Lateral Restraint Portions (restraint design forces)',   // [G3 item 15] restraint design forces at the two support torsional restraints
-      'Buckling Resistance', 'Deflection Check - Load Case 1 (SLS: Variable actions only (NA 2.23))']);
+      // 20 Sep 2026 single-brief task: no 'Lateral Restraint Portions (restraint design forces)' block here - the two support torsional restraints of a
+      // simply supported beam carry M_Ed = 0 (force 0), and MasterSeries prints no portion without an intermediate restraint (G3 item 15 rows print when a force exists)
+      'Buckling Resistance', 'Deflection Check - Load Case 1 (SLS: 1.0G + 1.0Q)']);   // default SLS combination since 20 Sep 2026 (was 'SLS: Variable actions only (NA 2.23)', G = 0)
     ['V<sub>z\\.Ed</sub>/V<sub>pl\\.z\\.Rd</sub>', 'M<sub>c\\.z\\.Rd</sub> = ', 'N<sub>pl\\.Rd</sub> = A<sub>g</sub>', 'n = N<sub>Ed</sub>/N<sub>pl\\.Rd</sub>',
      'W<sub>pl\\.N\\.y</sub> = Fn', 'M<sub>N\\.y\\.Rd</sub> = ', 'W<sub>pl\\.N\\.z</sub> = Fn', 'M<sub>N\\.z\\.Rd</sub> = ',
      '\\(M<sub>y\\.Ed</sub>/M<sub>N\\.y\\.Rd</sub>\\)<sup>&alpha;</sup>', 'L<sub>ey</sub> = K<sub>y</sub>', '&lambda;&#772;<sub>y</sub> = ', 'N<sub>b\\.y\\.Rd</sub> = Area',
@@ -174,9 +186,15 @@ test('PFC with an eccentric load: Torsion Design block with the P385 lines, Anne
     assert.ok(/W<sub>n2<\/sub>/.test(row(html, /^W<sub>n0<\/sub>, S<sub>w1<\/sub>$/).vals), 'PFC extra torsion constants');
     assert.ok(html.includes('Torsion Bending Design @ '));
     ['T<sub>Ed</sub> \\(max\\)', '&phi;<sub>max</sub> \\(ULS\\)', 'M<sub>w\\.Ed</sub> = ', 'M<sub>z\\.Ed</sub> = &phi;', '\\(M<sub>y</sub>/M<sub>pl\\.y</sub>\\)&sup2;',
-     'V<sub>pl\\.T\\.Rd</sub> = \\[', 'V<sub>Ed</sub>/V<sub>pl\\.T\\.Rd</sub>', 'M<sub>y</sub>/M<sub>b\\.Rd</sub> \\+ C<sub>mz</sub>', 'End torques', '&theta;<sub>ser</sub>']
+     'V<sub>pl\\.T\\.Rd</sub> = \\[', 'V<sub>Ed</sub>/V<sub>pl\\.T\\.Rd</sub>', 'k = k<sub>w</sub>\\.k<sub>zw</sub>\\.k<sub>&alpha;</sub>', 'M<sub>y</sub>/M<sub>b\\.Rd</sub> \\+ C<sub>mz</sub>', 'End torques',
+     'Torq in Case \\d+ @ [\\d.]+ m: &theta;<sub>max</sub> &le; 2\\.00&deg;']   // 20 Sep 2026: the SLS twist prints in the Deflection block, MasterSeries "Torq in Case n" form (was the theta_ser row of the Torsion block)
       .forEach(l => assert.ok(row(html, new RegExp('^' + l)), m + ': missing torsion line ' + l));
     ['Torsion', 'V+T', 'LTB+T'].forEach(n => assert.ok(u.names.includes(n), m + ': unity cell ' + n));
+    // 20 Sep 2026: torsion title line, the Torsion Shear Design sub-block and the twist line placed in the Deflection block
+    assert.ok(html.includes('<div>Includes Design for Torsion with Span Warping, Ends Free to Warp</div>'), m + ': torsion title line');
+    assert.ok(html.includes('<div class="ms-sub">Torsion Shear Design @ ') && html.includes('<div class="ms-sub">Torsion Bending Design @ '), m + ': torsion sub-blocks');
+    const iTw = html.search(/Torq in Case \d+ @/), iDef = html.indexOf('Deflection Check - Load Case');
+    assert.ok(iTw > iDef, m + ': twist line inside the Deflection block');
     near3(u.vals[u.names.indexOf('LTB+T')], r.utils.find(x => /Annex A/.test(x.name)).val, 'LTB+T cell');
     if (m === 'standard') {
       assert.ok(row(html, /^&lambda;&#772;<sub>LT<\/sub> = \(L<sub>e<\/sub>\/i<sub>z<\/sub>\)\/&kappa;$/).tag === 'P362 channel');
@@ -199,7 +217,9 @@ test('cantilever: Cantilever title line, SN006a chain in standard mode, f = 1 in
       const C = row(html, /^C = Fn\(&kappa;<sub>wt<\/sub>, &eta;, warping\)$/);
       assert.ok(C && /Eq \(7\)/.test(C.vals) && C.tag === 'Tables 3.1&ndash;3.3');
       assert.ok(row(html, /^M<sub>cr<\/sub> = C&middot;M<sub>cr0<\/sub>$/));
-      assert.equal(row(html, /^C = fn\(M<sub>1<\/sub>/).tag, 'Cantilever');
+      // 20 Sep 2026: the MasterSeries SN006a form "C1 = fn(M, Zg, kwt) ... Ncci-sn006" (was 'C = fn(M1, M2, Mo, psi, mu) -> SN006a C' tagged Cantilever)
+      const c1c = row(html, /^C<sub>1<\/sub> = fn\(M, Z<sub>g<\/sub>, &kappa;<sub>wt<\/sub>\)$/);
+      assert.ok(c1c && c1c.tag === 'Ncci-sn006' && /"Cantilever end warping (free|fixed)"/.test(c1c.vals) && /&kappa;<sub>wt<\/sub> = \d\.\d{3}/.test(c1c.vals), m + ': SN006a C1 line ' + JSON.stringify(c1c));
       assert.equal(row(html, /^&chi;<sub>LT\.mod<\/sub>/).tag, 'f = 1 (cantilever)');
     } else {
       assert.ok(/End 1 v, v&prime;, &phi;, &phi;&prime; = 0; End 2 free/.test(row(html, /^L<sub>e<\/sub> = portion/).vals), 'cantilever root: all four LTB DOFs held (warping restrained by the preset), tip free');
@@ -208,16 +228,23 @@ test('cantilever: Cantilever title line, SN006a chain in standard mode, f = 1 in
   }
 });
 
-test('SHS: closed section not susceptible to LTB in standard mode; the eigen route prints a solved Mcr with lambda below 0.4', () => {
+test('SHS: closed section not susceptible to LTB on both routes (the eigen route keeps its solved Mcr and lambda as information); C1 printed on both, as MasterSeries', () => {
   const s = render(CASES.shs, 'standard');
   const {html: hs2, hs: heads} = checkCommon(s, 'shs/standard');
   const na = row(hs2, /^M<sub>b\.Rd<\/sub> = M<sub>c\.y\.Rd<\/sub>$/);
   assert.ok(na && na.vals.includes('not susceptible to LTB') && na.tag === '6.3.2.1(2)');
-  assert.ok(!heads.some(h => /Equivalent Uniform/.test(h)), 'no C1 line for the closed-form box');
+  // 20 Sep 2026 review: MasterSeries SHS-L2 prints "C1 = ... -> 1.127 Uniform" for the box, so the C1 block is printed on both routes (was suppressed on the standard route only)
+  assert.ok(heads.includes('Equivalent Uniform Moment Factor C1'), 'C1 block for the closed-form box');
+  const c1s = row(hs2, /^C<sub>1<\/sub> = fn\(M<sub>1<\/sub>/); assert.ok(c1s && c1s.tag === 'Uniform' && c1s.res === '1.127', 'standard C1 row ' + JSON.stringify(c1s));
   assert.ok(hs2.includes('150 x 150 x 6.3 SHS [Hot-finished] [S275] D=150 B=150 t=6.3'), 'box section line');
   const e = render(CASES.shs, 'eigen');
-  const {html: he} = checkCommon(e, 'shs/eigen');
-  assert.ok(row(he, /^M<sub>cr<\/sub> = FE eigenvalue/) && row(he, /^&lambda;&#772;<sub>LT<\/sub> &le; &lambda;&#772;<sub>LT,0<\/sub>$/).tag === '6.3.2.2(4)');
+  const {html: he, hs: headsE} = checkCommon(e, 'shs/eigen');
+  assert.ok(row(he, /^M<sub>cr<\/sub> = FE eigenvalue/) && row(he, /^&lambda;&#772;<sub>LT<\/sub> = &radic;W/), 'FE Mcr and lambda rows kept as information');
+  const naE = row(he, /^M<sub>b\.Rd<\/sub> = M<sub>c\.y\.Rd<\/sub>$/);   // 20 Sep 2026 review: the same "not susceptible" row as the standard route (was the chi_LT = 1 / chi_LT.mod pair)
+  assert.ok(naE && naE.vals.includes('not susceptible to LTB') && naE.tag === '6.3.2.1(2)' && naE.vals === na.vals, 'eigen box row ' + JSON.stringify(naE));
+  assert.equal(row(he, /^&chi;<sub>LT\.mod<\/sub>/), null, 'no chi_LT.mod row for the exempt box');
+  assert.equal(row(he, /^&lambda;&#772;<sub>LT<\/sub> &le; &lambda;&#772;<sub>LT,0<\/sub>$/), null);
+  assert.ok(headsE.includes('Equivalent Uniform Moment Factor C1') && row(he, /^C<sub>1<\/sub> = M<sub>cr<\/sub>\/M<sub>cr,uniform<\/sub>/), 'eigen C1 row');
   assert.ok(row(he, /^Tip|^In-span/).tag.includes('Warning'), 'deflection fails on this span');
   assert.ok(he.includes('(FAIL)'));
 });
@@ -379,4 +406,117 @@ test('End conditions: the six presets and a custom guided case render in both Mc
     if (cs.p === 'pinned-guided') { assert.equal(c1[0], '90.00'); assert.equal(c2[1], '270.00'); }
     if (cs.p === 'cantilever') { assert.equal(c1[0], '90.00'); assert.equal(c1[1], '-270.00'); }
   }
+});
+
+// ---- 20 Sep 2026 single-brief task (owner: "I see two briefs; it shall be one brief") ----
+// render() on the EC3 path prints the verdict banner and the MasterSeries brief only; BS 5950 keeps the long report
+const report = () => run(`(()=>{ const el={innerHTML:'',style:{}}; document.getElementById=()=>el; render(); return el.innerHTML; })()`);
+test('EC3 report = banner + ONE brief: exactly one "Member Loading and Member Forces" heading, no "Detailed derivation", no second (CED) report', () => {
+  for (const over of [{}, {restraint:'ltb'}, {restraint:'ltb', axial:300}, CASES.pfcEcc]) {
+    c.reset(over);
+    const h = report();
+    assert.equal((h.match(/Member Loading and Member Forces/g) || []).length, 1, 'one Member Loading heading: ' + JSON.stringify(over));
+    assert.ok(!/Detailed derivation|ms-detail|brief-title|report-head|diagcard|calcs-start|section-title/.test(h), 'no second report / details wrapper: ' + JSON.stringify(over));
+    assert.ok(/<div class="banner /.test(h) && h.indexOf('class="banner') < h.indexOf('<div class="ms-brief'), 'banner above the brief');
+    assert.equal((h.match(/<div class="ms-brief/g) || []).length, 1, 'one brief panel');
+    assert.ok(!/undefined|NaN/.test(h));
+  }
+});
+test('Compression Resistance N.b.Rd appears with axial compression only; the C_m factors heading follows the member-buckling interaction', () => {
+  const withN = render({restraint:'ltb', axial:300}, 'standard'), noN = render({restraint:'ltb'}, 'standard'), tens = render({restraint:'ltb', axial:-300}, 'standard');
+  assert.ok(headings(withN.html).includes('Compression Resistance N.b.Rd'), 'axial 300: block present');
+  assert.ok(!headings(noN.html).includes('Compression Resistance N.b.Rd'), 'no axial: block absent');
+  assert.ok(!headings(tens.html).includes('Compression Resistance N.b.Rd'), 'tension: block absent');
+  // MasterSeries lines beam-v03 has no value for print the label with "n/a - not evaluated by beam-v03" (N_b.T.Rd of an I section), N.Ed/N.b.Rd is the lower flexural resistance
+  const nbT = row(withN.html, /^L<sub>et<\/sub> = K<sub>t<\/sub>/); assert.ok(nbT && /n\/a - not evaluated by beam-v03/.test(nbT.vals) && nbT.tag === 'not evaluated');
+  const nb = row(withN.html, /^N<sub>Ed<\/sub>\/N<sub>b\.Rd<\/sub>$/); assert.ok(nb, 'N.Ed/N.b.Rd line');
+  near3(nb.res, Math.max(num(row(withN.html, /^U<sub>N\.y<\/sub>/).res), num(row(withN.html, /^U<sub>N\.z<\/sub>/).res)), 'N.Ed/N.b.Rd = max(U_N.y, U_N.z)');
+  assert.ok(headings(withN.html).includes('Equivalent Uniform Moment Factors C1, C.mLT, C.mz, and C.my') && headings(noN.html).includes('Equivalent Uniform Moment Factor C1'));
+  assert.ok(row(withN.html, /^k<sub>zy<\/sub> method$/), 'kzy method line');
+  // tension: Axial with Moments brief, Buckling Resistance block states that cl 6.3.3 is not required
+  assert.ok(tens.html.includes('Axial with Moments (Member)') && headings(tens.html).includes('Buckling Resistance') && /n\/a - not evaluated by beam-v03 \(N<sub>Ed<\/sub> is tensile/.test(tens.html));
+  assert.ok(!row(noN.html, /^V<sub>z\.Ed<\/sub>/) && !row(withN.html, /^V<sub>z\.Ed<\/sub>/), 'no V_z / M_c.z lines without M_z');
+});
+test('torsion blocks and the torsion diagram (data-name="T") appear with eccentric loads only; the four / five diagrams carry data-xs and the hover names', () => {
+  const tor = render(CASES.pfcEcc, 'standard'), plain = render({restraint:'ltb'}, 'standard'), box = render({family:'shs', shsKey:'150x150x6.3', restraint:'ltb', eccOn:true, L:4, ends:E('ss'), loads:[{type:'udl',x1:0,x2:4,w:10,case:'Q',e:40}]}, 'standard');
+  const names = h => [...h.matchAll(/<svg class="diag diag-hover"[^>]*data-name="([^"]*)"/g)].map(m => m[1]);
+  assert.deepEqual(names(tor.html), ['V', 'M', '\u03b4', 'T'], 'four hover diagrams with torsion');
+  assert.deepEqual(names(plain.html), ['V', 'M', '\u03b4'], 'three hover diagrams without torsion');
+  assert.equal((plain.html.match(/data-name="T"/g) || []).length, 0);
+  assert.ok(tor.html.includes('Torsional moment T (kN.m, ') && !plain.html.includes('Torsional moment T'), 'torsion caption');
+  assert.ok(headings(tor.html).includes('Torsion Design') && !headings(plain.html).includes('Torsion Design'));
+  assert.ok(!/Includes Design for Torsion/.test(plain.html) && /Torq in Case/.test(tor.html) && !/Torq in Case/.test(plain.html));
+  // every value diagram carries the sample arrays and the hidden hover group; the loading sketch precedes them inside the Member Loading block
+  for (const h of [tor.html, plain.html, box.html]) {
+    const svgs = [...h.matchAll(/<svg class="diag diag-hover"[^>]*>/g)].map(m => m[0]);
+    assert.ok(svgs.length >= 3 && svgs.every(s => /data-xs="\[/.test(s) && /data-ys="\[/.test(s) && /data-unit="/.test(s)), 'data-xs on every diagram');
+    assert.equal((h.match(/<g class="hover" style="display:none"/g) || []).length, svgs.length, 'one hover group per diagram');
+    const iPanel = h.indexOf('<div class="ms-diagrams">'), iTable = h.indexOf('<table class="ms-forces">'), iCls = h.indexOf('Classification and Effective Area');
+    assert.ok(iTable > 0 && iPanel > iTable && iPanel < iCls, 'diagram panel after the forces table, inside the Member Loading block');
+    assert.ok(/<div class="ms-diag-full"><div class="ms-dt">Loading<\/div><svg class="diag"/.test(h), 'loading sketch full width first');
+    assert.ok(h.indexOf('<div class="ms-diag-grid">') > iPanel && /hover over a diagram for the value at any point/.test(h), 'grid + italic note');
+    assert.ok(!/on[a-z]+=|javascript:/.test(h), 'CSP-safe');
+  }
+  // hollow section: "Includes Design for Torsion" (no warping line), the box torsion form with its sub-blocks
+  assert.ok(box.html.includes('<div>Includes Design for Torsion</div>') && !/Span Warping/.test(box.html), 'box title line');
+  assert.ok(row(box.html, /^W<sub>t<\/sub> \(= C\)$/) && row(box.html, /^&tau;<sub>t\.Ed<\/sub> = T<sub>Ed<\/sub>\/W<sub>t<\/sub>$/) && /Modified Local Capacity/.test(box.html) && box.html.includes('<div class="ms-sub">Torsion Shear Design @ '), 'box torsion lines');
+  assert.ok(row(box.html, /^M<sub>b\.Rd<\/sub> = M<sub>c\.y\.Rd<\/sub>$/), 'box: not susceptible line kept');
+});
+test('BS 5950 still renders its long report (no brief) and the EC3 hollow / restrained variants keep their blocks', () => {
+  c.reset({code:'BS5950'});
+  const h = report();
+  assert.ok(/Classification and Properties \(BS 5950-1:2000\)/.test(h) && /Local Capacity Check \(Cl\. 4\.2\)/.test(h) && /Simplified Buckling Approach/.test(h) && /Deflection Check \(SLS/.test(h), 'BS 5950 report blocks');
+  assert.ok(!/ms-brief|Member Forces in Load Case/.test(h), 'no MasterSeries brief on the BS 5950 path');
+  assert.ok(h.includes('<h2>Member Loading and Member Forces</h2>') && /Shear force \(kN\)/.test(h), 'BS 5950 report head and diagrams');
+  assert.ok(!/undefined|NaN/.test(h));
+});
+
+// ---- 20 Sep 2026 review fixes of the single-brief task ----
+test('review fixes: eigen-route LTB notes are advisory rows of the LTB block, the buckled mode shape sits there too, the deflection caption names the combination once, the torque column is the total end torque', () => {
+  const w = render({restraint:'ltb', leFactor:1.2}, 'eigen');
+  const adv = rows(w.html).filter(r => r.label === 'Advisory');
+  assert.ok(adv.length >= 1 && adv.every(r => r.tag === 'advisory'), 'advisory rows');
+  assert.ok(adv.some(r => /L<sub>E<\/sub> factor does not affect EC3 LTB on the eigen route/.test(r.vals)), 'L_E factor note (LT.warn) printed');
+  const iAdv = w.html.indexOf('ms-advrow');
+  assert.ok(iAdv > w.html.indexOf('Lateral Buckling Check M.b.Rd') && iAdv < w.html.indexOf('Deflection Check'), 'inside the LTB block');
+  const iMode = w.html.indexOf('<div class="ms-diag-full ms-mode">');
+  assert.ok(iMode > w.html.indexOf('Lateral Buckling Check M.b.Rd') && iMode < w.html.indexOf('Deflection Check') && /Buckled mode shape/.test(w.html), 'mode shape in the LTB block');
+  assert.ok(!/diag-hover/.test(w.html.slice(iMode, w.html.indexOf('</svg>', iMode))), 'the mode shape is not a hover diagram');
+  const s = render({restraint:'ltb', leFactor:1.2}, 'standard');
+  assert.ok(!/ms-mode/.test(s.html), 'no mode shape on the standard route');
+  const rc = render({family:'rhs', rhsKey:'160 x 80 x 5.0', restraint:'ltb', L:3, ends:E('cantilever'), loads:[{type:'point',pos:3,P:5,case:'Q'}]}, 'eigen');
+  assert.ok(rows(rc.html).some(r => r.label === 'Advisory' && /Warping flag at End 1 not applied/.test(r.vals)), 'warping-flag note of a closed section');
+  assert.ok(w.html.includes('Deflection &delta; (mm, SLS: 1.0G + 1.0Q)') && !/SLS combination SLS:/.test(w.html), 'caption without the doubled SLS');
+  // Torque Moment column = the total end torque T = GI_T phi' - EI_w phi''' (T.TEnds), signed, as MasterSeries prints the torque reaction
+  c.reset(Object.assign({}, CASES.pfcEcc, {mcrMethod:'standard'}));
+  const tq = run(`(()=>{ const a=analyse(); const ch=checks(a); return {html:renderMasterSeriesBrief(a,ch,a.sec), TEnds:ch.tor.TEnds, TtEnds:ch.tor.TtEnds}; })()`);
+  const fr = forceRows(tq.html);
+  assert.equal(fr[0][3], tq.TEnds[0].toFixed(2)); assert.equal(fr[1][3], tq.TEnds[1].toFixed(2));
+  assert.ok(Math.abs(tq.TEnds[0]) > Math.abs(tq.TtEnds[0]) + 0.01, 'the total exceeds the St Venant part here: ' + tq.TEnds[0] + ' vs ' + tq.TtEnds[0]);
+});
+test('review fixes: unity-bar cells carry what the block rows print (N_c.Rd label with A_eff, UMyz = the U_M.y row, em dashes for the cl 6.3.3 cells of a tension brief); channel cantilever C1 printed as not used with the P362 basis', () => {
+  const ae = render({restraint:'ltb', axial:300, Mz:30}, 'standard');
+  const {u} = checkCommon(ae, 'aeff');
+  assert.equal(u.names[0], 'N_Ed/N_(c.Rd)');
+  near3(u.vals[0], num(row(ae.html, /^N<sub>Ed<\/sub>\/N<sub>c\.Rd<\/sub>$/).res), 'N_Ed/N_c.Rd cell = the block row');
+  near3(u.vals[u.names.indexOf('UMyz')], Math.max(num(row(ae.html, /^U<sub>M\.y<\/sub>/).res), num(row(ae.html, /^U<sub>M\.z<\/sub>/).res)), 'UMyz = max(U_M.y, U_M.z) as printed');
+  assert.ok(/W<sub>el\.y<\/sub>\/W<sub>pl\.y<\/sub> = /.test(row(ae.html, /^U<sub>M\.y<\/sub>/).vals), 'A_eff route active in this case');
+  const pl = render({family:'uc', ucKey:'203 x 203 x 60', restraint:'ltb', axial:100}, 'standard');   // stocky web (d/t = 17): no A_eff
+  assert.equal(unity(pl.html).names[0], 'N_Ed/N_(pl.Rd)', 'no A_eff: the N_pl.Rd label');
+  assert.ok(row(pl.html, /^n = N<sub>Ed<\/sub>\/N<sub>pl\.Rd<\/sub>$/) && !row(pl.html, /^N<sub>Ed<\/sub>\/N<sub>c\.Rd<\/sub>$/));
+  const tens = render({restraint:'ltb', axial:-200}, 'standard');
+  const ut = unity(tens.html);
+  ['UNyz', 'Ax+M_6.61', 'Ax+M_6.62'].forEach(n => assert.equal(ut.vals[ut.names.indexOf(n)], '&mdash;', n + ' not evaluated in tension'));
+  near3(ut.vals[ut.names.indexOf('UMyz')], tens.ltbUtil, 'UMyz = LTB utilisation in tension');
+  // PFC cantilever on the standard route: the P362 kappa chain uses no C1
+  const pc = render({family:'pfc', sectionKey:'200x75x23', restraint:'ltb', L:3, ends:E('cantilever'), loads:[{type:'point',pos:3,P:20,case:'Q'}]}, 'standard');
+  const c1 = row(pc.html, /^C<sub>1<\/sub> = fn\(M<sub>1<\/sub>/);
+  assert.ok(c1 && c1.res === '&mdash;' && c1.tag === 'not used' && /P362 &kappa; chain/.test(c1.vals) && /channel cantilever/.test(c1.vals), JSON.stringify(c1));
+  assert.equal(row(pc.html, /^C<sub>1<\/sub> basis$/).tag, 'P362');
+  assert.equal(row(pc.html, /^&lambda;&#772;<sub>LT<\/sub> = \(L<sub>e<\/sub>\/i<sub>z<\/sub>\)\/&kappa;$/).tag, 'P362 channel');
+  // a fork-ended PFC without torsion offers the shear-centre Mcr route, which does use C1: value and SN003a basis kept
+  const pf = render({family:'pfc', sectionKey:'200x75x23', restraint:'ltb', L:4, ends:E('ss'), loads:[{type:'udl',x1:0,x2:4,w:5,case:'Q'}]}, 'standard');
+  const c1f = row(pf.html, /^C<sub>1<\/sub> = fn\(M<sub>1<\/sub>/);
+  assert.ok(c1f && c1f.res === '1.127' && c1f.tag === 'Uniform' && row(pf.html, /^M<sub>cr<\/sub> route \(load through the shear centre\)/), JSON.stringify(c1f));
+  assert.equal(row(pf.html, /^C<sub>1<\/sub> basis$/).tag, 'SN003a');
 });

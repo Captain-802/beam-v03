@@ -2,10 +2,69 @@
    3. STATE + INPUT UI
    =========================================================================== */
 const CASE_LABELS={G:'Dead (G)',Q:'Imposed (Q)',W:'Wind (W)',E:'Other (E)'};
+/* Default combinations (20 Sep 2026 owner decision): ULS 1.35G + 1.5Q (Eq 6.10)
+   and SLS 1.0G + 1.0Q, the MasterSeries defaults. The earlier SLS default
+   carried Q only (NA 2.23 "variable actions only", G = 0); an owner who wants
+   that criterion sets G = 0 under Load Combinations. */
 const DEFAULT_COMBOS=[
-  {id:'c1', label:'ULS: 1.35G + 1.5Q (Eq 6.10)',          factors:{G:1.35,Q:1.5,W:0,E:0},   sls:false, on:true},
-  {id:'s1', label:'SLS: Variable actions only (NA 2.23)',  factors:{G:0,  Q:1.0,W:0,E:0},    sls:true,  on:true},
+  {id:'c1', label:'ULS: 1.35G + 1.5Q (Eq 6.10)',  factors:{G:1.35,Q:1.5,W:0,E:0},   sls:false, on:true},
+  {id:'s1', label:'SLS: 1.0G + 1.0Q',             factors:{G:1.0, Q:1.0,W:0,E:0},   sls:true,  on:true},
 ];
+/* Section name as shown to the user (pure): the library keys are "200x75x23"
+   (PFC), "150x150x6.3" (SHS) and "457 x 191 x 82" (UB / UC / RHS); every
+   family is printed "D x B x t" with a spaced " x " (20 Sep 2026 owner
+   request: "100  100  6" was confusing). The keys themselves stay the map
+   keys and the drop-list option values. */
+function sectionDisplayName(key){ return String(key||'').replace(/\s*x\s*/g,' x '); }
+/* Span change (20 Sep 2026 owner request): keep the loads, the internal
+   hinges and the intermediate LTB restraints inside the member when L changes
+   from Lold to Lnew, so that editing the span never leaves "position must be
+   within 0 to L m" on screen. Mutates `state` in place and returns it (pure
+   otherwise; unit-tested through tests/harness.cjs):
+     - a UDL / trapezoidal load whose end x2 sat at Lold (full-span, or
+       running to End 2) follows to Lnew, longer or shorter;
+     - any x1 / x2 / pos (udl, trap, point, moment) beyond Lnew is clamped to
+       Lnew; a UDL / trap whose start is pushed onto its end (the strip lay
+       wholly beyond Lnew) is slid inwards keeping its original length where
+       the member allows (a 1 m strip stays a 1 m strip; 20 Sep 2026 review:
+       restarting at x1 = 0 turned it silently into a full-span load);
+     - a restraint position beyond Lnew is clamped to Lnew (kept as the
+       string the restraint editor stores; a restraint on the end coincides
+       with the end restraint, harmless);
+     - a hinge is kept strictly INSIDE the member (validateInputs refuses a
+       hinge at a span end): one that would land on or beyond Lnew keeps its
+       fraction of the span (7 of 8 m -> 4.375 of 5 m), or, when Lold is
+       unknown, moves to 0.9 Lnew (20 Sep 2026 review: the first cut clamped
+       it onto the end and the error stayed on screen).
+   Loads already inside the new span are untouched and every value stays
+   editable afterwards. A non-finite or non-positive Lnew is ignored. */
+function clampLoadsToSpan(state, Lold, Lnew){
+  state=state||S;
+  Lold=+Lold; Lnew=+Lnew;
+  if(!(Number.isFinite(Lnew)&&Lnew>0)) return state;
+  const oldOk=Number.isFinite(Lold)&&Lold>0;
+  const atOldEnd=v=>oldOk&&Math.abs(+v-Lold)<=1e-6;
+  const r4=v=>Math.round(v*1e4)/1e4;
+  (state.loads||[]).forEach(ld=>{
+    if(ld.type==='udl'||ld.type==='trap'){
+      const len=Math.max(0,+ld.x2-+ld.x1);   // strip length before the clamp
+      if(atOldEnd(ld.x2)||+ld.x2>Lnew) ld.x2=Lnew;
+      if(+ld.x1>Lnew) ld.x1=Lnew;
+      if(+ld.x1>=+ld.x2 && len>0) ld.x1=r4(Math.max(0,+ld.x2-len));   // slide inwards, same length (a full member at most)
+    } else if(ld.type==='point'||ld.type==='moment'){
+      if(+ld.pos>Lnew) ld.pos=Lnew;
+    }
+  });
+  (state.hinges||[]).forEach(h=>{
+    if(+h.pos>=Lnew-1e-6){
+      let p= oldOk? +h.pos*Lnew/Lold : NaN;
+      if(!(p>1e-6 && p<Lnew-1e-6)) p=Math.min(+h.pos, 0.9*Lnew);   // Lold unknown, or the hinge sat on / beyond the old end
+      h.pos=r4(p);
+    }
+  });
+  (state.ltbRestraints||[]).forEach(r=>{ if(+r.pos>Lnew) r.pos= typeof r.pos==='string'? String(Lnew) : Lnew; });
+  return state;
+}
 /* ---------------------------------------------------------------------------
    Member ends (19 Sep 2026 scope change: the tool handles ONE span, x = 0 =
    End 1 to x = L = End 2). Each end carries six degrees of freedom plus
@@ -513,35 +572,39 @@ function renderComboList(){
   c.querySelectorAll("[data-cdel]").forEach(b=>b.addEventListener("click",e=>{
     S.combos.splice(+e.target.dataset.cdel,1); renderComboList(); recompute(); }));
 }
+/* Drop-list option text of one library section (pure): "D x B x t FAM (mass
+   kg/m)", e.g. "150 x 150 x 6.3 SHS (28.1 kg/m)", "200 x 75 x 23 PFC (23.4
+   kg/m)"; the option value stays the raw key (sectionDisplayName). */
+function sectionOptionText(s,fam){ return `${sectionDisplayName(s.key)} ${fam} (${s.mass} kg/m)`; }
 function syncInputs(){
   const pfcSel=$("pfcSelect"); pfcSel.innerHTML="";
   PFC.forEach(s=>{ const o=document.createElement("option"); o.value=s.key;
-    o.textContent=`${s.key.replace(/x/g,'   ')} PFC  (${s.mass} kg/m)`; pfcSel.appendChild(o); });
+    o.textContent=sectionOptionText(s,'PFC'); pfcSel.appendChild(o); });
   pfcSel.value=S.sectionKey;
 
   const shsSel=$("shsSelect"); shsSel.innerHTML="";
   const shsArr = S.shsType==='CF'? SHS_CF : SHS_HF;
   shsArr.forEach(s=>{ const o=document.createElement("option"); o.value=s.key;
-    o.textContent=`${s.key.replace(/x/g,'   ')} SHS  (${s.mass} kg/m)`; shsSel.appendChild(o); });
+    o.textContent=sectionOptionText(s,'SHS'); shsSel.appendChild(o); });
   if(!(S.shsKey in (S.shsType==='CF'? SHS_CFmap : SHS_HFmap))) S.shsKey = shsArr[0].key;
   shsSel.value=S.shsKey;
 
   const ubSel=$("ubSelect"); ubSel.innerHTML="";
   UB.forEach(s=>{ const o=document.createElement("option"); o.value=s.key;
-    o.textContent=`${s.key} UB  (${s.mass} kg/m)`; ubSel.appendChild(o); });
+    o.textContent=sectionOptionText(s,'UB'); ubSel.appendChild(o); });
   if(!(S.ubKey in UBmap)) S.ubKey = UB[0].key;
   ubSel.value=S.ubKey;
 
   const ucSel=$("ucSelect"); ucSel.innerHTML="";
   UC.forEach(s=>{ const o=document.createElement("option"); o.value=s.key;
-    o.textContent=`${s.key} UC  (${s.mass} kg/m)`; ucSel.appendChild(o); });
+    o.textContent=sectionOptionText(s,'UC'); ucSel.appendChild(o); });
   if(!(S.ucKey in UCmap)) S.ucKey = UC[0].key;
   ucSel.value=S.ucKey;
 
   const rhsSel=$("rhsSelect"); rhsSel.innerHTML="";
   const rhsArr = S.rhsType==='CF'? RHS_CF : RHS;
   rhsArr.forEach(s=>{ const o=document.createElement("option"); o.value=s.key;
-    o.textContent=`${s.key} RHS  (${s.mass} kg/m)`; rhsSel.appendChild(o); });
+    o.textContent=sectionOptionText(s,'RHS'); rhsSel.appendChild(o); });
   if(!(S.rhsKey in (S.rhsType==='CF'? RHS_CFmap : RHSmap))) S.rhsKey = rhsArr[0].key;
   rhsSel.value=S.rhsKey;
 

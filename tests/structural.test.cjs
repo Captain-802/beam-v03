@@ -254,7 +254,8 @@ test('Mcr method defaults to eigen and the demo results are unchanged', () => {
   reset({L:8,ends:ENDS('ss'),loads:[{type:'udl',x1:0,x2:8,w:19.7,case:'G'},{type:'udl',x1:0,x2:8,w:19.8,case:'Q'}]});
   assert.equal(run('S.mcrMethod'),'eigen');
   const full=run('checks(analyse()).utils.map(u=>u.val)');     // restrained demo (AUDIT.md figures)
-  near(full[0],0.303499,1e-5); near(full[1],0.912166,1e-5); near(full[2],0.609935,1e-5);
+  near(full[0],0.303499,1e-5); near(full[1],0.912166,1e-5);
+  near(full[2],1.241569,1e-5);   // 20 Sep 2026: the SLS default became 1.0G + 1.0Q (was Q only, 0.609935): x (19.7 + 19.8 + 0.8044 self-weight)/19.8 = 2.03558 [hand-derived]
   run("S.restraint='ltb'");
   const c=run('checks(analyse())');                             // unrestrained demo, eigen figures before the switch existed
   assert.equal(c.mcrMethod,'eigen'); assert.equal(c.ltb.eigen,true); assert.equal(c.ltb.mcrMethod,'eigen');

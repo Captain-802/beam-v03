@@ -114,10 +114,11 @@ test('[hand-derived] blank support s_s = lower bound 0 (NOT VERIFIED when it fai
   let r = probe(), W = r.web;
   assert.equal(W.stations.length, 2);
   W.stations.forEach(s => { assert.equal(s.ssDefault, false); near(s.ss, 100, 1e-12); assert.equal(s.type, 'c'); near(s.FRdTot, 437.34, 1e-4); });
-  assert.equal(W.anyDefaultSs, false); assert.equal(r.pass, true);
+  assert.equal(W.anyDefaultSs, false); assert.equal(r.unsupported.length, 0);   // 20 Sep 2026: the SLS default became 1.0G + 1.0Q: the demo verdict is FAIL on deflection (1.242), not on bearing; nothing is blocked
   near(W.stations[0].F, 229.5, 1e-3); near(util(r, U2), 229.5 / 437.34, 1e-3);
   // demo utilisations of AUDIT.md are unchanged by the new entries
-  near(r.utils[0].val, 0.303499, 1e-5); near(r.utils[1].val, 0.912166, 1e-5); near(r.utils[2].val, 0.609935, 1e-5);
+  near(r.utils[0].val, 0.303499, 1e-5); near(r.utils[1].val, 0.912166, 1e-5);
+  near(r.utils[2].val, 1.241569, 1e-5);   // 20 Sep 2026: the SLS default became 1.0G + 1.0Q (was Q only, 0.609935): x (19.7 + 19.8 + 0.8044 self-weight)/19.8 = 2.03558 [hand-derived]
   // blank s_s at both supports: lower bound 0, fails there -> NOT VERIFIED (blocking), not FAIL; the unity entries exclude the station
   c.reset({ends:E('ss')});
   r = probe(); W = r.web;
@@ -126,7 +127,7 @@ test('[hand-derived] blank support s_s = lower bound 0 (NOT VERIFIED when it fai
   near(t0.kF, 2, 1e-12); near(t0.Fcr, 856.946, 1e-4); near(t0.le, 0, 1e-12); assert.equal(t0.iter, true); near(t0.ly1, 78.34, 2e-4); near(t0.lam1, 0.4989, 3e-4);
   near(t0.ly, 49.73, 2e-4); near(t0.lam, 0.3975, 3e-4); assert.equal(t0.chi, 1); near(t0.FRd, 135.39, 1e-4);
   near(W.stations[0].eta2, 229.5 / 135.39, 1e-3); assert.equal(W.anyDefaultSs, true); assert.equal(W.anyNv, true); assert.equal(W.checked, false);
-  assert.equal(r.pass, false); assert.ok(!r.utils.some(u => u.val > 1.0001), 'NOT VERIFIED, not FAIL');
+  assert.equal(r.pass, false); assert.ok(!r.utils.some(u => u.name !== 'Deflection' && u.val > 1.0001), 'NOT VERIFIED, not FAIL');   // 20 Sep 2026: the SLS default became 1.0G + 1.0Q: the demo's deflection entry (1.242) is a FAIL of its own, not of the bearing
   assert.ok(r.utils.every(u => !/Web transverse/.test(u.name)), 'no verdict entry from a NOT VERIFIED station');
   const m = r.unsupported.find(x => /^Web transverse force at x = 0 m \(End 1 reaction\): the stiff bearing length s<sub>s<\/sub> is not entered; at the lower bound s<sub>s<\/sub> = 0 the station gives F<sub>Ed<\/sub>\/F<sub>Rd<\/sub> = 1\.695/.test(x));
   assert.ok(m && /F<sub>Rd<\/sub> = 135\.4 kN, type \(c\)/.test(m) && /enter s<sub>s<\/sub>/.test(m), r.unsupported.join(' | '));
@@ -329,7 +330,8 @@ test('brief: "Web Transverse Forces (EN 1993-1-5 cl 6)" block directly after Loc
   const names = [...h.slice(u0, u1).matchAll(/<div[^>]*>(.*?)<\/div>/g)].map(x => x[1]);
   assert.ok(names.includes('F/F_Rd') && names.includes('Web 7.2') && names[names.length - 1] === 'Max');
   // blank s_s at a support that fails at the lower bound 0: NOT VERIFIED row in the block, the asterisk note, the station row tag and the title
-  c.reset({ends:E('ss')}); r = brief(); h = r.html;
+  // the Q-only SLS is set here so that the title suffix is the bearing's NOT VERIFIED and not the demo's deflection FAIL (20 Sep 2026: the SLS default became 1.0G + 1.0Q)
+  c.reset({ends:E('ss'), combos:[{id:'c1', label:'ULS: 1.35G + 1.5Q (Eq 6.10)', factors:{G:1.35,Q:1.5,W:0,E:0}, sls:false, on:true}, {id:'s1', label:'SLS: Q only', factors:{G:0,Q:1.0,W:0,E:0}, sls:true, on:true}]}); r = brief(); h = r.html;
   assert.ok(/s<sub>s<\/sub> = 0\.00 mm \(not entered: lower bound 0\)/.test(h) && /\* s<sub>s<\/sub> not entered at this end: evaluated at the lower bound s<sub>s<\/sub> = 0/.test(h), 'lower-bound note');
   assert.ok(/\(NOT VERIFIED\)/.test(h.slice(0, 400)) && !r.pass && !r.utils.some(u => /Web transverse/.test(u.name)), 'NOT VERIFIED, no web verdict entry');
   const wb = h.slice(h.indexOf('Web Transverse Forces (EN 1993-1-5 cl 6)'), h.indexOf('Compression Resistance') > 0 ? h.indexOf('Compression Resistance') : h.indexOf('Lateral'));
@@ -341,15 +343,18 @@ test('brief: "Web Transverse Forces (EN 1993-1-5 cl 6)" block directly after Loc
   c.reset({L:2, ends:E('ss',{e1:{ss:100}, e2:{ss:100}}), loads:[{type:'point',pos:1,P:500,case:'Q'}], combos:Q15()});
   r = brief(); h = r.html;
   assert.ok(/\(FAIL\)/.test(h.slice(0, 400)) && rows(h).find(x => x.label === 'F<sub>Ed</sub>/F<sub>Rd</sub>').tag === '<span class="ms-warn">Warning</span>');
-  // detailed report: the block, the station table and the note, for the restrained and the unrestrained routes
+  // rendered report (20 Sep 2026 single-brief task: the EC3 report IS the brief, the old detailed
+  // "Web Transverse Forces (EN 1993-1-5 Cl. 6, interaction Cl. 7.2)" block and its note are gone):
+  // the brief block, the station table and the note, for the restrained and the unrestrained routes
   for (const over of [{}, {restraint:'ltb'}]) {
     c.reset(Object.assign({L:6, ends:E('ss',{e1:{ss:100}, e2:{stiff:true}}), loads:[{type:'point',pos:3,P:200,case:'Q',ss:100}], combos:Q15()}, over));
     run(`document.getElementById=()=>({set innerHTML(v){ globalThis.__rep=v; }}); render();`);
     const rep = run('globalThis.__rep');
-    const i = rep.indexOf('Web Transverse Forces (EN 1993-1-5 Cl. 6, interaction Cl. 7.2)');
-    assert.ok(i > 0 && i > rep.indexOf('Moment Resistance (Cl. 6.2.5)'), 'report block after Moment Resistance');
+    const i = rep.indexOf('Web Transverse Forces (EN 1993-1-5 cl 6)');
+    assert.ok(i > 0 && i > rep.indexOf('Local Capacity Check') + rep.indexOf('Moment Capacity Check M.c.y.Rd') + 1, 'brief block after the Local / Moment Capacity block');
+    assert.equal((rep.match(/Web Transverse Forces/g) || []).length, 1, 'printed once (no second report)');
     assert.ok(/Governing station x = 3 m: point load 1/.test(rep) && /<td>End 2 reaction<\/td><td colspan="11">stiffener declared - design stiffener separately/.test(rep));
-    assert.ok(/Web transverse forces \(EN 1993-1-5 clause 6\): F<sub>Rd<\/sub> = f<sub>yw<\/sub>L<sub>eff<\/sub>t<sub>w<\/sub>\/&gamma;<sub>M1<\/sub> at every point load and every end reaction/.test(rep), 'report note');
+    assert.ok(/Point loads act on the top flange \(bottom flange for an upward load\), reactions on the bottom flange/.test(rep), 'brief note');
     assert.ok(!/undefined|NaN/.test(rep.slice(i, i + 6000)));
   }
 });
